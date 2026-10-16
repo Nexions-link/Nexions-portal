@@ -115,7 +115,7 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
          const response=await fetch(url,{cache:'no-store',mode:'cors'});
          if(!response.ok)continue;
          const release=await response.json();
-         if(release.project!=='NexGameWorld'||typeof release.version!=='string'||!/^\\d+\\.\\d+\\.\\d+$/.test(release.version))continue;
+         if(release.project!=='NexGameWorld'||typeof release.version!=='string'||!/^\d+\.\d+\.\d+$/.test(release.version))continue;
          versionLabel.textContent='PT '+release.version;
          versionLabel.title='Текущая опубликованная версия игры: '+release.version;
          return;
