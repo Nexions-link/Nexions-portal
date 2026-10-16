@@ -35,6 +35,9 @@ test('ornaments are batched and anchored to existing buildings',()=>{
   VILLAGE_VISUAL_COUNTS.roofColumns*VILLAGE_VISUAL_COUNTS.roofRows);
  assert.equal(tent.getObjectByName('nexgameworld-tent-stitching').count,
   VILLAGE_VISUAL_COUNTS.tentSeams);
+ // The factory starts with economy detail (no active crown instances).
+ assert.equal(scene.getObjectByName('nexgameworld-tree-crown-detail').count,0);
+ visuals.applyQuality(1);
  assert.equal(scene.getObjectByName('nexgameworld-tree-crown-detail').count,counts.tufts);
 });
 

@@ -1,4 +1,4 @@
-// Version display for the isolated spherical NexGame prototype.
+// Version display for the active spherical NexGameWorld alpha.
 // The BUILD version is embedded in the HTML that loaded the running game.
 // The latest release is read independently from version.json with cache bypass.
 (() => {
@@ -18,7 +18,7 @@
   const live=$('planetBuildLive');
   const statusLine=$('planetBuildStatusLine');
   let checking=false, lastPublished=null;
-  loadedText.textContent='Запущена: PT '+running;
+  loadedText.textContent='Запущена: Alpha '+running;
   function parseVersion(value){
     return String(value||'').split('.').map(n=>parseInt(n,10)||0);
   }
@@ -40,21 +40,21 @@
   }
   function setAvailable(latest){
     newTag.hidden=false;
-    newTag.textContent='Есть PT '+latest;
+    newTag.textContent='Есть Alpha '+latest;
     refresh.hidden=false;
-    refresh.textContent='Обновить игру до PT '+latest;
-    publishedText.textContent='На сайте: PT '+latest;
+    refresh.textContent='Обновить игру до Alpha '+latest;
+    publishedText.textContent='На сайте: Alpha '+latest;
     statusLine.textContent='В этой вкладке старая версия. Обнови страницу после завершения публикации.';
-    live.textContent='Доступна новая версия PT '+latest;
+    live.textContent='Доступна новая версия Alpha '+latest;
     root.classList.add('planet-update-ready');
   }
   function setCurrent(release){
     newTag.hidden=true;
     refresh.hidden=true;
     root.classList.remove('planet-update-ready');
-    publishedText.textContent='На сайте: PT '+release.version;
+    publishedText.textContent='На сайте: Alpha '+release.version;
     statusLine.textContent='Актуальная опубликованная сборка загружена.';
-    live.textContent='Сборка PT '+running+' актуальна.';
+    live.textContent='Сборка Alpha '+running+' актуальна.';
   }
   async function check(){
     if(checking)return;
@@ -75,13 +75,13 @@
       else if(relation===0)setCurrent(release);
       else {
         newTag.hidden=true;refresh.hidden=true;root.classList.remove('planet-update-ready');
-        publishedText.textContent='На сайте: PT '+release.version;
+        publishedText.textContent='На сайте: Alpha '+release.version;
         statusLine.textContent='Данные публикации ещё обновляются. Проверка будет повторена.';
       }
     } catch(error) {
       publishedText.textContent='Не удалось проверить опубликованную версию.';
       statusLine.textContent='Попробуй ещё раз при наличии подключения.';
-      console.warn('Planet Test version check:',error);
+      console.warn('NexGameWorld version check:',error);
     } finally {
       checking=false;checkButton.disabled=false;
     }

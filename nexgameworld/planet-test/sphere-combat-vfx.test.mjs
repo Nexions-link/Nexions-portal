@@ -15,7 +15,10 @@ test('pooled hit effect fades and never modifies the hostile target',()=>{
  assert.equal(visible.length,1);
  assert.equal(visible[0].children.length,5);
  assert.equal(visible[0].children.every(c=>c.castShadow===false),true);
+ // The effect intentionally caps a single frame advance at 0.1s.
  fx.update(.3);
+ assert.equal(fx.activeCount(),1);
+ fx.update(.3);fx.update(.3);
  assert.equal(fx.activeCount(),0);
 });
 test('successful shield block has its own lightweight colour and returns to pool',()=>{
@@ -26,7 +29,8 @@ test('successful shield block has its own lightweight colour and returns to pool
  const active=scene.children.find(c=>c.visible);
  assert.equal(active.children[0].material.color.getHex(),0xb5f4f4);
  fx.update(.2);assert.equal(fx.activeCount(),1);
- fx.update(.2);assert.equal(fx.activeCount(),0);
+ fx.update(.2);fx.update(.2);fx.update(.2);
+ assert.equal(fx.activeCount(),0);
 });
 test('economy disables particles; max quality displays five pooled sparks',()=>{
  const scene=new THREE.Scene(),fx=createSphericalCombatVfx({THREE,parent:scene});

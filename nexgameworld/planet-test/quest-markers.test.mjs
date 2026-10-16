@@ -49,7 +49,7 @@ test('exclamation marker uses solid depth, dark outline and halo instead of text
  assert.ok(Math.abs(m.userData.baseHeight-5.33)<1e-6,'marker now sits closer to NPC');
  assert.equal(m.scale.x,.8);
  assert.ok(m.children.some(x=>x.isSprite&&x.name==='quest-soft-halo'));
- assert.ok(m.children.some(x=>x.isMesh&&x.geometry.isExtrudeGeometry));
+ assert.ok(m.children.some(x=>x.isMesh&&x.geometry.type==='ExtrudeGeometry'));
  assert.equal(m.children.filter(x=>x.isMesh).length,4);
  for(const child of m.children){
   const hits=[];child.raycast({},hits);assert.equal(hits.length,0);
