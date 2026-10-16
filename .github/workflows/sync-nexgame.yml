@@ -41,7 +41,9 @@ jobs:
           # The custom-domain launcher is the ONLY entry point. Mirror the
           # spherical client plus its shared imports, models and art assets.
           # The archived flat prototype must never reappear on nexions.ru.
-          rsync -a --delete \
+          # Files in both fresh checkouts often have identical mtime/length;
+          # --checksum prevents stale same-sized JS and HTML after a release.
+          rsync -a --checksum --delete \
             --exclude='/.git/' \
             --exclude='/.github/' \
             --exclude='/index.html' \
