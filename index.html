@@ -93,7 +93,7 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
  </nav>
 </main>
 <footer class="release" aria-label="Статус и актуальная версия NexGameWorld">
- <span>ALPHA</span><span id="buildVersion" aria-live="polite">PT —</span>
+ <span>ALPHA</span><span id="buildVersion" aria-live="polite">Версия —</span>
 </footer>
 <script>
 (()=>{
@@ -129,7 +129,7 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
          if(!response.ok)continue;
          const release=await response.json();
          if(release.project!=='NexGameWorld'||typeof release.version!=='string'||!/^\d+\.\d+\.\d+$/.test(release.version))continue;
-         versionLabel.textContent='PT '+release.version;
+         versionLabel.textContent=release.version;
          versionLabel.title='Текущая опубликованная версия игры: '+release.version;
          return;
        }catch(err){console.warn('NexGameWorld version source unavailable:',source,err)}
