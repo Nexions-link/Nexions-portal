@@ -17,7 +17,7 @@ import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=1';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
-import {cycleHostileTarget,nearbyInteractable} from './interaction-targeting.js?v=5';
+import {cycleHostileTarget,nearbyInteractable} from './interaction-targeting.js?v=7';
 import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v=1';
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
@@ -310,6 +310,18 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const a=playerNormal(),b=toNormal(entity.x,entity.z,getRadius());
   return getRadius()*Math.acos(clamp(a.dot(b),-1,1));
  }
+ // Align target positions with the character's real forward direction (+Z)
+ // in the tangent plane of the planet; camera rotation is irrelevant.
+ const aimForward=new THREE.Vector3(),aimTarget=new THREE.Vector3();
+ function targetFacingAlignment(entity){
+  const normal=playerNormal(),other=toNormal(entity.x,entity.z,getRadius());
+  aimTarget.copy(other).addScaledVector(normal,-other.dot(normal));
+  if(aimTarget.lengthSq()<1e-12)return NaN;
+  aimForward.set(0,0,1).applyQuaternion(hero.root.quaternion);
+  aimForward.addScaledVector(normal,-aimForward.dot(normal));
+  if(aimForward.lengthSq()<1e-12)return NaN;
+  return clamp(aimForward.normalize().dot(aimTarget.normalize()),-1,1);
+ }
  function updateSelection(){targetRing.update(target);}
  function addItem(id,qty=1){
   if(!ITEM_CATALOG[id]&&id!=='healingPotion')return false;
@@ -406,9 +418,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function targetNearest(step=1){
   if(!modal.hidden)return;
-  // The production target cycle searches living hostiles within 40 m,
-  // not nearby NPCs, collectibles or chests.
-  const next=cycleHostileTarget(mobs,dummy,target,distance,step);
+  // Limit targeting to living enemies within 40 m. Priority goes to mobs
+  // in front of the hero; repeated presses still cycle through all targets.
+  const next=cycleHostileTarget(mobs,dummy,target,distance,step,targetFacingAlignment);
   if(next){targetEntity(next);}
   else if(!target)msg('В радиусе 40 м нет противников');
  }

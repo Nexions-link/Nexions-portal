@@ -23,13 +23,32 @@ export function nearbyInteractable(entities,dist,resourceReady){
  rows.sort((a,b)=>a.d-b.d);
  return rows[0]?.entity||null;
 }
-export function cycleHostileTarget(mobs,dummy,current,dist,step=1){
- const nearby=mobs.concat(dummy?[dummy]:[]).map((entity,index)=>({entity,index,d:dist(entity)}))
-  .filter(({entity,d})=>entity?.root?.visible&&entity.hp>0&&!entity.dead&&!entity.corpse&&
-    Number.isFinite(d)&&d<=TARGET_ACQUISITION_RADIUS)
-  // Strict nearest-first distance. No special treatment for training dummies.
-  .sort((a,b)=>a.d-b.d||a.index-b.index)
-  .map(item=>item.entity);
+// Spherical NexGameWorld directional targeting: favour what the hero faces, not a closer
+// enemy off to the side. Keep the original 40 m spherical acquisition range.
+// Targets outside the 60° forward cone remain reachable by cycling.
+export const FORWARD_TARGET_COSINE=.5;
+export function cycleHostileTarget(mobs,dummy,current,dist,step=1,alignment=null){
+ const directed=typeof alignment==='function';
+ const nearby=mobs.concat(dummy?[dummy]:[]).map((entity,index)=>{
+  const d=dist(entity);
+  // Cosine of the signed-independent angle in the hero's tangent plane.
+  // Undefined/singular facing falls back to distance-only selection.
+  const a=directed?alignment(entity):NaN;
+  return {entity,index,d,a:Number.isFinite(a)?Math.max(-1,Math.min(1,a)):NaN};
+ }).filter(({entity,d})=>entity?.root?.visible&&entity.hp>0&&!entity.dead&&!entity.corpse&&
+   Number.isFinite(d)&&d<=TARGET_ACQUISITION_RADIUS)
+ .sort((a,b)=>{
+  const aFront=Number.isFinite(a.a)&&a.a>=FORWARD_TARGET_COSINE;
+  const bFront=Number.isFinite(b.a)&&b.a>=FORWARD_TARGET_COSINE;
+  if(aFront!==bFront)return aFront?-1:1;
+  if(aFront&&bFront){
+   // Centred enemies beat much nearer ones at the edge of the cone;
+   // distance resolves targets pointing in almost the same direction.
+   const scoreA=1-a.a+a.d/500,scoreB=1-b.a+b.d/500;
+   return scoreA-scoreB||a.d-b.d||a.index-b.index;
+  }
+  return a.d-b.d||a.index-b.index;
+ }).map(item=>item.entity);
  if(!nearby.length)return null;
  const currentIndex=nearby.indexOf(current);
  if(currentIndex===-1)return nearby[0];
