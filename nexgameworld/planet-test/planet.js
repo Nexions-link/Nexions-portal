@@ -6,7 +6,8 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=42';
 import {createSphericalPresence} from './sphere-online.js?v=1';
-import {animateSphericalTauren} from './tauren-animation.js?v=4';
+import {animateSphericalTauren} from './tauren-animation.js?v=5';
+import {sampleSphericalFooting} from './foot-placement.js?v=1';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
 import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=20';
 initStartZoneMath(THREE);
@@ -731,8 +732,12 @@ try {
     rpg.update(dt);
     // Single native pose pass after gathering/combat state has updated.
     // No second subsystem may reset the hip, knee, torso or arm angles.
+    const terrainFeet=sampleSphericalFooting({
+      THREE,normal:state.normal,quaternion:actor.quaternion,radius:R,heightAt,
+      phase:state.legCycle,walk:hero.root.userData.walkBlend??power
+    });
     animateSphericalTauren(hero,{
-      dt,time:elapsed,walk:power,phase:state.legCycle,...rpg.getAnimationState()
+      dt,time:elapsed,walk:power,phase:state.legCycle,terrainFeet,...rpg.getAnimationState()
     });
 
     if (state.orbit) {

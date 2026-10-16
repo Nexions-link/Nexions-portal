@@ -2,12 +2,13 @@
 // local radial-up frame. Equipment grip tuners remain the source of truth.
 import {weaponSwingProfile,daggerThrustPose} from '../weapon-visuals.js?v=0.3.7.1';
 import {shieldBlockPose} from '../shield-block.js?v=0.3.7.1';
+import {footStrideZ} from './foot-placement.js?v=1';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const ease=(a,b,t)=>{const x=clamp((t-a)/(b-a),0,1);return x*x*(3-2*x)};
 const smooth=x=>x*x*(3-2*x);
 export function animateSphericalTauren(actor,{
  dt=1/60,time=0,walk=0,phase=0,gather=false,
- attack=-1,stomp=-1,blockRemaining=0,weaponKind='none'
+ attack=-1,stomp=-1,blockRemaining=0,weaponKind='none',terrainFeet=null
 }={}){
  const speed=clamp(walk,0,1),seconds=clamp(dt,0,.1),user=actor.root.userData;
  user.gatherBlend=clamp((user.gatherBlend||0)+((gather?1:0)-(user.gatherBlend||0))*(1-Math.exp(-seconds*13)),0,1);
@@ -47,21 +48,34 @@ export function animateSphericalTauren(actor,{
  actor.body.position.z-=.045*recoil;
  const stomping=stomp>=0,stompPower=clamp(stomp,0,1);
  if(stomping)actor.body.position.y-=.14*Math.sin(Math.min(stompPower/.55,1)*Math.PI);
- // Two-segment IK for each leg. Heel remains aligned to local radial-up ground.
+ // Two-segment IK for each leg. Independent terrain samples are smoothed
+ // per hoof to prevent single-frame jumps while walking over rocky slopes.
+ // Everything is in the actor's radial-up local frame, not global world Y.
+ const feet=user.terrainFeet??(user.terrainFeet=[{height:0,pitch:0,roll:0},{height:0,pitch:0,roll:0}]);
+ const footBlend=1-Math.exp(-seconds*11);
  for(let i=0;i<2;i++){
   const leg=actor.legs[i],p=((phase/(Math.PI*2)+i*.5)%1+1)%1;
-  let z=0,lift=0;
-  if(p<.58)z=.775-1.55*p/.58;
-  else{const t=(p-.58)/.42;z=-.775+1.55*smooth(t);lift=Math.sin(t*Math.PI)*.22}
-  z*=w;lift*=w*(1-bend);
+  let z=footStrideZ(phase,i)*w,lift=0;
+  if(p>=.58){const t=(p-.58)/.42;lift=Math.sin(t*Math.PI)*.22}
+  lift*=w*(1-bend);
   if(stomping&&i===1){lift+=.42*Math.sin(Math.min(stompPower/.48,1)*Math.PI);z+=.17*Math.sin(stompPower*Math.PI);}
-  const y=.205+lift-actor.body.position.y,
-   distance=clamp(Math.hypot(y,z),.15,1.397),
+  const sample=terrainFeet?.[i],foot=feet[i];
+  for(const axis of ['height','pitch','roll']){
+   const limit=axis==='height'?0.31:axis==='pitch'?0.28:0.23;
+   const desired=clamp(Number.isFinite(sample?.[axis])?sample[axis]:0,-limit,limit);
+   foot[axis]+=(desired-foot[axis])*footBlend;
+  }
+  // The swing lifts the hoof above the sampled ground, while the stance
+  // follows that ground and the hoof rotates to match its local slope.
+  const y=.205+foot.height+lift-actor.body.position.y;
+  const distance=clamp(Math.hypot(y,z),.15,1.397),
    knee=Math.acos(clamp((distance*distance-.72*.72-.68*.68)/(2*.72*.68),-1,1));
   leg.hip.position.y=actor.body.position.y;
   leg.hip.rotation.x=Math.atan2(-z,-y)-Math.atan2(.68*Math.sin(knee),.72+.68*Math.cos(knee));
   leg.knee.rotation.x=knee;
-  leg.foot.rotation.x=-leg.hip.rotation.x-knee;
+  const planted=1-clamp(lift/.22,0,1)*.65;
+  leg.foot.rotation.x=-leg.hip.rotation.x-knee+foot.pitch*planted;
+  leg.foot.rotation.z=foot.roll*planted;
  }
  for(let i=0;i<2;i++){
   const arm=actor.arms[i],sign=i?1:-1;

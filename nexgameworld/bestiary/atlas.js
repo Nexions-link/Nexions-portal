@@ -13,6 +13,12 @@ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.outputColorSp
 const ambient=new THREE.HemisphereLight(0xffeed8,0x405c50,2.2);scene.add(ambient);
 const light=new THREE.DirectionalLight(0xffffff,2.6);light.position.set(5,9,6);scene.add(light);
 const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.enablePan=false;
+// iOS Safari: reserve touches that start on the 3D canvas for orbit and pinch.
+// Prevent the outer page from taking over a gesture after the first movement.
+canvas.style.touchAction='none';
+for(const type of ['touchstart','touchmove']){
+ canvas.addEventListener(type,event=>{if(event.cancelable)event.preventDefault()},{passive:false});
+}
 let category='all',activeId='dolgonog',current=null,mixer=null,actions={},currentAction=null,loadId=0;
 const loader=new GLTFLoader(),clock=new THREE.Clock(),center=new THREE.Vector3();let radius=2;
 function resetView(){
