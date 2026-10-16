@@ -30,6 +30,8 @@ import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
 import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
 import {canWalkCamp} from './sphere-physics.js?v=3';
+import {canWadeAtLocal} from './start-zone.js?v=20';
+import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
@@ -229,7 +231,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   for(const side of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.08,.075,1.2,6),mat);leg.position.set(side*.25,.6,0);fallback.add(leg);}
   const entity={kind:'mob',index:i,name:'Равнинный долгоног',lootId:'dolgonog',root,x,z,yaw:.1,
    spawnX:x,spawnZ:z,hp:54,maxHp:54,aggro:false,attackCd:1.2,stun:0,dead:0,loot:null,corpse:false,
-   respawn:0,returning:false,walk:0,visual:null,hit:0,attackWindup:0,alertRemaining:0,corpseAge:0,boss:false,contactShadow,roamTime:i*1.73};
+   respawn:0,returning:false,walk:0,visual:null,hit:0,attackWindup:0,alertRemaining:0,corpseAge:0,boss:false,contactShadow,roamTime:i*1.73,navigation:null};
   const tag=makeLabel(entity.name,'#f9df91',26);tag.position.y=4.25;root.add(tag);entity.nameTag=tag;
   const alertTag=makeLabel('!','#ffc978',78);
   alertTag.position.y=4.95;alertTag.scale.set(1.55,1.4,1);alertTag.visible=false;
@@ -997,6 +999,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    if(!mob.root.visible){
     if(advanceRespawnTimer(mob,dt)){mob.dead=0;mob.corpse=false;mob.hp=mob.maxHp;mob.x=mob.spawnX;mob.z=mob.spawnZ;
+     mob.navigation=null;
      mob.root.visible=true;mob.returning=false;mob.aggro=false;mob.attackCd=1.2;mob.attackWindup=0;mob.hit=0;mob.corpseAge=0;mob.alertRemaining=0;
      mob.deathAnimation.reset();
      resetPlainstriderVisual(mob);
@@ -1022,12 +1025,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const spawnNormal=toNormal(mob.spawnX,mob.spawnZ,getRadius());
    const playerSpawnDistance=getRadius()*Math.acos(clamp(playerNormal().dot(spawnNormal),-1,1));
    const dist=distance(mob);
-   if(mob.aggro&&playerSpawnDistance>23){mob.aggro=false;mob.returning=true;mob.hp=mob.maxHp;mob.attackWindup=0;}
+   if(mob.aggro&&playerSpawnDistance>23){mob.aggro=false;mob.returning=true;mob.hp=mob.maxHp;mob.attackWindup=0;mob.navigation=null;}
    if(!mob.aggro&&!mob.returning&&dist<(mob.boss?9:7)&&playerSpawnDistance<23&&state.hp>0){
     mob.aggro=true;mob.alertRemaining=1.05;
    }
    let dx=0,dz=0;
-   if(mob.returning){dx=mob.spawnX-mob.x;dz=mob.spawnZ-mob.z;if(Math.hypot(dx,dz)<.25){mob.returning=false;mob.hp=mob.maxHp;}}
+   if(mob.returning){dx=mob.spawnX-mob.x;dz=mob.spawnZ-mob.z;if(Math.hypot(dx,dz)<.25){mob.returning=false;mob.hp=mob.maxHp;mob.navigation=null;}}
    else if(mob.aggro){dx=local.x-mob.x;dz=local.z-mob.z;}
    else{
     // Original calm wildlife slowly wanders within a couple of metres.
@@ -1037,21 +1040,32 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    const len=Math.hypot(dx,dz),moving=len>.06&&mob.stun<=0;
    const beforeX=mob.x,beforeZ=mob.z;
+   const mobCanWalk=(x,z)=>canWalkCamp(x,z,mob.boss?.94:.52)&&canWadeAtLocal(x,z);
    if(moving&&(!mob.aggro||len>(mob.boss?3:2.35))&&mob.attackWindup<=0){
-    const amount=Math.min(len,dt*(mob.aggro?(mob.boss?1.75:2.05):1.45));
-    const nx=mob.x+dx/len*amount,nz=mob.z+dz/len*amount;
-    if(canMoveTo(nx,nz)){mob.x=nx;mob.z=nz;}
+    moveMobToward(mob,{
+     goalX:mob.x+dx,goalZ:mob.z+dz,dt,
+     speed:mob.aggro?(mob.boss?1.75:2.05):1.45,
+     mode:mob.returning?'return':mob.aggro?'chase':'roam',
+     canWalk:mobCanWalk,detour:mob.aggro||mob.returning
+    });
    }
-   // Three.js bird GLB faces local +Z, and local up is radial to the sphere.
-   // Map-plane atan2(dx,dz) points in the wrong direction on the curved world.
-   const aim=mob.aggro&&state.hp>0?playerNormal():
-    mob.returning?toNormal(mob.spawnX,mob.spawnZ,getRadius()):
-    len>.05?toNormal(mob.x+dx/len,mob.z+dz/len,getRadius()):null;
+   // Face the actual travel direction when navigating around a building,
+   // then turn back toward the hero in attack range. This also respects
+   // the radial "up" and turns smoothly on the sphere.
+   const travelled=Math.hypot(mob.x-beforeX,mob.z-beforeZ);
+   const travelAim=travelled>.0001?toNormal(mob.x+(mob.x-beforeX)/travelled,
+    mob.z+(mob.z-beforeZ)/travelled,getRadius()):null;
+   const aim=mob.aggro&&state.hp>0?
+    (travelAim&&distance(mob)>(mob.boss?3:2.6)?travelAim:playerNormal()):
+    mob.returning?travelAim||toNormal(mob.spawnX,mob.spawnZ,getRadius()):
+    travelAim||(len>.05?toNormal(mob.x+dx/len,mob.z+dz/len,getRadius()):null);
    const normal=toNormal(mob.x,mob.z,getRadius());
    const desiredYaw=aim?sphereFacingYaw(THREE,normal,aim):null;
    // Face the moving player on EVERY frame, including stationary melee/Peck.
    mob.yaw=turnSphereYaw(mob.yaw,desiredYaw,dt,mob.attackWindup>0?16:12);
-   const close=distance(mob)<(mob.boss?3:2.6);
+   // No pecking through solid tents, rocks or house walls.
+   const close=distance(mob)<(mob.boss?3:2.6)&&
+    mobSegmentClear(mob.x,mob.z,local.x,local.z,(x,z)=>canWalkCamp(x,z,.12)&&canWadeAtLocal(x,z));
    if(mob.stun>0||!mob.aggro||state.hp<=0||!close){
     mob.attackWindup=0;
    }else if(mob.attackCd<=0){

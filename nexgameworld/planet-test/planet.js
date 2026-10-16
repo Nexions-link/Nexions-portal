@@ -5,6 +5,7 @@ import {cameraObstruction} from './sphere-physics.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=41';
+import {createSphericalPresence} from './sphere-online.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=4';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
 import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=20';
@@ -18,7 +19,7 @@ installSurfaceZoomGuard(document,planetViewport);
 planetViewport.addEventListener('selectstart',event=>event.preventDefault());
 planetViewport.addEventListener('contextmenu',event=>event.preventDefault());
 
-// Isolated planet experiment: no imports, saves, WebSockets or assets from the main RPG.
+// NexGameWorld uses isolated spherical WebSockets for player presence; RPG combat stays local.
 const isPortalPreview = new URLSearchParams(location.search).get('portal-preview') === '1';
 const BASE_RADIUS = START_RADIUS;
 const AVAILABLE_RADII = [87, 174, 261];
@@ -328,6 +329,22 @@ try {
    toLocal:normalToLocal,heightAt,camera,canvas,preview:isPortalPreview});
   combatQualitySink=rpg.setVisualQuality;
   combatQualitySink(isPortalPreview?.15:GRAPHICS_PRESETS[qualityName].detail);
+  let presenceMoving=false;
+  const onlinePresence=isPortalPreview?null:createSphericalPresence({
+    THREE,scene,
+    createAvatar:options=>createTauren(THREE,scene,options),
+    animateAvatar:animateSphericalTauren,
+    getPosition:()=>({normal:state.normal.toArray(),heading:state.heading,radius:R,moving:presenceMoving}),
+    getRadius:()=>R,heightAt,
+    onStatus:(value,count)=>{
+      const element=$('onlineStatus');if(!element)return;
+      element.textContent=value==='online'?'В мире: '+count+' игрок'+(count===1?'':count>=2&&count<=4?'а':'ов'):
+        value==='connecting'?'Подключение к миру…':
+        value==='incompatible'?'Сервер обновляется · локальный режим':
+        'Локальный режим · 1 игрок';
+    }
+  });
+  window.addEventListener('pagehide',()=>onlinePresence?.close());
   let prevHeading = 0;
   const cameraGoal = new THREE.Vector3();
   const focus = new THREE.Vector3();
@@ -707,7 +724,9 @@ try {
     // Follow only after controls are released; never overwrite vertical pitch.
     if(state.cameraFollow&&!state.orbit&&power<.11&&touches.size===0&&followCooldown<=0)
      state.cameraHeading=turnTowardsAngle(state.cameraHeading,state.heading,dt,3.8);
+    presenceMoving=power>.11;
     updateActor();
+    onlinePresence?.tick(dt,elapsed);
     startZone.animate(elapsed);
     rpg.update(dt);
     // Single native pose pass after gathering/combat state has updated.
