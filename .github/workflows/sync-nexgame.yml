@@ -38,26 +38,37 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p nexgameworld
-          # Keep the domain's /nexgameworld/ launcher while mirroring every
-          # client-facing dependency (../ imports, GLBs, CSS, assets, etc.)
-          # under /nexgameworld/. The playable build is ./planet-test/.
+          # The custom-domain launcher is the ONLY entry point. Mirror the
+          # spherical client plus its shared imports, models and art assets.
+          # The archived flat prototype must never reappear on nexions.ru.
           rsync -a --delete \
             --exclude='/.git/' \
             --exclude='/.github/' \
             --exclude='/index.html' \
+            --exclude='/app.html' \
+            --exclude='/game.js' \
+            --exclude='/versions/' \
+            --exclude='/portal/' \
             --exclude='/CNAME' \
             --exclude='/server/' \
             --exclude='/tests/' \
             --exclude='/*.md' \
             --exclude='/package.json' \
             "$RUNNER_TEMP/nexgame-source/" "nexgameworld/"
+          # rsync protects excludes from --delete, so explicitly erase files
+          # mirrored when the flat prototype was still public.
+          rm -f nexgameworld/app.html nexgameworld/game.js
+          rm -rf nexgameworld/versions nexgameworld/portal
           git -C "$RUNNER_TEMP/nexgame-source" rev-parse HEAD > nexgameworld/upstream-commit.txt
           test -s nexgameworld/planet-test/index.html
           test -s nexgameworld/planet-test/version.json
           test -s nexgameworld/planet-test/planet.js
           test -s nexgameworld/style.css
           test -s nexgameworld/skills.js
-          test -s nexgameworld/assets/placeholder-ignored 2>/dev/null || true
+          test ! -e nexgameworld/app.html
+          test ! -e nexgameworld/game.js
+          test ! -e nexgameworld/versions
+          test ! -e nexgameworld/portal
           # Fail early on an incomplete static mirror; do not publish broken game.
           test -f nexgameworld/index.html
           test -d nexgameworld/assets
