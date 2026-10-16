@@ -108,7 +108,9 @@ async function selectEntry(id){
  const request=++loadId;
  try{
   // Bypass browser and intermediary caches for GLB assets, including unchanged v0.1 filenames.
-  const assetUrl=new URL(entry.asset,document.baseURI);
+  // Resolve GLB assets relative to this module, not the host page's URL.
+  // This works from both /bestiary/atlas.html and nexions.ru/atlas/.
+  const assetUrl=new URL(entry.asset,import.meta.url);
   assetUrl.searchParams.set('atlas_refresh',atlasRevision);
   const response=await fetch(assetUrl.href,{cache:'no-store'});
   if(!response.ok)throw new Error('GLB HTTP '+response.status+': '+entry.asset);
