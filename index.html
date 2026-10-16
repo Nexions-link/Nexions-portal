@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#09151b">
+<meta name="theme-color" content="#0b1b22">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&display=swap" rel="stylesheet">
 <meta name="description" content="NexGameWorld — сферическая браузерная RPG. Войди в мир или изучи Атлас.">
 <meta property="og:title" content="NexGameWorld">
 <meta property="og:description" content="Сферическая браузерная RPG в альфа-версии.">
@@ -13,8 +16,27 @@
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;min-width:0;min-height:100%;background:#09151b;-webkit-text-size-adjust:100%}
 body{font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e9e7da;overflow-x:hidden}
-main{min-height:100dvh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;padding:30px 18px max(30px,env(safe-area-inset-bottom));background:radial-gradient(ellipse 56% 44% at 50% 48%,#1a3035 0%,#0e2027 55%,#09151b 100%)}
-h1{margin:0;font:normal clamp(36px,6.7vw,68px)/1.1 Georgia,"Times New Roman",serif;letter-spacing:-.045em;color:#edd3a0;text-align:center}
+main{position:relative;isolation:isolate;min-height:100dvh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;padding:30px 18px max(30px,env(safe-area-inset-bottom));overflow:hidden;background:
+ radial-gradient(ellipse 60% 46% at 50% 49%,rgba(54,104,103,.27),transparent 78%),
+ radial-gradient(ellipse 80% 62% at 52% 108%,rgba(90,109,83,.15),transparent 80%),
+ linear-gradient(180deg,#07141c 0%,#10252d 54%,#0b1b22 100%)}
+main::before{content:"";position:absolute;inset:0;z-index:-2;pointer-events:none;opacity:.52;background-image:
+ radial-gradient(1px 1px at 8% 18%,#d3d8c6 99%,transparent),
+ radial-gradient(1px 1px at 22% 36%,#d3d8c6 99%,transparent),
+ radial-gradient(1px 1px at 37% 9%,#c6d1c6 99%,transparent),
+ radial-gradient(1px 1px at 61% 22%,#c6d1c6 99%,transparent),
+ radial-gradient(1px 1px at 84% 14%,#d3d8c6 99%,transparent),
+ radial-gradient(1px 1px at 93% 40%,#d3d8c6 99%,transparent);
+ background-size:650px 520px}
+.ambient-landscape{position:absolute;inset:auto 0 0;z-index:-1;width:100%;height:min(42dvh,350px);overflow:hidden;pointer-events:none;opacity:.69;mask-image:linear-gradient(to bottom,transparent 0%,black 19%,black 100%);-webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 19%,black 100%)}
+.ambient-landscape svg{display:block;width:100%;height:100%}
+.ambient-landscape .ridge-far{fill:#314445;opacity:.47}
+.ambient-landscape .ridge-near{fill:#172b2d;opacity:.93}
+.ambient-landscape .treeline{fill:#0a1d24}
+
+h1{position:relative;z-index:2;margin:0;text-align:center;font:600 clamp(34px,6.3vw,66px)/1.23 "Cinzel","Palatino Linotype","Book Antiqua",Georgia,serif;letter-spacing:.018em;background:linear-gradient(180deg,#faeacc 9%,#dac08f 66%,#a78b61);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 9px 35px rgba(203,172,116,.09)}
+h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;background:linear-gradient(90deg,transparent,#b9a171,transparent)}
+
 .planet-wrap{position:relative;isolation:isolate;width:min(88vw, min(62dvh,600px));aspect-ratio:1;margin:8px auto 0;flex:0 0 auto}
 .planet-frame{display:block;position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;background:#101c32;mask-image:radial-gradient(circle at center,#000 54%,rgba(0,0,0,.94) 65%,transparent 76%);-webkit-mask-image:radial-gradient(circle at center,#000 54%,rgba(0,0,0,.94) 65%,transparent 76%)}
 .globe-interaction{position:absolute;inset:0;z-index:2;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;border-radius:50%}
@@ -28,15 +50,16 @@ h1{margin:0;font:normal clamp(36px,6.7vw,68px)/1.1 Georgia,"Times New Roman",ser
 .actions a:hover{transform:translateY(-2px)}
 .play{color:#142322;background:#e3c68f}
 .atlas{background:#152932;color:#e8d9b7;border-color:#5d726f!important}
-.hint{font-size:12px;letter-spacing:.03em;color:#8da5a9;text-align:center;margin:18px 0 0}
-.hint span{color:#c8ad78}
+.release{position:fixed;z-index:5;right:max(18px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;pointer-events:none;font:500 11px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:.10em;color:#a6b3af;opacity:.49}
+.release span+span::before{content:"·";margin-right:8px}
+
 @media(max-width:640px){
  main{justify-content:center;padding-top:30px}
- h1{font-size:clamp(35px,11vw,52px)}
+ h1{font-size:clamp(33px,9.3vw,52px);letter-spacing:0}
  .planet-wrap{width:min(95vw, min(54dvh,510px));margin:8px auto 3px}
  .actions{gap:10px}
  .actions a{min-width:142px;flex:1 1 40%;max-width:205px;padding:11px 12px;min-height:50px}
- .hint{margin-top:17px;font-size:11px}
+ .release{font-size:10px;right:max(13px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom))}
 }
 @media(max-height:620px) and (orientation:landscape){
  main{padding:10px 22px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);grid-template-rows:auto auto auto;align-content:center;column-gap:12px}
@@ -44,13 +67,20 @@ h1{margin:0;font:normal clamp(36px,6.7vw,68px)/1.1 Georgia,"Times New Roman",ser
  .planet-wrap{grid-column:2;grid-row:1/4;width:min(70dvh,420px);margin:auto}
  .actions{grid-column:1;grid-row:2;margin-top:18px}
  .actions a{min-width:120px;flex:1 1 140px}
- .hint{grid-column:1;grid-row:3}
+ .release{position:fixed;right:10px;bottom:7px}
 }
 @media(prefers-reduced-motion:reduce){.actions a{transition:none}}
 </style>
 </head>
 <body>
 <main>
+ <div class="ambient-landscape" aria-hidden="true">
+   <svg viewBox="0 0 1440 350" preserveAspectRatio="none" focusable="false">
+    <path class="ridge-far" d="M0 245 94 210 178 230 287 140 379 217 464 181 552 244 645 147 714 194 795 120 892 223 975 173 1061 221 1155 117 1266 234 1361 185 1440 220V350H0Z"/>
+    <path class="ridge-near" d="M0 276 122 249 208 281 300 225 373 287 466 261 535 296 638 229 726 294 839 255 919 302 1015 242 1111 294 1202 259 1312 290 1440 251V350H0Z"/>
+    <path class="treeline" d="M0 350V297l28-11 8-32 8 33 23 12 26-7 8-42 9 43 40-10 13-30 10 30 42 5 9-36 10 38 36 2 10-31 12 32 30-9 7-29 9 32 40 4 13-31 11 28 37 7 13-34 11 37 49-5 10-28 10 30 32-5 9-36 12 39 42-7 13-26 11 30 42 2 9-31 9 29 33-9 12-25 12 28 40 5 11-37 10 36 47-2 10-30 10 31 38-5 11-28 9 30 38-7 12-39 11 38 41-5 9-25 11 25 35-6 12-32 13 36 46-9 12-34 12 34 35-2 11-27 11 31 48-5 10-26 8 25 54-8 12-36 11 34 36-7 9-32 9 33 40-5 12-33 9 35 50-6 10-28 11 27 39-5v71Z"/>
+   </svg>
+ </div>
  <h1>NexGameWorld</h1>
  <div class="planet-wrap" aria-label="Интерактивный обзор планеты из игры NexGameWorld">
    <div class="planet-fallback" aria-hidden="true"></div>
@@ -61,12 +91,43 @@ h1{margin:0;font:normal clamp(36px,6.7vw,68px)/1.1 Georgia,"Times New Roman",ser
   <a class="play" href="https://nexions-link.github.io/Nexgame/planet-test/">Войти в мир</a>
   <a class="atlas" href="/atlas/">Открыть Атлас</a>
  </nav>
- <p class="hint"><span>Альфа</span> · Вращайте планету пальцем</p>
 </main>
+<footer class="release" aria-label="Статус и актуальная версия NexGameWorld">
+ <span>ALPHA</span><span id="buildVersion" aria-live="polite">PT —</span>
+</footer>
 <script>
 (()=>{
  'use strict';
  const frame=document.getElementById('planet');
+ const versionLabel=document.getElementById('buildVersion');
+ const versionSources=[
+   'https://nexions-link.github.io/Nexgame/planet-test/version.json',
+   'https://raw.githubusercontent.com/Nexions-link/Nexgame/main/planet-test/version.json'
+ ];
+ let versionChecking=false;
+ async function refreshGameVersion(){
+   if(versionChecking)return;
+   versionChecking=true;
+   try{
+     for(const source of versionSources){
+       try{
+         const url=source+(source.includes('?')?'&':'?')+'_='+Date.now();
+         const response=await fetch(url,{cache:'no-store',mode:'cors'});
+         if(!response.ok)continue;
+         const release=await response.json();
+         if(release.project!=='NexGameWorld'||typeof release.version!=='string'||!/^\\d+\\.\\d+\\.\\d+$/.test(release.version))continue;
+         versionLabel.textContent='PT '+release.version;
+         versionLabel.title='Текущая опубликованная версия игры: '+release.version;
+         return;
+       }catch(err){console.warn('NexGameWorld version source unavailable:',source,err)}
+     }
+     versionLabel.title='Не удалось получить номер версии игры';
+   }finally{versionChecking=false}
+ }
+ void refreshGameVersion();
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshGameVersion()});
+ window.addEventListener('pageshow',()=>void refreshGameVersion());
+ window.setInterval(()=>{if(!document.hidden)void refreshGameVersion()},60000);
  const surface=document.getElementById('rotate');
  // Force a fresh game index; the game itself versions all changed modules.
  frame.src='https://nexions-link.github.io/Nexgame/planet-test/?portal-preview=1&fresh='+Date.now();
