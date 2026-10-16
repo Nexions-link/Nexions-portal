@@ -83,12 +83,30 @@ jobs:
           test -f nexgameworld/index.html
           test -d nexgameworld/assets
 
+      - name: Publish Atlas as a native same-domain page
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The Atlas needs its real DOM on nexions.ru for reliable iOS 3D touch.
+          # Resolve every module, stylesheet and GLB from the same-domain mirror.
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path('nexgameworld/bestiary/atlas.html').read_text(encoding='utf-8')
+          if source.count('<head>') != 1 or 'id="viewerCanvas"' not in source:
+              raise SystemExit('Upstream Atlas HTML is missing its viewer')
+          atlas = source.replace('<head>', '<head><base href="/nexgameworld/bestiary/"><link rel="canonical" href="https://nexions.ru/atlas/">', 1)
+          out = Path('atlas/index.html')
+          out.parent.mkdir(parents=True, exist_ok=True)
+          if not out.exists() or out.read_text(encoding='utf-8') != atlas:
+              out.write_text(atlas, encoding='utf-8')
+          PY
+
       - name: Commit newer game files
         id: sync
         shell: bash
         run: |
           set -euo pipefail
-          git add -A nexgameworld
+          git add -A nexgameworld atlas/index.html
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Portal already contains latest NexGameWorld."
