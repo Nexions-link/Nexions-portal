@@ -71,6 +71,14 @@ jobs:
           test ! -e nexgameworld/game.js
           test ! -e nexgameworld/versions
           test ! -e nexgameworld/portal
+          # Reject incomplete or mixed releases before committing.
+          for file in planet-test/index.html planet-test/planet.js \
+                      planet-test/offline-rpg.js \
+                      planet-test/interaction-targeting.js \
+                      planet-test/version.json; do
+            cmp "$RUNNER_TEMP/nexgame-source/$file" "nexgameworld/$file"
+          done
+          node -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync("nexgameworld/planet-test/version.json","utf8")).version;const html=fs.readFileSync("nexgameworld/planet-test/index.html","utf8");if(!html.includes("data-build=\\""+v+"\\"")){throw Error("Game page build and version.json disagree: "+v)}'
           # Fail early on an incomplete static mirror; do not publish broken game.
           test -f nexgameworld/index.html
           test -d nexgameworld/assets
