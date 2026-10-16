@@ -89,7 +89,7 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
  </div>
  <nav class="actions" aria-label="Основные разделы">
   <a class="play" href="/nexgameworld/">Войти в мир</a>
-  <a class="atlas" id="atlasLink" href="https://nexions-link.github.io/Nexgame/bestiary/atlas.html">Открыть Атлас</a>
+  <a class="atlas" href="/atlas">Открыть Атлас</a>
  </nav>
 </main>
 <footer class="release" aria-label="Статус и актуальная версия NexGameWorld">
@@ -98,19 +98,6 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
 <script>
 (()=>{
  'use strict';
- // Navigate to the single maintained Atlas source, bypassing stale Pages HTML.
- const atlasLink=document.getElementById('atlasLink');
- const atlasSource='https://nexions-link.github.io/Nexgame/bestiary/atlas.html';
- const refreshAtlasLink=()=>{
-   const url=new URL(atlasSource);
-   url.searchParams.set('fresh',String(Date.now()));
-   atlasLink.href=url.href;
- };
- refreshAtlasLink();
- // Handles Safari BFCache, long-press, and ordinary taps.
- window.addEventListener('pageshow',refreshAtlasLink);
- atlasLink.addEventListener('pointerdown',refreshAtlasLink,{passive:true});
- atlasLink.addEventListener('click',refreshAtlasLink);
  const frame=document.getElementById('planet');
  const versionLabel=document.getElementById('buildVersion');
  const versionSources=[
