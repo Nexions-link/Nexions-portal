@@ -108,7 +108,7 @@ jobs:
                "import('/nexgameworld/bestiary/atlas.js?refresh='+Date.now())"),
           ]
           atlas = source.replace('<head>',
-              '<head><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="shortcut icon" href="/favicon.svg"><link rel="canonical" href="https://nexions.ru/atlas/">', 1)
+              '<head><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="shortcut icon" href="/favicon.svg"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="canonical" href="https://nexions.ru/atlas/">', 1)
           for old, new in replacements:
               if atlas.count(old) != 1:
                   raise SystemExit('Atlas entry point changed; refusing broken publish: ' + old)
@@ -135,12 +135,27 @@ jobs:
           print(f'Atlas verified: {len(model_paths)} model references, same-origin modules and loot')
           PY
 
+      - name: Generate Apple touch icon from NGW favicon
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --user cairosvg
+          python3 - <<'PY'
+          from pathlib import Path
+          import cairosvg
+          cairosvg.svg2png(url='favicon.svg', write_to='apple-touch-icon.png',
+                           output_width=180, output_height=180)
+          if Path('apple-touch-icon.png').stat().st_size < 500:
+              raise SystemExit('Apple icon generation failed')
+          print('Apple touch icon generated at 180x180')
+          PY
+
       - name: Commit newer game files
         id: sync
         shell: bash
         run: |
           set -euo pipefail
-          git add -A nexgameworld atlas/index.html
+          git add -A nexgameworld atlas/index.html apple-touch-icon.png
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Portal already contains latest NexGameWorld."
