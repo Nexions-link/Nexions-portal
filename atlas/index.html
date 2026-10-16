@@ -1,33 +1,30 @@
 <!doctype html>
-<html lang="ru">
-<head>
- <meta charset="utf-8">
- <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
- <meta name="theme-color" content="#101916">
- <meta name="description" content="Атлас NexGameWorld — каталог существ, оружия, 3D-моделей и анимаций.">
- <link rel="canonical" href="https://nexions.ru/atlas/">
- <title>NexGameWorld · Атлас мира</title>
- <style>
-  :root{color-scheme:dark}
-  *{box-sizing:border-box}
-  html,body{width:100%;height:100%;min-height:100%;margin:0;overflow:hidden;background:#101916;color:#e9e7da}
-  iframe{display:block;position:fixed;inset:0;width:100%;height:100%;height:100dvh;border:0;background:#101916}
-  .noscript{font:16px system-ui,sans-serif;padding:24px;text-align:center}
-  .noscript a{color:#dbc18c}
- </style>
-</head>
-<body>
- <iframe
-  id="nexgameworld-atlas"
-  title="Интерактивный Атлас NexGameWorld"
-  src="/nexgameworld/bestiary/atlas.html"
-  allow="fullscreen"
-  loading="eager"
- ></iframe>
- <noscript>
-  <div class="noscript">Для просмотра интерактивных 3D-моделей нужен JavaScript.
-   <a href="/nexgameworld/bestiary/atlas.html">Открыть Атлас</a>.
-  </div>
- </noscript>
-</body>
-</html>
+<html lang="ru"><head><base href="/nexgameworld/bestiary/"><link rel="canonical" href="https://nexions.ru/atlas/"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101916"><meta name="description" content="Атлас NexGameWorld — интерактивный каталог существ, оружия, 3D-моделей и анимаций сферического фэнтезийного мира."><meta property="og:title" content="Атлас NexGameWorld"><title>NexGameWorld · Атлас мира</title>
+<script>
+// Styles are loaded with a unique URL per visit, just like the Atlas catalog,
+// so Safari cannot reuse CSS from an older GitHub Pages deployment.
+const atlasStyles=document.createElement('link');
+atlasStyles.rel='stylesheet';
+atlasStyles.href='./atlas.css?refresh='+Date.now();
+document.head.append(atlasStyles);
+</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script></head>
+<body><div class="layout"><aside class="sidebar"><a class="brand" href="https://nexions.ru/" target="_top"><span class="brand-icon">N✦</span><span><strong>NEXGAMEWORLD</strong><small>АТЛАС МИРА · 2026</small></span></a>
+<p class="side-label">БИБЛИОТЕКА МИРА</p><nav id="categories" aria-label="Категории атласа"></nav><div class="side-footer"><a href="https://nexions.ru/" target="_top">← Вернуться на Nexions.ru</a></div></aside>
+<main class="main"><header class="top"><span>NEXGAMEWORLD / <strong>АТЛАС</strong></span><span class="online"><i></i> КОЛЛЕКЦИЯ РАЗВИВАЕТСЯ</span></header>
+<div class="intro"><p class="eyebrow">ЦИФРОВОЙ АРХИВ ФЭНТЕЗИЙНОГО МИРА</p><h1>Атлас <em>NexGameWorld.</em></h1><p>Интерактивный Атлас NexGameWorld: коллекция существ, оружия и игровых объектов нашего сферического мира. Изучайте модели, вращайте их в 3D и следите за развитием мира.</p></div>
+<div class="workspace"><section class="library"><div class="library-head"><h2>Коллекция</h2><span id="counter"></span></div><label class="search"><span>⌕</span><input id="search" type="search" placeholder="Поиск по атласу…" autocomplete="off"></label><div id="entries" class="entries"></div></section>
+<section class="detail"><div class="detail-top"><span id="entryNumber">№ C001</span><span id="entryVersion">ОРИГИНАЛ · v0.1</span></div><h2 id="entryName">Долгоног</h2><p id="entrySubtitle" class="subtitle"></p>
+<div class="viewer"><div class="viewer-head"><span>◉ ИНТЕРАКТИВНАЯ 3D-МОДЕЛЬ</span><span id="modelStatus">ЗАГРУЗКА</span></div><canvas id="viewerCanvas"></canvas><div class="viewer-bottom"><span>Поворот — пальцем · Масштаб — двумя пальцами</span><button id="resetView" type="button">↺ Сбросить ракурс</button></div></div>
+<div id="animationPanel" class="animation-panel" hidden><span>АНИМАЦИЯ</span><div id="animations"></div></div>
+<section id="palettePanel" class="palette-panel" aria-label="Редактор цветовой палитры" hidden></section>
+<div class="detail-description"><h3>Описание</h3><p id="entryDescription"></p></div><div class="facts" id="facts"></div><section id="lootPanel" class="creature-loot" hidden aria-label="Возможная добыча"><h3>Возможная добыча</h3><p id="lootHint" class="creature-loot-hint"></p><div id="lootItems" class="creature-loot-items"></div></section></section></div>
+<footer>АТЛАС NEXGAMEWORLD · КОЛЛЕКЦИЯ СУЩЕСТВ, ОРУЖИЯ И ИГРОВЫХ РЕСУРСОВ</footer></main></div><script type="module">
+// This bootstrap uses a new module URL per page visit, independent of the creature model version.
+// GitHub Pages' CDN still needs to finish deploying before new files become available.
+import('./atlas.js?refresh='+Date.now()).catch(error=>{
+ const status=document.getElementById('modelStatus');
+ if(status)status.textContent='НЕ УДАЛОСЬ ЗАГРУЗИТЬ АТЛАС';
+ console.error('Atlas bootstrap failed',error);
+});
+</script></body></html>
