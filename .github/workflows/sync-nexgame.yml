@@ -1,0 +1,92 @@
+name: Sync NexGameWorld to nexions.ru
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sync-nexgame.yml'
+      - 'nexgameworld/index.html'
+      - 'index.html'
+  workflow_dispatch:
+  schedule:
+    # GitHub scheduled workflows can run a little later than the stated time.
+    - cron: '*/5 * * * *'
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: nexions-game-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Nexions portal
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Fetch latest public NexGameWorld
+        run: |
+          git clone --quiet --depth 1 --branch main https://github.com/Nexions-link/Nexgame.git "$RUNNER_TEMP/nexgame-source"
+
+      - name: Mirror game assets under the same-domain route
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p nexgameworld
+          # Keep the domain's /nexgameworld/ launcher while mirroring every
+          # client-facing dependency (../ imports, GLBs, CSS, assets, etc.)
+          # under /nexgameworld/. The playable build is ./planet-test/.
+          rsync -a --delete \
+            --exclude='/.git/' \
+            --exclude='/.github/' \
+            --exclude='/index.html' \
+            --exclude='/CNAME' \
+            --exclude='/server/' \
+            --exclude='/tests/' \
+            --exclude='/*.md' \
+            --exclude='/package.json' \
+            "$RUNNER_TEMP/nexgame-source/" "nexgameworld/"
+          git -C "$RUNNER_TEMP/nexgame-source" rev-parse HEAD > nexgameworld/upstream-commit.txt
+          test -s nexgameworld/planet-test/index.html
+          test -s nexgameworld/planet-test/version.json
+          test -s nexgameworld/planet-test/planet.js
+          test -s nexgameworld/style.css
+          test -s nexgameworld/skills.js
+          test -s nexgameworld/assets/placeholder-ignored 2>/dev/null || true
+          # Fail early on an incomplete static mirror; do not publish broken game.
+          test -f nexgameworld/index.html
+          test -d nexgameworld/assets
+
+      - name: Commit newer game files
+        id: sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A nexgameworld
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Portal already contains latest NexGameWorld."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "sync: update NexGameWorld game assets from Nexgame/main"
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Request Pages rebuild after a bot commit
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          # Bot commits cannot themselves trigger the branch-based Pages build.
+          # This explicit build request refreshes the custom-domain site.
+          if ! gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"; then
+            echo "::warning::Game mirror committed, but Pages rebuild could not be requested. A normal push to the portal repository will publish it."
+          fi
