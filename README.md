@@ -1,11 +1,12 @@
 # Nexions — NexGameWorld portal
 
-Статическая приветственная страница для `https://nexions.ru/`.
+Статическая приветственная страница для `https://nexions.ru/`, а также встроенный Атлас на `https://nexions.ru/atlas/`.
 
 ## Ссылки
 
 - **NexGameWorld:** https://nexions-link.github.io/Nexgame/planet-test/
-- **Атлас:** https://nexions-link.github.io/Nexgame/bestiary/atlas.html
+- **Атлас на домене Nexions:** https://nexions.ru/atlas/ (GitHub Pages перенаправит `/atlas` на `/atlas/`).
+- **Источник Атласа:** https://nexions-link.github.io/Nexgame/bestiary/atlas.html — он загружается во встроенном окне; модели и анимации не копируются в репозиторий портала и обновляются вместе с исходным Атласом.
 
 Не переносить игру в этот репозиторий: сохранения NexGameWorld остаются привязаны к её прежнему GitHub Pages origin.
 
