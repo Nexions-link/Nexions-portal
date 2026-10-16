@@ -84,22 +84,55 @@ jobs:
           test -f nexgameworld/index.html
           test -d nexgameworld/assets
 
-      - name: Publish Atlas as a native same-domain page
+      - name: Publish and validate Atlas on the custom domain
         shell: bash
         run: |
           set -euo pipefail
-          # The Atlas needs its real DOM on nexions.ru for reliable iOS 3D touch.
-          # Resolve every module, stylesheet and GLB from the same-domain mirror.
+          # Keep a native page at /atlas/ with explicit same-origin paths.
+          # Never rely on <base>: inline module imports and Safari URL
+          # resolution may otherwise break depending on the entry URL.
           python3 - <<'PY'
           from pathlib import Path
-          source = Path('nexgameworld/bestiary/atlas.html').read_text(encoding='utf-8')
+          import re
+          root = Path('nexgameworld/bestiary')
+          source = (root / 'atlas.html').read_text(encoding='utf-8')
+          script = (root / 'atlas.js').read_text(encoding='utf-8')
           if source.count('<head>') != 1 or 'id="viewerCanvas"' not in source:
               raise SystemExit('Upstream Atlas HTML is missing its viewer')
-          atlas = source.replace('<head>', '<head><base href="/nexgameworld/bestiary/"><link rel="canonical" href="https://nexions.ru/atlas/">', 1)
+          if 'new URL(entry.asset,import.meta.url)' not in script:
+              raise SystemExit('Atlas must resolve models relative to its JS module')
+          replacements = [
+              ("atlasStyles.href='./atlas.css?refresh='+Date.now();",
+               "atlasStyles.href='/nexgameworld/bestiary/atlas.css?refresh='+Date.now();"),
+              ("import('./atlas.js?refresh='+Date.now())",
+               "import('/nexgameworld/bestiary/atlas.js?refresh='+Date.now())"),
+          ]
+          atlas = source.replace('<head>',
+              '<head><link rel="canonical" href="https://nexions.ru/atlas/">', 1)
+          for old, new in replacements:
+              if atlas.count(old) != 1:
+                  raise SystemExit('Atlas entry point changed; refusing broken publish: ' + old)
+              atlas = atlas.replace(old, new, 1)
+          if '<base ' in atlas:
+              raise SystemExit('Unexpected <base> on standalone Atlas route')
+          catalog = (root / 'atlas-catalog.js').read_text(encoding='utf-8')
+          model_paths = re.findall(r"asset:'([^']+)'", catalog)
+          if not model_paths:
+              raise SystemExit('Atlas catalog contains no models')
+          for model_path in model_paths:
+              asset = root / model_path
+              if not asset.is_file() or asset.stat().st_size == 0:
+                  raise SystemExit('Missing 3D model: ' + str(asset))
+          for relative in ('atlas.css', 'atlas.js', 'atlas-catalog.js',
+                           'atlas-palette-editor.js', '../planet-test/loot-tables.js',
+                           '../items.js'):
+              if not (root / relative).is_file():
+                  raise SystemExit('Missing Atlas dependency: ' + relative)
           out = Path('atlas/index.html')
           out.parent.mkdir(parents=True, exist_ok=True)
           if not out.exists() or out.read_text(encoding='utf-8') != atlas:
               out.write_text(atlas, encoding='utf-8')
+          print(f'Atlas verified: {len(model_paths)} model references, same-origin modules and loot')
           PY
 
       - name: Commit newer game files
