@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#352d1d">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>NexGameWorld · PT 0.6.24</title>
+<!-- Alpha 0.3.7.0: finalized sword grip and preserved independently calibrated axe grip. -->
+<link rel="stylesheet" href="../style.css?v=0.3.7.0">
+<!-- Critical sizing for icon toolbar: must work even when Safari serves an older style.css. -->
+<style id="hud-toolbar-failsafe">
+#top{
+ display:grid;
+ grid-template-columns:repeat(5,minmax(0,1fr));
+ width:min(210px,52vw);gap:4px
+}
+#top #partyOpen{grid-column:auto}
+#top .smallButton{
+ width:100%;min-width:0;height:38px;min-height:38px;
+ display:grid;place-items:center;padding:0;line-height:1;
+ overflow:hidden
+}
+#top .smallButton svg{
+ display:block;width:22px;height:22px;max-width:22px;max-height:22px;
+ fill:none;stroke:currentColor;stroke-width:1.9;
+ stroke-linecap:round;stroke-linejoin:round
+}
+@media(max-width:760px){
+ #top{
+  top:calc(20px + var(--safe-top,0px) + var(--hud-row-height,90px));
+  right:calc(8px + env(safe-area-inset-right,0px));
+  width:min(200px,52vw)
+ }
+}
+@media(max-width:360px){#top{width:min(180px,53vw)}}
+</style>
+<style id="planet-native-adapter">
+/* The exact original HUD sizing and styling is sourced from ../style.css. */
+#viewport{position:fixed;inset:0;z-index:0;touch-action:none;outline:none}
+#viewport canvas{display:block;width:100%;height:100%;touch-action:none}
+#labLegacy,#labSettingsSources{display:none!important}
+ /* Respect hidden even if a shared stylesheet sets display on the panel. */
+ #modal #cameraControl[hidden],#modal #graphicsControl[hidden]{display:none!important}
+/* In Planet Test the existing mini-map opens/closes the full globe. */
+#hudTop #minimapFrame{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#hudTop #minimapFrame:focus-visible{outline:3px solid #ffe39a;outline-offset:3px}
+#loading{position:fixed;z-index:70;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at center,#4a503d,#171c17);font:normal 23px Georgia,serif;color:#efd6a0;transition:opacity .25s}
+#loading.is-done{opacity:0;pointer-events:none}
+#failure{position:fixed;z-index:80;left:14px;right:14px;top:38%;display:none;padding:16px;background:#28271def;border:2px solid #a58a54;text-align:center;color:#f9e2ae;font:16px/1.55 system-ui,sans-serif}
+#failure:not(:empty){display:block}
+#mbody .rpgRow{display:flex;align-items:center;gap:8px;min-height:50px;border-bottom:1px solid #8b71394d;padding:8px 0;font:12px system-ui,sans-serif}
+#mbody .rpgRow>div{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+#mbody .rpgRow strong{font-weight:700;color:#4c351d}
+#mbody .rpgRow small{font:11px/1.35 system-ui,sans-serif;color:#6e502c}
+#mbody .rpgRow button{padding:7px 9px;background:#55432a;border:1px solid #947346;color:#f6e4b6;border-radius:3px;min-width:62px;touch-action:manipulation}
+#mbody .rpgRow button.reset-progress-action{background:#61423b;border-color:#a87869;color:#fff0db;font-weight:700;min-height:40px;white-space:normal;max-width:135px}
+#mbody .rpgRow button.reset-progress-action:focus-visible{outline:2px solid #dfb68a;outline-offset:3px}
+#mbody .planetEquipmentGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:13px 0}
+#mbody .planetEquipmentGrid .equipment-slot{min-width:0;min-height:84px;touch-action:manipulation}
+#panel.character-modal #mbody .rpgRow strong{color:#e6d1a0}
+#panel.character-modal #mbody .rpgRow small{color:#b9b39f}
+#panel.character-modal .inventory-summary{color:#c1b99d;border-color:#877849}
+#panel.character-modal #mbody .rpgRow{border-color:#746b4a}
+#panel.character-modal #mbody .rpgRow button{background:#4d4c35}
+#mbody .inventory-detail button.choice{min-height:40px;margin:9px 8px 0 0;padding:8px 11px}
+#mbody .inventory-detail p{margin:8px 0 0}
+#mbody .spellbook-list{max-height:none}
+@media(max-width:440px){#mbody .planetEquipmentGrid{gap:5px}#mbody .planetEquipmentGrid .equipment-slot{min-height:70px;padding:4px 2px}#mbody .planetEquipmentGrid .equipment-slot small{font-size:9px}}
+
+#mbody{max-height:calc(79dvh - 135px);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
+#mbody #radiusPicker{display:block!important;border:1px solid #977a4c;background:#d1b98142;padding:10px;margin:7px 0 12px}
+#radiusPicker .caption{text-align:center;font:700 12px system-ui,sans-serif;color:#4b3623}
+#radiusChoices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:11px 0}
+.radius-choice{border:2px ridge #947449;background:#52422b;color:#f9e6b4;min-height:43px;border-radius:3px;font:700 14px system-ui,sans-serif}
+.radius-choice[aria-pressed="true"]{background:#caaa6c;color:#392815}
+#worldMetrics{text-align:center;color:#684a2c;font:11px system-ui,sans-serif}
+#mbody #tools{position:static;display:flex;flex-wrap:wrap;gap:7px;width:100%;margin:8px 0}
+#mbody #tools .tool{flex:1;min-width:95px;min-height:42px;border:2px ridge #957749;background:#51432e;color:#f9e5ba;padding:7px 5px;font:12px system-ui,sans-serif;touch-action:manipulation}
+#mbody #tools .tool[aria-pressed="true"]{background:#c9a66f;color:#301d10}
+#actionsBar .ability .planetAbilityIcon{display:block;text-align:center;font-size:28px;line-height:42px;margin-top:4px}
+#actionsBar .ability .planetAbilityName{display:block;font:9px/1.2 system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 2px}
+#actionsBar .ability.is-active{border-color:#edce86;box-shadow:0 0 10px #e8c67c8c}
+#actionsBar .ability.is-cooldown{filter:grayscale(.75);opacity:.75}
+#actionsBar .ability.is-empty{opacity:.65}
+#actionsBar .ability{position:relative;overflow:hidden}
+#actionsBar .ability .planetCooldownShade{
+ position:absolute;z-index:3;left:0;right:0;top:0;height:0;
+ background:linear-gradient(180deg,#151d20d8,#18232c9a);
+ pointer-events:none;transition:height .12s linear
+}
+#actionsBar .ability .planetGcdShade{
+ position:absolute;z-index:4;inset:0;
+ background:linear-gradient(180deg,#cfbe84a1,#d2ae5970);
+ transform-origin:bottom center;transform:scaleY(0);
+ pointer-events:none;opacity:.45;transition:transform .12s linear
+}
+#actionsBar .ability .planetCooldownText{
+ position:absolute;z-index:5;top:32%;left:0;right:0;
+ pointer-events:none;color:#f6ecd6;font:bold 14px Georgia,serif;
+ text-shadow:0 2px 4px #090f15,1px 0 2px #090f15
+}
+.inventory-slot.occupied{border-color:var(--item-quality-color,#efe6d5)}
+.inventory-slot.occupied.rarity-uncommon{box-shadow:inset 0 0 9px #45c67f36}
+.inventory-slot.occupied.rarity-rare{box-shadow:inset 0 0 12px #579dec58}
+
+/* PT 0.6.6: edge notifications live beneath the upper-right HUD.
+   Never use bottom/left positioning: that is the movement-joystick zone. */
+#toast{
+ position:fixed!important;
+ top:calc(env(safe-area-inset-top,0px) + 216px)!important;
+ right:calc(env(safe-area-inset-right,0px) + 10px)!important;
+ bottom:auto!important;left:auto!important;
+ transform:translateY(-7px)!important;
+ max-width:min(216px,43vw);width:max-content;
+ padding:7px 10px;border:1px solid #9c8654;border-radius:5px;
+ background:#25271de8;color:#e9d9b5;
+ font:12px/1.4 system-ui,-apple-system,sans-serif;
+ text-align:left;text-shadow:0 1px 2px #14140e;
+ box-shadow:0 2px 10px #0004;z-index:40;
+ opacity:0;pointer-events:none;
+ transition:opacity .18s,transform .18s;
+}
+#toast.show{opacity:1;transform:translateY(0)!important}
+#toast[hidden]{display:none!important}
+@media(max-width:600px){
+ #toast{max-width:min(200px,44vw);font-size:11px;padding:6px 8px}
+}
+@media(orientation:landscape) and (max-height:480px){
+ #toast{top:calc(env(safe-area-inset-top,0px) + 201px)!important;
+  max-width:min(180px,38vw)}
+}
+/* Native corpse-loot dialog, styled like the original NexGame loot list. */
+#mbody .planet-loot-intro{
+ color:#ddc99f;font:12px/1.55 system-ui,sans-serif;
+ margin:8px 0 12px
+}
+#mbody .planet-loot-notice{
+ min-height:0;color:#9e612e;font:700 12px/1.4 system-ui,sans-serif;
+ margin:2px 0 6px
+}
+#mbody .planet-loot-notice:empty{display:none}
+#mbody .loot-list{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}
+#mbody .loot-item{
+ display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+ width:100%;min-height:57px;gap:4px;
+ padding:9px 12px;touch-action:manipulation
+}
+#mbody .loot-item-name{font:700 14px/1.35 Georgia,serif;text-align:left}
+#mbody .loot-item-stats{font:11px/1.35 system-ui,sans-serif;color:#d4c6ac;
+ white-space:normal;text-align:left}
+#mbody .planet-loot-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
+#mbody .planet-loot-actions .choice{min-height:44px;min-width:0;
+ border:1px solid #b9a06a;border-radius:4px;
+ background:linear-gradient(#6a613b,#3b422b);color:#f5e2ae;
+ font:700 12px/1.25 system-ui,sans-serif;touch-action:manipulation}
+#mbody .planet-loot-actions .planet-loot-leave{background:linear-gradient(#5a4937,#37332b)}
+/* Planet Test native journal and spellbook micro-controls, iPhone first. */
+.planet-journal-tabs,.planet-hotbar-slot-picker{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 11px}
+.planet-journal-tabs .choice,.planet-hotbar-slot-picker .choice{
+ flex:1;min-width:0;min-height:36px;padding:7px 5px;border:1px solid #896e49;
+ background:#2e3029;color:#e4d2a7;border-radius:4px;
+ font:700 11px/1.2 system-ui,sans-serif;touch-action:manipulation}
+.planet-journal-tabs .choice.is-selected,.planet-hotbar-slot-picker .choice.is-selected{
+ color:#2b2117;background:#d1aa67;border-color:#f9da98;box-shadow:inset 0 0 0 1px #f6d593}
+.planet-hotbar-slot-picker{display:grid;grid-template-columns:repeat(8,minmax(0,1fr))}
+.planet-hotbar-slot-picker .choice{font-size:13px;min-height:35px}
+#chatDock,#partyHud,#partyInvitation{display:none!important}
+#mbody .rpgRow button:focus-visible{outline:2px solid #e7b467}
+@media(max-width:760px){#actionsBar .ability .planetAbilityIcon{font-size:22px;line-height:39px}}
+
+/* Independent test-only build indicator; leaves the original NexGame HUD intact. */
+#planetBuildWidget{position:fixed;z-index:19;top:calc(env(safe-area-inset-top,0px) + 154px);right:calc(env(safe-area-inset-right,0px) + 8px);width:max-content;max-width:calc(100vw - 16px);font:12px/1.35 system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+#planetVersionBadge{min-height:32px;display:flex;align-items:center;justify-content:center;gap:7px;padding:6px 9px;color:#e9d39c;background:#26251ed9;border:1px solid #a78d5e;border-radius:5px;box-shadow:0 2px 8px #0007;white-space:nowrap;font:700 11px/1.15 system-ui,sans-serif;letter-spacing:.15px;touch-action:manipulation}
+#planetBuildNew{display:block;padding:3px 4px;border-radius:3px;background:#c5a66c;color:#242018;font:700 10px/1 system-ui,sans-serif;white-space:nowrap}
+#planetBuildNew[hidden],#planetBuildPanel[hidden],#planetBuildRefresh[hidden]{display:none!important}
+#planetBuildWidget.planet-update-ready #planetVersionBadge{border-color:#f6d584;box-shadow:0 0 9px #e5c27d8a}
+#planetBuildPanel{position:absolute;right:0;top:calc(100% + 7px);width:min(340px,calc(100vw - 16px));max-height:min(52dvh,450px);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:12px 13px;background:#292519f5;border:2px ridge #bba06d;border-radius:7px;box-shadow:0 9px 30px #000b;color:#ecdab4;line-height:1.45;font:12px/1.45 system-ui,sans-serif}
+#planetBuildPanel .planet-release-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px;color:#f4d49a}
+#planetBuildPanel .planet-release-head strong{font:700 15px Georgia,serif}
+#planetBuildClose{width:29px;height:29px;flex:none;border:1px solid #ac8051;background:#3d3325;color:#f5d59b;border-radius:3px;font:20px/1 system-ui,sans-serif;touch-action:manipulation}
+#planetBuildLoaded,#planetBuildPublished{margin:4px 0;color:#e3d6b8;font:12px system-ui,sans-serif}
+#planetBuildStatusLine{margin:9px 0 10px;color:#c8be9f;font:11px/1.45 system-ui,sans-serif}
+#planetBuildPanel h3{font:700 12px system-ui,sans-serif;color:#eac783;margin:10px 0 6px}
+#planetBuildNotes{padding-left:18px;margin:4px 0 10px}
+#planetBuildNotes li{margin:4px 0}
+#planetBuildPanel .planet-release-actions{display:flex;gap:7px;flex-wrap:wrap}
+#planetBuildPanel .planet-release-actions button{min-height:36px;flex:1;padding:6px;border:1px solid #ac8e55;background:#52432b;color:#f3e0b3;border-radius:4px;font:700 11px system-ui,sans-serif;touch-action:manipulation}
+#planetBuildPanel .planet-release-actions button:disabled{opacity:.5}
+#planetBuildLive{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:760px){#planetBuildWidget{top:calc(env(safe-area-inset-top,0px) + 163px)}#planetVersionBadge{min-height:34px;font-size:11px}}
+</style>
+
+<!-- The public site reuses this exact game world in lightweight orbital mode. -->
+<script>
+ if(new URLSearchParams(location.search).get('portal-preview')==='1')
+   document.documentElement.classList.add('portal-preview');
+</script>
+<style id="portal-preview-only">
+html.portal-preview,html.portal-preview body{margin:0;width:100%;height:100%;overflow:hidden;background:#101c32}
+html.portal-preview body > :not(#viewport):not(#loading):not(#failure):not(script){display:none!important}
+html.portal-preview #viewport,html.portal-preview #viewport canvas{position:fixed;inset:0;width:100%!important;height:100%!important;touch-action:none!important}
+html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
+</style>
+</head>
+<body>
+<main id="viewport" aria-label="Сферический мир NexGameWorld"></main>
+<div id="combatFeedback" aria-hidden="true"></div>
+<div id="vignette"></div>
+<div id="hudTop" aria-label="Игровые панели персонажа цели и карты">
+<header id="playerFrame" class="frame">
+ <div class="portrait" aria-hidden="true"><svg viewBox="0 0 80 80"><path fill="#dbcb9b" d="M25 29Q2 36 6 8Q14 24 27 20M55 29Q78 36 74 8Q66 24 53 20"/><path fill="#553925" d="M16 44L22 22L38 15L60 23L64 45L52 66L28 66Z"/><path fill="#98704c" d="M23 40L28 26L49 26L59 44L51 61L30 61Z"/><path fill="#392f25" d="M25 39L36 43L33 47L25 45M55 39L44 43L47 47L55 45"/><path fill="#be9469" d="M27 50Q40 45 53 50L55 61Q40 72 25 61Z"/><circle cx="34" cy="56" r="2" fill="#382e25"/><circle cx="47" cy="56" r="2" fill="#382e25"/><path d="M40 61L39 68L46 68" stroke="#cfaa5a" stroke-width="3" fill="none"/></svg><span id="levelBadge">1</span></div>
+ <div class="player-info"><div class="unit-name"><span id="playerName">Странник</span><span id="className">Таурен · Воин</span></div><div class="bar health"><div id="hpFill"></div><span id="hpText">120 / 120</span></div><div class="bar rage" id="resourceBar" role="progressbar" aria-label="Ярость" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="rageFill"></div><span id="rageText">Ярость 0 / 100</span></div><div id="combatState">Готов к бою</div></div>
+</header>
+<div id="targetFrame" class="frame" hidden>
+ <button id="targetClear" aria-label="Снять цель" title="Снять цель">×</button>
+ <span id="targetName"></span>
+ <div class="bar health"><div id="targetFill"></div><span id="targetHp"></span></div>
+ <div id="targetDistance" aria-live="off"></div>
+ <div id="targetStatus" aria-live="off"></div>
+ <div id="dummyStats" hidden aria-label="Статистика тренировочного манекена">
+  <div class="dummy-heading">Тренировочная цель · не атакует</div>
+  <div class="dummy-metrics">
+   <span id="dummyLastHit">Последний: —</span>
+   <span id="dummyTotal">Урон: 0</span>
+   <span id="dummyDps">DPS: 0</span>
+   <span id="dummyHitCount">Удары: 0</span>
+  </div>
+  <div id="dummyLastAbility">Последний навык: —</div>
+  <div id="dummyReady">Манекен готов к тренировке</div>
+  <button id="dummyReset" type="button" title="Сбросить замер урона">Сбросить замер</button>
+ </div>
+</div>
+<div id="allyFrame" class="frame" hidden aria-label="Выбранный игрок">
+ <button type="button" id="allyClear" aria-label="Снять выбор союзника">×</button>
+ <strong id="allyName">Игрок</strong><span id="allyLevel">Таурен · Воин</span>
+ <div class="ally-health"><span id="allyHpFill"></span></div>
+ <span id="allyHpText">HP —</span>
+ <button type="button" id="allyInvite">Пригласить в группу</button>
+</div>
+<div id="targetPlaceholder" class="frame" aria-label="Слот выбранной цели">
+ <span class="target-placeholder-heading">ЦЕЛЬ</span>
+ <span class="target-placeholder-hint">Не выбрана</span>
+</div>
+<div id="minimapFrame" role="button" tabindex="0" aria-pressed="false" aria-label="Открыть всю планету — нажать миникарту" title="Вся планета"><canvas id="minimap" width="240" height="240" aria-label="Карта ближайшей местности"></canvas><span class="north">С</span><span id="mapLabel">Лагерь Нараче</span></div>
+</div>
+<div id="zoneTitle"><span id="area">Лагерь Нараче</span><small>М У Л Г О Р</small></div>
+<aside id="quest">
+ <button id="questJournalOpen" type="button" aria-label="Открыть журнал заданий">Задания <span aria-hidden="true">↗</span></button>
+ <div id="mainQuestTracker" hidden><div id="quest-progress"></div><b id="qtitle"></b><p id="qtext"></p><p id="questGuidance" class="quest-guidance" hidden></p></div>
+ <div id="gatherQuestTracker" hidden><span id="gatherQuestStage">Сбор · 1 / 3</span><b id="gatherQuestTitle"></b><p id="gatherQuestText"></p></div></aside>
+<nav id="top" aria-label="Основные действия персонажа">
+ <button class="smallButton" id="partyOpen" type="button" aria-label="Группа (G)" title="Группа (G)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;width:22px;height:22px;max-width:22px;max-height:22px;flex:none"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-2a5.5 5.5 0 0 1 11 0v2M17 11a3 3 0 1 0-1.5-5.6M17 13a5 5 0 0 1 4 5v1"/></svg>
+ </button>
+ <button class="smallButton" id="character" type="button" aria-label="Персонаж (C)" title="Персонаж (C)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;width:22px;height:22px;max-width:22px;max-height:22px;flex:none"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20v-2a7 7 0 0 1 14 0v2H5Z"/></svg>
+ </button>
+ <button class="smallButton" id="journal" type="button" aria-label="Задания (J)" title="Задания (J)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;width:22px;height:22px;max-width:22px;max-height:22px;flex:none"><path d="M6 3.5h11.5a2 2 0 0 1 2 2v15H7.5A3.5 3.5 0 0 1 4 17V6a2.5 2.5 0 0 1 2-2.5Z"/><path d="M4 17a3.5 3.5 0 0 1 3.5-3.5H19M9 8h6M9 11h5"/></svg>
+ </button>
+ <button class="smallButton" id="bag" type="button" aria-label="Рюкзак (I)" title="Рюкзак (I)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;width:22px;height:22px;max-width:22px;max-height:22px;flex:none"><rect x="5" y="7" width="14" height="14" rx="3"/><path d="M9 7V5a3 3 0 0 1 6 0v2M8 12h8v6H8zM3 12v5M21 12v5"/></svg>
+ </button>
+ <button class="smallButton" id="pause" type="button" aria-label="Меню (Esc)" title="Меню (Esc)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;width:22px;height:22px;max-width:22px;max-height:22px;flex:none"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg>
+ </button>
+</nav>
+
+
+<aside id="planetBuildWidget" data-build="0.6.24" aria-label="Версия тестовой планеты">
+  <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения тестового мира">
+    <span>PT 0.6.24</span>
+    <span id="planetBuildNew" hidden></span>
+  </button>
+  <section id="planetBuildPanel" aria-label="Версии и история обновлений" hidden>
+    <div class="planet-release-head">
+      <strong>Версия NexGameWorld</strong>
+      <button id="planetBuildClose" type="button" aria-label="Закрыть информацию о версии">×</button>
+    </div>
+    <div id="planetBuildLoaded">Запущена: PT 0.6.24</div>
+    <div id="planetBuildPublished">Проверяем публикацию…</div>
+    <p id="planetBuildStatusLine">Сверяем локальную сборку с опубликованной версией.</p>
+    <h3>Что изменилось в последнем выпуске</h3>
+    <ul id="planetBuildNotes"><li>Добавлен номер версии и проверка обновлений.</li></ul>
+    <div class="planet-release-actions">
+      <button id="planetBuildRefresh" type="button" hidden>Обновить игру</button>
+      <button id="planetBuildCheck" type="button">Проверить версию</button>
+    </div>
+  </section>
+  <div id="planetBuildLive" role="status" aria-live="polite"></div>
+</aside>
+<div id="stick" aria-label="Джойстик: вверх и вниз — движение вперёд и назад, влево и вправо — непрерывный поворот"><div id="nub"></div></div>
+<button id="interact" hidden>Поговорить <kbd>E</kbd></button>
+<div id="gatherCast" role="progressbar" aria-label="Сбор ресурса" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+ <div class="gather-cast-header"><span id="gatherCastLabel">Сбор...</span><strong id="gatherCastTime">1,5 с</strong></div>
+ <div class="gather-cast-track"><div id="gatherCastFill"></div></div>
+</div>
+<div id="hotbarUtilities">
+ <button type="button" class="quick-tool" id="targetNext" aria-label="Выбрать ближайшую или следующую цель в радиусе 40 метров"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke="#e9c479" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#f5e3ad" stroke-width="3"/><path d="M24 1V13M24 35V47M1 24H13M35 24H47" stroke="#dcb66f" stroke-width="2.8"/></svg><span>Цель</span></button>
+ <button type="button" id="spellbookButton" class="quick-tool" aria-label="Открыть книгу заклинаний" title="Книга заклинаний (B)"><span class="quick-tool-emoji">📖</span><span>Книга</span></button>
+</div>
+<div id="hotbarAssign" hidden role="status" aria-live="polite">
+ <span id="hotbarAssignText">Выбери ячейку панели</span>
+ <button type="button" id="hotbarCancel" aria-label="Отменить изменение панели">Отмена ×</button>
+</div>
+<div id="actionsBar" role="toolbar" aria-label="Панель из восьми настраиваемых ячеек"></div>
+<div id="xpWrap"><div id="xpFill"></div><span id="xpText">Опыт 0 / 100</span></div>
+
+<div id="help">1–8 — способности · Вращение планеты — свайп · Книга — умения · Цель — выбрать</div>
+<div id="build"><span id="fpsCounter" hidden aria-label="Частота кадров">FPS —</span><span id="onlineStatus" aria-live="polite">Локальный режим · 1 игрок</span><span>NexGameWorld · Alpha</span></div>
+<div id="combatError" role="status" aria-live="polite"></div><div id="toast" role="status"></div>
+
+<div id="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle" hidden><div id="panel"><button id="modalClose" type="button" aria-label="Закрыть окно">×</button><div class="panel-corner">◆</div><span class="eyebrow" id="msub"></span><h2 id="mtitle"></h2><div class="ornament">━━━━ ◆ ━━━━</div><div id="mbody"></div><section id="cameraControl" class="camera-settings" hidden aria-label="Настройки камеры">
+  <div class="camera-label"><label for="cameraDistance">Расстояние до персонажа</label><span id="cameraDistanceValue">10,5</span></div>
+  <input id="cameraDistance" type="range" min="4" max="44" step="0.1" value="10.5" aria-label="Расстояние камеры от персонажа">
+  <div class="camera-scale"><span>Ближе</span><span>Дальше</span></div>
+  <small class="settings-help">Камера на iPhone: раздвинь два пальца, чтобы приблизить, или сведи, чтобы отдалить.</small>
+  <label class="camera-follow-row" for="cameraFollow"><input id="cameraFollow" type="checkbox" role="switch" aria-describedby="followHelp"><span>Следовать за героем</span></label>
+  <small id="followHelp" class="settings-help">Когда включено — камера движется за героем, а после отпускания джойстика плавно возвращается за его спину. Во время движения обзор не вращается автоматически. Когда выключено — свободный обзор свайпом. Направления джойстика не меняются.</small>
+ </section>
+ <section id="graphicsControl" class="graphics-settings" hidden aria-label="Настройки графики">
+  <label class="quality-label" for="graphicsQuality">Качество графики</label>
+  <select id="graphicsQuality" aria-describedby="qualityHelp">
+   <option value="economy">Экономичное</option>
+   <option value="balanced" selected>Сбалансированное</option>
+   <option value="high">Высокое</option>
+  </select>
+  <small id="qualityHelp" class="settings-help">Баланс чёткости, динамических теней и нагрузки.</small>
+  <label class="camera-follow-row" for="showFps"><input id="showFps" type="checkbox" role="switch" aria-describedby="fpsHelp"><span>Показывать FPS</span></label>
+  <small id="fpsHelp" class="settings-help">Частота кадров во время игры. На паузе счётчик приостановлен.</small>
+ </section><div id="choices"></div></div></div>
+
+<div id="labLegacy" hidden><div id="hud">
+  <div id="identity" class="panel"><div class="eyebrow">NEXGAMEWORLD · FANTASY RPG</div><h1>NexGameWorld</h1><small>Сферическая одиночная RPG · альфа</small></div>
+  <div id="statistics" class="panel"><span class="caption">Путь по экватору</span><strong id="progress">0%</strong><span class="sub" id="distance">0 м · оборотов: 0</span></div>
+</div>
+<div id="zoneTag"><b id="zoneName">Стартовая зона NexGameWorld</b><small id="zoneLabel">ЛАГЕРЬ · ОЗЕРО ТИХИХ ВОД</small></div>
+<div id="compass"><canvas id="miniglobe" width="220" height="220" aria-label="Глобус с текущим положением"></canvas></div>
+<div id="instruction" class="panel"><b>Новая планета</b><div>Джойстик — двигаться · свайп — камера<br>Пройди лагерь и озеро. Экватор планеты: ~6:45</div></div>
+<div id="stickBase" role="application" aria-label="Виртуальный джойстик"><div id="stickThumb"></div></div>
+<div id="footer">Радиус 261 м · окружность 1 640 м · офлайн-тест</div>
+</div>
+<div id="labSettingsSources" hidden><section id="radiusPicker" class="panel" aria-label="Размер планеты">
+    <div class="caption">🌍 ИЗМЕНИТЬ РАЗМЕР ПЛАНЕТЫ</div>
+    <div id="radiusChoices">
+      <button class="radius-choice" data-radius="87" type="button" aria-pressed="false">87 м</button>
+      <button class="radius-choice" data-radius="174" type="button" aria-pressed="false">174 м</button>
+      <button class="radius-choice" data-radius="261" type="button" aria-pressed="true">261 м</button>
+    </div>
+    <div id="worldMetrics" aria-live="polite">1 640 м по экватору · 6:45 бегом</div>
+  </section>
+<nav id="tools" aria-label="Управление обзором">
+  <button id="orbitButton" type="button" class="tool" aria-pressed="false">🌍 Вся планета</button>
+  <button id="zoomButton" type="button" class="tool">🔭 Камера: близко</button>
+  <button id="resetButton" type="button" class="tool">↺ В начало</button>
+</nav>
+</div>
+<div id="loading">Загружаем NexGameWorld…</div>
+<div id="failure" role="alert"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
+<script src="./build-status.js?v=1" defer></script>
+<script type="module">
+  // If a dependency fails to load, show a useful error instead of an endless sky.
+  import('./planet.js?v=53').catch(error=>{
+    const loading=document.getElementById('loading');
+    const failure=document.getElementById('failure');
+    if(loading)loading.classList.add('is-done');
+    if(failure)failure.textContent='Ошибка загрузки NexGameWorld: '+(error?.message||String(error));
+    console.error('NexGameWorld bootstrap:',error);
+  });
+</script>
+</body>
+</html>

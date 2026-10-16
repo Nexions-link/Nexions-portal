@@ -1,0 +1,120 @@
+:root{color-scheme:dark;--bg:#101916;--panel:#192620;--line:#35483d;--text:#e9e6d7;--muted:#a2afa4;--gold:#c7a46a}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,sans-serif}button,input{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}.layout{min-height:100vh;display:grid;grid-template-columns:242px minmax(0,1fr)}.sidebar{background:#14201b;border-right:1px solid var(--line);padding:26px 18px;display:flex;flex-direction:column;gap:28px}.brand{display:flex;align-items:center;gap:12px}.brand-icon{width:45px;height:45px;background:#344738;border:1px solid #62765a;border-radius:12px;display:grid;place-items:center;font:24px Georgia;color:var(--gold)}.brand strong,.brand small{display:block;letter-spacing:.13em}.brand small{font-size:10px;color:var(--muted);margin-top:5px}.side-label,.eyebrow{font-size:11px;letter-spacing:.2em;color:var(--gold)}#categories{display:grid;gap:7px}.category{width:100%;text-align:left;border:1px solid transparent;background:none;color:var(--muted);border-radius:9px;padding:13px;display:flex;align-items:center;gap:12px}.category.active{background:#28392e;border-color:#597058;color:#f3e9d2}.category .count{margin-left:auto;font-size:12px;opacity:.7}.side-footer{margin-top:auto;color:var(--gold);font-size:13px}.main{min-width:0}.top{padding:23px 38px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:11px;letter-spacing:.12em}.online{color:#a3b7a0}.online i{display:inline-block;width:7px;height:7px;background:#9fbd8c;border-radius:50%;margin-right:7px}.intro{padding:35px 38px 25px}.intro h1{font:normal clamp(36px,5vw,65px) Georgia;margin:10px 0}.intro h1 em{color:var(--gold)}.intro>p:last-child{color:var(--muted);max-width:700px;line-height:1.65}.workspace{padding:0 38px 32px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px}.library,.detail{border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:19px;min-width:0}.library-head,.detail-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.library h2{font:22px Georgia;margin:0}.library-head span,.detail-top{font-size:11px;color:var(--gold);letter-spacing:.08em}.search{display:flex;align-items:center;gap:8px;margin:18px 0;padding:11px;background:#111d17;border:1px solid var(--line);border-radius:8px}.search input{width:100%;background:none;border:0;outline:none;color:var(--text);min-width:0}.entries{display:grid;gap:8px}.entry{display:flex;align-items:center;gap:12px;width:100%;background:#1e2d25;border:1px solid #34483c;border-radius:9px;padding:13px;text-align:left;color:var(--text)}.entry.active{border-color:var(--gold);background:#304032}.entry .glyph{font-size:23px;color:var(--gold)}.entry strong,.entry small{display:block}.entry small{color:var(--muted);margin-top:4px}.empty{color:var(--muted);line-height:1.5}.detail h2{font:36px Georgia;margin:18px 0 4px}.subtitle{color:var(--muted);margin:0 0 18px}.viewer{border:1px solid #425849;border-radius:10px;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#34483c,#101b17 76%)}.viewer-head,.viewer-bottom{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 15px;color:var(--muted);font-size:11px;letter-spacing:.08em}.viewer-head{border-bottom:1px solid #415546}.viewer-bottom{border-top:1px solid #415546}.viewer canvas{width:100%;height:clamp(280px,45vw,475px);display:block;touch-action:none}.viewer-bottom button,.animation-panel button{border:1px solid #5a7059;background:#2b3d30;color:var(--text);padding:8px 12px;border-radius:7px}.animation-panel{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:17px 0;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}.animation-panel[hidden]{display:none}.animation-panel>div{display:flex;gap:8px;flex-wrap:wrap}.animation-panel button.active{background:#655538;border-color:var(--gold)}.detail-description{line-height:1.65;color:var(--muted)}.detail-description h3{color:var(--text);font:22px Georgia;margin:22px 0 6px}.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.fact{border:1px solid var(--line);padding:13px;border-radius:8px}.fact span,.fact strong{display:block}.fact span{color:var(--muted);font-size:11px;margin-bottom:7px}.fact strong{font-size:13px}footer{padding:22px 38px;border-top:1px solid var(--line);color:var(--muted);font-size:10px;letter-spacing:.15em}@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{padding:14px;gap:12px}.side-footer{display:none}#categories{display:flex;overflow:auto;gap:6px}.category{width:auto;white-space:nowrap;padding:9px 11px}.category .count{display:none}.top{padding:15px}.intro{padding:22px 16px}.workspace{padding:0 12px 25px;grid-template-columns:1fr}.library,.detail{padding:14px}.entries{display:flex;overflow:auto}.entry{min-width:190px}.detail h2{font-size:29px}.viewer-bottom{letter-spacing:0;flex-wrap:wrap}footer{padding:18px}}
+/* Editable vertex-color palette; touch-friendly in Safari */
+.palette-panel{margin:15px 0 22px;padding:17px;border:1px solid #65745f;background:#1b2b23;border-radius:12px}
+.palette-panel[hidden]{display:none}
+.palette-header{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.palette-header h3{margin:0;font:21px Georgia;color:var(--text)}
+.palette-hint,.palette-note{font-size:12px;line-height:1.55;color:var(--muted)}
+.palette-hint{margin:8px 0 13px}.palette-note{margin:7px 0 0}
+.palette-group{margin:8px 0;border:1px solid var(--line);background:#13221b;border-radius:9px;overflow:hidden}
+.palette-group summary{padding:12px 13px;font-size:13px;font-weight:650;color:#e6d8b9;cursor:pointer;user-select:none}
+.palette-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;padding:0 10px 12px}
+.palette-row{display:flex;align-items:center;gap:8px;min-height:43px;padding:7px 8px;background:#223329;border:1px solid #394b3e;border-radius:8px}
+.palette-name{font-size:12px;flex:1;min-width:0;line-height:1.2}
+.palette-picker{width:39px;height:36px;min-width:39px;border:1px solid #788d79;border-radius:7px;padding:3px;background:#15241c;cursor:pointer}
+.palette-hex{width:79px;min-width:73px;border:1px solid #526755;border-radius:6px;padding:8px 5px;background:#15241c;color:#eee4d4;text-align:center;font-size:12px}
+.palette-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.palette-actions button{border:1px solid #637961;background:#2b3d30;color:var(--text);padding:10px 11px;border-radius:8px;font-size:12px;font-weight:650}
+.palette-actions button.palette-primary{background:#79603b;border-color:#d3ad73;color:white}
+.palette-message{font-size:12px;color:var(--gold);min-height:16px;margin:10px 0 3px}
+@media(max-width:900px){.palette-panel{padding:12px}.palette-grid{grid-template-columns:1fr}.palette-actions button{flex-grow:1}.palette-row{gap:7px}}
+
+
+/* Atlas mobile viewport: prevent text inflation, horizontal page expansion and
+   automatic iOS Safari focus zoom. Lists remain independently scrollable. */
+html{width:100%;max-width:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:clip}
+body{width:100%;max-width:100%;min-width:0;overflow-x:clip}
+.layout,.main,.sidebar,.workspace,.library,.detail,.viewer{min-width:0;max-width:100%}
+.layout{width:100%}
+.viewer canvas{max-width:100%}
+.search input{font-size:16px}
+@media(max-width:900px){
+ .layout{grid-template-columns:minmax(0,1fr)}
+ .workspace{grid-template-columns:minmax(0,1fr)}
+ .sidebar{min-width:0}
+ .top{flex-wrap:wrap;min-width:0}
+ .top>span{min-width:0}
+ .viewer-head,.viewer-bottom,.detail-top{flex-wrap:wrap}
+ .entries,#categories{max-width:100%;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+ .palette-grid{min-width:0}
+ .palette-hex{font-size:16px}
+}
+@media(max-width:600px){
+ .sidebar{padding:14px 13px;gap:13px}
+ .brand{gap:10px}
+ .brand-icon{width:39px;height:39px;flex:0 0 39px;font-size:21px}
+ .brand strong{font-size:14px}
+ .brand small{font-size:9px;letter-spacing:.1em}
+ .side-label{display:none}
+ #categories{gap:7px;padding-bottom:2px}
+ .category{flex:0 0 auto;min-height:40px}
+ .top{padding:14px 13px 11px;gap:6px 12px;line-height:1.6;font-size:10px;letter-spacing:.06em}
+ .intro{padding:23px 14px 18px}
+ .intro h1{font-size:clamp(32px,8vw,44px);line-height:1.12;margin:10px 0 12px}
+ .intro>p:last-child{font-size:13px;line-height:1.6}
+ .workspace{padding:0 10px 28px;gap:12px}
+ .library,.detail{padding:13px 12px;border-radius:10px}
+ .library h2{font-size:21px}
+ .library-head span{font-size:11px}
+ .search{margin:13px 0;padding:9px 11px}
+ .search input{font-size:16px;min-height:26px}
+ .entries{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(158px,72%);gap:8px;scroll-snap-type:x proximity;padding-bottom:3px}
+ .entry{min-width:0;width:100%;scroll-snap-align:start;padding:11px;gap:10px}
+ .entry strong{font-size:13px;overflow-wrap:anywhere}
+ .entry small{font-size:11px}
+ .detail-top{align-items:start;gap:8px;line-height:1.5}
+ .detail h2{font-size:30px;line-height:1.15;margin:15px 0 6px;overflow-wrap:anywhere}
+ .subtitle{font-size:13px;line-height:1.5}
+ .viewer-head{font-size:10px;letter-spacing:0;padding:10px 11px}
+ .viewer canvas{height:clamp(245px,70vw,350px)}
+ .viewer-bottom{padding:10px 11px;font-size:11px;line-height:1.5}
+ .viewer-bottom button,.animation-panel button{min-height:42px}
+ .facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .fact{min-width:0;padding:10px}
+ .fact strong{overflow-wrap:anywhere}
+ .palette-header{flex-wrap:wrap}
+ .palette-group summary{overflow-wrap:anywhere}
+ .palette-row{min-width:0}
+ .palette-name{overflow-wrap:anywhere}
+ .palette-hex{width:91px;min-width:82px;font-size:16px}
+ footer{padding:17px 14px;font-size:10px;line-height:1.6;letter-spacing:.04em}
+}
+@media(max-width:360px){
+ .top .online{font-size:9px}
+ .entries{grid-auto-columns:minmax(145px,77%)}
+ .palette-row{padding:6px 5px;gap:5px}
+ .palette-hex{width:83px;min-width:77px}
+}
+
+
+/* NexGameWorld atlas branding: keep the longer name readable on phones. */
+.brand{min-width:0}
+.brand>span:last-child{min-width:0}
+.brand strong{font-size:13px;letter-spacing:.065em;overflow-wrap:anywhere}
+.intro h1{overflow-wrap:anywhere}
+@media(max-width:600px){
+ .brand strong{font-size:13px;letter-spacing:.06em}
+ .top>span:first-child{overflow-wrap:anywhere}
+ .intro h1{font-size:clamp(30px,7.9vw,42px)}
+}
+
+
+/* Creature loot data shared by spherical game and the Atlas. */
+.creature-loot{margin-top:24px;border-top:1px solid var(--line);padding-top:18px}
+.creature-loot[hidden]{display:none}
+.creature-loot h3{font:24px Georgia,serif;margin:0 0 8px;color:#f0dfb8}
+.creature-loot-hint{font-size:12px;line-height:1.55;color:var(--muted);margin:0 0 13px}
+.creature-loot-items{display:grid;gap:7px}
+.creature-loot-row{display:flex;align-items:center;gap:10px;min-width:0;padding:10px;background:#14221a;border:1px solid #375040;border-radius:8px}
+.creature-loot-row .loot-icon{font-size:22px;min-width:30px;text-align:center}
+.creature-loot-row .loot-name{display:grid;gap:3px;flex:1;min-width:0}
+.creature-loot-row .loot-name strong{font-size:13px;font-weight:650;line-height:1.3;overflow-wrap:anywhere}
+.creature-loot-row .loot-name small{font-size:11px;color:var(--muted);line-height:1.35}
+.creature-loot-row .loot-chance{white-space:nowrap;color:#ebc987;font:700 13px system-ui,sans-serif}
+.creature-loot-row[data-rarity=poor] .loot-name strong{color:#c1c6bf}
+.creature-loot-row[data-rarity=uncommon] .loot-name strong{color:#7fd18a}
+.creature-loot-row[data-rarity=rare] .loot-name strong{color:#91adf9}
+.loot-equipment{border:1px solid #496149;border-radius:8px;background:#192a20}
+.loot-equipment summary{padding:13px;color:#e8d8b2;cursor:pointer;font-size:13px;font-weight:650;touch-action:manipulation}
+.loot-equipment .creature-loot-row{margin:6px 7px}
+@media(max-width:600px){.creature-loot{margin-top:19px}.creature-loot h3{font-size:22px}.creature-loot-row{padding:9px 8px;gap:7px}.creature-loot-row .loot-chance{font-size:12px}}

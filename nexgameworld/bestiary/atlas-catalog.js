@@ -1,0 +1,23 @@
+// Unified expandable NexGameWorld asset registry. Add new entries here.
+export const ATLAS_VERSION='0.2.7';
+export const ATLAS_CATEGORIES=Object.freeze([
+ {id:'creatures',name:'Существа',icon:'◈'},
+ {id:'weapons',name:'Оружие',icon:'⚒'},
+ {id:'armor',name:'Броня',icon:'◇'},
+ {id:'items',name:'Предметы',icon:'✦'},
+ {id:'world',name:'Мир',icon:'⌖'}
+]);
+export const ATLAS_ENTRIES=Object.freeze([
+ {id:'dolgonog',category:'creatures',number:'C001',name:'Долгоног',subtitle:'Равнинная птица',version:'0.1',asset:'./models/dolgonog-v0.1.glb',description:'Высокая равнинная птица с сильными ногами, охристым оперением и терракотовым хохолком.',facts:[['Обитание','Равнины Мулгора'],['Тип','Существо'],['Анимации','Idle · Walk · Peck']],animations:['Idle','Walk','Peck']},
+ {id:'wild-boar',category:'creatures',number:'C002',name:'Дикий кабан',subtitle:'Коренастый степной зверь',version:'0.1',asset:'./models/wild-boar-v0.1.glb',description:'Массивный дикий кабан с тёмно-коричневым корпусом, почти чёрной щетиной по хребту, более светлой мордой и розовым пятачком, крупными изогнутыми клыками и раздвоенными копытами. Внешность соответствует утверждённому образцу NexGame.',facts:[['Статус','Только бестиарий · в игру не добавлен'],['Тип','Дикий зверь'],['Геометрия','22 998 треугольников · 21 меш'],['Формат','GLB'],['Анимации','Idle · Walk · Attack']],animations:['Idle','Walk','Attack']},
+ {id:'stormbeak',category:'creatures',number:'C003',name:'Грозоклюв',subtitle:'Элитный долгоног · босс',version:'0.1',asset:'./models/dolgonog-v0.1.glb',previewScale:1.8,description:'Могучий исполин из дальней части равнин. Отличается повышенной выносливостью и собственной таблицей добычи.',facts:[['Тип','Элитное существо'],['Обитание','Дальние равнины'],['Анимации','Idle · Walk · Peck']],animations:['Idle','Walk','Peck']},
+ {id:'tauren-axe',category:'weapons',number:'W001',name:'Топор странника',subtitle:'Одноручный топор',version:'0.1',asset:'../assets/weapons/tauren-axe-v0.1.glb',description:'Простой боевой топор с деревянной рукоятью, кожаной обмоткой и металлическим лезвием. Первая самостоятельная модель оружия.',facts:[['Тип','Одноручный топор'],['Формат','GLB'],['Использование','Экипировка персонажа']],animations:[]},
+ {id:'plains-sword',category:'weapons',number:'W002',name:'Клинок равнин',subtitle:'Одноручный меч',version:'0.1',asset:'../assets/weapons/plains-sword-v0.1.glb',description:'Оригинальный одноручный стальной клинок с бронзовой гардой, кожаным хватом и гранёным навершием.',facts:[['Тип','Одноручный меч'],['Формат','GLB'],['Использование','Снаряжение и примерка']],animations:[]},
+ {id:'steppe-dagger',category:'weapons',number:'W003',name:'Степной кинжал',subtitle:'Одноручный кинжал',version:'0.1',asset:'../assets/weapons/steppe-dagger-v0.1.glb',description:'Компактный кинжал с гранёным стальным клинком, бронзовой гардой, кожаной рукоятью и бирюзовым камнем в навершии. Оригинальная модель NexGameWorld.',facts:[['Тип','Одноручный кинжал'],['Формат','GLB · 3D'],['Использование','Снаряжение и тюнер кинжала']],animations:[]},
+ {id:'shield-round',category:'armor',number:'S001',name:'Круглый щит странника',subtitle:'Серое и обычное качество',version:'0.1',asset:'../assets/shields/nexgame_round_shield_poor.glb',description:'Круглый деревянный щит с массивным металлическим ободом, центральным умбоном, охристо-красным знаком рогов и кожаными ремнями на обратной стороне. Используется для щитов серого качества.',facts:[['Тип','Круглый щит'],['Качество','Серое и обычное'],['Формат','GLB · PBR'],['Использование','Экипировка персонажа']],animations:[]},
+ {id:'shield-kite',category:'armor',number:'S002',name:'Щит степного стража',subtitle:'Зелёное и синее качество',version:'0.1',asset:'../assets/shields/nexgame_kite_shield_quality.glb',description:'Вытянутый щит с деревянной основой, усиленными стальными кромками, светлым знаком рогов и парными самоцветами. Зелёные щиты используют изумрудные вставки, а синие — голубые.',facts:[['Тип','Вытянутый щит'],['Качество','Зелёное и синее'],['Формат','GLB · PBR'],['Использование','Экипировка и 3D-Атлас']],animations:[]}
+]);
+export function filterAtlasEntries(category='all',query=''){
+ const q=query.trim().toLocaleLowerCase('ru');
+ return ATLAS_ENTRIES.filter(e=>(category==='all'||e.category===category)&&[e.name,e.subtitle,e.description,e.number].join(' ').toLocaleLowerCase('ru').includes(q));
+}

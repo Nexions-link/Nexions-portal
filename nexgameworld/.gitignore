@@ -1,0 +1,5 @@
+node_modules/
+
+# Local shared-chest state (use a persistent disk in production)
+server/chest-data.json
+server/chest-data.json.tmp

@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#352d1d">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>NexGame · Мулгор · Alpha 0.3.7.1</title>
+<!-- Alpha 0.3.7.1: finalized sword grip and preserved independently calibrated axe grip. -->
+<link rel="stylesheet" href="./style.css?v=0.3.7.1">
+<!-- Critical sizing for icon toolbar: must work even when Safari serves an older style.css. -->
+<style id="hud-toolbar-failsafe">
+#top{
+ display:grid;
+ grid-template-columns:repeat(5,minmax(0,1fr));
+ width:min(210px,52vw);gap:4px
+}
+#top #partyOpen{grid-column:auto}
+#top .smallButton{
+ width:100%;min-width:0;height:38px;min-height:38px;
+ display:grid;place-items:center;padding:0;line-height:1;
+ overflow:hidden
+}
+#top .smallButton svg{
+ display:block;width:22px;height:22px;max-width:22px;max-height:22px;
+ fill:none;stroke:currentColor;stroke-width:1.9;
+ stroke-linecap:round;stroke-linejoin:round
+}
+@media(max-width:760px){
+ #top{
+  top:calc(20px + var(--safe-top,0px) + var(--hud-row-height,90px));
+  right:calc(8px + env(safe-area-inset-right,0px));
+  width:min(200px,52vw)
+ }
+}
+@media(max-width:360px){#top{width:min(180px,53vw)}}
+</style>
+</head>
+<body>
+<div id="scene" aria-label="Трёхмерный мир Мулгора"></div>
+<div id="combatFeedback" aria-hidden="true"></div>
+<div id="vignette"></div>
+<div id="loader"><div class="load-panel"><span class="eyebrow">NEXGAME · 3D RPG</span><h1>Мулгор</h1><div class="ornament">◆ ━━━━━ ◆ ━━━━━ ◆</div><p id="loadText">Ветер зовёт тебя на равнины…</p><small>Лагерь Нараче · Таурен · Воин</small></div></div>
+<div id="hudTop" aria-label="Игровые панели персонажа цели и карты">
+<header id="playerFrame" class="frame">
+ <div class="portrait" aria-hidden="true"><svg viewBox="0 0 80 80"><path fill="#dbcb9b" d="M25 29Q2 36 6 8Q14 24 27 20M55 29Q78 36 74 8Q66 24 53 20"/><path fill="#553925" d="M16 44L22 22L38 15L60 23L64 45L52 66L28 66Z"/><path fill="#98704c" d="M23 40L28 26L49 26L59 44L51 61L30 61Z"/><path fill="#392f25" d="M25 39L36 43L33 47L25 45M55 39L44 43L47 47L55 45"/><path fill="#be9469" d="M27 50Q40 45 53 50L55 61Q40 72 25 61Z"/><circle cx="34" cy="56" r="2" fill="#382e25"/><circle cx="47" cy="56" r="2" fill="#382e25"/><path d="M40 61L39 68L46 68" stroke="#cfaa5a" stroke-width="3" fill="none"/></svg><span id="levelBadge">1</span></div>
+ <div class="player-info"><div class="unit-name"><span id="playerName">Странник</span><span id="className">Таурен · Воин</span></div><div class="bar health"><div id="hpFill"></div><span id="hpText">120 / 120</span></div><div class="bar rage" id="resourceBar" role="progressbar" aria-label="Ярость" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="rageFill"></div><span id="rageText">Ярость 0 / 100</span></div><div id="combatState">Готов к бою</div></div>
+</header>
+<div id="targetFrame" class="frame" hidden>
+ <button id="targetClear" aria-label="Снять цель" title="Снять цель">×</button>
+ <span id="targetName"></span>
+ <div class="bar health"><div id="targetFill"></div><span id="targetHp"></span></div>
+ <div id="targetDistance" aria-live="off"></div>
+ <div id="targetStatus" aria-live="off"></div>
+ <div id="dummyStats" hidden aria-label="Статистика тренировочного манекена">
+  <div class="dummy-heading">Тренировочная цель · не атакует</div>
+  <div class="dummy-metrics">
+   <span id="dummyLastHit">Последний: —</span>
+   <span id="dummyTotal">Урон: 0</span>
+   <span id="dummyDps">DPS: 0</span>
+   <span id="dummyHitCount">Удары: 0</span>
+  </div>
+  <div id="dummyLastAbility">Последний навык: —</div>
+  <div id="dummyReady">Манекен готов к тренировке</div>
+  <button id="dummyReset" type="button" title="Сбросить замер урона">Сбросить замер</button>
+ </div>
+</div>
+<div id="allyFrame" class="frame" hidden aria-label="Выбранный игрок">
+ <button type="button" id="allyClear" aria-label="Снять выбор союзника">×</button>
+ <strong id="allyName">Игрок</strong><span id="allyLevel">Таурен · Воин</span>
+ <div class="ally-health"><span id="allyHpFill"></span></div>
+ <span id="allyHpText">HP —</span>
+ <button type="button" id="allyInvite">Пригласить в группу</button>
+</div>
+<div id="targetPlaceholder" class="frame" aria-label="Слот выбранной цели">
+ <span class="target-placeholder-heading">ЦЕЛЬ</span>
+ <span class="target-placeholder-hint">Не выбрана</span>
+</div>
+<div id="minimapFrame"><canvas id="minimap" width="240" height="240" aria-label="Карта ближайшей местности"></canvas><span class="north">С</span><span id="mapLabel">Лагерь Нараче</span></div>
+</div>
+<div id="zoneTitle"><span id="area">Лагерь Нараче</span><small>М У Л Г О Р</small></div>
+<aside id="quest">
+ <button id="questJournalOpen" type="button" aria-label="Открыть журнал заданий">Задания <span aria-hidden="true">↗</span></button>
+ <div id="mainQuestTracker" hidden><div id="quest-progress"></div><b id="qtitle"></b><p id="qtext"></p><p id="questGuidance" class="quest-guidance" hidden></p></div>
+ <div id="gatherQuestTracker" hidden><span id="gatherQuestStage">Сбор · 1 / 3</span><b id="gatherQuestTitle"></b><p id="gatherQuestText"></p></div></aside>
+<nav id="top" aria-label="Основные действия персонажа">
+ <button class="smallButton" id="partyOpen" type="button" aria-label="Группа (G)" title="Группа (G)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;width:22px;height:22px;max-width:22px;max-height:22px;flex:none"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-2a5.5 5.5 0 0 1 11 0v2M17 11a3 3 0 1 0-1.5-5.6M17 13a5 5 0 0 1 4 5v1"/></svg>
+ </button>
+ <button class="smallButton" id="character" type="button" aria-label="Персонаж (C)" title="Персонаж (C)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;width:22px;height:22px;max-width:22px;max-height:22px;flex:none"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20v-2a7 7 0 0 1 14 0v2H5Z"/></svg>
+ </button>
+ <button class="smallButton" id="journal" type="button" aria-label="Задания (J)" title="Задания (J)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;width:22px;height:22px;max-width:22px;max-height:22px;flex:none"><path d="M6 3.5h11.5a2 2 0 0 1 2 2v15H7.5A3.5 3.5 0 0 1 4 17V6a2.5 2.5 0 0 1 2-2.5Z"/><path d="M4 17a3.5 3.5 0 0 1 3.5-3.5H19M9 8h6M9 11h5"/></svg>
+ </button>
+ <button class="smallButton" id="bag" type="button" aria-label="Рюкзак (I)" title="Рюкзак (I)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;width:22px;height:22px;max-width:22px;max-height:22px;flex:none"><rect x="5" y="7" width="14" height="14" rx="3"/><path d="M9 7V5a3 3 0 0 1 6 0v2M8 12h8v6H8zM3 12v5M21 12v5"/></svg>
+ </button>
+ <button class="smallButton" id="pause" type="button" aria-label="Меню (Esc)" title="Меню (Esc)">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;width:22px;height:22px;max-width:22px;max-height:22px;flex:none"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg>
+ </button>
+</nav>
+
+<div id="partyHud" hidden aria-label="Состав группы"></div>
+<section id="chatDock" class="chat-collapsed" aria-label="Игровой чат">
+ <button id="chatToggle" type="button" aria-expanded="false" aria-controls="chatPanel" aria-label="Открыть игровой чат">💬<span id="chatUnread" hidden>0</span></button>
+ <div id="chatPanel" hidden>
+  <header id="chatHeader"><strong>Чат Мулгора</strong><button id="chatClose" type="button" aria-label="Свернуть чат">×</button></header>
+  <div id="chatTabs" role="tablist" aria-label="Канал чата">
+   <button type="button" id="chatWorldTab" role="tab" aria-selected="true">Мулгор</button>
+   <button type="button" id="chatPartyTab" role="tab" aria-selected="false">Группа</button>
+  </div>
+  <div id="chatMessages" role="log" aria-label="Сообщения чата" aria-live="polite"></div>
+  <form id="chatForm" autocomplete="off">
+   <input id="chatInput" type="text" maxlength="180" enterkeyhint="send" aria-label="Написать сообщение" placeholder="Сообщение..." autocomplete="off">
+   <button id="chatSend" type="submit" aria-label="Отправить сообщение">➤</button>
+  </form>
+ </div>
+</section>
+<div id="partyInvitation" hidden role="alertdialog" aria-live="assertive" aria-label="Приглашение в группу">
+ <strong id="partyInviteTitle">Приглашение в группу</strong>
+ <p id="partyInviteMessage"></p>
+ <div class="party-invite-actions"><button type="button" id="partyAccept">Принять</button><button type="button" id="partyDecline">Отклонить</button></div>
+</div>
+<div id="stick" aria-label="Джойстик: вверх и вниз — движение вперёд и назад, влево и вправо — непрерывный поворот"><div id="nub"></div></div>
+<button id="interact" hidden>Поговорить <kbd>E</kbd></button>
+<div id="gatherCast" role="progressbar" aria-label="Сбор ресурса" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+ <div class="gather-cast-header"><span id="gatherCastLabel">Сбор...</span><strong id="gatherCastTime">1,5 с</strong></div>
+ <div class="gather-cast-track"><div id="gatherCastFill"></div></div>
+</div>
+<div id="hotbarUtilities">
+ <button type="button" class="quick-tool" id="targetNext" aria-label="Выбрать ближайшую или следующую цель в радиусе 40 метров"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke="#e9c479" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#f5e3ad" stroke-width="3"/><path d="M24 1V13M24 35V47M1 24H13M35 24H47" stroke="#dcb66f" stroke-width="2.8"/></svg><span>Цель</span></button>
+ <button type="button" id="spellbookButton" class="quick-tool" aria-label="Открыть книгу заклинаний" title="Книга заклинаний (B)"><span class="quick-tool-emoji">📖</span><span>Книга</span></button>
+</div>
+<div id="hotbarAssign" hidden role="status" aria-live="polite">
+ <span id="hotbarAssignText">Выбери ячейку панели</span>
+ <button type="button" id="hotbarCancel" aria-label="Отменить изменение панели">Отмена ×</button>
+</div>
+<div id="actionsBar" role="toolbar" aria-label="Панель из восьми настраиваемых ячеек"></div>
+<div id="xpWrap"><div id="xpFill"></div><span id="xpText">Опыт 0 / 100</span></div>
+<div id="help">1–8 — панель · Enter — чат · G — группа · B — книга · Tab — цель · I — рюкзак</div>
+<div id="build"><span id="fpsCounter" hidden aria-label="Частота кадров">FPS —</span><span id="onlineStatus" aria-live="polite">Мир: одиночный</span><span>NexGame · Alpha 0.3.7.1</span></div>
+<div id="combatError" role="status" aria-live="polite"></div><div id="toast" role="status"></div>
+<div id="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle" hidden><div id="panel"><button id="modalClose" type="button" aria-label="Закрыть окно">×</button><div class="panel-corner">◆</div><span class="eyebrow" id="msub"></span><h2 id="mtitle"></h2><div class="ornament">━━━━ ◆ ━━━━</div><div id="mbody"></div><section id="cameraControl" class="camera-settings" hidden aria-label="Настройки камеры">
+  <div class="camera-label"><label for="cameraDistance">Расстояние до персонажа</label><span id="cameraDistanceValue">10,5</span></div>
+  <input id="cameraDistance" type="range" min="4" max="44" step="0.1" value="10.5" aria-label="Расстояние камеры от персонажа">
+  <div class="camera-scale"><span>Ближе</span><span>Дальше</span></div>
+  <small class="settings-help">Камера на iPhone: раздвинь два пальца, чтобы приблизить, или сведи, чтобы отдалить.</small>
+  <label class="camera-follow-row" for="cameraFollow"><input id="cameraFollow" type="checkbox" role="switch" aria-describedby="followHelp"><span>Следовать за героем</span></label>
+  <small id="followHelp" class="settings-help">Когда включено — камера движется за героем, а после отпускания джойстика плавно возвращается за его спину. Во время движения обзор не вращается автоматически. Когда выключено — свободный обзор свайпом. Направления джойстика не меняются.</small>
+ </section>
+ <section id="graphicsControl" class="graphics-settings" hidden aria-label="Настройки графики">
+  <label class="quality-label" for="graphicsQuality">Качество графики</label>
+  <select id="graphicsQuality" aria-describedby="qualityHelp">
+   <option value="economy">Экономичное</option>
+   <option value="balanced" selected>Сбалансированное</option>
+   <option value="high">Высокое</option>
+  </select>
+  <small id="qualityHelp" class="settings-help">Баланс чёткости, динамических теней и нагрузки.</small>
+  <label class="camera-follow-row" for="showFps"><input id="showFps" type="checkbox" role="switch" aria-describedby="fpsHelp"><span>Показывать FPS</span></label>
+  <small id="fpsHelp" class="settings-help">Частота кадров во время игры. На паузе счётчик приостановлен.</small>
+ </section><div id="choices"></div></div></div>
+<aside id="axeTuner" class="axe-tuner" aria-label="Отладочный тюнер кисти и топора" hidden>
+ <div class="axe-tuner-header">
+  <strong>🛠 Тюнер топора</strong>
+  <div class="axe-tuner-header-buttons">
+   <button type="button" id="axeTunerSide" aria-label="Переместить панель" title="Переместить">⇄</button>
+   <button type="button" id="axeTunerCollapse" aria-label="Свернуть или развернуть тюнер" title="Свернуть">▁</button>
+   <button type="button" id="axeTunerClose" aria-label="Закрыть тюнер" title="Закрыть">×</button>
+  </div>
+ </div>
+ <div class="axe-tuner-body">
+  <p>Меняй положение прямо в игре. Поворачивай камеру снаружи панели. Изменения сохраняются только на этом устройстве.</p>
+  <div id="axeTunerControls"></div>
+  <div class="axe-tuner-actions">
+   <button type="button" id="axeTunerReset">↺ Сброс</button>
+   <button type="button" id="axeTunerCopy">⧉ Скопировать</button>
+  </div>
+  <div id="axeTunerStatus" role="status" aria-live="polite"></div>
+  <textarea id="axeTunerExport" aria-label="Значения тюнера для копирования" readonly hidden></textarea>
+ </div>
+</aside>
+<aside id="swordTuner" class="axe-tuner" aria-label="Тюнер меча" hidden>
+ <div class="axe-tuner-header"><strong>⚔ Тюнер меча</strong><div class="axe-tuner-header-buttons">
+  <button type="button" id="swordTunerSide" aria-label="Переместить">⇄</button>
+  <button type="button" id="swordTunerCollapse" aria-label="Свернуть">▁</button>
+  <button type="button" id="swordTunerClose" aria-label="Закрыть">×</button></div></div>
+ <div class="axe-tuner-body"><p>Примерка работает без смены экипировки. Настройки сохраняются на этом телефоне.</p>
+  <div id="swordTunerControls"></div><div class="axe-tuner-actions">
+  <button type="button" id="swordTunerReset">↺ Сброс</button>
+  <button type="button" id="swordTunerCopy">⧉ Скопировать</button></div>
+  <div id="swordTunerStatus" role="status" aria-live="polite"></div>
+  <textarea id="swordTunerExport" aria-label="Скопируй настройки меча" readonly hidden></textarea>
+ </div>
+</aside>
+<aside id="daggerTuner" class="axe-tuner" aria-label="Отладочный тюнер кинжала" hidden>
+ <div class="axe-tuner-header">
+  <strong>🗡 Тюнер кинжала</strong>
+  <div class="axe-tuner-header-buttons">
+   <button type="button" id="daggerTunerSide" aria-label="Переместить панель">⇄</button>
+   <button type="button" id="daggerTunerCollapse" aria-label="Свернуть или развернуть панель">▁</button>
+   <button type="button" id="daggerTunerClose" aria-label="Закрыть тюнер">×</button>
+  </div>
+ </div>
+ <div class="axe-tuner-body">
+  <p>Примерка без смены снаряжения. Поворачивай кисть и кинжал в игре, затем скопируй JSON. Настройки сохраняются на устройстве.</p>
+  <div id="daggerTunerControls"></div>
+  <div class="axe-tuner-actions">
+   <button type="button" id="daggerTunerTryAttack">🗡 Проверить укол</button>
+  </div>
+  <div class="axe-tuner-actions">
+   <button type="button" id="daggerTunerReset">↺ Сброс</button>
+   <button type="button" id="daggerTunerCopy">⧉ Скопировать</button>
+  </div>
+  <div id="daggerTunerStatus" role="status" aria-live="polite"></div>
+  <textarea id="daggerTunerExport" aria-label="Значения кинжала для копирования" readonly hidden></textarea>
+ </div>
+</aside>
+<aside id="shieldTuner" class="axe-tuner" aria-label="Тюнер положения щитов" hidden>
+ <div class="axe-tuner-header"><strong id="shieldTunerTitle">🛡 Щит</strong>
+ <div class="axe-tuner-header-buttons">
+  <button type="button" id="shieldTunerSide" aria-label="Переместить">⇄</button>
+  <button type="button" id="shieldTunerCollapse" aria-label="Свернуть">▁</button>
+  <button type="button" id="shieldTunerClose" aria-label="Закрыть">×</button></div></div>
+ <div class="axe-tuner-body">
+  <div class="shield-tuner-switch" role="group" aria-label="Форма щита">
+   <button type="button" id="shieldTunerRound" aria-pressed="true">◯ Круглый</button>
+   <button type="button" id="shieldTunerKite" aria-pressed="false">◇ Вытянутый</button></div>
+  <div id="shieldTunerControls"></div>
+  <div class="axe-tuner-actions">
+   <button type="button" id="shieldTunerReset">↺ Сброс</button>
+   <button type="button" id="shieldTunerCopy">⧉ JSON</button></div>
+  <div id="shieldTunerStatus" role="status" aria-live="polite"></div>
+  <textarea id="shieldTunerExport" aria-label="Значения щита" readonly hidden></textarea>
+ </div>
+</aside>
+<!-- GLTFLoader imports the package name "three"; resolve it to the same engine instance. -->
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
+<script type="module" src="./game.js?v=0.3.7.1"></script>
+</body>
+</html>
+
+
