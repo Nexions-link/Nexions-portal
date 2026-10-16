@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#101a1c">
+<meta name="description" content="NexGameWorld — сферическая фэнтезийная RPG. Играйте прямо на nexions.ru.">
+<title>NexGameWorld · Играть</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b1519;color:#edd6a3}
+body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none}
+#game{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;background:#0b1519;touch-action:auto}
+#loading{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:radial-gradient(ellipse at center,#294039,#0b1519);pointer-events:none}
+#loading[hidden]{display:none!important}
+#loading div{max-width:350px}
+#loading strong{font-size:clamp(23px,7vw,40px);font-weight:400;letter-spacing:.035em}
+#loading p{font:13px/1.6 system-ui,sans-serif;color:#bdbaae}
+#notice{position:absolute;inset:auto 12px calc(12px + env(safe-area-inset-bottom,0px));z-index:2;max-width:340px;margin:auto;padding:8px 11px;background:#151f23dc;border:1px solid #74674c;border-radius:5px;color:#e1d2b6;font:11px/1.5 system-ui,sans-serif;pointer-events:none}
+#notice[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<iframe id="game" title="NexGameWorld — игровая сцена" allow="fullscreen; autoplay" loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+<div id="loading" role="status"><div><strong>NexGameWorld</strong><p>Загружаем игровой мир…</p></div></div>
+<div id="notice" hidden>Пока обновляется версия на домене, игра открыта с резервного адреса. Сохранения на этих адресах раздельные.</div>
+<script>
+(()=>{
+ 'use strict';
+ const frame=document.getElementById('game');
+ const loading=document.getElementById('loading');
+ const notice=document.getElementById('notice');
+ const local='./planet-test/';
+ const fallback='https://nexions-link.github.io/Nexgame/planet-test/';
+ const params=new URLSearchParams(location.search);
+ // No third-party iframe for the normal route: the fully mirrored game is
+ // served from nexions.ru and saves under this domain on iOS Safari.
+ async function start(){
+  let url=local,version='';
+  try{
+   const response=await fetch(local+'version.json?check='+Date.now(),{cache:'no-store'});
+   if(!response.ok)throw Error('Local mirror is pending');
+   const data=await response.json();
+   if(data.project!=='NexGameWorld'||!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(data.version))throw Error('Invalid mirrored build');
+   version=data.version;
+  }catch(error){
+   console.warn('NexGameWorld local mirror is unavailable, using fallback:',error);
+   url=fallback;
+   notice.hidden=false;
+  }
+  const target=new URL(url,location.href);
+  if(version)target.searchParams.set('v',version);
+  else target.searchParams.set('fresh',String(Date.now()));
+  // Forward only safe display flags; game does not receive hosting parameters.
+  if(params.get('portal-preview')==='1')target.searchParams.set('portal-preview','1');
+  frame.addEventListener('load',()=>{loading.hidden=true;},{once:true});
+  frame.src=target.href;
+ }
+ start();
+})();
+</script>
+</body>
+</html>
