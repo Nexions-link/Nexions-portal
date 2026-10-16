@@ -108,7 +108,7 @@ jobs:
                "import('/nexgameworld/bestiary/atlas.js?refresh='+Date.now())"),
           ]
           atlas = source.replace('<head>',
-              '<head><link rel="canonical" href="https://nexions.ru/atlas/">', 1)
+              '<head><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="shortcut icon" href="/favicon.svg"><link rel="canonical" href="https://nexions.ru/atlas/">', 1)
           for old, new in replacements:
               if atlas.count(old) != 1:
                   raise SystemExit('Atlas entry point changed; refusing broken publish: ' + old)
