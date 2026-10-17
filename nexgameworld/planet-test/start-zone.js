@@ -3,7 +3,8 @@ import {createSphericalMeadow} from './sphere-meadow.js?v=2';
 import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=3';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
-import {canWalkCamp} from './sphere-physics.js?v=3';
+import {canWalkCamp} from './sphere-physics.js?v=4';
+import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=1';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
 
 // Spherical NexGame starting zone prototype.
@@ -85,7 +86,6 @@ export function createStartZone(three,scene,getRadius,heightAt){
  const waterTint=new THREE.Color('#64b1b6');
  const shoreMat=new THREE.MeshStandardMaterial({color:'#b4a179',roughness:1,side:THREE.DoubleSide});
  const objects=[],meshGroups=[],longhouseRoofs=[],shadowCasters=[];
- const houseWallMat=hide.clone(),houseRoofMat=hideDark.clone(); // Used by updateInteriorView().
  const villageVisuals=createVillageVisuals(THREE,{scene,getRadius,toNormal:localToNormal,heightAt});
  function box(p,mat,x,y,z,w,h,d){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);p.add(o);return o}
  function cyl(p,mat,x,y,z,a,b,h,seg=9){const o=new THREE.Mesh(new THREE.CylinderGeometry(a,b,h,seg),mat);o.position.set(x,y,z);p.add(o);return o}
@@ -101,71 +101,12 @@ export function createStartZone(three,scene,getRadius,heightAt){
    item.g.quaternion.copy(q).multiply(twist.setFromAxisAngle(UP,item.yaw));
   }
  }
- // True coordinates and shapes from the main NexGame: a 19.2 x 20.8 m
- // walkable longhouse, and four tents at the same positions and headings.
- {
-  const g=anchor(-27,-2,Math.PI/2),w=19.2,d=20.8,h=9.1,hw=w/2,hd=d/2,door=6.8;
-  // The original carpet intersected the floor by 0.0025 m.
-  // Create a real 0.0425 m clearance to prevent depth flicker on iPhone.
-  box(g,wood2,0,.10,0,w,.20,d);
-  box(g,detailRed,0,.26,3.1,6.2,.035,6.2);
-  for(const side of [-1,1])for(const zz of [.9,5.4])
-   box(g,bone,side*2.4,.286,zz,.16,.016,.70);
-  for(const sx of [-1,1])for(const zz of [-1,1]){
-    box(g,wood,sx*(hw-.3),h*.5,zz*(hd-.3),.78,h,.78);
-    ell(g,bone,sx*(hw-.3),h+.15,zz*(hd-.3),.28,.31,.29);
-  }
-  const t=.52,split=(w-door)/2;
-  box(g,houseWallMat,-hw+t/2,h/2,0,t,h,d);box(g,houseWallMat,hw-t/2,h/2,0,t,h,d);
-  box(g,houseWallMat,0,h/2,-hd+t/2,w,h,t);
-  for(const sign of [-1,1])box(g,houseWallMat,sign*(door/2+split/2),h/2,hd-t/2,split,h,t);
-  box(g,houseWallMat,0,h-.82,hd-t/2,door,1.64,t);
-  // Roof halves no longer penetrate each other at the ridge.
-  const roofR=4.7,slope=Math.atan2(roofR,hw),len=Math.hypot(hw,roofR)+.24;
-  for(const sign of [-1,1]){
-   const plank=box(g,houseRoofMat,sign*(hw/2+.18),h+roofR/2,0,len,.27,d+1.05);
-   plank.rotation.z=-sign*slope;longhouseRoofs.push(plank);shadowCasters.push(plank);
-    villageVisuals.addRoof(plank,len,d+1.05,sign===1?1:0);
-  }
-  // One ridge beam fills the narrow gap while remaining visibly above the roof.
-  rod(g,wood,0,h+roofR+.05,-hd-.65,0,h+roofR+.05,hd+.65,.31);
-  // Two triangular gables and exposed roof rafters match the original cabin.
-  const gable=new THREE.Shape();
-  gable.moveTo(-hw,h);gable.lineTo(hw,h);gable.lineTo(0,h+roofR);gable.closePath();
-  for(const zz of [-hd,hd]){
-   const panel=new THREE.Mesh(new THREE.ShapeGeometry(gable),houseWallMat);
-   panel.material.side=THREE.DoubleSide;panel.position.z=zz;g.add(panel);
-   rod(g,wood,-hw,h,zz,0,h+roofR,zz,.12);
-   rod(g,wood,hw,h,zz,0,h+roofR,zz,.12);
-  }
-  for(const sign of [-1,1])for(const zz of [-hd+.7,0,hd-.7])
-   rod(g,wood,0,h+roofR,zz,sign*(hw+.32),h-.07,zz,.11);
-  const lamp=new THREE.PointLight(0xffcb87,.94,21,2);
-  lamp.position.set(0,h-2.6,0);lamp.castShadow=false;g.add(lamp);
-  rod(g,wood,0,h,0,0,h-2.25,0,.064);
-  ell(g,new THREE.MeshStandardMaterial({color:0xffc76d,emissive:0xff9a34,emissiveIntensity:1.3}),
-    0,h-2.5,0,.28,.36,.27);
-  for(const sign of [-1,1]){
-   rod(g,wood,sign*door/2,0,hd+.2,sign*door/2,h-1.65,hd+.2,.22);
-   box(g,detailRed,sign*(door/2+.3),h-2.88,hd+.32,.40,2.4,.08);
-   const curtain=box(g,houseWallMat,sign*(door/2+.35),h-2,hd+.2,.3,2.7,.08);
-   curtain.rotation.z=sign*.08;
-   box(g,bone,sign*(door/2+.35),h-2.4,hd+.3,.33,.12,.08);
-  }
-  // Reproduce visible main-game beds, furniture, chest and central table.
-  box(g,wood,-5.2,.65,-5,4.7,1,5.1);box(g,hideDark,-5.2,1.26,-5,4.2,.28,4.3);
-  box(g,wood,5.4,1.35,-6.2,3.4,2.6,2.4);box(g,wood2,5.4,2.72,-6.2,3.7,.28,2.7);
-  box(g,wood2,3,.95,-1,3.5,.23,3);
-  for(const sx of [-1,1])for(const sz of [-1,1])box(g,wood,3+sx*1.5,.5,-1+sz*1.1,.26,.9,.25);
-  for(const zz of [-3.6,2]){
-   box(g,wood,5.8,.74,zz,1.24,1.30,1.3);
-   box(g,hideDark,5.8,1.44,zz,1.12,.20,1.1);
-  }
-  for(const sign of [-1,1]){
-   box(g,teal,sign*(hw-.09),4.8,.4,.14,2.8,1.9);
-   box(g,bone,sign*(hw-.08),4.8,.42,.15,.12,1.9);
-  }
- }
+ // Rebuilt longhouse: matching opaque physics and exterior roof layers.
+ const longhouse=buildHearthHouse(THREE,{
+  root:anchor(LONGHOUSE.x,LONGHOUSE.z,LONGHOUSE.yaw),villageVisuals
+ });
+ longhouseRoofs.push(...longhouse.roofPlanes);
+ shadowCasters.push(...longhouse.roofPlanes);
  function tent(x,z,r,yaw){
   const g=anchor(x,z,yaw);
   const rim=cyl(g,hideDark,0,.24,0,r,r,.49,14);
@@ -394,20 +335,13 @@ export function createStartZone(three,scene,getRadius,heightAt){
   patch.receiveShadow=shadowsEnabled;
  }
  function updateInteriorView(x,z){
-  const lx=-(z+2),lz=x+27;
-  const inside=Math.abs(lx)<9.25&&Math.abs(lz)<10.15;
+  const inside=insideHouse(x,z);
   if(inside!==roofFaded){
    roofFaded=inside;
+   // An entire solid roof is hidden indoors; no translucent wall sorting.
+   longhouse.roof.visible=!inside;
    villageVisuals.setInterior(inside);
    for(const roof of longhouseRoofs)roof.castShadow=shadowsEnabled&&!inside;
-   houseRoofMat.transparent=inside;
-   houseRoofMat.depthWrite=!inside;
-   houseRoofMat.opacity=inside?.12:1;
-   houseRoofMat.needsUpdate=true;
-   houseWallMat.transparent=inside;
-   houseWallMat.depthWrite=!inside;
-   houseWallMat.opacity=inside?.33:1;
-   houseWallMat.needsUpdate=true;
   }
  }
  return {rebuild,updateInteriorView,setGraphics,meadow,

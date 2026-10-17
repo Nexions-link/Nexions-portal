@@ -10,14 +10,14 @@ import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';
-import {GATHER_QUESTS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=9';
+import {GATHER_QUESTS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=10';
 import {createCampActions} from './camp-actions.js?v=11';
 import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1';
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=1';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
-import {cycleHostileTarget,nearbyInteractable} from './interaction-targeting.js?v=8';
+import {cycleHostileTarget,nearbyInteractable} from './interaction-targeting.js?v=9';
 import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v=1';
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
@@ -470,7 +470,29 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const gathering=createGatherWorld({THREE,parent:group,place:e=>{entities.push(e);setModelAt(e);}});
  const gatherNodes=gathering.nodes;
  const chestLabel=makeLabel('Общий сундук · 18','#ffe0a0',24);
- chestLabel.position.y=5.4;gathering.chest.root.add(chestLabel);
+ chestLabel.position.y=2.65;gathering.chest.root.add(chestLabel);
+ // Atlas GLB: use the authored hinge node, opening angle and clip duration.
+ // Atlas' current-pose transitions prevent Close snapping from the wrong pose.
+ void (async()=>{
+  try{
+   const loader=await modelLoader;
+   if(!loader)throw Error('GLTFLoader unavailable');
+   const asset=await loader.loadAsync('../bestiary/models/village-chest-v0.1.glb?v=1');
+   const openClip=asset.animations?.find(clip=>clip.name==='Open');
+   const closeClip=asset.animations?.find(clip=>clip.name==='Close');
+   if(!openClip||!closeClip)throw Error('Chest Open/Close clips missing');
+   const rotation=openClip.tracks.find(track=>track.name.includes('Lid_Hinge')&&
+    track.ValueTypeName==='quaternion');
+   let openAngle=-1.65;
+   if(rotation?.values?.length>=4){
+    const values=rotation.values;
+    const q=new THREE.Quaternion(...values.slice(values.length-4));
+    openAngle=new THREE.Euler().setFromQuaternion(q,'XYZ').x;
+   }
+   if(!gathering.installChestModel(asset.scene,{openAngle,duration:openClip.duration}))
+    throw Error('Chest hinge missing');
+  }catch(error){console.warn('Shared chest Atlas GLB fallback:',error);}
+ })();
  const mentorWorld=createMentorWorld({THREE,parent:group,
   place:e=>{entities.push(e);setModelAt(e);},getRadius,toNormal,heightAt});
  // Use the exact approved longstrider model and clips when the shared GLB loads.
@@ -640,6 +662,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function openWindow(kind){
   if(kind!=='gatherLoot')camp.cancel();
   modal.hidden=false;modal.dataset.kind=kind;
+  if(kind==='chest')gathering.setChestOpen(true);
   if(kind==='chest'&&isOnline()){
    const items=authenticatedProfile?serverBagSlots.map(row=>row?{...row}:null):[...state.inventory];
    while(items.length<12)items.push(null);
@@ -649,7 +672,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   renderModal();
  }
  function closeWindow(){
-  if(modal.dataset.kind==='chest'&&isOnline())multiplayer.closeChest();
+  if(modal.dataset.kind==='chest'){
+   gathering.setChestOpen(false);
+   if(isOnline())multiplayer.closeChest();
+  }
   modal.hidden=true;pendingLoot=null;
  }
  let resetProgressView=null;
@@ -1263,6 +1289,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function update(dt){
   clock+=dt;
+  gathering.updateChestMotion(dt);
   blockRemaining=Math.max(0,blockRemaining-dt);
   const impact=timeline.update(dt);
   if(impact?.skill==='thunderStomp'){

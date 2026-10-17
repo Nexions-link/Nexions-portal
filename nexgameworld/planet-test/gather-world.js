@@ -3,6 +3,8 @@
 // in this independent offline scene and do not write to the production save.
 import {lakeRadius} from './start-zone.js?v=14';
 import {RESOURCE_VISUAL_COLORS,resourceProximityCue} from './gather-visibility.js?v=1';
+import {LONGHOUSE,HOUSE_CHEST} from './hearth-house.js?v=1';
+import {createChestMotion} from '../bestiary/chest-preview-motion.js?v=1';
 
 export const GATHER_QUESTS=[
  null,
@@ -19,7 +21,7 @@ export const GATHER_QUESTS=[
 export const GATHER_INTERACT_RANGE=2.8;
 export const GATHER_CAST_SECONDS=1.5;
 export const GATHER_RESPAWN_SECONDS=32;
-export const OFFLINE_CHEST={x:-33.2,z:-7.4,slots:18,range:4.7};
+export const OFFLINE_CHEST=Object.freeze({...HOUSE_CHEST,slots:18});
 export function createGatherWorld({THREE,parent,place}){
   const yAxis=new THREE.Vector3(0,1,0);
   const material=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.92,...extra});
@@ -119,17 +121,41 @@ export function createGatherWorld({THREE,parent,place}){
       group.visible=false;nodes.push(node);place(node);
     });
   }
-  // Physical 18-slot chest inside the original longhouse.
-  const chestMat=material('#69482c'),dark=material('#3d3023'),metal=material('#c6a46b',{metalness:.35,roughness:.7});
-  const chest=new THREE.Group();chest.name='offline-hearth-chest';parent.add(chest);
-  obj(chest,new THREE.BoxGeometry(1,1,1),chestMat,0,.55,0,1.85,.93,1.15);
-  obj(chest,new THREE.BoxGeometry(1,1,1),dark,0,1.07,0,1.93,.15,1.23);
-  for(const z of [-.56,.56])obj(chest,new THREE.BoxGeometry(1,1,1),metal,0,.6,z,1.93,.1,.09);
-  for(const x of [-.75,.75])obj(chest,new THREE.BoxGeometry(1,1,1),metal,x,.55,0,.12,1.04,1.25);
-  obj(chest,new THREE.BoxGeometry(1,1,1),metal,0,.72,.62,.26,.3,.09);
-  const chestEntity={kind:'chest',name:'Сундук · 18 ячеек',x:OFFLINE_CHEST.x,z:OFFLINE_CHEST.z,yaw:0,root:chest};
+  // Temporary solid fallback. Swap only its visual, never the gameplay entity.
+  const chestMat=material('#815233'),dark=material('#49352a'),
+   metal=material('#c6a46b',{metalness:.35,roughness:.7});
+  const chest=new THREE.Group();chest.name='hearth-house-shared-chest';parent.add(chest);
+  const fallback=new THREE.Group();fallback.name='hearth-chest-fallback';chest.add(fallback);
+  obj(fallback,new THREE.BoxGeometry(2.25,1.05,1.38),chestMat,0,.63,0,1,1,1);
+  for(const x of [-.90,.90])
+   obj(fallback,new THREE.BoxGeometry(.14,1.12,1.5),metal,x,.62,0,1,1,1);
+  const lidHinge=new THREE.Group();lidHinge.name='Lid_Hinge';
+  lidHinge.position.set(0,1.15,-.695);fallback.add(lidHinge);
+  obj(lidHinge,new THREE.BoxGeometry(2.31,.20,1.5),dark,0,.11,.695,1,1,1);
+  obj(lidHinge,new THREE.BoxGeometry(.30,.08,1.50),metal,0,.23,.695,1,1,1);
+  const chestEntity={kind:'chest',name:'Сундук · 18 ячеек',
+   x:OFFLINE_CHEST.x,z:OFFLINE_CHEST.z,yaw:LONGHOUSE.yaw,root:chest};
   place(chestEntity);
-  return {nodes,chest:chestEntity,
+  let chestIsOpen=false,chestMotion=createChestMotion(lidHinge);
+  function setChestOpen(value){
+   chestIsOpen=!!value;
+   chestMotion.select(chestIsOpen?'Open':'Close');
+  }
+  function installChestModel(model,{openAngle=-1.65,duration=1.15}={}){
+   const hinge=model?.getObjectByName('Lid_Hinge');
+   if(!hinge||!Number.isFinite(openAngle))return false;
+   model.name='atlas-village-chest-v0.1';
+   model.traverse(child=>{
+    if(child.isMesh){child.castShadow=false;child.receiveShadow=true;}
+   });
+   chest.add(model);
+   fallback.visible=false;
+   chestMotion=createChestMotion(hinge,{openAngle,duration});
+   if(chestIsOpen)chestMotion.select('Open');
+   return true;
+  }
+  return {nodes,chest:chestEntity,setChestOpen,installChestModel,
+    updateChestMotion(dt){chestMotion.update(dt);},
     setVisualQuality(value){visualQuality=Number.isFinite(value)?Math.max(0,Math.min(1,value)):.68;},
     update(clock,isAvailable,getDistance){
       for(const node of nodes){

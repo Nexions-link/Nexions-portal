@@ -1,4 +1,6 @@
 import {blocksRockOrMesa} from './planet-landmarks.js?v=1';
+import {LONGHOUSE,toHouseCoordinates,insideHouse} from './hearth-house.js?v=1';
+export {toHouseCoordinates} from './hearth-house.js?v=1';
 // PT 0.6.0 — spherical contact and third-person camera constraints.
 // Static footprints match the ORIGINAL camp's physical dimensions. Geometry
 // tests operate in local geodesic chart metres; world-space rays are converted
@@ -15,25 +17,22 @@ const TOTEMS=[[-3,-5,1],[5,9,.75],[-5,25,.8],[35,-14,1.25]];
 const BANNERS=[[-4,19],[5,-14]];
 const boxHit=(x,z,cx,cz,hw,hd)=>Math.abs(x-cx)<hw&&Math.abs(z-cz)<hd;
 const circleHit=(x,z,cx,cz,r)=>Math.hypot(x-cx,z-cz)<r;
-export function toHouseCoordinates(x,z){return {x:-(z+2),z:x+27};}
-export function isInLonghouse(x,z){
- const p=toHouseCoordinates(x,z);return Math.abs(p.x)<9.25&&Math.abs(p.z)<10.15;
-}
+export function isInLonghouse(x,z){return insideHouse(x,z);}
 export function canWalkCamp(x,z,playerRadius=.42){
  if(!Number.isFinite(x)||!Number.isFinite(z))return false;
  if(blocksRockOrMesa(x,z,playerRadius))return false;
  if(Math.hypot(x,z)>90)return true; // Beyond camp: mesas still use shared collision.
  const r=playerRadius,p=toHouseCoordinates(x,z),ax=Math.abs(p.x),az=Math.abs(p.z);
- // Original longhouse measures 19.2×20.8 m with 6.8m front (+Z) doorway.
- // Collision affects shell only, leaving the interior walkable.
- const atWallX=ax>9.6-.54-r&&ax<9.6+.54+r&&az<10.4+.54+r;
- const atWallZ=az>10.4-.54-r&&az<10.4+.54+r&&ax<9.6+.54+r;
- const door=p.z>0&&ax<3.4-r;
+ const hw=LONGHOUSE.width/2,hd=LONGHOUSE.depth/2,t=LONGHOUSE.wallThickness;
+ const atWallX=ax>hw-t-r&&ax<hw+r&&az<hd+r;
+ const atWallZ=az>hd-t-r&&az<hd+r&&ax<hw+r;
+ const door=p.z>0&&ax<LONGHOUSE.doorWidth/2-r;
  if(atWallX||(atWallZ&&!door))return false;
- // Main-game furniture: two bunks, shelf/chest and a solid table.
+ // Explicit furniture and GLB chest bounds match the visible scene.
  if(boxHit(p.x,p.z,-5.2,-5,2.35+r,2.55+r))return false;
  if(boxHit(p.x,p.z,5.4,-6.2,1.7+r,1.2+r))return false;
  if(boxHit(p.x,p.z,3,-1,1.75+r,1.5+r))return false;
+ if(boxHit(p.x,p.z,LONGHOUSE.chestLocalX,LONGHOUSE.chestLocalZ,1.155+r,.725+r))return false;
  for(const tent of TENTS){
   // Cone tents are solid in the current starting zone. Their fabric is a
   // surface obstacle but nearby interaction uses separate entity ranges.
@@ -47,15 +46,15 @@ export function canWalkCamp(x,z,playerRadius=.42){
 function geometryAt(x,z,height,interior=false){
  if(blocksRockOrMesa(x,z,.25,height))return true;
  const p=toHouseCoordinates(x,z),ax=Math.abs(p.x),az=Math.abs(p.z);
- if(height>=0&&height<13.8){
-  const wallX=ax>9.25&&ax<10.05&&az<10.75;
-  const wallZ=az>10.05&&az<10.75&&ax<10.05;
-  const door=p.z>0&&ax<3.4&&height<7.2;
+ const hw=LONGHOUSE.width/2,hd=LONGHOUSE.depth/2,t=LONGHOUSE.wallThickness;
+ if(height>=0&&height<LONGHOUSE.height+LONGHOUSE.roofRise+.25){
+  const wallX=ax>hw-t&&ax<hw+.06&&az<hd+.05&&height<LONGHOUSE.height;
+  const wallZ=az>hd-t&&az<hd+.06&&ax<hw+.05&&height<LONGHOUSE.height;
+  const door=p.z>0&&ax<LONGHOUSE.doorWidth/2&&height<LONGHOUSE.height-1.68;
   if(wallX||(wallZ&&!door))return true;
-  if(!interior&&ax<9.6&&az<10.4&&height>9.1&&height<13.7){
-   // Two diagonal roof planes; conservative envelope and only outside.
-   const roof=9.1+4.7*(1-ax/9.6);
-   if(height>roof-.55&&height<roof+.8)return true;
+  if(!interior&&ax<hw&&az<hd&&height>LONGHOUSE.height){
+   const roof=LONGHOUSE.height+LONGHOUSE.roofRise*(1-ax/hw);
+   if(Math.abs(height-roof)<.55)return true;
   }
  }
  for(const tent of TENTS){
