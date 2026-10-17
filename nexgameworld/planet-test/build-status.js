@@ -8,6 +8,10 @@
   if(!root)return;
   const running=root.dataset.build;
   const trigger=$('planetVersionBadge');
+  // Derive every visible release label from the build ID of the HTML in use.
+  const badgeText=trigger.querySelector('span');
+  if(badgeText)badgeText.textContent='Alpha '+running;
+  document.title='NexGameWorld · Alpha '+running;
   const panel=$('planetBuildPanel');
   const loadedText=$('planetBuildLoaded');
   const publishedText=$('planetBuildPublished');
@@ -67,7 +71,7 @@
       const response=await fetch('./version.json?_='+Date.now(),{cache:'no-store'});
       if(!response.ok)throw new Error('HTTP '+response.status);
       const release=await response.json();
-      if(typeof release.version!=='string'||!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(release.version))throw new Error('Некорректная версия');
+      if(typeof release.version!=='string'||!/^[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/.test(release.version))throw new Error('Некорректная версия');
       lastPublished=release;
       renderNotes(release);
       const relation=compareVersions(release.version,running);
@@ -95,7 +99,12 @@
     panel.hidden=true;trigger.setAttribute('aria-expanded','false');
   });
   checkButton.addEventListener('click',()=>void check());
-  refresh.addEventListener('click',()=>window.location.reload());
+  // Changing the URL makes Safari request the new document, even after iframe caching.
+  refresh.addEventListener('click',()=>{
+    const url=new URL(window.location.href);
+    url.searchParams.set('fresh',String(Date.now()));
+    window.location.replace(url.href);
+  });
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&!panel.hidden){
       panel.hidden=true;trigger.setAttribute('aria-expanded','false');

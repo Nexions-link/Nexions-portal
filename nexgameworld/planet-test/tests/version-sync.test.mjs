@@ -13,3 +13,14 @@ test('NexGameWorld published HTML build matches version manifest for nexions.ru 
  assert.deepEqual(builds,[version],
   'Update data-build in planet-test/index.html whenever version.json changes, or nexions.ru mirror cannot publish.');
 });
+
+test('build label comes from data-build instead of stale hard-coded version strings',()=>{
+ const html=readFileSync(entry,'utf8');
+ const buildStatus=readFileSync(new URL('../build-status.js',import.meta.url),'utf8');
+ assert.match(html,/<title>NexGameWorld · Alpha<\/title>/);
+ assert.match(html,/<span>Alpha —<\/span>/);
+ assert.match(html,/<div id="planetBuildLoaded">Запущена: Alpha —<\/div>/);
+ assert.match(buildStatus,/badgeText\.textContent='Alpha '\+running/);
+ assert.match(buildStatus,/document\.title='NexGameWorld · Alpha '\+running/);
+ assert.match(buildStatus,/url\.searchParams\.set\('fresh',String\(Date\.now\(\)\)\)/);
+});
