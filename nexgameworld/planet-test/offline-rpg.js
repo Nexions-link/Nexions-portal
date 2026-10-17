@@ -639,6 +639,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    hasConsumable:itemCount('healingPotion')>0,needsHealing:state.hp<stats().maxHp};
  }
  function castAction(id){
+  if(authenticatedProfile&&id==='healingPotion'){
+   msg('Использование зелий станет доступно после подключения серверного инвентаря.');
+   return false;
+  }
+  if(authenticatedProfile&&!isOnline()){
+   msg('Связь с сервером отсутствует. Боевые действия приостановлены.');
+   return false;
+  }
   if(!modal.hidden||camp.casting||state.hp<=0)return false;
   const def=getAbilityDefinition(id);if(!def)return false;
   if(id==='autoAttack'){
