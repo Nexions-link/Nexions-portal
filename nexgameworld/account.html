@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101f24"><meta name="referrer" content="no-referrer">
+<meta http-equiv="Cache-Control" content="no-store">
+<title>NexGameWorld — аккаунт · Alpha 0.7</title>
+<link rel="icon" href="/favicon.svg">
+<style>
+:root{color-scheme:dark;font:15px system-ui,-apple-system,sans-serif;background:#0b171e;color:#eae2cf}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at 50% 30%,#25413e,#0b171e 70%);display:grid;place-items:center;padding:20px}
+main{width:min(100%,440px);border:1px solid #7d7758;border-radius:12px;background:#102129ee;box-shadow:0 18px 70px #0006;padding:clamp(18px,4vw,32px)}
+h1{text-align:center;color:#e5ca8d;font:600 clamp(29px,7vw,40px) Georgia,serif;margin:4px 0}h2{font:500 22px Georgia,serif;margin:12px 0}
+small,.muted{color:#acb6b3}p{line-height:1.5}label{display:block;margin:15px 0 6px}
+input{width:100%;font:inherit;min-height:46px;border-radius:6px;background:#08171f;border:1px solid #697269;color:white;padding:12px;outline-offset:2px}
+input:focus{outline:2px solid #d8bd88;border-color:#d8bd88}
+button{font:inherit;cursor:pointer;min-height:45px;padding:10px 14px;border:1px solid #7b866e;border-radius:6px;background:#223638;color:#ecdfc3}
+button.primary{width:100%;margin:16px 0 8px;background:#dbc08a;color:#10201e;font-weight:700;border-color:#e0c795}
+button:disabled{opacity:.55;cursor:wait}.links{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.links button{background:transparent;border:none;color:#d8c291;text-decoration:underline;padding:6px;min-height:32px}
+.view[hidden],#feedback[hidden]{display:none!important}#feedback{padding:12px;border-left:3px solid #d6b779;background:#2a3230;margin:16px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+#feedback[data-error=true]{border-color:#e27a74}.hint{font-size:12px;color:#aeb9b0;margin:5px 0 12px}
+.codes{list-style:none;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:5px}.codes li{font:12px ui-monospace,monospace;overflow-wrap:anywhere;background:#091820;padding:6px;border:1px solid #5c6a5e;border-radius:4px}
+.hero{border:1px solid #62664f;padding:12px;border-radius:7px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
+a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;font-size:12px;letter-spacing:.14em;color:#aab9ad}
+</style></head><body><main>
+<header><h1>NexGameWorld</h1><p>АЛЬФА · ТЕСТ РЕГИСТРАЦИИ</p></header>
+<div id="feedback" role="status" aria-live="polite" hidden></div>
+<section class="view" id="login">
+<h2>Войти</h2><form id="loginForm">
+<label for="loginName">Логин</label><input id="loginName" name="username" required minlength="3" maxlength="24" autocomplete="username">
+<label for="loginPass">Пароль</label><input id="loginPass" name="password" type="password" required minlength="8" maxlength="128" autocomplete="current-password">
+<button class="primary" type="submit">Войти</button></form>
+<div class="links"><button type="button" data-view="register">Создать аккаунт</button><button type="button" data-view="recover">Забыл пароль?</button></div>
+</section>
+<section class="view" id="register" hidden>
+<h2>Регистрация</h2>
+<p class="hint">В новой онлайн-версии все начинают с нуля. Персонажи и прогресс предыдущей альфы не переносятся.</p><form id="registerForm">
+<label for="registerName">Логин</label><input id="registerName" name="username" required pattern="[A-Za-z][A-Za-z0-9_-]{2,23}" maxlength="24" autocomplete="username">
+<p class="hint">3–24 символа: латиница, цифры, дефис, подчёркивание.</p>
+<label for="registerPass">Пароль</label><input id="registerPass" name="password" type="password" required minlength="8" maxlength="128" autocomplete="new-password">
+<p class="hint">Пароль — не менее 8 символов. Рекомендуем использовать уникальный пароль, который не применяется на других сайтах.</p>
+<label for="registerPass2">Повторите пароль</label><input id="registerPass2" type="password" required minlength="8" maxlength="128" autocomplete="new-password">
+<button class="primary" type="submit">Создать аккаунт</button></form>
+<div class="links"><button type="button" data-view="login">Уже есть аккаунт? Войти</button></div>
+</section>
+<section class="view" id="recoveryCodes" hidden>
+<h2>Сохраните резервные коды</h2>
+<p>Эти коды помогут восстановить доступ без электронной почты. Каждый действует только один раз. <strong>После закрытия этого окна они больше не появятся.</strong></p>
+<ul id="codes" class="codes"></ul>
+<button id="copyCodes" type="button">Скопировать коды</button>
+<label><input type="checkbox" id="codesSaved" style="width:auto;min-height:0"> Я сохранил коды в надёжном месте</label>
+<button id="codesContinue" class="primary" type="button" disabled>Продолжить ко входу</button>
+</section>
+<section class="view" id="recover" hidden>
+<h2>Восстановить пароль</h2><p class="hint">Нужен один из резервных кодов, выданных при регистрации.</p>
+<form id="recoverForm">
+<label for="recoverName">Логин</label><input id="recoverName" name="username" required autocomplete="username">
+<label for="recoverCode">Резервный код</label><input id="recoverCode" name="recoveryCode" required maxlength="32" autocomplete="off">
+<label for="recoverPass">Новый пароль</label><input id="recoverPass" name="newPassword" type="password" required minlength="8" maxlength="128" autocomplete="new-password">
+<button type="submit" class="primary">Сменить пароль</button></form><button data-view="login">Вернуться ко входу</button>
+</section>
+<section class="view" id="characters" hidden>
+<h2>Персонажи</h2><p id="accountName" class="muted"></p><p class="hint">Новые герои начинают на 1-м уровне. Перенос старых сохранений недоступен.</p><div id="characterList"></div>
+<form id="characterForm"><label for="heroName">Имя нового персонажа</label><input id="heroName" name="nickname" required minlength="3" maxlength="24">
+<p class="hint">Сейчас доступен Воин. Настройка внешности и классы появятся позже.</p>
+<button class="primary" type="submit">Создать персонажа</button></form>
+<button id="logout" type="button">Выйти из аккаунта</button>
+</section>
+<footer style="text-align:center;font-size:12px;margin-top:15px"><a href="/">На главную</a></footer>
+</main><script type="module">
+const API='https://nexgame-world.onrender.com/api/ngw';
+const $=id=>document.getElementById(id);
+const views=['login','register','recoveryCodes','recover','characters'];
+let token=sessionStorage.getItem('ngw-alpha-session')||'',codes=[];
+function show(view){for(const id of views)$(id).hidden=id!==view;feedback('');}
+function feedback(text,error=false){$('feedback').hidden=!text;$('feedback').textContent=text;$('feedback').dataset.error=String(error);}
+function clearPasswords(){for(const el of document.querySelectorAll('input[type=password]'))el.value='';}
+async function api(path,{method='GET',body=null,authorized=false}={}){
+ const headers={'Accept':'application/json'};
+ if(body!==null)headers['Content-Type']='application/json';
+ if(authorized&&token)headers.Authorization='Bearer '+token;
+ const response=await fetch(API+path,{method,headers,body:body===null?undefined:JSON.stringify(body),cache:'no-store'});
+ let data;try{data=await response.json()}catch{data={error:'Ответ сервера недоступен'}}
+ if(!response.ok)throw Error(data.error||'Ошибка запроса');
+ return data;
+}
+async function submit(event,action){
+ event.preventDefault();
+ const button=event.currentTarget.querySelector('button[type=submit]');
+ if(button)button.disabled=true;
+ try{await action(new FormData(event.currentTarget));}
+ catch(error){feedback(error.message||'Не удалось подключиться к серверу',true)}
+ finally{if(button)button.disabled=false;clearPasswords()}
+}
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
+$('registerForm').addEventListener('submit',event=>submit(event,async form=>{
+ const username=String(form.get('username')),password=String(form.get('password'));
+ if(password!==$('registerPass2').value)throw Error('Пароли не совпадают');
+ const result=await api('/register',{method:'POST',body:{username,password}});
+ codes=result.recoveryCodes||[];
+ $('codes').replaceChildren(...codes.map(code=>{const li=document.createElement('li');li.textContent=code;return li}));
+ $('codesSaved').checked=false;$('codesContinue').disabled=true;
+ show('recoveryCodes');
+}));
+$('copyCodes').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(codes.join('\n'));feedback('Коды скопированы. Сохраните их в надёжном месте.')}catch{feedback('Скопируйте коды вручную.',true)}});
+$('codesSaved').addEventListener('change',()=>{$('codesContinue').disabled=!$('codesSaved').checked});
+$('codesContinue').addEventListener('click',()=>{codes=[];$('codes').replaceChildren();show('login');feedback('Аккаунт создан. Теперь войдите.')});
+$('loginForm').addEventListener('submit',event=>submit(event,async form=>{
+ const data=await api('/login',{method:'POST',body:{username:String(form.get('username')),password:String(form.get('password'))}});
+ token=data.token;sessionStorage.setItem('ngw-alpha-session',token);
+ $('accountName').textContent=data.account.username;await loadCharacters();show('characters');
+}));
+$('recoverForm').addEventListener('submit',event=>submit(event,async form=>{
+ await api('/recover',{method:'POST',body:{username:String(form.get('username')),recoveryCode:String(form.get('recoveryCode')).trim(),newPassword:String(form.get('newPassword'))}});
+ show('login');feedback('Пароль изменён. Войдите с новым паролем.');
+}));
+async function loadCharacters(){
+ const data=await api('/characters',{authorized:true});
+ const container=$('characterList');container.replaceChildren();
+ for(const character of data.characters||[]){
+  const card=document.createElement('div');card.className='hero';
+  const desc=document.createElement('div');
+  const title=document.createElement('strong');title.textContent=character.nickname;
+  const detail=document.createElement('p');detail.className='hint';detail.textContent='Воин · уровень '+character.level;
+  desc.append(title,detail);
+  const button=document.createElement('button');button.type='button';button.textContent='Выбрать';
+  button.addEventListener('click',()=>feedback('Персонаж сохранён в Neon. Вход этим героем в игровой мир подключим позже.'));
+  card.append(desc,button);container.append(card);
+ }
+ $('characterForm').hidden=(data.characters||[]).length>=data.slots;
+}
+$('characterForm').addEventListener('submit',event=>submit(event,async form=>{
+ await api('/characters',{method:'POST',authorized:true,body:{nickname:String(form.get('nickname'))}});
+ $('heroName').value='';await loadCharacters();
+}));
+$('logout').addEventListener('click',async()=>{
+ try{await api('/logout',{method:'POST',body:{},authorized:true})}catch{}
+ token='';sessionStorage.removeItem('ngw-alpha-session');show('login');
+});
+if(token){api('/me',{authorized:true}).then(data=>{
+ $('accountName').textContent=data.username;return loadCharacters();
+}).then(()=>show('characters')).catch(()=>{token='';sessionStorage.removeItem('ngw-alpha-session');show('login')})}
+</script></body></html>
