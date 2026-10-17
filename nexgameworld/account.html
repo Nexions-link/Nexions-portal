@@ -49,9 +49,8 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 <div class="links"><button type="button" data-view="register">Создать аккаунт</button><button type="button" data-view="recover">Забыл пароль?</button></div>
 </section>
 <section class="view" id="register" hidden>
-<h2>Регистрация</h2><p class="hint">Регистрация в закрытой альфе выполняется по приглашению.</p>
+<h2>Регистрация</h2>
 <p class="hint">В новой онлайн-версии все начинают с нуля. Персонажи и прогресс предыдущей альфы не переносятся.</p><form id="registerForm">
-<label for="inviteCode">Код приглашения</label><input id="inviteCode" name="inviteCode" type="text" required minlength="8" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false">
 <label for="registerName">Логин</label><input id="registerName" name="username" required pattern="[A-Za-z][A-Za-z0-9_-]{2,23}" maxlength="24" autocomplete="username">
 <p class="hint">3–24 символа: латиница, цифры, дефис, подчёркивание.</p>
 <label for="registerPass">Пароль</label><div class="password-control"><input id="registerPass" name="password" type="password" required minlength="6" maxlength="128" autocomplete="new-password"><button class="toggle-password" type="button" data-show-password="registerPass" aria-controls="registerPass" aria-pressed="false" aria-label="Показать пароль">Показать</button></div>
@@ -112,4 +111,4 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 </form>
 </dialog>
 <footer style="text-align:center;font-size:12px;margin-top:15px"><a href="/">На главную</a></footer>
-</main><script type="module" src="./account.js?v=0.7.1"></script></body></html>
+</main><script type="module" src="./account.js?v=0.7.2"></script></body></html>
