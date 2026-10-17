@@ -1,0 +1,27 @@
+name: Verify NexGameWorld launcher versions
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'nexgameworld/index.html'
+      - 'tests/game-launcher.test.mjs'
+      - '.github/workflows/game-launcher-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'nexgameworld/index.html'
+      - 'tests/game-launcher.test.mjs'
+      - '.github/workflows/game-launcher-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  launcher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/game-launcher.test.mjs
