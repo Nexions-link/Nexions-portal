@@ -43,7 +43,7 @@ jobs:
           assert.match(html,/id="passwordChangeForm"/);
           assert.match(html,/id="deleteDialog"/);
           assert.match(launcher,/account-play/);
-          assert.match(launcher,/0\\.6\\.32/);
+          assert.ok(launcher.includes('0.6.32'));
           assert.doesNotMatch(js,/inviteCode/);
           assert.match(js,/currentPassword/);
           assert.match(js,/ngw-selected-character/);
