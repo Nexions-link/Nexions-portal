@@ -27,7 +27,8 @@ button:disabled{opacity:.55;cursor:wait}.links{display:flex;justify-content:spac
 .codes{list-style:none;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:5px}.codes li{font:12px ui-monospace,monospace;overflow-wrap:anywhere;background:#091820;padding:6px;border:1px solid #5c6a5e;border-radius:4px}
 .hero{border:1px solid #62664f;padding:12px;border-radius:7px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
 .hero-actions{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
-#characters #logout{margin-top:22px}
+.account-actions{display:flex;flex-direction:column;gap:22px;margin-top:14px}
+.account-actions>button{display:block;width:100%;margin:0}
 .delete-hero{border-color:#704b49;background:#2c2224;color:#ffb5ad;min-height:39px}
 .delete-hero:hover{background:#47292c}
 dialog{width:min(92vw,420px);max-height:min(84dvh,640px);overflow-y:auto;margin:auto;padding:22px;border-radius:12px;border:1px solid #9a7f6e;color:#eae2cf;background:#13252a;box-shadow:0 18px 65px #000b}
@@ -82,7 +83,8 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 <p class="hint">Сейчас доступен Воин. Настройка внешности и классы появятся позже.</p>
 <button class="primary" type="submit">Создать персонажа</button></form>
 
-<button id="openPasswordChange" type="button" style="width:100%;margin-top:14px">Сменить пароль</button>
+<div class="account-actions">
+<button id="openPasswordChange" type="button">Сменить пароль</button>
 <form id="passwordChangeForm" hidden>
 <h2>Смена пароля</h2>
 <label for="currentAccountPassword">Текущий пароль</label>
@@ -96,6 +98,7 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 <button id="cancelPasswordChange" type="button">Отмена</button>
 </form>
 <button id="logout" type="button">Выйти из аккаунта</button>
+</div>
 </section>
 <dialog id="deleteDialog" aria-labelledby="deleteTitle">
 <h2 id="deleteTitle">Удаление персонажа</h2>
