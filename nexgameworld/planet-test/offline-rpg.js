@@ -152,11 +152,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function onPartyNotice(event){if(event?.message)msg(event.message);}
  function onChat(event){if(event?.text)msg((event.channel==='party'?'[Группа] ':'[Мир] ')+(event.name||'Игрок')+': '+event.text,3.3);}
- function onChestState(event){onlineChest=event;if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();}
+ function onChestState(event){onlineChest={...(onlineChest||{}),...event};if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();}
  function onChestResult(event){
   if(event?.ok&&Array.isArray(event.inventory)){
    state.inventory=event.inventory.filter(Boolean).map(row=>({id:row.id,qty:row.qty}));
-   onlineChest={slots:event.slots,revision:event.revision};persist();draw();
+   onlineChest={slots:event.slots,revision:event.revision,inventory:event.inventory};persist();draw();
    if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
   }else if(event?.reason)msg(event.reason);
  }
@@ -516,9 +516,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(kind!=='gatherLoot')camp.cancel();
   modal.hidden=false;modal.dataset.kind=kind;
   if(kind==='chest'&&isOnline()){
-   onlineChest=null;
    const items=[...state.inventory];
    while(items.length<12)items.push(null);
+   onlineChest={slots:null,inventory:items};
    multiplayer.openChest(items);
   }
   renderModal();
@@ -768,7 +768,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      [['Забрать',()=>multiplayer.moveChest('withdraw',i,crypto.randomUUID())]]);
    }
    line('Рюкзак','Нажми «Положить», чтобы переместить предмет.');
-   state.inventory.forEach((item,i)=>{
+   (onlineChest.inventory||state.inventory).forEach((item,i)=>{
+    if(!item)return;
     const def=ITEM_CATALOG[item.id];
     if(def&&!def.quest)
      line(def.name+' ×'+item.qty,'Ячейка '+(i+1),
