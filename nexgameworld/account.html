@@ -22,7 +22,7 @@ button:disabled{opacity:.55;cursor:wait}.links{display:flex;justify-content:spac
 .hero{border:1px solid #62664f;padding:12px;border-radius:7px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
 a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;font-size:12px;letter-spacing:.14em;color:#aab9ad}
 </style></head><body><main>
-<header><h1>NexGameWorld</h1><p>АЛЬФА · ЛИЧНЫЙ КАБИНЕТ</p></header>
+<header><h1>NexGameWorld</h1><p>АЛЬФА · ТЕСТ РЕГИСТРАЦИИ</p></header>
 <div id="feedback" role="status" aria-live="polite" hidden></div>
 <section class="view" id="login">
 <h2>Войти</h2><form id="loginForm">
@@ -123,7 +123,7 @@ async function loadCharacters(){
   const detail=document.createElement('p');detail.className='hint';detail.textContent='Воин · уровень '+character.level;
   desc.append(title,detail);
   const button=document.createElement('button');button.type='button';button.textContent='Выбрать';
-  button.addEventListener('click',()=>feedback('Персонаж создан. Вход в мир подключим после проверки серверного сохранения.'));
+  button.addEventListener('click',()=>feedback('Персонаж сохранён в Neon. Вход этим героем в игровой мир подключим позже.'));
   card.append(desc,button);container.append(card);
  }
  $('characterForm').hidden=(data.characters||[]).length>=data.slots;
