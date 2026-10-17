@@ -1,0 +1,48 @@
+name: NexGameWorld account page checks
+on:
+  push:
+    branches:
+      - main
+      - feature/ngw-auth-hardening-0.7.1
+    paths:
+      - 'nexgameworld/account.html'
+      - 'nexgameworld/account.js'
+      - '.github/workflows/account-ci.yml'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  account-page:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: node --check nexgameworld/account.js
+      - name: Validate security and account flows
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const html=readFileSync('nexgameworld/account.html','utf8');
+          const js=readFileSync('nexgameworld/account.js','utf8');
+          const mirror=readFileSync('.github/workflows/sync-nexgame.yml','utf8');
+          assert.match(html,/Content-Security-Policy/);
+          assert.match(html,/script-src 'self'/);
+          assert.match(html,/src="\.\/account\.js\?v=0\.7\.1"/);
+          assert.doesNotMatch(html,/<script type="module">/);
+          assert.match(mirror,/--exclude='\/account\.js'/);
+          assert.match(html,/id="inviteCode"/);
+          assert.match(html,/id="passwordChangeForm"/);
+          assert.match(html,/id="deleteDialog"/);
+          assert.match(js,/inviteCode/);
+          assert.match(js,/currentPassword/);
+          assert.match(js,/sessionStorage\.removeItem/);
+          console.log('Account page, auth flows, CSP and mirror exclusions: OK');
+          JS
