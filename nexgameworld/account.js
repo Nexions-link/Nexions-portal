@@ -81,8 +81,7 @@ document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',(
 $('registerForm').addEventListener('submit',event=>submit(event,async form=>{
  const username=String(form.get('username')),password=String(form.get('password'));
  if(password!==$('registerPass2').value)throw Error('Пароли не совпадают');
- const inviteCode=String(form.get('inviteCode')).trim();
- const result=await api('/register',{method:'POST',body:{username,password,inviteCode}});
+ const result=await api('/register',{method:'POST',body:{username,password}});
  codes=result.recoveryCodes||[];
  $('codes').replaceChildren(...codes.map(code=>{const li=document.createElement('li');li.textContent=code;return li}));
  $('codesSaved').checked=false;$('codesContinue').disabled=true;
