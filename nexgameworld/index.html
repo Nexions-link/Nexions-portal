@@ -43,7 +43,7 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
  // Read both the same-domain mirror and the current upstream release.
  // During the few minutes before sync completes, launch the newest published build.
  function parseVersion(data){
-  return data?.project==='NexGameWorld'&&/^[0-9]+\\.[0-9]+\\.[0-9]+$/.test(data?.version||'')?
+  return data?.project==='NexGameWorld'&&/^[0-9]+\.[0-9]+\.[0-9]+$/.test(data?.version||'')?
    data.version:null;
  }
  function isNewer(a,b){
