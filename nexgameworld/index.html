@@ -41,6 +41,26 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
  const local='./planet-test/';
  const fallback='https://nexions-link.github.io/Nexgame/planet-test/';
  const params=new URLSearchParams(location.search);
+ // The main game is now account-only. A bare /nexgameworld/ route or an old
+ // anonymous bookmark must never silently start a local "Странник" character.
+ // The read-only planet preview remains available separately.
+ if(params.get('portal-preview')!=='1'){
+  if(params.get('account-play')!=='1'){
+   location.replace('/nexgameworld/account.html');
+   return;
+  }
+  // Missing credentials in a new Safari tab should open the account screen,
+  // not render an anonymous player or expose an expired session in the URL.
+  let hasSelectedCharacter=false;
+  try{
+   hasSelectedCharacter=/^[A-Za-z0-9_-]{43}$/.test(sessionStorage.getItem('ngw-alpha-session')||'')&&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionStorage.getItem('ngw-selected-character')||'');
+  }catch{}
+  if(!hasSelectedCharacter){
+   location.replace('/nexgameworld/account.html');
+   return;
+  }
+ }
  // No third-party iframe for the normal route: the fully mirrored game is
  // served from nexions.ru and saves under this domain on iOS Safari.
  // Read both the same-domain mirror and the current upstream release.
