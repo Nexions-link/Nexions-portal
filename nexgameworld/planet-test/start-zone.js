@@ -85,6 +85,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
  const waterTint=new THREE.Color('#64b1b6');
  const shoreMat=new THREE.MeshStandardMaterial({color:'#b4a179',roughness:1,side:THREE.DoubleSide});
  const objects=[],meshGroups=[],longhouseRoofs=[],shadowCasters=[];
+ const houseWallMat=hide.clone(),houseRoofMat=hideDark.clone(); // Used by updateInteriorView().
  const villageVisuals=createVillageVisuals(THREE,{scene,getRadius,toNormal:localToNormal,heightAt});
  function box(p,mat,x,y,z,w,h,d){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);p.add(o);return o}
  function cyl(p,mat,x,y,z,a,b,h,seg=9){const o=new THREE.Mesh(new THREE.CylinderGeometry(a,b,h,seg),mat);o.position.set(x,y,z);p.add(o);return o}
@@ -104,7 +105,6 @@ export function createStartZone(three,scene,getRadius,heightAt){
  // walkable longhouse, and four tents at the same positions and headings.
  {
   const g=anchor(-27,-2,Math.PI/2),w=19.2,d=20.8,h=9.1,hw=w/2,hd=d/2,door=6.8;
-  const houseWallMat=hide.clone(),houseRoofMat=hideDark.clone();
   // The original carpet intersected the floor by 0.0025 m.
   // Create a real 0.0425 m clearance to prevent depth flicker on iPhone.
   box(g,wood2,0,.10,0,w,.20,d);
