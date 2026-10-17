@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {createChestMotion} from './chest-preview-motion.js';
 // A unique URL per visit prevents Safari from keeping a stale catalog.
 const atlasRevision=String(Date.now());
 const {ATLAS_CATEGORIES,ATLAS_ENTRIES,filterAtlasEntries}=await import('./atlas-catalog.js?refresh='+atlasRevision);
@@ -19,7 +20,8 @@ canvas.style.touchAction='none';
 for(const type of ['touchstart','touchmove']){
  canvas.addEventListener(type,event=>{if(event.cancelable)event.preventDefault()},{passive:false});
 }
-let category='all',activeId='dolgonog',current=null,mixer=null,actions={},currentAction=null,loadId=0;
+let category='all',activeId='dolgonog',current=null,mixer=null,actions={},currentAction=null,chestMotion=null,loadId=0;
+const entryIcons=Object.fromEntries(ATLAS_CATEGORIES.map(c=>[c.id,c.icon]));
 const loader=new GLTFLoader(),clock=new THREE.Clock(),center=new THREE.Vector3();let radius=2;
 function resetView(){
  // The original camera distance clipped tall models on narrow mobile canvases.
@@ -48,7 +50,7 @@ function paintEntries(){
  if(!entries.length){const p=document.createElement('p');p.className='empty';p.textContent='В этой категории пока нет записей. Коллекция будет пополняться.';host.append(p);return}
  for(const entry of entries){const b=document.createElement('button');b.className='entry'+(activeId===entry.id?' active':'');
   b.innerHTML='<span class="glyph"></span><span><strong></strong><small></small></span>';
-  b.querySelector('.glyph').textContent=entry.category==='creatures'?'◈':'⚒';
+  b.querySelector('.glyph').textContent=entryIcons[entry.category]||'◦';
   b.querySelector('strong').textContent=entry.name;b.querySelector('small').textContent=entry.number+' · v'+entry.version;
   b.onclick=()=>selectEntry(entry.id);host.append(b)}
 }
@@ -88,15 +90,14 @@ function paintCreatureLoot(entry){
  }
 }
 function setAnimation(name){
- if(!actions[name])return;
- if(currentAction&&currentAction!==actions[name])currentAction.stop();
- currentAction=actions[name];
- // Chest opening and closing play once, then retain the final lid angle.
- if(activeId==='village-chest'){
-  currentAction.setLoop(name==='Idle'?THREE.LoopRepeat:THREE.LoopOnce,1);
-  currentAction.clampWhenFinished=name!=='Idle';
+ if(chestMotion){
+  if(!chestMotion.select(name))return;
+ }else{
+  if(!actions[name])return;
+  if(currentAction&&currentAction!==actions[name])currentAction.stop();
+  currentAction=actions[name];
+  currentAction.reset().fadeIn(.12).play();
  }
- currentAction.reset().fadeIn(.12).play();
  for(const b of $('animations').querySelectorAll('button'))b.classList.toggle('active',b.dataset.clip===name);
 }
 async function selectEntry(id){
@@ -131,9 +132,14 @@ async function selectEntry(id){
   scene.add(current);
   const bounds=new THREE.Box3().setFromObject(current);bounds.getCenter(center);const size=bounds.getSize(new THREE.Vector3());radius=Math.max(size.length()*.68,.9);
   controls.minDistance=radius*.6;controls.maxDistance=radius*5;resetView();
-  mixer=gltf.animations.length?new THREE.AnimationMixer(current):null;actions={};currentAction=null;
+  // The GLB Open/Close tracks are independent full-range clips. In the Atlas,
+  // preview the lid as a single continuous state to avoid snapping at switches.
+  const hinge=entry.id==='village-chest'?current.getObjectByName('Lid_Hinge'):null;
+  if(entry.id==='village-chest'&&!hinge)throw new Error('Chest Lid_Hinge node missing');
+  chestMotion=hinge?createChestMotion(hinge):null;
+  mixer=!chestMotion&&gltf.animations.length?new THREE.AnimationMixer(current):null;actions={};currentAction=null;
   $('animations').replaceChildren();
-  for(const clip of gltf.animations){const action=mixer.clipAction(clip);actions[clip.name]=action;const b=document.createElement('button');b.textContent=clip.name;b.dataset.clip=clip.name;b.onclick=()=>setAnimation(clip.name);$('animations').append(b)}
+  for(const clip of gltf.animations){if(mixer)actions[clip.name]=mixer.clipAction(clip);const b=document.createElement('button');b.textContent=clip.name;b.dataset.clip=clip.name;b.onclick=()=>setAnimation(clip.name);$('animations').append(b)}
   $('animationPanel').hidden=!gltf.animations.length;
   if(gltf.animations.length)setAnimation(gltf.animations.find(c=>c.name==='Idle')?.name||gltf.animations[0].name);
   if(entry.id==='wild-boar'){
@@ -144,5 +150,5 @@ async function selectEntry(id){
   if(request===loadId)$('modelStatus').textContent='GLB · 3D АКТИВНА';
  }catch(error){if(request===loadId){$('modelStatus').textContent='ОШИБКА ЗАГРУЗКИ';console.error(error)}}
 }
-function render(){requestAnimationFrame(render);const w=canvas.clientWidth,h=canvas.clientHeight;if(w>0&&h>0){const d=renderer.getPixelRatio();if(canvas.width!==Math.round(w*d)||canvas.height!==Math.round(h*d)){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}}const dt=Math.min(clock.getDelta(),.06);mixer?.update(dt);controls.update();renderer.render(scene,camera)}
+function render(){requestAnimationFrame(render);const w=canvas.clientWidth,h=canvas.clientHeight;if(w>0&&h>0){const d=renderer.getPixelRatio();if(canvas.width!==Math.round(w*d)||canvas.height!==Math.round(h*d)){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}}const dt=Math.min(clock.getDelta(),.06);mixer?.update(dt);chestMotion?.update(dt);controls.update();renderer.render(scene,camera)}
 paintCategories();paintEntries();selectEntry(new URLSearchParams(location.search).get('item')||'dolgonog');render();

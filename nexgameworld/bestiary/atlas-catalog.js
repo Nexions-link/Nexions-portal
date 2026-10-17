@@ -4,7 +4,7 @@ export const ATLAS_CATEGORIES=Object.freeze([
  {id:'creatures',name:'Существа',icon:'◈'},
  {id:'weapons',name:'Оружие',icon:'⚒'},
  {id:'armor',name:'Броня',icon:'◇'},
- {id:'items',name:'Предметы',icon:'✦'},
+ {id:'items',name:'Предметы',icon:'▣'},
  {id:'world',name:'Мир',icon:'⌖'}
 ]);
 export const ATLAS_ENTRIES=Object.freeze([
