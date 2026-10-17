@@ -89,8 +89,14 @@ function paintCreatureLoot(entry){
 }
 function setAnimation(name){
  if(!actions[name])return;
- if(currentAction&&currentAction!==actions[name])currentAction.fadeOut(.2);
- currentAction=actions[name];currentAction.reset().fadeIn(.2).play();
+ if(currentAction&&currentAction!==actions[name])currentAction.stop();
+ currentAction=actions[name];
+ // Chest opening and closing play once, then retain the final lid angle.
+ if(activeId==='village-chest'){
+  currentAction.setLoop(name==='Idle'?THREE.LoopRepeat:THREE.LoopOnce,1);
+  currentAction.clampWhenFinished=name!=='Idle';
+ }
+ currentAction.reset().fadeIn(.12).play();
  for(const b of $('animations').querySelectorAll('button'))b.classList.toggle('active',b.dataset.clip===name);
 }
 async function selectEntry(id){

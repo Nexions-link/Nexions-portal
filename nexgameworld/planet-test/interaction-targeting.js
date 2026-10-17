@@ -23,10 +23,19 @@ export function nearbyInteractable(entities,dist,resourceReady){
  rows.sort((a,b)=>a.d-b.d);
  return rows[0]?.entity||null;
 }
-// Spherical NexGameWorld directional targeting: favour what the hero faces, not a closer
-// enemy off to the side. Keep the original 40 m spherical acquisition range.
-// Targets outside the 60° forward cone remain reachable by cycling.
-export const FORWARD_TARGET_COSINE=.5;
+// Classic-inspired Tab: centred targets first, then broad front, then sides,
+// then rear. Distance is the tie-breaker inside each zone; holding a target and
+// cycling backwards are still supported. This is our explicit, stable policy,
+// rather than claiming to reproduce Blizzard's unpublished internal algorithm.
+export const CENTER_TARGET_COSINE=Math.cos(Math.PI/6); // 30-degree half-angle
+export const FORWARD_TARGET_COSINE=.5; // 60-degree half-angle
+export function targetPriorityZone(alignment){
+ if(!Number.isFinite(alignment))return 2; // distance-only fallback
+ if(alignment>=CENTER_TARGET_COSINE)return 0;
+ if(alignment>=FORWARD_TARGET_COSINE)return 1;
+ if(alignment>=0)return 2;
+ return 3;
+}
 export function cycleHostileTarget(mobs,dummy,current,dist,step=1,alignment=null){
  const directed=typeof alignment==='function';
  const nearby=mobs.concat(dummy?[dummy]:[]).map((entity,index)=>{
@@ -38,16 +47,8 @@ export function cycleHostileTarget(mobs,dummy,current,dist,step=1,alignment=null
  }).filter(({entity,d})=>entity?.root?.visible&&entity.hp>0&&!entity.dead&&!entity.corpse&&
    Number.isFinite(d)&&d<=TARGET_ACQUISITION_RADIUS)
  .sort((a,b)=>{
-  const aFront=Number.isFinite(a.a)&&a.a>=FORWARD_TARGET_COSINE;
-  const bFront=Number.isFinite(b.a)&&b.a>=FORWARD_TARGET_COSINE;
-  if(aFront!==bFront)return aFront?-1:1;
-  if(aFront&&bFront){
-   // Centred enemies beat much nearer ones at the edge of the cone;
-   // distance resolves targets pointing in almost the same direction.
-   const scoreA=1-a.a+a.d/500,scoreB=1-b.a+b.d/500;
-   return scoreA-scoreB||a.d-b.d||a.index-b.index;
-  }
-  return a.d-b.d||a.index-b.index;
+  const zoneA=targetPriorityZone(a.a),zoneB=targetPriorityZone(b.a);
+  return zoneA-zoneB||a.d-b.d||(Number.isFinite(a.a)&&Number.isFinite(b.a)?b.a-a.a:0)||a.index-b.index;
  }).map(item=>item.entity);
  if(!nearby.length)return null;
  const currentIndex=nearby.indexOf(current);

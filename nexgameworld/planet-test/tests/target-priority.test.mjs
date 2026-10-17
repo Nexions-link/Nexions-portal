@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {cycleHostileTarget,FORWARD_TARGET_COSINE} from '../interaction-targeting.js';
+import {cycleHostileTarget,CENTER_TARGET_COSINE,FORWARD_TARGET_COSINE,targetPriorityZone} from '../interaction-targeting.js';
 import {harness} from './harness.mjs';
 
 const entity=(id,d,alignment)=>({
@@ -16,9 +16,9 @@ test('first button press prefers a farther opponent directly in front over a nea
  const side=entity('side',3,.05),front=entity('front',19,.998),behind=entity('behind',2,-.9);
  assert.equal(FORWARD_TARGET_COSINE,.5);
  assert.equal(select([side,behind,front]),front);
- assert.equal(select([side,behind,front],front),behind);
- assert.equal(select([side,behind,front],behind),side);
- assert.equal(select([side,behind,front],side),front);
+ assert.equal(select([side,behind,front],front),side);
+ assert.equal(select([side,behind,front],side),behind);
+ assert.equal(select([side,behind,front],behind),front);
 });
 
 test('within forward cone alignment outweighs moderate distance; distance breaks equivalent angles',()=>{
@@ -32,17 +32,17 @@ test('within forward cone alignment outweighs moderate distance; distance breaks
 test('without forward opponents nearest-first fallback remains available',()=>{
  const side=entity('side',11,.25),rear=entity('rear',5,-.9),hidden=entity('hidden',1,1);
  hidden.root.visible=false;
- assert.equal(select([side,rear,hidden]),rear);
- assert.equal(select([side,rear,hidden],rear),side);
+ assert.equal(select([side,rear,hidden]),side);
+ assert.equal(select([side,rear,hidden],side),rear);
  // Older distance-only callers still get the original nearest-first behavior.
  assert.equal(cycleHostileTarget([side,rear,hidden],null,null,distance),rear);
 });
 
 test('existing cycle can move backward and reaches out-of-cone targets',()=>{
  const front=entity('front',30,.96),side=entity('side',6,0),behind=entity('behind',1,-.8);
- assert.equal(select([front,side,behind],front,-1),side);
- assert.equal(select([front,side,behind],side,-1),behind);
- assert.equal(select([front,side,behind],behind,-1),front);
+ assert.equal(select([front,side,behind],front,-1),behind);
+ assert.equal(select([front,side,behind],behind,-1),side);
+ assert.equal(select([front,side,behind],side,-1),front);
 });
 
 test('dead, invisible, nonfinite or beyond-40m enemies are excluded, while dummy remains eligible',()=>{
@@ -83,4 +83,25 @@ test('actual RPG target button prioritizes facing the training dummy over closer
  h.get('targetClear').click();
  h.rpg.targetNearest();
  assert.equal(h.get('targetName').textContent,'Тренировочный манекен');
+});
+
+test('Classic-style Tab tiers prioritize the forward corridor but use nearest first within a tier',()=>{
+ assert.ok(CENTER_TARGET_COSINE>FORWARD_TARGET_COSINE);
+ assert.deepEqual([1,.7,.2,-.1].map(targetPriorityZone),[0,1,2,3]);
+ const farCenter=entity('far-center',24,.99),nearCenter=entity('near-center',4,.89);
+ const nearBroad=entity('near-broad',2,.7),nearBehind=entity('rear',1,-.9);
+ assert.equal(select([nearBroad,farCenter,nearCenter,nearBehind]),nearCenter);
+ assert.equal(select([nearBroad,farCenter,nearCenter,nearBehind],nearCenter),farCenter);
+ assert.equal(select([nearBroad,farCenter,nearCenter,nearBehind],farCenter),nearBroad);
+ assert.equal(select([nearBroad,farCenter,nearCenter,nearBehind],nearBroad),nearBehind);
+ assert.equal(select([nearBroad,farCenter,nearCenter,nearBehind],nearBehind),nearCenter);
+});
+
+test('target cycling is deterministic for equal distance and facing',()=>{
+ const a=entity('a',9,.94),b=entity('b',9,.94),c=entity('c',11,.94);
+ assert.equal(select([a,b,c]),a);
+ assert.equal(select([a,b,c],a),b);
+ assert.equal(select([a,b,c],b),c);
+ assert.equal(select([a,b,c],c),a);
+ assert.equal(select([a,b,c],a,-1),c);
 });
