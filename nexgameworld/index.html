@@ -63,7 +63,17 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
   const [onDomain,upstream]=await Promise.allSettled([readBuild(local),readBuild(fallback)]);
   const localVersion=onDomain.status==='fulfilled'?onDomain.value:null;
   const upstreamVersion=upstream.status==='fulfilled'?upstream.value:null;
-  if(!localVersion||(upstreamVersion&&isNewer(upstreamVersion,localVersion))){
+  const accountPlay=params.get('account-play')==='1';
+  if(accountPlay){
+   // Auth credentials live on nexions.ru. Never open the GitHub Pages fallback
+   // in the account iframe: sessionStorage would not be available there.
+   if(!localVersion||isNewer('0.6.32',localVersion)){
+    loading.querySelector('p').textContent='Готовим обновление для входа персонажем. Страница повторит проверку автоматически…';
+    setTimeout(start,12000);
+    return;
+   }
+   url=local;version=localVersion;
+  }else if(!localVersion||(upstreamVersion&&isNewer(upstreamVersion,localVersion))){
    url=fallback;version=upstreamVersion||'';
    notice.hidden=false;
    if(!localVersion)console.warn('Local NexGameWorld mirror is unavailable; opening the published upstream');
@@ -73,6 +83,7 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
   if(version)target.searchParams.set('v',version);
   else target.searchParams.set('fresh',String(Date.now()));
   if(params.get('portal-preview')==='1')target.searchParams.set('portal-preview','1');
+  if(params.get('account-play')==='1')target.searchParams.set('account-play','1');
   frame.addEventListener('load',()=>{loading.hidden=true;},{once:true});
   frame.src=target.href;
  }

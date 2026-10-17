@@ -109,7 +109,12 @@ async function loadCharacters(){
   const detail=document.createElement('p');detail.className='hint';detail.textContent='Воин · уровень '+character.level;
   desc.append(title,detail);
   const button=document.createElement('button');button.type='button';button.textContent='Выбрать';
-  button.addEventListener('click',()=>feedback('Персонаж сохранён в Neon. Вход этим героем в игровой мир подключим позже.'));
+  button.addEventListener('click',()=>{
+   // Never add the session token to the URL. The same-origin game iframe
+   // reads it from sessionStorage and the server rechecks hero ownership.
+   sessionStorage.setItem('ngw-selected-character',character.id);
+   location.assign('/nexgameworld/?account-play=1');
+  });
   const remove=document.createElement('button');
   remove.type='button';remove.className='delete-hero';remove.textContent='Удалить';
   remove.setAttribute('aria-label','Удалить персонажа '+character.nickname);
@@ -150,7 +155,7 @@ $('passwordChangeForm').addEventListener('submit',event=>submit(event,async form
 }));
 $('logout').addEventListener('click',async()=>{
  try{await api('/logout',{method:'POST',body:{},authorized:true})}catch{}
- token='';sessionStorage.removeItem('ngw-alpha-session');show('login');
+ token='';sessionStorage.removeItem('ngw-alpha-session');sessionStorage.removeItem('ngw-selected-character');show('login');
 });
 if(token){api('/me',{authorized:true}).then(data=>{
  $('accountName').textContent=data.username;return loadCharacters();
