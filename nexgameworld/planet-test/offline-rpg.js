@@ -140,6 +140,89 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const stompEffect=createSphericalStomp({THREE,parent:group,getRadius,heightAt});
  const up=new THREE.Vector3(...UP_AXIS),anchorQuat=new THREE.Quaternion(),spinQuat=new THREE.Quaternion();
  const mobs=[],entities=[],citizens=[];
+ let multiplayer=null,partyState={groupId:null,leaderId:null,members:[]},onlinePlayers=[],onlineChest=null;
+ const receivedCredits=new Set();
+ const isOnline=()=>!!multiplayer?.connected;
+ function setMultiplayer(transport){multiplayer=transport||null;}
+ function networkCharacter(){return {level:state.level,hp:state.hp,equipment:state.equipment};}
+ function onOnlinePlayers(rows){onlinePlayers=Array.isArray(rows)?rows:[];if(!modal.hidden&&modal.dataset.kind==='party')renderModal();}
+ function onPartyState(event){partyState=event||{groupId:null,leaderId:null,members:[]};if(!modal.hidden&&modal.dataset.kind==='party')renderModal();}
+ function onPartyInvite(event){
+  if(isOnline())multiplayer.respondInvite(event.fromId,window.confirm((event.fromName||'Игрок')+' приглашает в группу. Принять?'));
+ }
+ function onPartyNotice(event){if(event?.message)msg(event.message);}
+ function onChat(event){if(event?.text)msg((event.channel==='party'?'[Группа] ':'[Мир] ')+(event.name||'Игрок')+': '+event.text,3.3);}
+ function onChestState(event){onlineChest=event;if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();}
+ function onChestResult(event){
+  if(event?.ok&&Array.isArray(event.inventory)){
+   state.inventory=event.inventory.filter(Boolean).map(row=>({id:row.id,qty:row.qty}));
+   onlineChest={slots:event.slots,revision:event.revision};persist();draw();
+   if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
+  }else if(event?.reason)msg(event.reason);
+ }
+ function onVitals(event){
+  if(!isOnline())return;
+  if(Number.isFinite(event.hp))state.hp=Math.max(0,Math.min(stats().maxHp,event.hp));
+  if(Number.isFinite(event.resource))state.resource=clamp(event.resource,0,100);
+ }
+ function onCombatEvent(event,selfId){
+  const mob=mobs.find(e=>e.index===Number(String(event?.mobId).split('-').at(-1)));
+  if(!mob||event.life!==mob.life)return;
+  if(Number.isFinite(event.hp))mob.hp=Math.max(0,event.hp);
+  mob.hit=HIT_REACTION_SECONDS;
+  combatFeedback.hit(mob,event.damage,event.abilityId);
+  combatVfx.trigger(mob,event.abilityId==='heavyStrike'?'strong':event.abilityId==='thunderStomp'?'stomp':'hit');
+  if(event.fromId===selfId)lastCombatAt=clock;
+  draw(false);
+ }
+ function onKillCredit(event){
+  const mob=mobs.find(e=>e.index===Number(String(event?.mobId).split('-').at(-1)));
+  if(!mob||!Number.isInteger(event.life))return;
+  const key=event.mobId+':'+event.life;
+  if(receivedCredits.has(key))return;
+  receivedCredits.add(key);
+  mob.loot=Array.isArray(event.loot)?event.loot.filter(row=>row&&ITEM_CATALOG[row.id]&&Number.isInteger(row.qty)&&row.qty>0).map(row=>({...row})):[];
+  state.xp+=Number(event.xp)||0;state.gold+=Number(event.gold)||0;
+  mentorChain.killed(mob);levelCheck();persist();updateLootMarker(mob);draw();
+  msg('Награда за '+mob.name+': опыт '+(Number(event.xp)||0));
+ }
+ function onMobAttack(event){
+  if(!isOnline())return;
+  if(Number.isFinite(event.hp))state.hp=Math.max(0,event.hp);
+  if(event.blocked){blockRemaining=.65;hero.root.userData.blockRecoil=.65;combatVfx.trigger({root:hero.root},'block');}
+  state.resource=changeResource(state.resource,5,'warrior');lastCombatAt=clock;draw(false);
+ }
+ function onNetworkRespawn(event){
+  state.hp=Number(event.hp)||stats().maxHp;state.resource=0;
+  autoplay=false;approach=null;timeline.clear();target=null;
+  for(const mob of mobs)mob.aggro=false;
+  resetPosition?.();updateSelection();persist();draw();msg('Герой возродился у костра');
+ }
+ function onMobSnapshot(rows){
+  if(!isOnline()||!Array.isArray(rows))return;
+  const byIndex=new Map(rows.filter(x=>Number.isInteger(x.index)).map(x=>[x.index,x]));
+  for(const mob of mobs){
+   const remote=byIndex.get(mob.index);
+   if(!remote||!['alive','corpse','hidden'].includes(remote.phase)||
+    !Number.isFinite(remote.x)||!Number.isFinite(remote.z)||!Number.isFinite(remote.hp))continue;
+   const oldX=mob.x,oldZ=mob.z,wasCorpse=mob.corpse,wasHidden=!mob.root.visible;
+   mob.x=remote.x;mob.z=remote.z;mob.yaw=remote.yaw||0;
+   mob.networkMovement=Math.hypot(oldX-mob.x,oldZ-mob.z);
+   mob.hp=remote.hp;mob.life=remote.life;mob.aggro=remote.aggro===true;mob.returning=false;
+   mob.corpse=remote.phase==='corpse';mob.dead=mob.corpse?6:0;
+   mob.root.visible=remote.phase!=='hidden';
+   if(mob.corpse&&!wasCorpse){
+    mob.deathAnimation.begin(playerNormal());
+    if(target===mob){target=null;autoplay=false;approach=null;timeline.clear();}
+   }else if(remote.phase==='alive'&&(wasCorpse||wasHidden)){
+    mob.deathAnimation.reset();resetPlainstriderVisual(mob);
+    mob.loot=null;mob.navigation=null;
+   }else if(remote.phase==='hidden'){
+    mob.loot=null;if(pendingLoot===mob)closeWindow();
+   }
+   setModelAt(mob);updateLootMarker(mob);
+  }
+ }
  const hotbar=$('actionsBar'),modal=$('modal'),toast=$('toast');
  const feedbackLayer=$('combatFeedback');
  if(!feedbackLayer)throw Error('Отсутствует слой чисел урона');
@@ -431,9 +514,19 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function openWindow(kind){
   if(kind!=='gatherLoot')camp.cancel();
-  modal.hidden=false;modal.dataset.kind=kind;renderModal();
+  modal.hidden=false;modal.dataset.kind=kind;
+  if(kind==='chest'&&isOnline()){
+   onlineChest=null;
+   const items=[...state.inventory];
+   while(items.length<12)items.push(null);
+   multiplayer.openChest(items);
+  }
+  renderModal();
  }
- function closeWindow(){modal.hidden=true;pendingLoot=null;}
+ function closeWindow(){
+  if(modal.dataset.kind==='chest'&&isOnline())multiplayer.closeChest();
+  modal.hidden=true;pendingLoot=null;
+ }
  let resetProgressView=null;
  function onResetProgress(fn){resetProgressView=typeof fn==='function'?fn:null;}
  function resetProgress(){
@@ -472,7 +565,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   lastCombatAt=clock;
   state.resource=changeResource(state.resource,rageForHit(skill),'warrior');
   if(enemy.kind==='dummy'){applyTrainingHit(enemy,damage,clock,skill);combatFeedback.hit(enemy,damage,skill);combatVfx.trigger(enemy,skill==='heavyStrike'?'strong':skill==='thunderStomp'?'stomp':'hit');persist();draw();return;}
-  if(enemy.kind!=='mob'||enemy.dead)return;
+  if(enemy.kind!=='mob'||enemy.dead||isOnline())return;
   lastCombatAt=clock;enemy.hp=Math.max(0,enemy.hp-damage);enemy.aggro=true;enemy.returning=false;enemy.hit=HIT_REACTION_SECONDS;
   combatFeedback.hit(enemy,damage,skill);
   combatVfx.trigger(enemy,skill==='heavyStrike'?'strong':skill==='thunderStomp'?'stomp':'hit');
@@ -535,7 +628,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const result=activateAbility(def,abilityContext());
   if(!result.ok){msg(result.error);return false;}
   approach=null;state.resource=result.resource;
-  if(id==='healingPotion'){takeItem('healingPotion');state.hp=Math.min(stats().maxHp,state.hp+55);msg('Здоровье восстановлено');}
+  if(id==='healingPotion'){takeItem('healingPotion');state.hp=Math.min(stats().maxHp,state.hp+55);if(isOnline())multiplayer.sendHeal();msg('Здоровье восстановлено');}
   else if(id==='heavyStrike'){timeline.start(id,target);lastCombatAt=clock;}
   else if(id==='thunderStomp')timeline.start(id);
   persist();draw();return true;
@@ -627,13 +720,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const kind=modal.dataset.kind,title=$('mtitle'),body=$('mbody');
   $('panel').classList.toggle('character-modal',kind==='character');
   $('panel').classList.toggle('inventory-modal',kind==='bag');
-  $('msub').textContent='NEXGAMEWORLD · ОФЛАЙН · КРУГЛЫЙ МИР';
+  $('msub').textContent=isOnline()?'NEXGAMEWORLD · ОБЩИЙ МИР':'NEXGAMEWORLD · ЛОКАЛЬНЫЙ РЕЖИМ';
   // Only the pause/settings menu may expose camera and graphics controls.
   // Dialogs, loot, backpack, quests and merchant must never inherit these.
   $('cameraControl').hidden=kind!=='menu';
   $('graphicsControl').hidden=kind!=='menu';
   title.textContent=({bag:'Рюкзак',character:'Персонаж',quests:'Журнал заданий',
-   merchant:'Торговец',spells:'Книга способностей',loot:'Обыск тела',menu:'Меню',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог'})[kind]||'NexGameWorld';
+   merchant:'Торговец',spells:'Книга способностей',loot:'Обыск тела',menu:'Меню',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',party:'Группа и чат'})[kind]||'NexGameWorld';
   body.replaceChildren();
   const line=(label,caption,actions=[])=>{
    const row=document.createElement('div');row.className='rpgRow';
@@ -642,6 +735,47 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    row.append(name);for(const [caption,fn] of actions){const b=document.createElement('button');b.type='button';b.textContent=caption;b.addEventListener('click',fn);row.append(b);}
    body.append(row);
   };
+  if(kind==='party'){
+   if(!isOnline()){line('Нет подключения','Группы и чат доступны при подключении к общему миру.');return;}
+   line('Группа',partyState.groupId?'Участников: '+partyState.members.length+' / 5':'Вы пока не в группе',
+    partyState.groupId?[['Покинуть',()=>multiplayer.leaveParty()]]:[]);
+   for(const member of partyState.members)
+    line(member.name||'Игрок',(member.id===partyState.leaderId?'Лидер · ':'')+'Уровень '+(member.level||1));
+   if(!partyState.groupId||partyState.members.length<5){
+    line('Игроки в мире','Выбери игрока для приглашения.');
+    for(const peer of onlinePlayers)if(!partyState.members.some(x=>x.id===peer.id))
+     line(peer.name||'Странник','Уровень '+(peer.level||1),[['Пригласить',()=>multiplayer.invite(peer.id)]]);
+   }
+   const message=document.createElement('input');message.type='text';message.maxLength=180;
+   message.placeholder='Написать сообщение…';message.style.cssText='width:100%;margin:8px 0;padding:9px';
+   body.append(message);
+   const sendMessage=channel=>{
+    if(message.value.trim()&&multiplayer.sendChat(channel,message.value.trim())){
+     message.value='';msg('Сообщение отправлено',1.2);
+    }
+   };
+   line('Чат','Общий чат или чат участников группы',[
+    ['В мир',()=>sendMessage('world')],['В группу',()=>sendMessage('party')]
+   ]);
+   return;
+  }
+  if(kind==='chest'&&isOnline()){
+   if(!onlineChest?.slots){line('Общий сундук','Загружаем 18 ячеек с сервера…');return;}
+   line('Общий сундук','18 ячеек синхронизируются через Render.');
+   for(let i=0;i<onlineChest.slots.length;i++){
+    const item=onlineChest.slots[i],def=ITEM_CATALOG[item?.id];
+    if(item)line('Ячейка '+(i+1)+' · '+(def?.name||item.id),'×'+item.qty,
+     [['Забрать',()=>multiplayer.moveChest('withdraw',i,crypto.randomUUID())]]);
+   }
+   line('Рюкзак','Нажми «Положить», чтобы переместить предмет.');
+   state.inventory.forEach((item,i)=>{
+    const def=ITEM_CATALOG[item.id];
+    if(def&&!def.quest)
+     line(def.name+' ×'+item.qty,'Ячейка '+(i+1),
+      [['Положить',()=>multiplayer.moveChest('deposit',i,crypto.randomUUID())]]);
+   });
+   return;
+  }
   if(camp.render(kind,body,line))return;
   if(kind==='mentor'){mentorChain.render(line);return;}
   if(kind==='loot'){
@@ -688,7 +822,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(kind==='menu'){
    line('Сферический мир','Меняй радиус планеты, вращай её свайпами и исследуй NexGameWorld.');
    for(const item of settingsControls)body.append(item);
-   line('Сетевая игра','Тестовая сборка работает локально, без сервера Render.');
+   line('Сетевая игра',isOnline()?'Общий мир: мобы, бой, награды и группы синхронизируются через Render.':'Сервер недоступен: персонаж продолжает играть локально.');
    if(!preview){
     line('Тестирование заданий','Начать заново: уровень, все задания, вещи и сундук. Графика, масштаб и режим слежения камеры сохранятся.',[['Сбросить прогресс',resetProgress]]);
     body.lastElementChild?.querySelector('button')?.classList.add('reset-progress-action');
@@ -878,7 +1012,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   ['journal',()=>openWindow('quests')],['questJournalOpen',()=>openWindow('quests')],
   ['spellbookButton',()=>{chooseSlot=-1;openWindow('spells')}],
   ['pause',()=>openWindow('menu')],
-  ['partyOpen',()=>msg('Группы будут доступны после подключения онлайн-мира')],
+  ['partyOpen',()=>openWindow('party')],
   ['targetClear',()=>{targetEntity(null);autoplay=false;draw()}],
   ['dummyReset',()=>{dummy.trainingStats=createTrainingStats();draw();}]
  ];
@@ -938,16 +1072,19 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const impact=timeline.update(dt);
   if(impact?.skill==='thunderStomp'){
    stompEffect.trigger(playerNormal());
+   if(isOnline())multiplayer.sendAttack('thunderStomp');
    let hits=0;
    for(const enemy of [...mobs,dummy])if(isLivingHostile(enemy)&&distance(enemy)<4.5){
-    if(enemy.kind==='mob')enemy.stun=2.5;
-    harm(enemy,6,impact.skill);hits++;
+    if(enemy.kind==='mob'&&!isOnline())enemy.stun=2.5;
+    if(enemy.kind==='dummy'||!isOnline())harm(enemy,6,impact.skill);
+    hits++;
    }
    msg('Громовая поступь: '+hits+' целей');
   }else if(impact&&isLivingHostile(impact.target)&&distance(impact.target)<=MELEE_RANGE){
    if(facesTarget(impact.target)){
     const bonus=impact.skill==='heavyStrike'?(getAbilityDefinition(impact.skill).damageBonus||0):0;
-    harm(impact.target,rollMeleeDamage(stats(),bonus),impact.skill);
+    if(isOnline()&&impact.target.kind==='mob')multiplayer.sendAttack(impact.skill,'dolgonog-'+impact.target.index);
+    else harm(impact.target,rollMeleeDamage(stats(),bonus),impact.skill);
    }else if(impact.skill!=='autoAttack')msg('Цель не перед вами',1.1);
   }
   if(!toast.hidden&&clock>messageUntil){toast.classList.remove('show');toast.hidden=true;}
@@ -996,6 +1133,16 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(mob.alertTag){
     mob.alertTag.visible=mob.alertRemaining>0&&mob.root.visible&&!mob.corpse;
     if(mob.alertTag.visible)mob.alertTag.position.y=(mob.boss?4:4.95)+Math.sin(clock*7)*.1;
+   }
+   if(isOnline()){
+    if(mob.corpse){
+     const wasDying=mob.dying;mob.deathAnimation.update(dt);
+     if(wasDying&&!mob.dying)updateLootMarker(mob);
+    }else if(mob.root.visible){
+     setModelAt(mob);birdAnimation(mob,dt,mob.networkMovement||0);
+     mob.networkMovement=0;
+    }
+    continue;
    }
    if(!mob.root.visible){
     if(advanceRespawnTimer(mob,dt)){mob.dead=0;mob.corpse=false;mob.hp=mob.maxHp;mob.x=mob.spawnX;mob.z=mob.spawnZ;
@@ -1146,5 +1293,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   return false;
  }
  persist();draw();void updateEquipmentVisuals();
- return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,get movementLocked(){return timeline.stompProgress>=0},getAnimationState,getQuestMapState,setVisualQuality,updateQuestMarkers,draw,get state(){return state}};
+ return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
+  setMultiplayer,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestResult,
+  onVitals,onCombatEvent,onKillCredit,onMobAttack,onNetworkRespawn,onMobSnapshot,
+  get movementLocked(){return timeline.stompProgress>=0},
+  getAnimationState,getQuestMapState,setVisualQuality,updateQuestMarkers,draw,get state(){return state}};
 }

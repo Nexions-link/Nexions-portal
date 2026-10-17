@@ -1,7 +1,7 @@
 // NexGameWorld Stage 1: spherical WebSocket presence and visual-only remote avatars.
 // Combat, quests, loot and the player's local saves remain untouched.
 const WORLD_URL='wss://nexgame-world.onrender.com/ws/nexgameworld';
-const PROTOCOL=1;
+const PROTOCOL=2;
 const MAX_VISIBLE_PEERS=16;
 const VISIBLE_DISTANCE=85;
 const finite=n=>typeof n==='number'&&Number.isFinite(n);
@@ -48,7 +48,10 @@ function disposeActor(root){
  root.parent?.remove(root);
 }
 export function createSphericalPresence({
- THREE,scene,createAvatar,animateAvatar,getPosition,getRadius,heightAt,onStatus,
+ THREE,scene,createAvatar,animateAvatar,getPosition,getCharacter,getRadius,heightAt,onStatus,
+ onPlayers,onMobs,onVitals,onCombat,onKillCredit,onMobAttack,onRespawn,
+ onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
+ onChestState,onChestResult,onCombatRejected,onDisconnect,
  url=WORLD_URL
 }){
  let socket=null,closed=false,selfId=null,joinedRadius=null,retry=null,sendLoop=null;
@@ -87,6 +90,7 @@ export function createSphericalPresence({
     if(visual){disposeActor(visual.actor.root);visuals.delete(id)}
    }
   }
+  onPlayers?.([...peers.values()]);
   status('online',seen.size+1);
  }
  function connect(){
@@ -95,14 +99,15 @@ export function createSphericalPresence({
   let ws;
   try{ws=new WebSocket(url)}catch{status('offline');retry=setTimeout(connect,4000);return}
   socket=ws;
+  const send=data=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(data))};
   ws.onopen=()=>{
    const p=position();
    if(!p){ws.close();return}
    joinedRadius=p.radius;
-   ws.send(JSON.stringify({type:'join',name:'Странник',...p}));
+   send({type:'join',name:'Странник',...p,...getCharacter?.()});
    sendLoop=setInterval(()=>{
     if(ws.readyState!==WebSocket.OPEN)return;
-    const p=position();if(p)ws.send(JSON.stringify({type:'move',...p}));
+    const p=position();if(p)send({type:'move',...p,...getCharacter?.()});
    },100);
   };
   ws.onmessage=event=>{
@@ -116,31 +121,51 @@ export function createSphericalPresence({
     }
     selfId=m.id;
     onSnapshot(Array.isArray(m.players)?m.players:[]);
+    if(Array.isArray(m.mobs))onMobs?.(m.mobs);
+    onVitals?.(m);
    }else if(m.type==='snapshot'&&m.protocol===PROTOCOL&&m.radius===p.radius){
     onSnapshot(m.players);
+    if(Array.isArray(m.mobs))onMobs?.(m.mobs);
+    const own=m.players?.find(player=>player.id===selfId);
+    if(own)onVitals?.(own);
    }else if(m.type==='leave'&&typeof m.id==='string'){
     peers.delete(m.id);
     const visual=visuals.get(m.id);
     if(visual){disposeActor(visual.actor.root);visuals.delete(m.id)}
+    onPlayers?.([...peers.values()]);
     status('online',peers.size+1);
-   }
+   }else if(m.type==='combat')onCombat?.(m,selfId);
+   else if(m.type==='killCredit')onKillCredit?.(m);
+   else if(m.type==='mobAttack')onMobAttack?.(m);
+   else if(m.type==='respawnAccepted')onRespawn?.(m);
+   else if(m.type==='combatRejected')onCombatRejected?.(m);
+   else if(m.type==='playerVitals')onVitals?.(m);
+   else if(m.type==='partyState')onPartyState?.(m);
+   else if(m.type==='partyInvite')onPartyInvite?.(m);
+   else if(m.type==='partyNotice')onPartyNotice?.(m);
+   else if(m.type==='chat')onChat?.(m);
+   else if(m.type==='chatRejected')onChatRejected?.(m);
+   else if(m.type==='chestState')onChestState?.(m);
+   else if(m.type==='chestResult')onChestResult?.(m);
+   else if(m.type==='nameChanged')onPartyNotice?.({message:'Имя обновлено'});
   };
   ws.onclose=()=>{
    if(socket!==ws)return;
    socket=null;selfId=null;joinedRadius=null;
    clearInterval(sendLoop);sendLoop=null;
    stopPeers();
+   onPlayers?.([]);onMobs?.(null);onDisconnect?.();
    if(!closed){status('offline');retry=setTimeout(connect,4000)}
   };
   ws.onerror=()=>{if(ws.readyState<WebSocket.CLOSING)ws.close()};
  }
  function tick(dt,time){
-  if(!visuals.size&&!peers.size)return;
   const own=position();
   if(!own)return;
   if(joinedRadius!==null&&joinedRadius!==own.radius){
    socket?.close();return;
   }
+  if(!visuals.size&&!peers.size)return;
   const rows=[...peers.values()].map(peer=>({
    peer,distance:greatCircleDistance(own.normal,peer.normal,own.radius)
   })).filter(p=>p.distance<=VISIBLE_DISTANCE).sort((a,b)=>a.distance-b.distance)
@@ -183,5 +208,22 @@ export function createSphericalPresence({
  }
  if(url)connect();
  else status('offline');
- return {tick,close,get connected(){return socket?.readyState===WebSocket.OPEN&&!!selfId}};
+ const send=data=>{
+  if(!selfId||socket?.readyState!==WebSocket.OPEN)return false;
+  socket.send(JSON.stringify(data));return true;
+ };
+ return {tick,close,
+  sendAttack:(abilityId,mobId=null)=>send({type:'attack',abilityId,mobId}),
+  sendHeal:()=>send({type:'heal'}),
+  rename:name=>send({type:'rename',name}),
+  invite:targetId=>send({type:'partyInvite',targetId}),
+  respondInvite:(fromId,accept)=>send({type:'partyRespond',fromId,accept}),
+  leaveParty:()=>send({type:'partyLeave'}),
+  sendChat:(channel,text)=>send({type:'chatSend',channel,text}),
+  openChest:inventory=>send({type:'chestOpen',inventory}),
+  moveChest:(action,slot,requestId)=>send({type:'chestMove',action,slot,requestId}),
+  closeChest:()=>send({type:'chestClose'}),
+  get players(){return [...peers.values()]},
+  get connected(){return socket?.readyState===WebSocket.OPEN&&!!selfId}
+ };
 }
