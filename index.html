@@ -109,25 +109,43 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
    'https://raw.githubusercontent.com/Nexions-link/Nexgame/main/planet-test/version.json'
  ];
  let versionChecking=false;
+ function isNewerVersion(a,b){
+   const left=a.split('.').map(Number),right=b.split('.').map(Number);
+   for(let i=0;i<Math.max(left.length,right.length);i++){
+     const l=left[i]??0,r=right[i]??0;
+     if(l!==r)return l>r;
+   }
+   return false;
+ }
  async function refreshGameVersion(){
    if(versionChecking)return;
    versionChecking=true;
+   let newest=null;
    try{
-     for(const source of versionSources){
+     // Display the newest valid release, not merely the first responding mirror.
+     // Mirrors can briefly lag behind Nexgame/main during GitHub Pages deployment.
+     await Promise.all(versionSources.map(async source=>{
        try{
          const url=source+(source.includes('?')?'&':'?')+'_='+Date.now();
          const response=await fetch(url,{cache:'no-store',mode:'cors'});
-         if(!response.ok)continue;
+         if(!response.ok)return;
          const release=await response.json();
-         if(release.project!=='NexGameWorld'||typeof release.version!=='string'||!/^\d+\.\d+\.\d+$/.test(release.version))continue;
-         versionLabel.textContent=release.version;
-         versionLabel.title='Текущая опубликованная версия игры: '+release.version;
-         return;
+         if(release.project!=='NexGameWorld'||typeof release.version!=='string'||!/^\\d+\\.\\d+\\.\\d+(?:\\.\\d+)?$/.test(release.version))return;
+         if(newest&&!isNewerVersion(release.version,newest))return;
+         newest=release.version;
+         versionLabel.textContent=newest;
+         versionLabel.title='Текущая опубликованная версия игры: '+newest;
        }catch(err){console.warn('NexGameWorld version source unavailable:',source,err)}
-     }
-     versionLabel.title='Не удалось получить номер версии игры';
+     }));
+     if(!newest)versionLabel.title='Не удалось получить номер версии игры';
    }finally{versionChecking=false}
  }
+ document.querySelector('.actions .play').addEventListener('click',event=>{
+   // Force a fresh launcher request, even from Safari's back/forward page cache.
+   const url=new URL(event.currentTarget.href);
+   url.searchParams.set('fresh',String(Date.now()));
+   event.currentTarget.href=url.href;
+ });
  void refreshGameVersion();
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshGameVersion()});
  window.addEventListener('pageshow',()=>void refreshGameVersion());
