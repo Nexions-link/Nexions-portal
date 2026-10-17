@@ -49,6 +49,7 @@ jobs:
             --exclude='/.github/' \
             --exclude='/index.html' \
             --exclude='/account.html' \
+            --exclude='/account.js' \
             --exclude='/app.html' \
             --exclude='/game.js' \
             --exclude='/versions/' \
