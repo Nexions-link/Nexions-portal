@@ -40,23 +40,38 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
  const params=new URLSearchParams(location.search);
  // No third-party iframe for the normal route: the fully mirrored game is
  // served from nexions.ru and saves under this domain on iOS Safari.
+ // Read both the same-domain mirror and the current upstream release.
+ // During the few minutes before sync completes, launch the newest published build.
+ function parseVersion(data){
+  return data?.project==='NexGameWorld'&&/^[0-9]+\\.[0-9]+\\.[0-9]+$/.test(data?.version||'')?
+   data.version:null;
+ }
+ function isNewer(a,b){
+  const left=a.split('.').map(Number),right=b.split('.').map(Number);
+  for(let i=0;i<3;i++){if(left[i]!==right[i])return left[i]>right[i];}
+  return false;
+ }
+ async function readBuild(path){
+  const response=await fetch(path+'version.json?check='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw Error('Version is unavailable');
+  const version=parseVersion(await response.json());
+  if(!version)throw Error('Invalid NexGameWorld release');
+  return version;
+ }
  async function start(){
   let url=local,version='';
-  try{
-   const response=await fetch(local+'version.json?check='+Date.now(),{cache:'no-store'});
-   if(!response.ok)throw Error('Local mirror is pending');
-   const data=await response.json();
-   if(data.project!=='NexGameWorld'||!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(data.version))throw Error('Invalid mirrored build');
-   version=data.version;
-  }catch(error){
-   console.warn('NexGameWorld local mirror is unavailable, using fallback:',error);
-   url=fallback;
+  const [onDomain,upstream]=await Promise.allSettled([readBuild(local),readBuild(fallback)]);
+  const localVersion=onDomain.status==='fulfilled'?onDomain.value:null;
+  const upstreamVersion=upstream.status==='fulfilled'?upstream.value:null;
+  if(!localVersion||(upstreamVersion&&isNewer(upstreamVersion,localVersion))){
+   url=fallback;version=upstreamVersion||'';
    notice.hidden=false;
-  }
+   if(!localVersion)console.warn('Local NexGameWorld mirror is unavailable; opening the published upstream');
+   else console.info('NexGameWorld mirror still updating: '+localVersion+' → '+upstreamVersion);
+  }else version=localVersion;
   const target=new URL(url,location.href);
   if(version)target.searchParams.set('v',version);
   else target.searchParams.set('fresh',String(Date.now()));
-  // Forward only safe display flags; game does not receive hosting parameters.
   if(params.get('portal-preview')==='1')target.searchParams.set('portal-preview','1');
   frame.addEventListener('load',()=>{loading.hidden=true;},{once:true});
   frame.src=target.href;
