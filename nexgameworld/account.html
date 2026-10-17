@@ -32,7 +32,8 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 <div class="links"><button type="button" data-view="register">Создать аккаунт</button><button type="button" data-view="recover">Забыл пароль?</button></div>
 </section>
 <section class="view" id="register" hidden>
-<h2>Регистрация</h2><form id="registerForm">
+<h2>Регистрация</h2>
+<p class="hint">В новой онлайн-версии все начинают с нуля. Персонажи и прогресс предыдущей альфы не переносятся.</p><form id="registerForm">
 <label for="registerName">Логин</label><input id="registerName" name="username" required pattern="[A-Za-z][A-Za-z0-9_-]{2,23}" maxlength="24" autocomplete="username">
 <p class="hint">3–24 символа: латиница, цифры, дефис, подчёркивание.</p>
 <label for="registerPass">Пароль</label><input id="registerPass" name="password" type="password" required minlength="8" maxlength="128" autocomplete="new-password">
@@ -58,7 +59,7 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 <button type="submit" class="primary">Сменить пароль</button></form><button data-view="login">Вернуться ко входу</button>
 </section>
 <section class="view" id="characters" hidden>
-<h2>Персонажи</h2><p id="accountName" class="muted"></p><div id="characterList"></div>
+<h2>Персонажи</h2><p id="accountName" class="muted"></p><p class="hint">Новые герои начинают на 1-м уровне. Перенос старых сохранений недоступен.</p><div id="characterList"></div>
 <form id="characterForm"><label for="heroName">Имя нового персонажа</label><input id="heroName" name="nickname" required minlength="3" maxlength="24">
 <p class="hint">Сейчас доступен Воин. Настройка внешности и классы появятся позже.</p>
 <button class="primary" type="submit">Создать персонажа</button></form>
