@@ -75,8 +75,19 @@ function restore(){
   return safe;
  }catch{return initial();}
 }
-export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRadius,toNormal,toLocal,heightAt,camera,canvas,preview=false}){
- const state=preview?initial():restore(),runtime=createAbilityRuntime();
+export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRadius,toNormal,toLocal,heightAt,camera,canvas,preview=false,authenticatedProfile=null}){
+ const serverInitial=()=>{
+  const safe=initial(),row=authenticatedProfile;
+  safe.level=row.level;safe.xp=row.experience||0;safe.gold=row.gold||0;
+  safe.hp=row.health??null;safe.resource=row.resource||0;
+  safe.inventory=Array.isArray(row.inventory)?row.inventory.filter(Boolean).map(item=>({...item})):[];
+  safe.equipment=row.equipment||{};
+  safe.quest=row.quests?.mentor?.step||0;
+  safe.gatherStage=row.quests?.gather?.stage||0;
+  safe.hotbar=normalizeHotbar(row.actionBar||[],'warrior',safe.level);
+  return safe;
+ };
+ const state=preview?initial():authenticatedProfile?serverInitial():restore(),runtime=createAbilityRuntime();
  const rightHand=hero.arms[1]?.hand,leftHand=hero.arms[0]?.hand;
  const modelSlots={weapon:null,shield:null};
  hero.root.userData.equipmentGrip={weapon:equipmentGrip('weapon'),shield:equipmentGrip('shield')};
@@ -175,7 +186,29 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(event.fromId===selfId)lastCombatAt=clock;
   draw(false);
  }
+ function applyServerProgress(progress,source='checkpoint'){
+  if(!authenticatedProfile||!progress||!Number.isInteger(progress.level))return;
+  state.level=progress.level;
+  state.xp=progress.experience;
+  state.gold=progress.gold;
+  if(Array.isArray(progress.inventory))
+   state.inventory=progress.inventory.filter(Boolean).map(row=>({...row}));
+  if(progress.equipment&&typeof progress.equipment==='object')
+   state.equipment=progress.equipment;
+  if(progress.quests?.mentor?.step!==undefined)
+   state.quest=progress.quests.mentor.step;
+  if(progress.quests?.gather?.stage!==undefined)
+   state.gatherStage=progress.quests.gather.stage;
+  if(source==='welcome'){
+   state.hp=progress.health;state.resource=progress.resource;
+  }
+  state.hotbar=normalizeHotbar(state.hotbar,'warrior',state.level);
+  void updateEquipmentVisuals();
+  draw();
+  if(source==='mob')msg('Награда за бой сохранена в Neon',2.6);
+ }
  function onKillCredit(event){
+  if(authenticatedProfile)return;
   const mob=mobs.find(e=>e.index===Number(String(event?.mobId).split('-').at(-1)));
   if(!mob||!Number.isInteger(event.life))return;
   const key=event.mobId+':'+event.life;
@@ -236,7 +269,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const bind=(el,ev,fn)=>el.addEventListener(ev,fn);
  const stats=()=>deriveStats(state.level,state.equipment);
  if(state.hp==null)state.hp=stats().maxHp;
- function persist(){if(preview)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(state))}catch{}}
+ function persist(){if(preview||authenticatedProfile)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(state))}catch{}}
  function msg(text,seconds=2.35){
   toast.textContent=text;toast.hidden=false;toast.classList.add('show');
   messageUntil=clock+Math.min(4,Math.max(1,seconds));
@@ -531,6 +564,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function onResetProgress(fn){resetProgressView=typeof fn==='function'?fn:null;}
  function resetProgress(){
   if(preview)return;
+  if(authenticatedProfile)return msg('Прогресс этого героя хранится на сервере и не сбрасывается локально.');
   if(!window.confirm('Сбросить весь прогресс тестового персонажа? Задания, уровень, инвентарь, экипировка и сундук начнутся заново. Настройки графики сохранятся.'))return;
   if(!clearOfflineProgress(localStorage,{preview})){
    msg('Не удалось сбросить сохранение. Проверь разрешение на хранение данных.');return;
@@ -541,6 +575,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   window.location.reload();
  }
  function interact(){
+  if(authenticatedProfile)return msg('Квесты, торговля и сундук подключаются к серверным сохранениям позже.');
   if(!modal.hidden||camp.casting)return;
   // Approach alone enables NPC dialogue, gathering, storage and corpse loot.
   // It never requires a selected combat target.
@@ -634,13 +669,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   persist();draw();return true;
  }
  function useAbility(slot){
+  if(authenticatedProfile&&!isOnline())return msg('Сервер недоступен — атаки временно отключены.');
   const action=actionDefinition(state.hotbar[slot],'warrior',state.level);
   if(!action)return msg('Пустая ячейка');
   return castAction(action.abilityId);
  }
  function draw(refreshInteractive=true){
   const s=stats();state.hp=clamp(state.hp,0,s.maxHp);
-  nameEl.textContent='Странник';$('levelBadge').textContent=state.level;
+  nameEl.textContent=authenticatedProfile?.nickname||'Странник';$('levelBadge').textContent=state.level;
   $('className').textContent='Таурен · Воин';
   $('hpFill').style.width=clamp(state.hp/s.maxHp*100,0,100)+'%';
   $('hpText').textContent=Math.ceil(state.hp)+' / '+s.maxHp;
@@ -1296,7 +1332,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  persist();draw();void updateEquipmentVisuals();
  return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
   setMultiplayer,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestResult,
-  onVitals,onCombatEvent,onKillCredit,onMobAttack,onNetworkRespawn,onMobSnapshot,
+  onVitals,onCombatEvent,onKillCredit,applyServerProgress,onMobAttack,onNetworkRespawn,onMobSnapshot,
   get movementLocked(){return timeline.stompProgress>=0},
   getAnimationState,getQuestMapState,setVisualQuality,updateQuestMarkers,draw,get state(){return state}};
 }

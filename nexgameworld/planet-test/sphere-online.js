@@ -52,7 +52,8 @@ export function createSphericalPresence({
  onPlayers,onMobs,onVitals,onCombat,onKillCredit,onMobAttack,onRespawn,
  onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
  onChestState,onChestResult,onCombatRejected,onDisconnect,
- url=WORLD_URL
+ onVerifiedProgress,onAuthRejected,
+ auth=null,url=WORLD_URL
 }){
  let socket=null,closed=false,selfId=null,joinedRadius=null,retry=null,sendLoop=null;
  const peers=new Map(),visuals=new Map();
@@ -104,10 +105,12 @@ export function createSphericalPresence({
    const p=position();
    if(!p){ws.close();return}
    joinedRadius=p.radius;
-   send({type:'join',name:'Странник',...p,...getCharacter?.()});
+   if(auth)send({type:'authJoin',sessionToken:auth.sessionToken,
+    characterId:auth.characterId});
+   else send({type:'join',name:'Странник',...p,...getCharacter?.()});
    sendLoop=setInterval(()=>{
-    if(ws.readyState!==WebSocket.OPEN)return;
-    const p=position();if(p)send({type:'move',...p,...getCharacter?.()});
+    if(ws.readyState!==WebSocket.OPEN||(auth&&!selfId))return;
+    const p=position();if(p)send({type:'move',...p,...(auth?{}:getCharacter?.())});
    },100);
   };
   ws.onmessage=event=>{
@@ -123,6 +126,7 @@ export function createSphericalPresence({
     onSnapshot(Array.isArray(m.players)?m.players:[]);
     if(Array.isArray(m.mobs))onMobs?.(m.mobs);
     onVitals?.(m);
+    if(auth&&m.authenticated&&m.progress)onVerifiedProgress?.(m.progress,'welcome');
    }else if(m.type==='snapshot'&&m.protocol===PROTOCOL&&m.radius===p.radius){
     onSnapshot(m.players);
     if(Array.isArray(m.mobs))onMobs?.(m.mobs);
@@ -147,15 +151,20 @@ export function createSphericalPresence({
    else if(m.type==='chatRejected')onChatRejected?.(m);
    else if(m.type==='chestState')onChestState?.(m);
    else if(m.type==='chestResult')onChestResult?.(m);
+   else if(m.type==='progressSaved')onVerifiedProgress?.(m.progress,m.source);
+   else if(m.type==='progressError')onAuthRejected?.(m.reason||'Ошибка сохранения');
    else if(m.type==='nameChanged')onPartyNotice?.({message:'Имя обновлено'});
   };
-  ws.onclose=()=>{
+  ws.onclose=event=>{
    if(socket!==ws)return;
    socket=null;selfId=null;joinedRadius=null;
    clearInterval(sendLoop);sendLoop=null;
    stopPeers();
    onPlayers?.([]);onMobs?.(null);onDisconnect?.();
-   if(!closed){status('offline');retry=setTimeout(connect,4000)}
+   if(auth&&event.code===1008){
+    closed=true;status('auth_required');
+    onAuthRejected?.('Не удалось авторизовать персонажа. Вернитесь на экран аккаунта.');
+   }else if(!closed){status('offline');retry=setTimeout(connect,4000)}
   };
   ws.onerror=()=>{if(ws.readyState<WebSocket.CLOSING)ws.close()};
  }

@@ -4,8 +4,9 @@ import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction} from './sphere-physics.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=44';
-import {createSphericalPresence} from './sphere-online.js?v=2';
+import {createOfflineRpg} from './offline-rpg.js?v=45';
+import {createSphericalPresence} from './sphere-online.js?v=3';
+import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=5';
 import {sampleSphericalFooting} from './foot-placement.js?v=1';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
@@ -22,10 +23,17 @@ planetViewport.addEventListener('contextmenu',event=>event.preventDefault());
 
 // NexGameWorld uses isolated spherical WebSockets for player presence; RPG combat stays local.
 const isPortalPreview = new URLSearchParams(location.search).get('portal-preview') === '1';
+const accountMode=!isPortalPreview&&new URLSearchParams(location.search).get('account-play')==='1';
+const accountLaunch=accountMode?getAccountLaunch(sessionStorage):null;
+if(accountMode&&!accountLaunch){
+ location.replace('/nexgameworld/account.html');
+ throw Error('Сначала войдите в аккаунт и выберите персонажа');
+}
+const accountProfile=accountMode?await fetchAuthenticatedProfile(accountLaunch):null;
 const BASE_RADIUS = START_RADIUS;
 const AVAILABLE_RADII = [87, 174, 261];
-const previousWorld=isPortalPreview?null:readPlanetView(localStorage,AVAILABLE_RADII);
-let R = previousWorld?.radius??BASE_RADIUS;
+const previousWorld=(isPortalPreview||accountMode)?null:readPlanetView(localStorage,AVAILABLE_RADII);
+let R = accountProfile?.worldRadius??previousWorld?.radius??BASE_RADIUS;
 const WALK_SPEED = 4.05;
 const TAU = Math.PI * 2;
 const NAMES = ['Степь Рассвета', 'Шепчущий лес', 'Янтарные пустоши', 'Каменные высоты'];
@@ -262,16 +270,16 @@ try {
   const hero=createTauren(THREE,scene,{player:true});
   const actor=hero.root;
   const state = {
-    normal:previousWorld?new THREE.Vector3(...previousWorld.normal):unitAt(0,0),
+    normal:accountProfile?new THREE.Vector3(...accountProfile.positionNormal):previousWorld?new THREE.Vector3(...previousWorld.normal):unitAt(0,0),
     lonUnwrapped:previousWorld?.lonUnwrapped??0,meters:previousWorld?.meters??0,
-    heading:previousWorld?.heading??0,cameraHeading:previousWorld?.cameraHeading??0,
+    heading:accountProfile?.heading??previousWorld?.heading??0,cameraHeading:previousWorld?.cameraHeading??0,
     cameraPitch:previousWorld?.cameraPitch??.36,zoom:previousWorld?.zoom??13,
     cameraFollow:previousWorld?.cameraFollow??false,
     orbit:false,orbitAngle:previousWorld?.orbitAngle??.45,
     orbitElevation:previousWorld?.orbitElevation??.34,
     orbitDistance:previousWorld?.orbitDistance??3.22,legCycle:0
   };
-  const saveWorld=()=>isPortalPreview?false:writePlanetView(localStorage,state,R);
+  const saveWorld=()=>isPortalPreview||accountMode?false:writePlanetView(localStorage,state,R);
   // Independent of existing save data and the multiplayer-disabled prototype.
   const graphicsStorageKey='nexgameworld-graphics-quality-v1';
   const fpsStorageKey='nexgameworld-show-fps-v1';
@@ -327,7 +335,8 @@ try {
   let saveClock=0;
   const rpg=createOfflineRpg({THREE,scene,hero,makeTauren:options=>createTauren(THREE,scene,options),playerNormal:()=>state.normal,
    getRadius:()=>R,toNormal:(x,z,r)=>localToNormalAt(x,z,r),
-   toLocal:normalToLocal,heightAt,camera,canvas,preview:isPortalPreview});
+   toLocal:normalToLocal,heightAt,camera,canvas,preview:isPortalPreview,
+   authenticatedProfile:accountProfile});
   combatQualitySink=rpg.setVisualQuality;
   combatQualitySink(isPortalPreview?.15:GRAPHICS_PRESETS[qualityName].detail);
   let presenceMoving=false;
@@ -336,13 +345,16 @@ try {
     createAvatar:options=>createTauren(THREE,scene,options),
     animateAvatar:animateSphericalTauren,
     getPosition:()=>({normal:state.normal.toArray(),heading:state.heading,radius:R,moving:presenceMoving}),
-    getCharacter:()=>rpg.networkCharacter(),
+    getCharacter:()=>accountMode?{}:rpg.networkCharacter(),
+    auth:accountLaunch,url:accountMode?AUTH_WORLD_URL:undefined,
     getRadius:()=>R,heightAt,
     onPlayers:rows=>rpg.onOnlinePlayers(rows),
     onMobs:rows=>rpg.onMobSnapshot(rows),
     onVitals:msg=>rpg.onVitals(msg),
     onCombat:(msg,selfId)=>rpg.onCombatEvent(msg,selfId),
     onKillCredit:msg=>rpg.onKillCredit(msg),
+    onVerifiedProgress:(progress,source)=>rpg.applyServerProgress(progress,source),
+    onAuthRejected:reason=>rpg.onPartyNotice({message:reason}),
     onMobAttack:msg=>rpg.onMobAttack(msg),
     onRespawn:msg=>rpg.onNetworkRespawn(msg),
     onPartyState:msg=>rpg.onPartyState(msg),
@@ -532,6 +544,7 @@ try {
   const footer = $('footer');
   function setRadius(nextRadius) {
     if (!AVAILABLE_RADII.includes(nextRadius)) return;
+    if(accountMode&&nextRadius!==R)return;
     if (R !== nextRadius) {
       R = nextRadius;
       reshapeGround();
