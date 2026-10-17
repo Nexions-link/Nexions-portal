@@ -88,6 +88,26 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   return safe;
  };
  const state=preview?initial():authenticatedProfile?serverInitial():restore(),runtime=createAbilityRuntime();
+ let serverBagSlots=authenticatedProfile?.inventory?.length?
+  authenticatedProfile.inventory.map(row=>row?{...row}:null):Array(12).fill(null);
+ const isAccountHero=()=>!!authenticatedProfile;
+ const serverBagSlot=(clientIndex)=>{
+  const row=state.inventory[clientIndex];if(!row)return -1;
+  const ordinal=state.inventory.slice(0,clientIndex+1).filter(r=>r.id===row.id).length;
+  let found=0;
+  for(let i=0;i<serverBagSlots.length;i++)
+   if(serverBagSlots[i]?.id===row.id&&++found===ordinal)return i;
+  return -1;
+ };
+ const sendAccountAction=(kind,params={})=>{
+  if(!isOnline())return msg('Нет связи с сервером. Изменения не применены.');
+  if(!multiplayer.economy(kind,{...params,
+   ...(['merchantBuy','merchantSell'].includes(kind)?{requestId:crypto.randomUUID()}:{} )})){
+   msg('Не удалось отправить команду');return false;
+  }
+  return true;
+ };
+
  const rightHand=hero.arms[1]?.hand,leftHand=hero.arms[0]?.hand;
  const modelSlots={weapon:null,shield:null};
  hero.root.userData.equipmentGrip={weapon:equipmentGrip('weapon'),shield:equipmentGrip('shield')};
@@ -171,6 +191,55 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
   }else if(event?.reason)msg(event.reason);
  }
+ let pendingServerGather=null;
+ let lastServerScoutRequest=0;
+ function onEconomyResult(event){
+  if(!authenticatedProfile||!event)return;
+  if(!event.ok){
+   if(event.kind==='gatherStart'||event.kind==='gatherFinish')pendingServerGather=null;
+   const labels={
+    interaction_too_far:'Подойди ближе к персонажу или предмету',
+    untrusted_interaction_context:'Сейчас взаимодействовать нельзя',
+    not_enough_gold:'Недостаточно монет',inventory_full:'Рюкзак заполнен',
+    item_not_owned:'Предмет не найден в рюкзаке',item_not_sellable:'Предмет нельзя продать',
+    potion_cooldown:'Зелье восстанавливается',potion_not_needed:'Сейчас здоровье полное',
+    chest_transfer_rejected:'В сундуке или рюкзаке нет места',
+    gather_node_respawning:'Растение ещё не выросло',
+    gather_cast_in_progress:'Сбор пока не завершён',gather_cast_not_started:'Сбор прерван',
+    quest_not_ready:'Сначала выполни условия задания',
+    quest_not_active:'Сначала прими задание травницы',
+    mentor_reward_not_ready:'Испытание ещё не завершено',
+    stale_revision:'Сохранение обновилось. Повтори действие',
+    equipment_requirements_not_met:'Это снаряжение пока нельзя надеть'
+   };
+   msg(labels[event.reason]||'Сервер отклонил действие: '+(event.reason||'ошибка'));
+   return;
+  }
+  if(event.kind==='gatherStart'&&pendingServerGather){
+   const job=pendingServerGather;
+   setTimeout(()=>{
+    if(!isOnline()||pendingServerGather!==job)return;
+    sendAccountAction('gatherFinish',{stage:job.stage,index:job.index});
+   },Math.max(1500,event.castMs||1500)+120);
+   return;
+  }
+  if(event.kind==='gatherFinish'&&pendingServerGather){
+   const job=pendingServerGather;pendingServerGather=null;
+   const node=gathering.nodes.find(n=>n.stage===job.stage&&n.index===job.index);
+   if(node)node.readyAt=clock+GATHER_RESPAWN_SECONDS;
+  }
+  const labels={
+   merchantBuy:'Покупка сохранена',merchantSell:'Продажа сохранена',
+   gatherAccept:'Задание травницы принято',gatherFinish:'Ресурс собран и сохранён',
+   gatherTurnIn:'Награда за сбор получена',mentorAccept:'Испытание принято',
+   mentorInteract:'Цель задания выполнена',mentorTurnIn:'Награда наставника получена',
+   equip:'Предмет экипирован',unequip:'Предмет снят',
+   usePotion:'Зелье использовано и сохранено'
+  };
+  if(labels[event.kind])msg(labels[event.kind],2.2);
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests'].includes(modal.dataset.kind))
+   renderModal();
+ }
  function onVitals(event){
   if(!isOnline())return;
   if(Number.isFinite(event.hp))state.hp=Math.max(0,Math.min(stats().maxHp,event.hp));
@@ -191,20 +260,28 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   state.level=progress.level;
   state.xp=progress.experience;
   state.gold=progress.gold;
-  if(Array.isArray(progress.inventory))
-   state.inventory=progress.inventory.filter(Boolean).map(row=>({...row}));
+  if(Array.isArray(progress.inventory)){
+   serverBagSlots=progress.inventory.map(row=>row?{...row}:null);
+   state.inventory=serverBagSlots.filter(Boolean).map(row=>({...row}));
+  }
   if(progress.equipment&&typeof progress.equipment==='object')
    state.equipment=progress.equipment;
   if(progress.quests?.mentor?.step!==undefined)
    state.quest=progress.quests.mentor.step;
-  if(progress.quests?.gather?.stage!==undefined)
+  if(progress.quests?.gather?.stage!==undefined){
    state.gatherStage=progress.quests.gather.stage;
-  if(source==='welcome'){
-   state.hp=progress.health;state.resource=progress.resource;
+   state.gatherAvailable=progress.quests.gather.stage>=1&&progress.quests.gather.stage<=3
+    &&!progress.quests.gather.accepted;
+  }
+  if(progress.quests?.mentor?.kills!==undefined)state.kills=progress.quests.mentor.kills;
+  if(source==='welcome'||source==='usePotion'){
+   state.hp=progress.health;
+   if(source==='welcome')state.resource=progress.resource;
   }
   state.hotbar=normalizeHotbar(state.hotbar,'warrior',state.level);
   void updateEquipmentVisuals();
   draw();
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest'].includes(modal.dataset.kind))renderModal();
   if(source==='mob')msg('Награда за бой сохранена в Neon',2.6);
  }
  function onKillCredit(event){
@@ -469,6 +546,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   persist();draw();void updateEquipmentVisuals();
  }
  function equip(id){
+  if(authenticatedProfile){
+   const bagSlot=serverBagSlots.findIndex(row=>row?.id===id);
+   if(bagSlot<0)return msg('Предмет отсутствует на сервере');
+   return sendAccountAction('equip',{bagSlot,equipmentSlot:ITEM_CATALOG[id]?.slot});
+  }
   const result=equipFromBag(state,id,inCombat());
   if(!result.ok)return msg(result.error);
   finishEquipmentChange(result.slot);msg('Надето: '+ITEM_CATALOG[id].name);
@@ -549,7 +631,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(kind!=='gatherLoot')camp.cancel();
   modal.hidden=false;modal.dataset.kind=kind;
   if(kind==='chest'&&isOnline()){
-   const items=[...state.inventory];
+   const items=authenticatedProfile?serverBagSlots.map(row=>row?{...row}:null):[...state.inventory];
    while(items.length<12)items.push(null);
    onlineChest={slots:null,inventory:items};
    multiplayer.openChest(items);
@@ -575,7 +657,28 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   window.location.reload();
  }
  function interact(){
-  if(authenticatedProfile)return msg('Квесты, торговля и сундук подключаются к серверным сохранениям позже.');
+  if(authenticatedProfile){
+   if(!modal.hidden||pendingServerGather)return;
+   if(!isOnline())return msg('Нет связи с сервером');
+   const nearby=nearestInteraction();
+   if(!nearby)return msg('Подойди ближе к жителю или предмету');
+   if(nearby.kind==='gather'){
+    const job={stage:nearby.stage,index:nearby.index};
+    if(sendAccountAction('gatherStart',job)){
+     pendingServerGather=job;msg('Сбор растения… 1,5 с');
+    }
+    return;
+   }
+   if(nearby.kind==='relic'||nearby.kind==='scout'){
+    sendAccountAction('mentorInteract',{interaction:nearby.kind});return;
+   }
+   if(nearby.kind==='mob')return msg('Награда за убийство автоматически сохраняется в Neon');
+   if(nearby.kind==='mentor'){openWindow('mentor');return}
+   if(nearby.kind==='vendor'){openWindow('merchant');return}
+   if(nearby.kind==='herbalist'){openWindow('herbalist');return}
+   if(nearby.kind==='chest'){openWindow('chest');return}
+   return msg('Сейчас взаимодействие недоступно');
+  }
   if(!modal.hidden||camp.casting)return;
   // Approach alone enables NPC dialogue, gathering, storage and corpse loot.
   // It never requires a selected combat target.
@@ -639,10 +742,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    hasConsumable:itemCount('healingPotion')>0,needsHealing:state.hp<stats().maxHp};
  }
  function castAction(id){
-  if(authenticatedProfile&&id==='healingPotion'){
-   msg('Использование зелий станет доступно после подключения серверного инвентаря.');
-   return false;
-  }
+  if(authenticatedProfile&&id==='healingPotion')return sendAccountAction('usePotion');
   if(authenticatedProfile&&!isOnline()){
    msg('Связь с сервером отсутствует. Боевые действия приостановлены.');
    return false;
@@ -821,6 +921,36 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    });
    return;
   }
+  if(authenticatedProfile&&kind==='herbalist'){
+   const quest=GATHER_QUESTS[state.gatherStage];
+   if(state.gatherStage===0){
+    line('Цветы равнин','Помоги собрать первые цветы для травницы.',
+     [['Принять',()=>sendAccountAction('gatherAccept')]]);
+   }else if(state.gatherStage>=4){
+    line('Все поручения выполнены','Травница благодарит за помощь.');
+   }else if(state.gatherAvailable){
+    line(quest.title,'Готово следующее поручение. '+quest.hint,
+     [['Принять',()=>sendAccountAction('gatherAccept')]]);
+   }else{
+    const count=itemCount(quest.item);
+    line(quest.title,'Собрано '+count+' / '+quest.count+'. '+quest.hint,
+     count>=quest.count?[['Сдать',()=>sendAccountAction('gatherTurnIn')]]:[]);
+   }
+   return;
+  }
+  if(authenticatedProfile&&kind==='mentor'){
+   const q=state.quest;
+   if([0,3,6,9].includes(q))
+    line((QUEST_LINES[q]||[])[0]||'Наставник',(QUEST_LINES[q]||[])[1]||'Начни новое испытание.',
+     [['Принять испытание',()=>sendAccountAction('mentorAccept')]]);
+   else if([2,5,8,11].includes(q))
+    line('Испытание выполнено','Наставник готов вручить заслуженную награду.',
+     [['Получить награду',()=>sendAccountAction('mentorTurnIn')]]);
+   else if(q===12)line('Все испытания пройдены','Ты завершил обучение!');
+   else line((QUEST_LINES[q]||[])[0]||'Испытание',
+    q===1?'Долгоноги: '+state.kills+' / 3':(QUEST_LINES[q]||[])[1]||'Выполняется.');
+   return;
+  }
   if(camp.render(kind,body,line))return;
   if(kind==='mentor'){mentorChain.render(line);return;}
   if(kind==='loot'){
@@ -896,7 +1026,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
           const description=document.createElement('p');description.textContent=def?.description||'Восстанавливает здоровье';
           detail.append(name,description);
           const commands=[...(def?.slot?[['Надеть',()=>equip(item.id)]]:[]),
-            ['🗑 Удалить',()=>{takeItem(item.id,1);draw();}]];
+            ...(authenticatedProfile?[]:[['🗑 Удалить',()=>{takeItem(item.id,1);draw();}]])];
           for(const [label,action] of commands){
             const b=document.createElement('button');b.type='button';b.className='choice';b.textContent=label;
             b.addEventListener('click',action);detail.append(b);
@@ -927,6 +1057,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
       const caption=document.createElement('small');caption.textContent=LABEL[slot]+': '+(def?.name||'Пусто');
       btn.append(icon,caption);btn.title=def?'Снять '+def.name:LABEL[slot];
       if(def)btn.addEventListener('click',()=>{
+        if(authenticatedProfile){
+         const bagSlot=serverBagSlots.findIndex(row=>!row);
+         if(bagSlot<0)return msg('В рюкзаке нет места');
+         sendAccountAction('unequip',{equipmentSlot:slot,bagSlot});
+         return;
+        }
         const result=unequipToBag(state,slot,inCombat());
         if(!result.ok)return msg(result.error);
         finishEquipmentChange(slot);
@@ -974,6 +1110,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      const item=ITEM_CATALOG[id];if(!item?.buy)continue;
      line((item.icon||'📦')+' '+item.name,item.buy+' монет · '+LABEL[item.slot],
       [['Купить',()=>{
+       if(authenticatedProfile)return sendAccountAction('merchantBuy',{itemId:id,qty:1});
        if(state.gold<item.buy)return msg('Недостаточно монет');
        if(!addItem(id))return msg('Сумка заполнена');
        state.gold-=item.buy;persist();renderModal();draw();msg('Куплено: '+item.name);
@@ -987,6 +1124,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      line((item.icon||'📦')+' '+item.name+(row.qty>1?' ×'+row.qty:''),
       'Продажа всего слота · '+(item.sell*row.qty)+' монет',
       [['Продать',()=>{
+       if(authenticatedProfile)return sendAccountAction('merchantSell',{
+        bagSlot:serverBagSlot(index),qty:row.qty});
        const result=sellInventorySlot(state,index);
        if(!result.ok)return msg('Этот предмет нельзя продать');
        persist();renderModal();draw();msg('Продано: '+item.name);
@@ -994,6 +1133,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     });
     if(!available)line('Нет предметов на продажу','Квестовые вещи нельзя продавать.');
    }else{
+    if(authenticatedProfile){line('Выкуп недоступен','Серверная история продаж появится позже.');return;}
     if(!state.buyback.length)line('Выкуп пуст','Недавно проданные предметы появятся здесь.');
     state.buyback.forEach((row,index)=>{
      const item=ITEM_CATALOG[row.id];
@@ -1149,7 +1289,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    animateSphericalTauren(citizens[i].actor,{dt,time:clock+i*1.47,walk:0,phase:0});
   }
   mentorWorld.update(state,clock);
-  if(state.quest===7&&distance(mentorWorld.scout)<5.5)mentorChain.discoveredScout();
+  if(state.quest===7&&distance(mentorWorld.scout)<5.5){
+   if(authenticatedProfile){
+    if(isOnline()&&(!lastServerScoutRequest||Date.now()-lastServerScoutRequest>4500)){
+     lastServerScoutRequest=Date.now();
+     sendAccountAction('mentorInteract',{interaction:'scout'});
+    }
+   }else mentorChain.discoveredScout();
+  }
   const local=player();
   swing-=dt;
   if(approach){
@@ -1340,7 +1487,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  persist();draw();void updateEquipmentVisuals();
  return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
   setMultiplayer,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestResult,
-  onVitals,onCombatEvent,onKillCredit,applyServerProgress,onMobAttack,onNetworkRespawn,onMobSnapshot,
+  onVitals,onCombatEvent,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onNetworkRespawn,onMobSnapshot,
   get movementLocked(){return timeline.stompProgress>=0},
   getAnimationState,getQuestMapState,setVisualQuality,updateQuestMarkers,draw,get state(){return state}};
 }

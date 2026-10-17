@@ -52,7 +52,7 @@ export function createSphericalPresence({
  onPlayers,onMobs,onVitals,onCombat,onKillCredit,onMobAttack,onRespawn,
  onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
  onChestState,onChestResult,onCombatRejected,onDisconnect,
- onVerifiedProgress,onAuthRejected,
+ onVerifiedProgress,onAuthRejected,onEconomyResult,
  auth=null,url=WORLD_URL
 }){
  let socket=null,closed=false,selfId=null,joinedRadius=null,retry=null,sendLoop=null;
@@ -153,6 +153,7 @@ export function createSphericalPresence({
    else if(m.type==='chestResult')onChestResult?.(m);
    else if(m.type==='progressSaved')onVerifiedProgress?.(m.progress,m.source);
    else if(m.type==='progressError')onAuthRejected?.(m.reason||'Ошибка сохранения');
+   else if(m.type==='economyResult')onEconomyResult?.(m);
    else if(m.type==='nameChanged')onPartyNotice?.({message:'Имя обновлено'});
   };
   ws.onclose=event=>{
@@ -229,8 +230,9 @@ export function createSphericalPresence({
   respondInvite:(fromId,accept)=>send({type:'partyRespond',fromId,accept}),
   leaveParty:()=>send({type:'partyLeave'}),
   sendChat:(channel,text)=>send({type:'chatSend',channel,text}),
-  openChest:inventory=>send({type:'chestOpen',inventory}),
+  openChest:inventory=>send({type:'chestOpen',...(auth?{}:{inventory})}),
   moveChest:(action,slot,requestId)=>send({type:'chestMove',action,slot,requestId}),
+  economy:(kind,params={})=>auth&&send({type:'economyAction',kind,...params}),
   closeChest:()=>send({type:'chestClose'}),
   get players(){return [...peers.values()]},
   get connected(){return socket?.readyState===WebSocket.OPEN&&!!selfId}
