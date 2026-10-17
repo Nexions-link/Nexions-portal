@@ -113,7 +113,8 @@ async function loadCharacters(){
    // Never add the session token to the URL. The same-origin game iframe
    // reads it from sessionStorage and the server rechecks hero ownership.
    sessionStorage.setItem('ngw-selected-character',character.id);
-   location.assign('/nexgameworld/?account-play=1');
+   // Refresh only the launcher URL, never expose session tokens in the address.
+   location.assign('/nexgameworld/?account-play=1&launch='+Date.now());
   });
   const remove=document.createElement('button');
   remove.type='button';remove.className='delete-hero';remove.textContent='Удалить';
