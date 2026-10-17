@@ -125,6 +125,13 @@ jobs:
               asset = root / model_path
               if not asset.is_file() or asset.stat().st_size == 0:
                   raise SystemExit('Missing 3D model: ' + str(asset))
+              if asset.suffix.lower() == '.glb':
+                  with asset.open('rb') as model_file:
+                      header = model_file.read(12)
+                  if (len(header) != 12 or header[:4] != b'glTF'
+                          or int.from_bytes(header[4:8], 'little') != 2
+                          or int.from_bytes(header[8:12], 'little') != asset.stat().st_size):
+                      raise SystemExit('Invalid GLB container: ' + str(asset))
           for relative in ('atlas.css', 'atlas.js', 'atlas-catalog.js',
                            'atlas-palette-editor.js', '../planet-test/loot-tables.js',
                            '../items.js'):
