@@ -25,6 +25,17 @@ button:disabled{opacity:.55;cursor:wait}.links{display:flex;justify-content:spac
 #feedback[data-error=true]{border-color:#e27a74}.hint{font-size:12px;color:#aeb9b0;margin:5px 0 12px}
 .codes{list-style:none;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:5px}.codes li{font:12px ui-monospace,monospace;overflow-wrap:anywhere;background:#091820;padding:6px;border:1px solid #5c6a5e;border-radius:4px}
 .hero{border:1px solid #62664f;padding:12px;border-radius:7px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
+.hero-actions{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.delete-hero{border-color:#704b49;background:#2c2224;color:#ffb5ad;min-height:39px}
+.delete-hero:hover{background:#47292c}
+dialog{width:min(92vw,420px);max-height:min(84dvh,640px);overflow-y:auto;margin:auto;padding:22px;border-radius:12px;border:1px solid #9a7f6e;color:#eae2cf;background:#13252a;box-shadow:0 18px 65px #000b}
+dialog::backdrop{background:#030a0dc9}
+dialog h2{margin-top:0}
+.dialog-actions{display:flex;gap:10px;margin-top:16px}
+.dialog-actions button{flex:1}
+button.danger-confirm{background:#923c3c;color:#fff0ec;border-color:#e48e82}
+button.danger-confirm:disabled{background:#332d2d;color:#b0a29f;border-color:#564e4d;cursor:not-allowed}
+.dialog-error{color:#ffb1ad;white-space:pre-wrap;overflow-wrap:anywhere}
 a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;font-size:12px;letter-spacing:.14em;color:#aab9ad}
 </style></head><body><main>
 <header><h1>NexGameWorld</h1><p>АЛЬФА · ТЕСТ РЕГИСТРАЦИИ</p></header>
@@ -70,12 +81,71 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 <button class="primary" type="submit">Создать персонажа</button></form>
 <button id="logout" type="button">Выйти из аккаунта</button>
 </section>
+<dialog id="deleteDialog" aria-labelledby="deleteTitle">
+<h2 id="deleteTitle">Удаление персонажа</h2>
+<p>Персонаж <strong id="deleteHeroName"></strong> исчезнет из списка, а слот станет свободным.</p>
+<p class="hint">Для подтверждения введите его имя точно так же, как оно написано выше.</p>
+<form id="deleteHeroForm">
+<label for="deleteConfirmName">Имя персонажа</label>
+<input id="deleteConfirmName" type="text" required autocomplete="off" spellcheck="false" autocapitalize="none">
+<p id="deleteError" class="dialog-error" role="alert" hidden></p>
+<div class="dialog-actions">
+<button type="button" id="cancelDelete">Отмена</button>
+<button type="submit" id="confirmDelete" class="danger-confirm" disabled>Удалить</button>
+</div>
+</form>
+</dialog>
 <footer style="text-align:center;font-size:12px;margin-top:15px"><a href="/">На главную</a></footer>
 </main><script type="module">
 const API='https://nexgame-world.onrender.com/api/ngw';
 const $=id=>document.getElementById(id);
 const views=['login','register','recoveryCodes','recover','characters'];
 let token=sessionStorage.getItem('ngw-alpha-session')||'',codes=[];
+let pendingDelete=null;
+const deleteDialog=$('deleteDialog');
+function openDeleteDialog(character){
+ pendingDelete={id:character.id,nickname:character.nickname};
+ $('deleteHeroName').textContent=character.nickname;
+ $('deleteConfirmName').value='';
+ $('confirmDelete').disabled=true;
+ $('cancelDelete').disabled=false;
+ $('deleteError').textContent='';
+ $('deleteError').hidden=true;
+ deleteDialog.showModal();
+ $('deleteConfirmName').focus();
+}
+function closeDeleteDialog(){
+ if(deleteDialog.open)deleteDialog.close();
+ pendingDelete=null;
+}
+$('cancelDelete').addEventListener('click',closeDeleteDialog);
+deleteDialog.addEventListener('close',()=>{pendingDelete=null;});
+$('deleteConfirmName').addEventListener('input',()=>{
+ $('confirmDelete').disabled=!pendingDelete||$('deleteConfirmName').value!==pendingDelete.nickname;
+});
+$('deleteHeroForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const target=pendingDelete;
+ if(!target||$('deleteConfirmName').value!==target.nickname)return;
+ const action=$('confirmDelete');
+ action.disabled=true;$('cancelDelete').disabled=true;
+ try{
+  await api('/characters/'+encodeURIComponent(target.id),{
+   method:'DELETE',body:{confirmNickname:target.nickname},authorized:true
+  });
+  closeDeleteDialog();
+  await loadCharacters();
+  feedback('Персонаж «'+target.nickname+'» удалён. Слот для нового героя свободен.');
+ }catch(error){
+  $('deleteError').textContent=error.message||'Не удалось удалить персонажа';
+  $('deleteError').hidden=false;
+ }finally{
+  $('cancelDelete').disabled=false;
+  $('confirmDelete').disabled=!pendingDelete||
+   $('deleteConfirmName').value!==pendingDelete.nickname;
+ }
+});
+
 function show(view){maskPasswords();for(const id of views)$(id).hidden=id!==view;feedback('');}
 function feedback(text,error=false){$('feedback').hidden=!text;$('feedback').textContent=text;$('feedback').dataset.error=String(error);}
 function maskPasswords(){for(const field of document.querySelectorAll('.password-control input'))field.type='password';for(const toggle of document.querySelectorAll('.toggle-password')){toggle.textContent='Показать';toggle.setAttribute('aria-pressed','false');toggle.setAttribute('aria-label','Показать пароль')}}
@@ -139,7 +209,13 @@ async function loadCharacters(){
   desc.append(title,detail);
   const button=document.createElement('button');button.type='button';button.textContent='Выбрать';
   button.addEventListener('click',()=>feedback('Персонаж сохранён в Neon. Вход этим героем в игровой мир подключим позже.'));
-  card.append(desc,button);container.append(card);
+  const remove=document.createElement('button');
+  remove.type='button';remove.className='delete-hero';remove.textContent='Удалить';
+  remove.setAttribute('aria-label','Удалить персонажа '+character.nickname);
+  remove.addEventListener('click',()=>openDeleteDialog(character));
+  const actions=document.createElement('div');actions.className='hero-actions';
+  actions.append(button,remove);
+  card.append(desc,actions);container.append(card);
  }
  $('characterForm').hidden=(data.characters||[]).length>=data.slots;
 }
