@@ -48,8 +48,9 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 <div class="links"><button type="button" data-view="register">Создать аккаунт</button><button type="button" data-view="recover">Забыл пароль?</button></div>
 </section>
 <section class="view" id="register" hidden>
-<h2>Регистрация</h2>
+<h2>Регистрация</h2><p class="hint">Регистрация в закрытой альфе выполняется по приглашению.</p>
 <p class="hint">В новой онлайн-версии все начинают с нуля. Персонажи и прогресс предыдущей альфы не переносятся.</p><form id="registerForm">
+<label for="inviteCode">Код приглашения</label><input id="inviteCode" name="inviteCode" type="text" required minlength="8" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false">
 <label for="registerName">Логин</label><input id="registerName" name="username" required pattern="[A-Za-z][A-Za-z0-9_-]{2,23}" maxlength="24" autocomplete="username">
 <p class="hint">3–24 символа: латиница, цифры, дефис, подчёркивание.</p>
 <label for="registerPass">Пароль</label><div class="password-control"><input id="registerPass" name="password" type="password" required minlength="6" maxlength="128" autocomplete="new-password"><button class="toggle-password" type="button" data-show-password="registerPass" aria-controls="registerPass" aria-pressed="false" aria-label="Показать пароль">Показать</button></div>
@@ -79,6 +80,20 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 <form id="characterForm"><label for="heroName">Имя нового персонажа</label><input id="heroName" name="nickname" required minlength="3" maxlength="24">
 <p class="hint">Сейчас доступен Воин. Настройка внешности и классы появятся позже.</p>
 <button class="primary" type="submit">Создать персонажа</button></form>
+
+<button id="openPasswordChange" type="button" style="width:100%;margin-top:14px">Сменить пароль</button>
+<form id="passwordChangeForm" hidden>
+<h2>Смена пароля</h2>
+<label for="currentAccountPassword">Текущий пароль</label>
+<div class="password-control"><input id="currentAccountPassword" name="currentPassword" type="password" required minlength="6" maxlength="128" autocomplete="current-password"><button class="toggle-password" type="button" data-show-password="currentAccountPassword" aria-controls="currentAccountPassword" aria-pressed="false" aria-label="Показать пароль">Показать</button></div>
+<label for="newAccountPassword">Новый пароль</label>
+<div class="password-control"><input id="newAccountPassword" name="newPassword" type="password" required minlength="6" maxlength="128" autocomplete="new-password"><button class="toggle-password" type="button" data-show-password="newAccountPassword" aria-controls="newAccountPassword" aria-pressed="false" aria-label="Показать пароль">Показать</button></div>
+<p class="hint">Не менее 6 символов. Для безопасности используйте пароль, который нигде больше не применяется.</p>
+<label for="repeatAccountPassword">Повторите новый пароль</label>
+<div class="password-control"><input id="repeatAccountPassword" type="password" required minlength="6" maxlength="128" autocomplete="new-password"><button class="toggle-password" type="button" data-show-password="repeatAccountPassword" aria-controls="repeatAccountPassword" aria-pressed="false" aria-label="Показать пароль">Показать</button></div>
+<button class="primary" type="submit">Сохранить новый пароль</button>
+<button id="cancelPasswordChange" type="button">Отмена</button>
+</form>
 <button id="logout" type="button">Выйти из аккаунта</button>
 </section>
 <dialog id="deleteDialog" aria-labelledby="deleteTitle">
@@ -180,7 +195,8 @@ document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',(
 $('registerForm').addEventListener('submit',event=>submit(event,async form=>{
  const username=String(form.get('username')),password=String(form.get('password'));
  if(password!==$('registerPass2').value)throw Error('Пароли не совпадают');
- const result=await api('/register',{method:'POST',body:{username,password}});
+ const inviteCode=String(form.get('inviteCode')).trim();
+ const result=await api('/register',{method:'POST',body:{username,password,inviteCode}});
  codes=result.recoveryCodes||[];
  $('codes').replaceChildren(...codes.map(code=>{const li=document.createElement('li');li.textContent=code;return li}));
  $('codesSaved').checked=false;$('codesContinue').disabled=true;
@@ -222,6 +238,30 @@ async function loadCharacters(){
 $('characterForm').addEventListener('submit',event=>submit(event,async form=>{
  await api('/characters',{method:'POST',authorized:true,body:{nickname:String(form.get('nickname'))}});
  $('heroName').value='';await loadCharacters();
+}));
+$('openPasswordChange').addEventListener('click',()=>{
+ $('passwordChangeForm').hidden=false;
+ $('openPasswordChange').hidden=true;
+ $('currentAccountPassword').focus();
+});
+$('cancelPasswordChange').addEventListener('click',()=>{
+ $('passwordChangeForm').reset();
+ $('passwordChangeForm').hidden=true;
+ $('openPasswordChange').hidden=false;
+ maskPasswords();
+});
+$('passwordChangeForm').addEventListener('submit',event=>submit(event,async form=>{
+ const currentPassword=String(form.get('currentPassword'));
+ const newPassword=String(form.get('newPassword'));
+ if(newPassword!==$('repeatAccountPassword').value)
+  throw Error('Новые пароли не совпадают');
+ await api('/password',{method:'POST',authorized:true,body:{currentPassword,newPassword}});
+ token='';sessionStorage.removeItem('ngw-alpha-session');
+ $('passwordChangeForm').reset();
+ $('passwordChangeForm').hidden=true;
+ $('openPasswordChange').hidden=false;
+ show('login');
+ feedback('Пароль изменён. Все предыдущие сессии завершены. Войдите с новым паролем.');
 }));
 $('logout').addEventListener('click',async()=>{
  try{await api('/logout',{method:'POST',body:{},authorized:true})}catch{}
