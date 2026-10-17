@@ -45,12 +45,17 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
  // Read both the same-domain mirror and the current upstream release.
  // During the few minutes before sync completes, launch the newest published build.
  function parseVersion(data){
-  return data?.project==='NexGameWorld'&&/^[0-9]+\.[0-9]+\.[0-9]+$/.test(data?.version||'')?
+  // Patch releases use four parts (e.g. 0.6.34.1); older builds use three.
+  return data?.project==='NexGameWorld'&&/^[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/.test(data?.version||'')?
    data.version:null;
  }
  function isNewer(a,b){
   const left=a.split('.').map(Number),right=b.split('.').map(Number);
-  for(let i=0;i<3;i++){if(left[i]!==right[i])return left[i]>right[i];}
+  // Compare 0.6.34 with 0.6.34.1 as 0.6.34.0 < 0.6.34.1.
+  for(let i=0;i<Math.max(left.length,right.length);i++){
+   const l=left[i]??0,r=right[i]??0;
+   if(l!==r)return l>r;
+  }
   return false;
  }
  async function readBuild(path){
