@@ -1,0 +1,42 @@
+name: NexGameWorld mobile WebKit smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'nexgameworld/account.html'
+      - 'nexgameworld/account.js'
+      - 'nexgameworld/index.html'
+      - 'tests/webkit-account.test.mjs'
+      - '.github/workflows/ngw-webkit-smoke.yml'
+  pull_request:
+    paths:
+      - 'nexgameworld/account.html'
+      - 'nexgameworld/account.js'
+      - 'nexgameworld/index.html'
+      - 'tests/webkit-account.test.mjs'
+      - '.github/workflows/ngw-webkit-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ngw-webkit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portrait-safari-engine:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned WebKit test runner
+        run: npm install --no-save --no-package-lock --ignore-scripts --no-audit playwright@1.55.0
+      - name: Install browser and Linux libraries
+        run: npx playwright install --with-deps webkit
+      - name: Verify portrait account, selection and launcher in real WebKit
+        run: node --test --test-reporter=spec tests/webkit-account.test.mjs
