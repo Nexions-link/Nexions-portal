@@ -84,7 +84,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   safe.equipment=row.equipment||{};
   safe.quest=row.quests?.mentor?.step||0;
   safe.gatherStage=row.quests?.gather?.stage||0;
-  safe.hotbar=normalizeHotbar(row.actionBar||[],'warrior',safe.level);
+  safe.hotbar=normalizeHotbar(row.actionBar?.length?row.actionBar:DEFAULT_HOTBAR,'warrior',safe.level);
   return safe;
  };
  const state=preview?initial():authenticatedProfile?serverInitial():restore(),runtime=createAbilityRuntime();
@@ -257,7 +257,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(node)node.readyAt=clock+GATHER_RESPAWN_SECONDS;
   }
   const labels={
-   merchantBuy:'Покупка сохранена',merchantSell:'Продажа сохранена',
+   hotbarSet:'Панель умений сохранена',merchantBuy:'Покупка сохранена',merchantSell:'Продажа сохранена',
    gatherAccept:'Задание травницы принято',gatherFinish:'Ресурс собран и сохранён',
    gatherTurnIn:'Награда за сбор получена',mentorAccept:'Испытание принято',
    mentorInteract:'Цель задания выполнена',mentorTurnIn:'Награда наставника получена',
@@ -265,7 +265,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    usePotion:'Зелье использовано и сохранено'
   };
   if(labels[event.kind])msg(labels[event.kind],2.2);
-  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests'].includes(modal.dataset.kind))
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','spells'].includes(modal.dataset.kind))
    renderModal();
  }
  function onVitals(event){
@@ -306,10 +306,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    state.hp=progress.health;
    if(source==='welcome')state.resource=progress.resource;
   }
-  state.hotbar=normalizeHotbar(state.hotbar,'warrior',state.level);
+  state.hotbar=normalizeHotbar(progress.actionBar?.length?progress.actionBar:DEFAULT_HOTBAR,'warrior',state.level);
   void updateEquipmentVisuals();
   draw();
-  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest'].includes(modal.dataset.kind))renderModal();
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','spells'].includes(modal.dataset.kind))renderModal();
   if(source==='mob')msg('Получены опыт и монеты. Предметы можно забрать с тела.',2.6);
  }
  function onKillCredit(event){
@@ -1297,6 +1297,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      btn.addEventListener('click',()=>{
        const slot=chooseSlot>=0?chooseSlot:state.hotbar.findIndex(entry=>entry===null);
        if(slot<0)return msg('Нажми нужную ячейку на панели');
+       if(authenticatedProfile){sendAccountAction('hotbarSet',{slot,entry:{kind:info.kind,id:info.id}});chooseSlot=-1;return;}
        state.hotbar=assignHotbarSlot(state.hotbar,slot,{kind:info.kind,id:info.id},'warrior',state.level);
        chooseSlot=-1;persist();draw();msg('Назначено в ячейку '+(slot+1));
      });list.append(btn);
@@ -1305,6 +1306,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    clear.className='spellbook-entry spellbook-remove';clear.textContent='✕ Очистить выбранную ячейку';
    clear.addEventListener('click',()=>{
      if(chooseSlot<0)return msg('Сначала выбери ячейку панели');
+     if(authenticatedProfile){sendAccountAction('hotbarSet',{slot:chooseSlot,entry:null});chooseSlot=-1;return;}
      state.hotbar=assignHotbarSlot(state.hotbar,chooseSlot,null,'warrior',state.level);
      chooseSlot=-1;persist();draw();
    });list.append(clear);body.append(list);
