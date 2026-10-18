@@ -1,0 +1,53 @@
+name: Verify live NexGameWorld on nexions.ru
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-live-game.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compare public game, upstream and Render server
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          const targets={
+           site:'https://nexions.ru/nexgameworld/planet-test/version.json',
+           upstream:'https://raw.githubusercontent.com/Nexions-link/Nexgame/main/planet-test/version.json',
+           server:'https://nexgame-world.onrender.com/health',
+           ready:'https://nexgame-world.onrender.com/ready'
+          };
+          async function get(url){
+           const endpoint=new URL(url);
+           endpoint.searchParams.set('audit',Date.now().toString());
+           const res=await fetch(endpoint,{cache:'no-store',signal:AbortSignal.timeout(55000)});
+           if(!res.ok)throw Error(endpoint.pathname+' HTTP '+res.status);
+           return res.json();
+          }
+          let last;
+          for(let attempt=1;attempt<=5;attempt++){
+           try{
+            const [site,upstream,server,ready]=await Promise.all(
+             Object.values(targets).map(get));
+            if(site.version!==upstream.version)throw Error('Nexions.ru is behind source '+site.version+'/'+upstream.version);
+            if(server.build!==site.version||ready.build!==site.version)
+             throw Error('Render is behind the game '+server.build+'/'+site.version);
+            if(!server.ok||!ready.ready)throw Error('Online game backend is not ready');
+            console.log('Live NexGameWorld release verified: '+site.version+
+             ', online mobs: '+server.mobs);
+            process.exit(0);
+           }catch(error){
+            last=error;console.warn('Attempt '+attempt+'/5: '+error.message);
+            if(attempt<5)await new Promise(resolve=>setTimeout(resolve,20000));
+           }
+          }
+          console.error('Live release audit failed:',last?.message);
+          process.exit(1);
+          JS
