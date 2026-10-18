@@ -260,7 +260,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <aside id="quest">
  <button id="questJournalOpen" type="button" aria-label="Открыть журнал заданий">Задания <span aria-hidden="true">↗</span></button>
  <div id="mainQuestTracker" hidden><div id="quest-progress"></div><b id="qtitle"></b><p id="qtext"></p><p id="questGuidance" class="quest-guidance" hidden></p></div>
- <div id="banditQuestTracker" hidden class="ngw-secondary-quest">Разбойники Пыльной тропы <span id="banditQuestText"></span></div>
+ <div id="banditQuestTracker" hidden class="ngw-secondary-quest"><span id="banditQuestTitle">Разведка лагеря · 1/3</span> <span id="banditQuestText"></span></div>
  <div id="gatherQuestTracker" hidden><span id="gatherQuestStage">Сбор · 1 / 3</span><b id="gatherQuestTitle"></b><p id="gatherQuestText"></p></div></aside>
 <nav id="top" aria-label="Основные действия персонажа">
  <button class="smallButton" id="partyOpen" type="button" aria-label="Группа (G)" title="Группа (G)">
@@ -281,7 +281,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.42.6" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.42.7" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -368,7 +368,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=105').catch(error=>{
+  import('./planet.js?v=106').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

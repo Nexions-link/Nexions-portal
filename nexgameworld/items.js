@@ -14,6 +14,7 @@ export const ITEM_CATALOG={
  meadowFlower:{name:'Луговой цветок',icon:'🌼',rarity:'common',quality:'Задание',quest:true,sell:0,description:'Душистый цветок для травницы Тихой Зари. Собирается на лугах возле лагеря.'},
  sunRoot:{name:'Солнечный корень',icon:'🌿',rarity:'common',quality:'Задание',quest:true,sell:0,description:'Мясистый корень на окраинах пастбищ Мулгора.'},
  moonMushroom:{name:'Лунный гриб',icon:'🍄',rarity:'common',quality:'Задание',quest:true,sell:0,description:'Редкий гриб из прохладных низин Мулгора.'},
+ banditDagger:{name:'Кинжал разбойника',icon:'🗡️',rarity:'common',quality:'Задание',quest:true,sell:0,description:'Захваченный кинжал из запасов лагеря Пыльной тропы. Нужен следопыту Медная Стрела.'},
  wornAxe:gear(37,'Поношенный топор','weapon',{icon:'🪓',rarity:'common',quality:'Обычный',weaponKind:'axe',damageMin:1,damageMax:3,speed:2,buy:8,sell:1,description:'Твой первый одноручный топор. Можно использовать со щитом.'}),
  chainVest:gear(2656,'Тонкий кольчужный нагрудник','chest',{icon:'👕',armor:63,buy:32,sell:6}),
  chainPants:gear(2654,'Тонкие кольчужные штаны','legs',{icon:'👖',armor:37,buy:20,sell:4}),

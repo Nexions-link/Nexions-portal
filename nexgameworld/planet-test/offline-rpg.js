@@ -4,7 +4,7 @@ import {renderCharacterSheet} from './character-sheet.js?v=4';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT} from './native-hotbar-art.js?v=1';
-import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.3.5.17';
+import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.3.5.18';
 import {getAbilityDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
@@ -14,6 +14,7 @@ import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';
 import {GATHER_QUESTS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=13';
+import {BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED,BANDIT_WEAPON_RESPAWN_SECONDS,createBanditWeaponWorld} from './bandit-weapons.js?v=1';
 import {createCampActions} from './camp-actions.js?v=12';
 import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1';
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
@@ -22,7 +23,7 @@ import {createXpFeedback} from './xp-feedback.js?v=1';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=2';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
 import {createCameraTargetFilter} from './camera-targeting.js?v=1';
-import {createHostileTargetCycle,nearbyInteractable,CORPSE_LOOT_RANGE} from './interaction-targeting.js?v=14';
+import {createHostileTargetCycle,nearbyInteractable,CORPSE_LOOT_RANGE} from './interaction-targeting.js?v=15';
 import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v=1';
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
@@ -97,6 +98,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   safe.gatherStage=row.quests?.gather?.stage||0;
    safe.banditQuest=row.quests?.bandit||{stage:0,kills:0};
   safe.banditChiefQuest=row.quests?.banditChief||{stage:0};
+  safe.banditWeaponsQuest=row.quests?.banditWeapons||{stage:row.quests?.banditChief?.stage>0?2:0};
   safe.hotbar=normalizeHotbar(row.actionBar?.length?row.actionBar:DEFAULT_HOTBAR,'warrior',safe.level);
   return safe;
  };
@@ -283,7 +285,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    draw();return;
   }
   if(!event.ok){
-   if(event.kind==='gatherStart'||event.kind==='gatherFinish')pendingServerGather=null;
+   if(['gatherStart','gatherFinish','banditWeaponStart','banditWeaponFinish'].includes(event.kind))
+    pendingServerGather=null;
    if(event.kind==='lootTake'&&!modal.hidden&&modal.dataset.kind==='loot'){
     renderModal();
     const reason=event.reason==='inventory_full'?'Рюкзак заполнен — вещи остались на теле.':
@@ -296,6 +299,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const labels={
     interaction_too_far:'Подойди ближе к персонажу или предмету',
     bandit_quest_level_too_low:'Задание на разбойников доступно с 3-го уровня.',
+    bandit_weapons_quest_locked:'Сначала заверши разведку лагеря.',
+    bandit_weapons_quest_unavailable:'Задание на оружие сейчас недоступно.',
+    bandit_weapons_quest_not_active:'Сначала прими задание «Оружие разбойников».',
+    bandit_weapons_already_collected:'Все три кинжала собраны. Вернись к следопыту.',
+    bandit_weapons_quest_not_ready:'Нужно собрать три кинжала.',
+    bandit_chief_quest_locked:'Заверши предыдущие задания и достигни 4-го уровня.',
     untrusted_interaction_context:'Сейчас взаимодействовать нельзя',
     not_enough_gold:'Недостаточно монет',inventory_full:'Рюкзак заполнен',
     item_not_owned:'Предмет не найден в рюкзаке',item_not_sellable:'Предмет нельзя продать',
@@ -314,22 +323,30 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    msg(labels[event.reason]||'Сервер отклонил действие: '+(event.reason||'ошибка'));
    return;
   }
-  if(event.kind==='gatherStart'&&pendingServerGather){
+  if((event.kind==='gatherStart'||event.kind==='banditWeaponStart')&&pendingServerGather){
    const job=pendingServerGather;
+   const matching=event.kind===(job.kind==='banditWeapon'?'banditWeaponStart':'gatherStart');
+   if(!matching)return;
    setTimeout(()=>{
     if(!isOnline()||pendingServerGather!==job)return;
-    sendAccountAction('gatherFinish',{stage:job.stage,index:job.index});
+    if(job.kind==='banditWeapon')sendAccountAction('banditWeaponFinish',{index:job.index});
+    else sendAccountAction('gatherFinish',{stage:job.stage,index:job.index});
    },Math.max(1500,event.castMs||1500)+120);
    return;
   }
-  if(event.kind==='gatherFinish'&&pendingServerGather){
+  if((event.kind==='gatherFinish'||event.kind==='banditWeaponFinish')&&pendingServerGather){
    const job=pendingServerGather;pendingServerGather=null;
-   const node=gathering.nodes.find(n=>n.stage===job.stage&&n.index===job.index);
-   if(node)node.readyAt=clock+GATHER_RESPAWN_SECONDS;
+   const node=job.kind==='banditWeapon'?banditWeapons.nodes.find(n=>n.index===job.index):
+    gathering.nodes.find(n=>n.stage===job.stage&&n.index===job.index);
+   if(node)node.readyAt=clock+(job.kind==='banditWeapon'?BANDIT_WEAPON_RESPAWN_SECONDS:GATHER_RESPAWN_SECONDS);
   }
   const labels={
    hotbarSet:'Панель умений сохранена',merchantBuy:'Покупка сохранена',merchantSell:'Продажа сохранена',
    gatherAccept:'Задание травницы принято',gatherFinish:'Ресурс собран и сохранён',
+   banditWeaponsAccept:'Задание «Оружие разбойников» принято',
+   banditWeaponFinish:'Кинжал разбойника собран',
+   banditWeaponsTurnIn:'Оружие сдано следопыту! Открывается задание на главаря.',
+   banditChiefAccept:'Задание на главаря принято',banditChiefTurnIn:'Главарь побеждён. Цепочка завершена!',
    gatherTurnIn:'Награда за сбор получена',mentorAccept:'Испытание принято',
    mentorInteract:'Цель задания выполнена',mentorTurnIn:'Награда наставника получена',
    equip:'Предмет экипирован',unequip:'Предмет снят',
@@ -373,6 +390,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(progress.quests?.mentor?.kills!==undefined)state.kills=progress.quests.mentor.kills;
   if(progress.quests?.bandit)state.banditQuest={...progress.quests.bandit};
   if(progress.quests?.banditChief)state.banditChiefQuest={...progress.quests.banditChief};
+  state.banditWeaponsQuest=progress.quests?.banditWeapons?{...progress.quests.banditWeapons}:
+   {stage:progress.quests?.banditChief?.stage>0?2:0};
   if(source==='welcome'||source==='usePotion'){
    state.hp=progress.health;
    if(source==='welcome')state.resource=progress.resource;
@@ -625,6 +644,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  // Preserve original locations in metres and project every mesh onto the sphere.
  const gathering=createGatherWorld({THREE,parent:group,place:e=>{entities.push(e);setModelAt(e);}});
  const gatherNodes=gathering.nodes;
+ const banditWeapons=createBanditWeaponWorld({THREE,parent:group,place:e=>{entities.push(e);setModelAt(e);}});
  // Two-line live label; keep one canvas and update pixels without replacing meshes.
  const chestCanvas=document.createElement('canvas');
  chestCanvas.width=512;chestCanvas.height=160;
@@ -935,8 +955,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   else if(!target)msg('В кадре нет доступных противников в радиусе 40 м');
  }
 
+ const weaponsStage=()=>state.banditWeaponsQuest?.stage??(state.banditChiefQuest?.stage>0?2:0);
+ const weaponsAvailable=node=>!!authenticatedProfile&&weaponsStage()===1&&
+  itemCount(BANDIT_WEAPON_ITEM)<BANDIT_WEAPON_REQUIRED&&clock>=node.readyAt;
  function nearestInteraction(){
-  return nearbyInteractable(entities,distance,camp.available);
+  return nearbyInteractable(entities,distance,node=>
+   node.kind==='banditWeapon'?weaponsAvailable(node):camp.available(node));
  }
  const chestSheet=createChestSheet({items:ITEM_CATALOG,qualityColors:QUALITY_VISUALS,
   move:(...args)=>isOnline()?multiplayer.moveChest(...args):false,notify:msg});
@@ -985,8 +1009,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(!isOnline())return msg('Нет связи с сервером');
    const nearby=nearestInteraction();
    if(!nearby)return msg('Подойди ближе к жителю или предмету');
+   if(nearby.kind==='banditWeapon'){
+    const job={kind:'banditWeapon',index:nearby.index};
+    if(sendAccountAction('banditWeaponStart',{index:job.index})){
+     pendingServerGather=job;msg('Собираем кинжал разбойника… 1,5 с');
+    }
+    return;
+   }
    if(nearby.kind==='gather'){
-    const job={stage:nearby.stage,index:nearby.index};
+    const job={kind:'gather',stage:nearby.stage,index:nearby.index};
     if(sendAccountAction('gatherStart',job)){
      pendingServerGather=job;msg('Сбор растения… 1,5 с');
     }
@@ -1128,7 +1159,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     const difficulty=target.kind==='mob'?monsterDifficulty(state.level,target.level):'yellow';
     // Keep the full creature name readable. The level is a separate compact
     // badge, so it never pushes the target name outside the fixed HUD slot.
-    $('targetName').textContent=target.boss?'Грозоклюв':target.name;
+    $('targetName').textContent=target.boss&&target.family==='stormbeak'?'Грозоклюв':target.name;
     $('targetName').title=target.name;
     $('targetLevel').hidden=target.kind!=='mob';
     if(target.kind==='mob'){
@@ -1156,20 +1187,32 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const glyph=mentorGlyph(state.quest);
   for(const child of mentor.root.children)if(child.userData.questMarker)child.visible=child.userData.glyph===glyph;
   const banditStage=state.banditQuest?.stage??0;
+  const weaponStage=weaponsStage(),weaponCount=itemCount(BANDIT_WEAPON_ITEM);
   const chiefStage=state.banditChiefQuest?.stage??0;
-  const banditGlyph=banditStage===0?(state.level>=BANDIT_QUEST_MIN_LEVEL?'!':null):banditStage===2||chiefStage===2?'?':banditStage===1||chiefStage===1?'·':banditStage===3&&chiefStage===0&&state.level>=4?'!':null;
+  const banditGlyph=banditStage===0?(state.level>=BANDIT_QUEST_MIN_LEVEL?'!':null):
+   banditStage===1?'·':banditStage===2?'?':
+   weaponStage===0?'!':weaponStage===1?(weaponCount>=BANDIT_WEAPON_REQUIRED?'?':'·'):
+   chiefStage===0?(state.level>=4?'!':null):chiefStage===1?'·':chiefStage===2?'?':null;
   for(const child of banditGuide.root.children)if(child.userData.questMarker)
    child.visible=child.userData.glyph===banditGlyph;
-  const showChief=banditStage===3&&(chiefStage===1||chiefStage===2);
-  $('banditQuestTracker').hidden=!authenticatedProfile||!(showChief||banditStage===1||banditStage===2);
+  const showWeapons=banditStage===3&&weaponStage===1;
+  const showChief=banditStage===3&&weaponStage===2&&(chiefStage===1||chiefStage===2);
+  $('banditQuestTracker').hidden=!authenticatedProfile||
+   !(showChief||showWeapons||banditStage===1||banditStage===2);
+  const banditTrackerTitle=$('banditQuestTitle');
+  if(banditTrackerTitle)banditTrackerTitle.textContent=showChief?'Главарь · 3/3':
+   showWeapons?'Оружие разбойников · 2/3':'Разведка лагеря · 1/3';
   if(authenticatedProfile&&showChief)
    $('banditQuestText').textContent=chiefStage===2?'Главарь повержен! Вернись к следопыту.':'Главарь: 0 / 1';
+  else if(authenticatedProfile&&showWeapons)
+   $('banditQuestText').textContent=weaponCount>=BANDIT_WEAPON_REQUIRED?
+    'Кинжалы собраны! Вернись к следопыту.':'Кинжалы: '+weaponCount+' / '+BANDIT_WEAPON_REQUIRED;
   else if(authenticatedProfile&&banditStage>0&&banditStage<3)
    $('banditQuestText').textContent=banditStage===2?'Готово! Вернись к следопыту.':
     'Разбойники: '+(state.banditQuest?.kills??0)+' / '+BANDIT_QUEST_KILLS;
   const nearby=modal.hidden&&!camp.casting?nearestInteraction():null;
-  $('interact').hidden=!nearby;
-  if(nearby)$('interact').textContent=nearby.kind==='gather'?
+  $('interact').hidden=!nearby||!!pendingServerGather;
+  if(nearby)$('interact').textContent=nearby.kind==='banditWeapon'?'Собрать кинжал':nearby.kind==='gather'?
     (nearby.pending?'Забрать':'Собрать'):nearby.kind==='relic'?'Взять перо':nearby.kind==='chest'?'Открыть сундук':
     nearby.kind==='mob'?'Обыскать':nearby.kind==='vendor'?'Торговец':'Поговорить';
   $('targetNext')?.classList.toggle('target-selected',!!target&&target.hp>0&&!target.dead);
@@ -1288,20 +1331,28 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(q.stage===0&&state.level<BANDIT_QUEST_MIN_LEVEL)
     line('Пока рано отправляться на тропу','Задание «Разбойники Пыльной тропы» доступно с 3-го уровня. Сейчас у тебя '+state.level+'-й уровень.');
    else if(q.stage===0)
-    line('Разбойники Пыльной тропы','Разбойники обосновались у западной тропы. Победи троих и возвращайся. Награда: 85 опыта и 18 монет.',
+    line('Разведка лагеря разбойников','Найди лагерь Пыльной тропы на западной границе долины, победи трёх разбойников и возвращайся. Награда: 85 опыта и 18 монет.',
      [['Принять задание',()=>sendAccountAction('banditAccept')]]);
    else if(q.stage===1)
-    line('Разбойники Пыльной тропы','Побеждено разбойников: '+q.kills+' / '+BANDIT_QUEST_KILLS+'. Ищи их к западу от лагеря.');
+    line('Разведка лагеря разбойников','Побеждено разбойников: '+q.kills+' / '+BANDIT_QUEST_KILLS+'. Ищи их в западном лагере.');
    else if(q.stage===2)
-    line('Разбойники Пыльной тропы','Трое разбойников побеждены. Награда: 85 опыта и 18 монет.',
+    line('Разведка лагеря разбойников','Трое разбойников побеждены. Награда: 85 опыта и 18 монет.',
      [['Сдать задание',()=>sendAccountAction('banditTurnIn')]]);
+   else if(weaponsStage()===0)
+    line('Оружие разбойников','Разбойники бросили кинжалы возле своего западного лагеря. Найди на земле и собери три кинжала, затем принеси их мне. Награда: 90 опыта и 20 монет.',
+     [['Принять задание',()=>sendAccountAction('banditWeaponsAccept')]]);
+   else if(weaponsStage()===1){
+    const count=itemCount(BANDIT_WEAPON_ITEM);
+    line('Оружие разбойников','Собрано кинжалов: '+count+' / '+BANDIT_WEAPON_REQUIRED+'. Осмотри землю вокруг лагеря Пыльной тропы. Награда: 90 опыта и 20 монет.',
+     count>=BANDIT_WEAPON_REQUIRED?[['Сдать оружие',()=>sendAccountAction('banditWeaponsTurnIn')]]:[]);
+   }
    else if((state.banditChiefQuest?.stage??0)===0&&state.level<4)
     line('Последний противник','Ты справился с разбойниками. Вернись на 4-м уровне, чтобы получить задание на главаря.');
    else if((state.banditChiefQuest?.stage??0)===0)
-    line('Главарь Пыльной тропы','В глубине лагеря находится главарь 5-го уровня. Победи его и возвращайся. Награда: 180 опыта и 35 монет.',
+    line('Главарь Пыльной тропы','На отдельной площадке к северо-западу от лагеря стоит главарь 5-го уровня. Найди тропу, победи его и возвращайся. Награда: 180 опыта и 35 монет.',
      [['Принять задание',()=>sendAccountAction('banditChiefAccept')]]);
    else if(state.banditChiefQuest.stage===1)
-    line('Главарь Пыльной тропы','Победи главаря разбойников в глубине лагеря.');
+    line('Главарь Пыльной тропы','Победи главаря разбойников у отдельной стоянки в конце тропы.');
    else if(state.banditChiefQuest.stage===2)
     line('Главарь Пыльной тропы','Главарь повержен. Награда: 180 опыта и 35 монет.',
      [['Сдать задание',()=>sendAccountAction('banditChiefTurnIn')]]);
@@ -1458,16 +1509,28 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const entries=mentorJournalRows(state).map(item=>({...item,npc:'Наставник Каменный Рог'}));
    if(authenticatedProfile){
     const q=state.banditQuest||{stage:0,kills:0};
-    entries.push({id:'bandit-trail',status:q.stage===0?(state.level>=BANDIT_QUEST_MIN_LEVEL?'available':'locked'):q.stage===3?'completed':'current',
-     title:'Разбойники Пыльной тропы',objective:'Победить 3 разбойников',
+    entries.push({id:'bandit-trail',
+     status:q.stage===0?(state.level>=BANDIT_QUEST_MIN_LEVEL?'available':'locked'):q.stage===3?'completed':'current',
+     title:'1/3 · Разведка лагеря разбойников',objective:'Найти западный лагерь и победить 3 разбойников',
      progress:q.stage===3?'Сдано':q.stage===2?'Готово к сдаче':q.kills+' / '+BANDIT_QUEST_KILLS,
      reward:'85 опыта · 18 монет',npc:'Следопыт Медная Стрела'});
-    const chief=state.banditChiefQuest||{stage:0};
-    if(q.stage===3)entries.push({id:'bandit-chief',
-     status:chief.stage===0?(state.level>=4?'available':'locked'):chief.stage===3?'completed':'current',
-     title:'Главарь Пыльной тропы',objective:'Победить главаря разбойников',
-     progress:chief.stage===3?'Сдано':chief.stage===2?'Готово к сдаче':chief.stage===1?'0 / 1':'Не принято',
-     reward:'180 опыта · 35 монет',npc:'Следопыт Медная Стрела'});
+    if(q.stage===3){
+     const weaponStage=weaponsStage(),collected=itemCount(BANDIT_WEAPON_ITEM);
+     entries.push({id:'bandit-weapons',
+      status:weaponStage===0?'available':weaponStage===2?'completed':'current',
+      title:'2/3 · Оружие разбойников',objective:'Собрать 3 кинжала с земли у лагеря',
+      progress:weaponStage===2?'Сдано':weaponStage===0?'Доступно у следопыта':
+       collected>=BANDIT_WEAPON_REQUIRED?'Готово к сдаче':collected+' / '+BANDIT_WEAPON_REQUIRED,
+      reward:'90 опыта · 20 монет',npc:'Следопыт Медная Стрела'});
+     if(weaponStage===2){
+      const chief=state.banditChiefQuest||{stage:0};
+      entries.push({id:'bandit-chief',
+       status:chief.stage===0?(state.level>=4?'available':'locked'):chief.stage===3?'completed':'current',
+       title:'3/3 · Главарь Пыльной тропы',objective:'Победить главаря у отдельной стоянки',
+       progress:chief.stage===3?'Сдано':chief.stage===2?'Готово к сдаче':chief.stage===1?'0 / 1':'Не принято',
+       reward:'180 опыта · 35 монет',npc:'Следопыт Медная Стрела'});
+     }
+    }
    }
    for(let i=1;i<=3;i++){
     const quest=GATHER_QUESTS[i],stage=state.gatherStage;
@@ -1697,6 +1760,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if((state.hp!==hpBefore||state.resource!==rageBefore)&&Math.floor(clock/2)!==Math.floor((clock-dt)/2))persist();
   }
   camp.update(dt);
+  banditWeapons.update(clock,weaponsAvailable,distance);
   // The original inhabitants have subtle idle breathing instead of frozen T-poses.
   for(let i=0;i<citizens.length;i++){
    animateSphericalTauren(citizens[i].actor,{dt,time:clock+i*1.47,walk:0,phase:0});
