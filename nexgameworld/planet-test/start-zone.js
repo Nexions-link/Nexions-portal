@@ -5,6 +5,7 @@ import {createTaurenVisualDetails} from './tauren-visual-details.js?v=3';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
 import {canWalkCamp} from './sphere-physics.js?v=6';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=3';
+import {createHouseRat} from './house-rat.js?v=1';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
 
 // Spherical NexGame starting zone prototype.
@@ -102,9 +103,9 @@ export function createStartZone(three,scene,getRadius,heightAt){
   }
  }
  // Rebuilt longhouse: matching opaque physics and exterior roof layers.
- const longhouse=buildHearthHouse(THREE,{
-  root:anchor(LONGHOUSE.x,LONGHOUSE.z,LONGHOUSE.yaw),villageVisuals
- });
+ const houseAnchor=anchor(LONGHOUSE.x,LONGHOUSE.z,LONGHOUSE.yaw);
+ const longhouse=buildHearthHouse(THREE,{root:houseAnchor,villageVisuals});
+ const houseRat=createHouseRat(THREE,houseAnchor);
  longhouseRoofs.push(...longhouse.roofPlanes);
  shadowCasters.push(...longhouse.roofPlanes);
  function tent(x,z,r,yaw){
@@ -346,7 +347,8 @@ export function createStartZone(three,scene,getRadius,heightAt){
   }
  }
  return {rebuild,updateInteriorView,setGraphics,meadow,
-  animate(t){flame.scale.y=1+Math.sin(t*9)*.12;
+  animate(t){houseRat.animate(t);
+   flame.scale.y=1+Math.sin(t*9)*.12;
    rippleTexture.offset.set(t*.006,t*.003);
    waterMat.color.copy(waterTint).multiplyScalar(1+.018*Math.sin(t*1.3));}};
 }
