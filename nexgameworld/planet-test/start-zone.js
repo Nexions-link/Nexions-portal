@@ -7,7 +7,8 @@ import {canWalkCamp} from './sphere-physics.js?v=6';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=3';
 import {createHouseRat} from './house-rat.js?v=2';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
-import {createBanditCampVisuals} from './bandit-camp-visuals.js?v=1';
+import {createBanditCampVisuals} from './bandit-camp-visuals.js?v=2';
+import {BANDIT_CAMP,BANDIT_CHIEF_PATH} from './bandit-camp-data.js?v=2';
 
 // Spherical NexGame starting zone prototype.
 // Layout, terrain, village and character geometry derived from the actual main-game
@@ -16,9 +17,10 @@ export const START_RADIUS=261;
 const TAU=Math.PI*2;
 const smooth=(a,b,v)=>{const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)};
 export const LAKE={x:30,z:26,radiusX:17.2,radiusZ:12.5,maxDepth:10.5};
-export const ROUTES=[[[0,9],[-2,0],[-5,-12],[-8,-26],[-18,-42]],[[0,3],[13,5],[25,2],[38,-9]],[[0,9],[1,24],[12,37],[32,43]]];
+export const ROUTES=[[[0,9],[-2,0],[-5,-12],[-8,-26],[-18,-42]],[[0,3],[13,5],[25,2],[38,-9]],[[0,9],[1,24],[12,37],[32,43]],
+ [[-34,-12],[-46,-10],[-57,-5],[BANDIT_CAMP.center.x,BANDIT_CAMP.center.z]],BANDIT_CHIEF_PATH];
 const PATHS=[];
-for(const route of ROUTES)for(let j=0;j<route.length-1;j++){const a=route[j],b=route[j+1];PATHS.push({ax:a[0],az:a[1],dx:b[0]-a[0],dz:b[1]-a[1]})}
+for(const [ri,route] of ROUTES.entries())for(let j=0;j<route.length-1;j++){const a=route[j],b=route[j+1];PATHS.push({ax:a[0],az:a[1],dx:b[0]-a[0],dz:b[1]-a[1],width:ri===4?1.85:2.55})}
 const clamp01=x=>Math.max(0,Math.min(1,x));
 const shoreVariation=a=>1+.041*Math.sin(3*a+.5)+.026*Math.cos(5*a-1.2)+.014*Math.sin(9*a+.3);
 export function lakeRadius(x,z){const dx=(x-LAKE.x)/LAKE.radiusX,dz=(z-LAKE.z)/LAKE.radiusZ;return Math.hypot(dx,dz)/shoreVariation(Math.atan2(dz,dx))}
@@ -42,7 +44,7 @@ export function canWadeAtLocal(x,z){
 export function pathWear(x,z){
  let v=0;
  for(const p of PATHS){const d=p.dx*p.dx+p.dz*p.dz;const t=clamp01(((x-p.ax)*p.dx+(z-p.az)*p.dz)/d),dist=Math.hypot(x-p.ax-p.dx*t,z-p.az-p.dz*t);
- v=Math.max(v,1-smooth(1.15,2.55,dist));}
+ v=Math.max(v,1-smooth(.9,p.width,dist));}
  return v;
 }
 export function startColorAt(x,z){
@@ -219,7 +221,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
   }
  }
  // The same procedural meadow and path map as the main NexGame.
- const routeSegments=ROUTES.flatMap(route=>route.slice(0,-1).map((a,i)=>({ax:a[0],az:a[1],bx:route[i+1][0],bz:route[i+1][1],width:3.5})));
+ const routeSegments=ROUTES.flatMap((route,ri)=>route.slice(0,-1).map((a,i)=>({ax:a[0],az:a[1],bx:route[i+1][0],bz:route[i+1][1],width:ri===4?2.25:3.5})));
  const paintedMap=createLandscapeMap(THREE,routeSegments,1024);
  const tileUVs=[];
  for(let i=0;i<points.length;i+=2)tileUVs.push((points[i]+95)/190,1-(points[i+1]+95)/190);

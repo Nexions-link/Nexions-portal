@@ -1,6 +1,6 @@
 // Decorative, non-colliding bandit encampment. Anchors are sphere-aware and
 // rebuilt by start-zone.js whenever the planet surface is refreshed.
-import {BANDIT_CAMP} from './bandit-camp-data.js';
+import {BANDIT_CAMP,BANDIT_CHIEF_LOCATION,BANDIT_CHIEF_PATH} from './bandit-camp-data.js?v=2';
 export function createBanditCampVisuals(THREE,{anchor,shadowCasters=[]}){
  const wood=new THREE.MeshStandardMaterial({color:0x59402d,roughness:1});
  const canvas=new THREE.MeshStandardMaterial({color:0x755341,roughness:1,side:THREE.DoubleSide});
@@ -34,5 +34,34 @@ export function createBanditCampVisuals(THREE,{anchor,shadowCasters=[]}){
  }
  const flame=add(new THREE.ConeGeometry(.36,.85,7),ember,0,.57,1);
  add(new THREE.BoxGeometry(1.5,.75,1),wood,2.4,.4,-2.2);
+ // Small stone markers follow the worn path. None block player navigation.
+ for(let i=1;i<BANDIT_CHIEF_PATH.length-1;i++){
+  const [x,z]=BANDIT_CHIEF_PATH[i],waystone=anchor(x-2.1,z);
+  waystone.name='chief-trail-waystone-'+i;
+  const stoneMesh=add(new THREE.DodecahedronGeometry(.43,0),stone,0,.22,0,waystone);
+  stoneMesh.scale.set(.9,.7,1.2);
+  add(new THREE.CylinderGeometry(.035,.06,1.35,5),wood,0,.9,0,waystone);
+  const strip=add(new THREE.BoxGeometry(.37,.62,.055),canvas,.23,1.26,0,waystone);
+  strip.rotation.z=-.15;
+ }
+ // The chief lives on a separate clearing, well outside the three sentries'
+ // detection areas. Keep the center open for combat and the red target ring.
+ const chief=anchor(BANDIT_CHIEF_LOCATION.x,BANDIT_CHIEF_LOCATION.z);
+ chief.name='bandit-chief-secluded-clearing';
+ const darkStone=new THREE.MeshStandardMaterial({color:0x484b42,roughness:1});
+ for(let i=0;i<8;i++){
+  const a=i*Math.PI/4,rr=4.6+(i%3)*.3;
+  const marker=add(new THREE.DodecahedronGeometry(.48,0),darkStone,
+   Math.cos(a)*rr,.24,Math.sin(a)*rr,chief);
+  marker.scale.set(1,.65,1.3);
+ }
+ for(const side of [-1,1]){
+  const post=add(new THREE.CylinderGeometry(.085,.11,3.5,7),wood,side*3.4,1.75,-1.35,chief);
+  shadowCasters.push(post);
+  const banner=add(new THREE.BoxGeometry(1.05,1.25,.08),canvas,side*3.4,2.47,-1.25,chief);
+  banner.rotation.y=side*.12;
+ }
+ // A personal supply cache identifies the boss area without obstructing its spawn.
+ add(new THREE.BoxGeometry(1.5,.65,.85),leather,0,.34,-4.4,chief);
  return {root,animate(t){flame.scale.y=1+Math.sin(t*7)*.1;}};
 }

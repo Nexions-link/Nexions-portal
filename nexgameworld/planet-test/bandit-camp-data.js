@@ -1,15 +1,23 @@
 // Bandit camp phase 1: encounter design aligned with the live spherical world.
 // Authoritative quest acceptance, kills and rewards remain in server/bandit-quest.js.
-import {BANDIT_CAMP as LIVE_CAMP,BANDIT_QUEST_MIN_LEVEL} from './creature-registry.js';
+import {BANDIT_CAMP as LIVE_CAMP,BANDIT_QUEST_MIN_LEVEL,BANDIT_SPAWNS,BANDIT_BOSS_INDEX} from './creature-registry.js?v=5';
 export const BANDIT_CAMP=Object.freeze({
  id:'dust-trail-camp',name:'Лагерь Пыльной тропы',
  center:Object.freeze({...LIVE_CAMP}),unlockLevel:BANDIT_QUEST_MIN_LEVEL,
- patrolRadius:12,leashRadius:19
+ patrolRadius:7,leashRadius:14,aggroRadius:5.75
 });
 export const BANDIT_PATROLS=Object.freeze([
- Object.freeze({id:'bandit-0',points:Object.freeze([[-40,9],[-37,12],[-40,15]].map(Object.freeze))}),
- Object.freeze({id:'bandit-1',points:Object.freeze([[-46,15],[-44,19],[-48,21]].map(Object.freeze))})
+ Object.freeze({id:'bandit-0',points:Object.freeze([[-50,-17],[-51,-23],[-47,-18]].map(Object.freeze))}),
+ Object.freeze({id:'bandit-1',points:Object.freeze([[-73,-18],[-76,-21],[-72,-24]].map(Object.freeze))})
 ]);
+// The boss has its own clearing and stays still until engaged. The approach
+// branches away from the main camp and keeps every guard outside aggro range.
+export const BANDIT_CHIEF_LOCATION=Object.freeze({
+ x:BANDIT_SPAWNS[BANDIT_BOSS_INDEX][0],z:BANDIT_SPAWNS[BANDIT_BOSS_INDEX][1]
+});
+export const BANDIT_CHIEF_PATH=Object.freeze([
+ [-68,2],[-68,7],[-67,14],[-70,24],[-72,33]
+].map(point=>Object.freeze(point)));
 export const BANDIT_EXPANSION=Object.freeze([
  Object.freeze({id:'bandit-recon',title:'Следы разбойников',level:3,objective:'discover',required:1,xp:65}),
  Object.freeze({id:'bandit-supplies',title:'Украденные припасы',level:3,objective:'recover',required:1,xp:90}),
