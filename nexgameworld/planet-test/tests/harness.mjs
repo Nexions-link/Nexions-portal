@@ -23,7 +23,15 @@ class Element {
  addEventListener(type,fn){(this.events[type]??=[]).push(fn)}
  click(){for(const fn of this.events.click||[])fn({target:this})}
  setAttribute(k,v){this.attributes[k]=String(v)}
- querySelector(selector){return descendants(this).find(el=>el.className.split(' ').includes(selector.slice(1)))||null}
+ set innerHTML(value){
+  // This adapter only needs literal empty HTML elements emitted by dialog rows.
+  this.children=[];
+  for(const match of String(value).matchAll(/<([a-z][a-z0-9]*)><\/\1>/gi))
+   this.children.push(new Element(match[1]));
+ }
+ querySelector(selector){return descendants(this).find(el=>selector.startsWith('.')?
+  String(el.className?.baseVal??el.className??'').split(' ').includes(selector.slice(1)):
+  String(el.tagName||'').toLowerCase()===selector.toLowerCase())||null}
  getBoundingClientRect(){return {left:0,top:0,width:844,height:390}}
 }
 export function descendants(el){return el.children.flatMap(c=>[c,...descendants(c)])}

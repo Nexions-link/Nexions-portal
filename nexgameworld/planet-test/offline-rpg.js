@@ -1,6 +1,6 @@
 import {createChestSheet} from './chest-sheet.js?v=3';
-import {createCharacterPreview} from './character-preview.js?v=2';
-import {renderCharacterSheet} from './character-sheet.js?v=3';
+import {createCharacterPreview} from './character-preview.js?v=3';
+import {renderCharacterSheet} from './character-sheet.js?v=4';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT} from './native-hotbar-art.js?v=1';
@@ -92,8 +92,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   return safe;
  };
  const state=preview?initial():authenticatedProfile?serverInitial():restore(),runtime=createAbilityRuntime();
- let serverBagSlots=authenticatedProfile?.inventory?.length?
+ let serverBagSlots=Array.isArray(authenticatedProfile?.inventory)?
   authenticatedProfile.inventory.map(row=>row?{...row}:null):Array(12).fill(null);
+ // The UI compacts occupied cells, but mutations must keep real server slots.
+ function syncServerBag(rows){
+  if(!authenticatedProfile||!Array.isArray(rows))return false;
+  serverBagSlots=Array.from({length:12},(_,i)=>rows[i]?{...rows[i]}:null);
+  state.inventory=serverBagSlots.filter(Boolean).map(row=>({...row}));
+  return true;
+ }
  const isAccountHero=()=>!!authenticatedProfile;
  const serverBagSlot=(clientIndex)=>{
   const row=state.inventory[clientIndex];if(!row)return -1;
@@ -171,7 +178,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const preparingStomp=current?.skill==='thunderStomp'&&!current.impacted&&[...mobs,dummy].some(e=>isLivingHostile(e)&&distance(e)<4.5);
   return swinging||preparingStomp||mobs.some(m=>m.root.visible&&m.hp>0&&!m.corpse&&m.aggro);
  }
- let journalTab='current',merchantTab='buy';
+ let journalTab='current',merchantTab='buy',selectedEquipmentSlot=null;
  const group=new THREE.Group();scene.add(group);
  // The mesh is bent vertex-by-vertex onto the actual spherical terrain:
  // no texture intersection/z-fighting and a saturated red outline.
@@ -198,6 +205,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function onChat(event){if(event?.text)msg((event.channel==='party'?'[Группа] ':'[Мир] ')+(event.name||'Игрок')+': '+event.text,3.3);}
  function onChestState(event){
   onlineChest={...(onlineChest||{}),...event};
+  if(Array.isArray(event?.inventory))syncServerBag(event.inventory);
   if(Array.isArray(event?.slots)){setChestUsed(event.slots,event.revision);clearChestRetry();}
   if(!modal.hidden&&modal.dataset.kind==='chest'){
    if(Array.isArray(event?.slots)){gathering.setChestOpen(true);chestLabel.visible=false;}
@@ -217,7 +225,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function onChestResult(event){
   chestSheet.result(event);
   if(event?.ok&&Array.isArray(event.inventory)){
-   state.inventory=event.inventory.filter(Boolean).map(row=>({id:row.id,qty:row.qty}));
+   if(!syncServerBag(event.inventory))
+    state.inventory=event.inventory.filter(Boolean).map(row=>({...row}));
    onlineChest={slots:event.slots,revision:event.revision,inventory:event.inventory};
    setChestUsed(event.slots,event.revision);
    persist();draw();
@@ -328,10 +337,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   state.level=progress.level;
   state.xp=progress.experience;
   state.gold=progress.gold;
-  if(Array.isArray(progress.inventory)){
-   serverBagSlots=progress.inventory.map(row=>row?{...row}:null);
-   state.inventory=serverBagSlots.filter(Boolean).map(row=>({...row}));
-  }
+  if(Array.isArray(progress.inventory))syncServerBag(progress.inventory);
   if(progress.equipment&&typeof progress.equipment==='object')
    state.equipment=progress.equipment;
   if(progress.quests?.mentor?.step!==undefined)
@@ -791,6 +797,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function openWindow(kind){
   if(!modal.hidden&&modal.dataset.kind==='chest'&&kind!=='chest')closeWindow();
   if(kind==='chest'){clearChestRetry();chestSheet.reset();}
+  if(kind==='character')selectedEquipmentSlot=null;
   if(kind!=='gatherLoot')camp.cancel();
   modal.hidden=false;modal.dataset.kind=kind;
   if(kind==='chest'&&!isOnline()&&!authenticatedProfile){gathering.setChestOpen(true);chestLabel.visible=false;}
@@ -1031,6 +1038,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function renderModal(){
   const kind=modal.dataset.kind,title=$('mtitle'),body=$('mbody');
+  const characterReuse=kind==='character'?{
+   viewport:body.querySelector('.character-preview-viewport'),
+   gesture:body.querySelector('.character-rotate')}:null;
+  const characterScroll=kind==='character'?body.scrollTop:0;
   if(kind!=='character')characterPreview.release();
   modal.classList.toggle('world-sheet',['chest','bag','loot','gatherLoot','merchant','mentor','herbalist','quests','spells'].includes(kind));
   $('panel').classList.toggle('chest-sheet',kind==='chest');
@@ -1154,10 +1165,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    return;
   }
   if(kind==='menu'){
-   line('Сферический мир','Меняй радиус планеты, вращай её свайпами и исследуй NexGameWorld.');
+   line('Сферический мир','Исследуй планету NexGameWorld, настраивай камеру и графику в меню.');
    for(const item of settingsControls)body.append(item);
-   line('Сетевая игра',isOnline()?'Общий мир: мобы, бой, награды и группы синхронизируются через Render.':'Сервер недоступен: персонаж продолжает играть локально.');
-   if(!preview){
+   line('Сетевая игра',isOnline()?'Общий мир: мобы, бой, награды и группы синхронизируются через Render.':
+     authenticatedProfile?'Нет соединения: прогресс временно недоступен. Переподключение произойдёт автоматически.':
+     'Локальный тестовый режим: прогресс сохраняется только на устройстве.');
+   if(!preview&&!authenticatedProfile){
     line('Тестирование заданий','Начать заново: уровень, все задания, вещи и сундук. Графика, масштаб и режим слежения камеры сохранятся.',[['Сбросить прогресс',resetProgress]]);
     body.lastElementChild?.querySelector('button')?.classList.add('reset-progress-action');
    }
@@ -1201,6 +1214,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     renderCharacterSheet({
      document,body,profile:authenticatedProfile,state,stats:stats(),items:ITEM_CATALOG,
      labels:LABEL,qualities:QUALITY_VISUALS,xpRequired,pretty,preview:characterPreview,
+     reuse:characterReuse,selectedSlot:selectedEquipmentSlot,
+     onSelectSlot:slot=>{selectedEquipmentSlot=slot},
      onOpenBag:()=>openWindow('bag'),
      onUnequip:(slot,def)=>{
       if(!def)return msg('Пустой слот. Надеть предмет можно из рюкзака.');
@@ -1214,6 +1229,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
       finishEquipmentChange(slot);
      }
     });
+    body.scrollTop=characterScroll;
   }else if(kind==='quests'){
    const tabs=document.createElement('div');tabs.className='planet-journal-tabs';tabs.setAttribute('role','tablist');
    const labels={current:'Текущие',available:'Доступные',completed:'Выполненные'};
@@ -1435,7 +1451,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   // Original NexGame regenerates +3 HP/s and loses 5 rage/s after five
   // seconds of peace. This local test does not depend on network snapshots.
   if(inCombat())lastCombatAt=clock;
-  else if(clock-lastCombatAt>5){
+  else if(!authenticatedProfile&&clock-lastCombatAt>5){
    const hpBefore=state.hp,rageBefore=state.resource;
    state.hp=Math.min(stats().maxHp,state.hp+3*dt);
    if(state.resource>0)state.resource=changeResource(state.resource,-WARRIOR_RAGE_DECAY*dt,'warrior');
@@ -1484,8 +1500,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     mob.alertTag.visible=mob.alertRemaining>0&&mob.root.visible&&!mob.corpse;
     if(mob.alertTag.visible)mob.alertTag.position.y=(mob.boss?4:4.95)+Math.sin(clock*7)*.1;
    }
-   if(isOnline()){
-    if(authenticatedProfile&&mob.corpse&&!mob.lootKnown&&distance(mob)<=3.1&&clock>=(mob.lootInspectAt||0)){
+   if(isOnline()||authenticatedProfile){
+    if(authenticatedProfile&&isOnline()&&mob.corpse&&!mob.lootKnown&&distance(mob)<=3.1&&clock>=(mob.lootInspectAt||0)){
      mob.lootInspectAt=clock+3;
      sendAccountAction('lootInspect',{mobId:'dolgonog-'+mob.index,life:mob.life});
     }

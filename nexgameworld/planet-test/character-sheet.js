@@ -50,7 +50,7 @@ export function createEmptyEquipmentSilhouette(document,slot){
 }
 export function renderCharacterSheet({
  document,body,profile,state,stats,items,labels,qualities,xpRequired,pretty,
- onUnequip,onOpenBag,preview
+ onUnequip,onOpenBag,preview,reuse=null,selectedSlot=null,onSelectSlot=()=>{}
 }){
  const sheet=document.createElement('section');sheet.className='character-sheet';
  const hero=document.createElement('header');hero.className='character-identity';
@@ -73,6 +73,7 @@ export function renderCharacterSheet({
  detailEmpty();
  const allButtons=[];
  const choose=(button,slot,def)=>{
+  onSelectSlot(slot);
   for(const old of allButtons){
    old.classList.remove('active');old.setAttribute('aria-pressed','false');
   }
@@ -128,13 +129,14 @@ export function renderCharacterSheet({
  const left=document.createElement('div');left.className='character-slot-column left';
  for(const slot of CHARACTER_ARMOR_COLUMNS.left)left.append(socket(slot));
  const view=document.createElement('div');view.className='character-view';
- const viewport=document.createElement('div');viewport.className='character-preview-viewport';
+ const viewport=reuse?.viewport||document.createElement('div');viewport.className='character-preview-viewport';
  viewport.setAttribute('aria-hidden','true');view.append(viewport);
- const rotate=document.createElement('div');rotate.className='character-rotate';
+ const rotate=reuse?.gesture||document.createElement('div');rotate.className='character-rotate';
  rotate.setAttribute('role','group');rotate.tabIndex=0;
  rotate.setAttribute('aria-label','Вращай модель персонажа пальцем или стрелками клавиатуры');
  const hint=document.createElement('span');hint.className='character-rotate-hint';
- hint.textContent='Проведи пальцем для поворота';rotate.append(hint);
+ hint.textContent='Проведи пальцем для поворота';
+ if(!reuse?.gesture)rotate.append(hint);
  view.append(rotate);
  const right=document.createElement('div');right.className='character-slot-column right';
  for(const slot of CHARACTER_ARMOR_COLUMNS.right)right.append(socket(slot));
@@ -169,4 +171,8 @@ export function renderCharacterSheet({
  bag.textContent='Открыть рюкзак';bag.addEventListener('click',onOpenBag);
  sheet.append(bag);body.append(sheet);
  preview.mount(viewport,rotate);
+ if(selectedSlot){
+  const button=allButtons.find(node=>node.dataset.slot===selectedSlot);
+  if(button)choose(button,selectedSlot,items[state.equipment[selectedSlot]?.id]);
+ }
 }

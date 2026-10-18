@@ -44,7 +44,7 @@ test('settings require a confirmation and reset the camera to the camp before re
  assert.match(rpg,/if\(!clearOfflineProgress\(localStorage,\{preview\}\)\)/);
  assert.match(rpg,/if\(resetProgressView\)resetProgressView\(\)/);
  assert.match(rpg,/window\.location\.reload\(\)/);
- assert.match(rpg,/if\(!preview\)\{/);
+ assert.match(rpg,/if\(!preview&&!authenticatedProfile\)\{/);
  assert.match(rpg,/\['Сбросить прогресс',resetProgress\]/);
  assert.match(planet,/rpg\.onResetProgress\(\(\)=>\{/);
  assert.match(planet,/state\.orbit=false;\s+doReset\(\);/);

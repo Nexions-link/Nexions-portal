@@ -71,7 +71,8 @@ test('archived-style inspector selects first; requires explicit removal from bac
  remove.click();
  assert.equal(h.rpg.state.equipment.chest,undefined);
  assert.equal(h.rpg.state.inventory.some(e=>e.id==='chainVest'),true);
- assert.equal(descendants(h.get('mbody')).find(e=>e.dataset.slot==='chest').className,'character-socket');
+ assert.equal(descendants(h.get('mbody')).find(e=>e.dataset.slot==='chest').className,'character-socket active',
+  'inspector keeps the currently selected slot even after the item is removed');
  h.get('modalClose').click();
 });
 
@@ -112,5 +113,37 @@ test('empty equipment SVG works with browser-like readonly SVGAnimatedString cla
  assert.equal(h.get('modal').hidden,false);
  assert.equal(h.get('modal').dataset.kind,'character');
  assert.ok(descendants(h.get('mbody')).some(e=>e.className?.baseVal==='character-empty-silhouette'));
+ h.get('modalClose').click();
+});
+
+test('authenticated menu never offers resetting progress or false offline mode',()=>{
+ const h=harness({authenticatedProfile:{nickname:'Герой',level:10,health:80,inventory:[],equipment:{}}});
+ h.get('pause').click();
+ const lines=descendants(h.get('mbody')).map(e=>e.textContent);
+ assert.ok(lines.some(text=>text.includes('Нет соединения: прогресс временно недоступен')));
+ assert.equal(lines.includes('Сбросить прогресс'),false);
+ h.get('modalClose').click();
+});
+test('server-owned hero does not regenerate health when the socket is offline',()=>{
+ const h=harness({authenticatedProfile:{nickname:'Герой',level:10,health:80,inventory:[],equipment:{}}});
+ const before=h.rpg.state.hp;
+ for(let i=0;i<90;i++)h.rpg.update(.1);
+ assert.equal(h.rpg.state.hp,before);
+});
+
+test('3D inspector remains mounted and selection survives server progress refresh',()=>{
+ const profile={nickname:'Герой',level:10,experience:10,gold:30,health:90,
+  inventory:Array(12).fill(null),equipment:{chest:{id:'chainVest'}},quests:{},actionBar:[]};
+ const h=harness({authenticatedProfile:profile});
+ h.get('character').click();
+ const old=descendants(h.get('mbody'));
+ const canvas=old.find(e=>e.className==='character-preview-viewport');
+ const turn=old.find(e=>e.className==='character-rotate');
+ old.find(e=>e.dataset.slot==='chest').click();
+ h.rpg.applyServerProgress({...profile,gold:35,revision:1},'checkpoint');
+ const next=descendants(h.get('mbody'));
+ assert.equal(next.find(e=>e.className==='character-preview-viewport'),canvas);
+ assert.equal(next.find(e=>e.className==='character-rotate'),turn);
+ assert.equal(next.find(e=>e.dataset.slot==='chest').attributes['aria-pressed'],'true');
  h.get('modalClose').click();
 });

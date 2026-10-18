@@ -1,7 +1,7 @@
 // Interactive portrait view of the CURRENT player mesh (including equipment).
 // One extra WebGL context is used only while the character window is visible.
 export function createCharacterPreview({THREE,heroRoot}){
- let host=null,renderer=null,world=null,avatar=null,camera=null,angle=-.25,acc=0,disabled=false,stand=null;
+ let host=null,renderer=null,world=null,avatar=null,camera=null,angle=-.25,acc=0,disabled=false,stand=null,boundGesture=null;
  const warm=0xf9dfa9;
  function release(){
   if(avatar){avatar.removeFromParent();avatar=null;}
@@ -12,7 +12,7 @@ export function createCharacterPreview({THREE,heroRoot}){
    renderer.domElement.remove?.();
    renderer=null;
   }
-  world=null;camera=null;host=null;acc=0;
+  world=null;camera=null;host=null;acc=0;boundGesture=null;
  }
  function refresh(){
   if(!world)return;
@@ -78,7 +78,8 @@ export function createCharacterPreview({THREE,heroRoot}){
     release();container.dataset.preview='unsupported';host=container;
    }
   }
-  if(gesture){
+  if(gesture&&gesture!==boundGesture){
+   boundGesture=gesture;
    let active=null,lastX=0;
    gesture.addEventListener('pointerdown',event=>{
     if(event.isPrimary===false)return;

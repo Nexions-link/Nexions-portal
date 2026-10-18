@@ -82,3 +82,43 @@ test('temporary distance mismatch retries opening without closing the sheet',asy
  assert.ok(h.rpg.getWindowView().focus);
  h.get('modalClose').click();assert.equal(closes,1);
 });
+
+test('after withdrawal the equipped item resolves its original sparse bag slot',()=>{
+ const before=Array(12).fill(null);before[2]={id:'wornAxe',qty:1};
+ const account={nickname:'Герой',level:10,experience:0,gold:50,health:100,
+  inventory:before,equipment:{},quests:{},actionBar:[]};
+ const h=harness({authenticatedProfile:account}),sent=[];
+ h.rpg.setMultiplayer({connected:true,
+  economy:(kind,params)=>{sent.push({kind,...params});return true}});
+ const after=Array(12).fill(null);
+ after[2]={id:'wornAxe',qty:1};after[10]={id:'batteredBuckler',qty:1};
+ h.rpg.onChestResult({ok:true,requestId:'withdraw',inventory:after,
+  slots:Array(18).fill(null),revision:2});
+ h.get('bag').click();
+ const cells=descendants(h.get('mbody')).filter(e=>e.className.includes('inventory-slot'));
+ cells[1].click();
+ descendants(h.get('mbody')).find(e=>e.textContent==='Надеть').click();
+ assert.deepEqual(sent.at(-1),{kind:'equip',bagSlot:10,equipmentSlot:'shield'});
+ assert.equal(h.rpg.state.equipment.shield,undefined);
+ h.rpg.applyServerProgress({...account,revision:3,inventory:after.map((row,i)=>i===10?null:row),
+  equipment:{shield:{id:'batteredBuckler'}}},'equip');
+ assert.equal(h.rpg.state.equipment.shield.id,'batteredBuckler');
+ assert.equal(h.rpg.state.inventory.some(row=>row.id==='batteredBuckler'),false);
+ h.get('modalClose').click();
+});
+test('chest opening repairs missed bag update; a chest broadcast never erases bag',()=>{
+ const base=Array(12).fill(null);base[0]={id:'wornAxe',qty:1};
+ const h=harness({authenticatedProfile:{level:10,inventory:base,health:95,equipment:{}}});
+ const sparse=Array(12).fill(null);sparse[9]={id:'chainVest',qty:1};
+ h.rpg.onChestState({slots:Array(18).fill(null),inventory:sparse,revision:6});
+ assert.deepEqual(h.rpg.state.inventory,[{id:'chainVest',qty:1}]);
+ h.rpg.onChestState({slots:Array(18).fill(null),revision:7});
+ assert.deepEqual(h.rpg.state.inventory,[{id:'chainVest',qty:1}]);
+ const sent=[];
+ h.rpg.setMultiplayer({connected:true,economy:(kind,params)=>{sent.push({kind,...params});return true}});
+ h.get('bag').click();
+ descendants(h.get('mbody')).find(e=>e.className.includes('inventory-slot occupied')).click();
+ descendants(h.get('mbody')).find(e=>e.textContent==='Надеть').click();
+ assert.equal(sent.at(-1).bagSlot,9);
+ h.get('modalClose').click();
+});
