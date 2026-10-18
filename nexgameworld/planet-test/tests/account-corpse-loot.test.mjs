@@ -57,3 +57,21 @@ test('loot sheet displays quality, quantity and prevents duplicate online take r
  h.rpg.onEconomyResult({ok:true,kind:'lootTake',mobId:'dolgonog-0',life:2,loot:[],taken:loot});
  assert.equal(h.get('modal').hidden,true);
 });
+
+test('loot action appears at killing distance without stepping closer or waiting for fall',()=>{
+ const h=harness({x:-9,z:-26.8,authenticatedProfile:{nickname:'Воин',level:10,health:100,inventory:[],equipment:{}}}),sent=[];
+ h.rpg.setMultiplayer({connected:true,economy:(kind,args)=>{sent.push({kind,...args});return true}});
+ h.rpg.onMobSnapshot([{index:0,phase:'corpse',life:11,hp:0,x:-9,z:-23}]);
+ h.rpg.onEconomyResult({ok:true,kind:'lootAvailable',mobId:'dolgonog-0',life:11,loot:[{id:'feather',qty:1}]});
+ h.rpg.draw();
+ assert.equal(h.get('interact').hidden,false,'loot button available at last melee hit location');
+ assert.equal(h.get('interact').textContent,'Обыскать');
+ h.get('interact').click();
+ assert.deepEqual(sent.at(-1),{kind:'lootOpen',mobId:'dolgonog-0',life:11});
+ h.rpg.onEconomyResult({ok:true,kind:'lootOpen',mobId:'dolgonog-0',life:11,loot:[{id:'feather',qty:1}]});
+ assert.equal(h.get('modal').dataset.kind,'loot');
+ assert.equal(h.get('modal').hidden,false);
+ h.get('modalClose').click();
+ h.position(-9,-27.8);h.rpg.draw();
+ assert.equal(h.get('interact').hidden,true,'cannot search beyond authorized distance');
+});

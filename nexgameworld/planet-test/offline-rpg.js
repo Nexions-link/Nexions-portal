@@ -21,7 +21,7 @@ import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=1';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
 import {createCameraTargetFilter} from './camera-targeting.js?v=1';
-import {createHostileTargetCycle,nearbyInteractable} from './interaction-targeting.js?v=13';
+import {createHostileTargetCycle,nearbyInteractable,CORPSE_LOOT_RANGE} from './interaction-targeting.js?v=14';
 import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v=1';
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
@@ -720,8 +720,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function showCorpseLoot(mob){
   if(!mob?.corpse||!mob.root.visible)return msg('Тело уже исчезло');
-  if(mob.dying)return msg('Дождись, пока тело опустится на землю');
-  if(distance(mob)>3.1)return msg('Подойди к телу ближе');
+  if(distance(mob)>CORPSE_LOOT_RANGE)return msg('Подойди к телу ближе');
   if(authenticatedProfile){sendAccountAction('lootOpen',{mobId:'dolgonog-'+mob.index,life:mob.life});return;}
   if(!mob.loot?.length)return msg('На теле ничего нет');
   pendingLoot=mob;openWindow('loot');
@@ -742,7 +741,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function takeLootFromCorpse(mob,index){
   if(pendingLoot!==mob||modal.hidden||modal.dataset.kind!=='loot')return;
-  if(distance(mob)>3.1)return msg('Подойди к телу ближе');
+  if(distance(mob)>CORPSE_LOOT_RANGE)return msg('Подойди к телу ближе');
   if(authenticatedProfile){
    if(pendingLootTake)return;
    const row=mob.loot?.[index];
@@ -762,7 +761,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function takeAllFromCorpse(mob){
   if(pendingLoot!==mob||modal.hidden||modal.dataset.kind!=='loot')return;
-  if(distance(mob)>3.1)return msg('Подойди к телу ближе');
+  if(distance(mob)>CORPSE_LOOT_RANGE)return msg('Подойди к телу ближе');
   if(authenticatedProfile){
    if(pendingLootTake)return;
    if(sendAccountAction('lootTake',{mobId:'dolgonog-'+mob.index,life:mob.life})){
@@ -1427,7 +1426,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const hit=intersects.find(v=>v.distance<100)?.object;
   const selected=hit?visible.find(o=>{let p=hit;while(p){if(p===o.root)return true;p=p.parent;}return false;}):null;
   if(selected?.kind==='mob'&&selected.corpse){
-   if(distance(selected)<=3.1)showCorpseLoot(selected);
+   if(distance(selected)<=CORPSE_LOOT_RANGE)showCorpseLoot(selected);
    return;
   }
   targetEntity(selected||null);
@@ -1546,7 +1545,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     if(mob.alertTag.visible)mob.alertTag.position.y=(mob.boss?4:4.95)+Math.sin(clock*7)*.1;
    }
    if(isOnline()||authenticatedProfile){
-    if(authenticatedProfile&&isOnline()&&mob.corpse&&!mob.lootKnown&&distance(mob)<=3.1&&clock>=(mob.lootInspectAt||0)){
+    if(authenticatedProfile&&isOnline()&&mob.corpse&&!mob.lootKnown&&distance(mob)<=CORPSE_LOOT_RANGE&&clock>=(mob.lootInspectAt||0)){
      mob.lootInspectAt=clock+3;
      sendAccountAction('lootInspect',{mobId:'dolgonog-'+mob.index,life:mob.life});
     }

@@ -73,10 +73,12 @@ test('respawn restores the bind rig, mixer speed and initial visual transform',(
  h.mixer.update(.1);assert.ok(h.bird.getObjectByName('Leg_L').quaternion.toArray().every(Number.isFinite));
  assert.ok(h.death.begin());assert.equal(h.death.elapsed,0);
 });
-test('corpse interaction waits for the animal to settle',()=>{
+test('corpse interaction is available during falling animation only if loot exists',()=>{
  const entity={kind:'mob',root:{visible:true},corpse:true,dying:true,loot:[{id:'feather',qty:1}]};
+ assert.equal(nearbyInteractable([entity],()=>1,()=>true),entity);
+ entity.loot=[];assert.equal(nearbyInteractable([entity],()=>1,()=>true),null);
+ entity.loot=[{id:'feather',qty:1}];entity.root.visible=false;
  assert.equal(nearbyInteractable([entity],()=>1,()=>true),null);
- entity.dying=false;assert.equal(nearbyInteractable([entity],()=>1,()=>true),entity);
 });
 test('real offline RPG advances fallback death each frame, then exposes loot',t=>{
  t.mock.method(Math,'random',()=>.5); // The shared drop table yields one feather.
@@ -84,7 +86,7 @@ test('real offline RPG advances fallback death each frame, then exposes loot',t=
  h.rpg.targetNearest();h.rpg.handleSlotKey('4');h.rpg.update(.35);
  const visual=h.scene.getObjectsByProperty('name','dolgonog-fallback')[0];
  const initial=visual.quaternion.clone();assert.ok(Math.abs(visual.rotation.z)<.3);
- assert.equal(h.get('interact').hidden,true);
+ assert.equal(h.get('interact').hidden,false,'corpse is lootable immediately after fatal strike');
  for(let i=0;i<100;i++)h.rpg.update(.02);
  assert.ok(visual.quaternion.angleTo(initial)>1);assert.equal(h.get('interact').textContent,'Обыскать');
  assert.equal(h.get('interact').hidden,false);h.get('interact').click();
