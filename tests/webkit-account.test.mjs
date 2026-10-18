@@ -144,7 +144,11 @@ test('mock account selects a hero and launches only same-origin game frame',asyn
   assert.ok(!launched.href.includes(token),'Token must never be copied to the address');
   assert.ok(!launched.href.includes(characterId),'Character ID must remain in sessionStorage');
   await page.locator('#game').waitFor({state:'attached'});
-  await page.waitForFunction(()=>document.querySelector('#game')?.src.includes('v=0.6.41.4'));
+  const release=JSON.parse(await readFile(resolve(root,'nexgameworld/planet-test/version.json'),'utf8')).version;
+  await page.waitForFunction(expected=>{
+   const source=document.querySelector('#game')?.getAttribute('src');
+   return source&&new URL(source,location.href).searchParams.get('v')===expected;
+  },release);
   const iframe=await page.locator('#game').getAttribute('src');
   assert.equal(new URL(iframe).origin,base,'Authenticated game must stay same-origin');
   assert.equal(new URL(iframe).pathname,'/nexgameworld/planet-test/');
