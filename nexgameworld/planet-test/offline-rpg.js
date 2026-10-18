@@ -1,4 +1,6 @@
 import {createChestSheet} from './chest-sheet.js?v=3';
+import {createCharacterPreview} from './character-preview.js?v=1';
+import {renderCharacterSheet} from './character-sheet.js?v=1';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT} from './native-hotbar-art.js?v=1';
@@ -112,6 +114,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
 
  const rightHand=hero.arms[1]?.hand,leftHand=hero.arms[0]?.hand;
  const modelSlots={weapon:null,shield:null};
+ const characterPreview=createCharacterPreview({THREE,heroRoot:hero.root});
  hero.root.userData.equipmentGrip={weapon:equipmentGrip('weapon'),shield:equipmentGrip('shield')};
  hero.root.userData.weaponKind='none';
  const modelLoader=import('https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js')
@@ -130,7 +133,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   if(rightHand)rightHand.rotation.set(-Math.PI/2,0,0);
   if(leftHand)leftHand.rotation.set(Math.PI,0,0);
-  const loader=await modelLoader;if(!loader||request!==visualRequest)return;
+  const loader=await modelLoader;
+  if(request!==visualRequest)return;
+  if(!loader){characterPreview.refresh();return;}
   const desired=[];
   if(weaponKind&&rightHand){
    const data={axe:['tauren-axe-v0.1.glb',AXE_TUNER_DEFAULTS,'axe'],sword:['plains-sword-v0.1.glb',SWORD_TUNER_DEFAULTS,'sword'],dagger:['steppe-dagger-v0.1.glb',DAGGER_TUNER_DEFAULTS,'dagger']}[weaponKind];
@@ -153,6 +158,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     if(slot==='shield')styleShieldGlb(THREE,mesh,shieldDef?.rarity);
    }catch(err){console.warn('Planet equipment model unavailable',url,err);}
   }
+  characterPreview.refresh();
  }
 
  let target=null,autoplay=false,swing=0,clock=0,messageUntil=0,pendingLoot=null,chooseSlot=-1,gatherCast=null,
@@ -795,6 +801,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   renderModal();
  }
  function closeWindow(){
+  characterPreview.release();
   if(modal.dataset.kind==='chest'){
    clearChestRetry();
    gathering.setChestOpen(false);chestLabel.visible=true;
@@ -1022,6 +1029,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function renderModal(){
   const kind=modal.dataset.kind,title=$('mtitle'),body=$('mbody');
+  if(kind!=='character')characterPreview.release();
   modal.classList.toggle('world-sheet',['chest','bag','loot','gatherLoot','merchant','mentor','herbalist','quests','spells'].includes(kind));
   $('panel').classList.toggle('chest-sheet',kind==='chest');
   $('panel').classList.toggle('character-modal',kind==='character');
@@ -1188,38 +1196,21 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     }
     body.append(summary,grid,detail);
   }else if(kind==='character'){
-    const values=stats(),summary=document.createElement('div');summary.className='inventory-summary';
-    summary.textContent='Таурен · Воин · '+state.level+' ур. · '+state.xp+'/'+xpRequired(state.level)+' опыта · '+pretty(state.gold)+' монет';
-    body.append(summary);
-    const statsBlock=document.createElement('dl');statsBlock.className='character-stats';
-    for(const [name,value] of [['Сила',values.strength],['Выносливость',values.stamina],['Броня',values.armor]]){
-      const cell=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');
-      dt.textContent=name;dd.textContent=value;cell.append(dt,dd);statsBlock.append(cell);
-    }
-    body.append(statsBlock);
-    const gear=document.createElement('div');gear.className='planetEquipmentGrid';
-    for(const slot of EQUIP_SLOTS){
-      const id=state.equipment[slot]?.id,def=ITEM_CATALOG[id];
-      const btn=document.createElement('button');btn.type='button';
-      btn.className='equipment-slot'+(def?' equipped':'');
-      const icon=document.createElement('span');icon.textContent=def?.icon||'◇';icon.style.fontSize='25px';
-      const caption=document.createElement('small');caption.textContent=LABEL[slot]+': '+(def?.name||'Пусто');
-      btn.append(icon,caption);btn.title=def?'Снять '+def.name:LABEL[slot];
-      if(def)btn.addEventListener('click',()=>{
-        if(authenticatedProfile){
-         const bagSlot=serverBagSlots.findIndex(row=>!row);
-         if(bagSlot<0)return msg('В рюкзаке нет места');
-         sendAccountAction('unequip',{equipmentSlot:slot,bagSlot});
-         return;
-        }
-        const result=unequipToBag(state,slot,inCombat());
-        if(!result.ok)return msg(result.error);
-        finishEquipmentChange(slot);
-      });
-      gear.append(btn);
-    }
-    body.append(gear);
-    line('Урон и здоровье',pretty(values.damageMin)+'–'+pretty(values.damageMax)+' урона · '+Math.ceil(state.hp)+' / '+values.maxHp+' HP');
+    renderCharacterSheet({
+     document,body,profile:authenticatedProfile,state,stats:stats(),items:ITEM_CATALOG,
+     labels:LABEL,qualities:QUALITY_VISUALS,xpRequired,pretty,preview:characterPreview,
+     onUnequip:(slot,def)=>{
+      if(!def)return msg('Пустой слот. Надеть предмет можно из рюкзака.');
+      if(authenticatedProfile){
+       const bagSlot=serverBagSlots.findIndex(row=>!row);
+       if(bagSlot<0)return msg('В рюкзаке нет места');
+       sendAccountAction('unequip',{equipmentSlot:slot,bagSlot});return;
+      }
+      const result=unequipToBag(state,slot,inCombat());
+      if(!result.ok)return msg(result.error);
+      finishEquipmentChange(slot);
+     }
+    });
   }else if(kind==='quests'){
    const tabs=document.createElement('div');tabs.className='planet-journal-tabs';tabs.setAttribute('role','tablist');
    const labels={current:'Текущие',available:'Доступные',completed:'Выполненные'};
@@ -1405,6 +1396,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function update(dt){
   clock+=dt;
+  characterPreview.tick(dt);
   gathering.updateChestMotion(dt);
   if(isOnline()&&distance(gathering.chest)<12&&clock>=nextChestStatusCheck){
    if(multiplayer.requestChestStatus())nextChestStatusCheck=clock+8;

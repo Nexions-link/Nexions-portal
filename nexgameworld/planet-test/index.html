@@ -38,6 +38,7 @@
 @media(max-width:360px){#top{width:min(180px,53vw)}}
 </style>
 <link rel="stylesheet" href="./world-sheet.css?v=1">
+<link rel="stylesheet" href="./character-sheet.css?v=1">
 <style id="planet-native-adapter">
 /* The exact original HUD sizing and styling is sourced from ../style.css. */
 #viewport{position:fixed;inset:0;z-index:0;touch-action:none;outline:none}
@@ -265,7 +266,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.38.12" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.38.13" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -351,7 +352,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=82').catch(error=>{
+  import('./planet.js?v=83').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');
