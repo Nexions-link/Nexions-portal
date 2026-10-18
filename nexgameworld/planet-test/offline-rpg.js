@@ -17,6 +17,7 @@ import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=1';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
+import {createCameraTargetFilter} from './camera-targeting.js?v=1';
 import {createHostileTargetCycle,nearbyInteractable} from './interaction-targeting.js?v=11';
 import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v=1';
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
@@ -727,7 +728,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const facing=new THREE.Vector3(0,0,1).applyQuaternion(hero.root.quaternion);
   facing.addScaledVector(normal,-facing.dot(normal)).normalize();
   const start=normal.clone().multiplyScalar(getRadius()+heightAt(normal)+2);
+  const inCamera=createCameraTargetFilter(THREE,camera);
   const canSee=entity=>{
+   if(!inCamera(entity))return false;
    const n=toNormal(entity.x,entity.z,getRadius());
    const desired=n.clone().multiplyScalar(getRadius()+heightAt(n)+1.6);
    return !cameraObstruction(THREE,{start,desired,getRadius,toLocal,heightAt,
@@ -736,7 +739,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const next=targetCycle.next({mobs,dummy,current:target,dist:distance,step,
    alignment:targetFacingAlignment,canSee,now:clock,position,facing});
   if(next)targetEntity(next,true);
-  else if(!target)msg('Впереди нет доступных противников в радиусе 40 м');
+  else if(!target)msg('В кадре нет доступных противников в радиусе 40 м');
  }
 
  function nearestInteraction(){

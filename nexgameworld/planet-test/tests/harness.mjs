@@ -50,6 +50,10 @@ export function harness({x=TRAINING_DUMMY.x,z=TRAINING_DUMMY.z-3,save={},authent
   hero.root.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),normal)
    .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw||0));
   hero.root.updateMatrixWorld(true);
+  const viewForward=new THREE.Vector3(0,0,1).applyQuaternion(hero.root.quaternion);
+  camera.position.copy(hero.root.position).addScaledVector(viewForward,-10).addScaledVector(normal,6);
+  camera.up.copy(normal);camera.lookAt(hero.root.position.clone().addScaledVector(normal,1.5));
+  camera.updateMatrixWorld(true);
  }
  position(x,z);
  const rpg=createOfflineRpg({THREE,scene,hero,makeTauren:opts=>createTauren(THREE,scene,opts),playerNormal:()=>normal,
@@ -64,5 +68,5 @@ export function harness({x=TRAINING_DUMMY.x,z=TRAINING_DUMMY.z-3,save={},authent
   descendants(get('mbody')).find(e=>e.textContent==='Надеть').click();
   get('modalClose').click();
  }
- return {...dom,rpg,scene,hero,get,position,selectDummy,equip};
+ return {...dom,rpg,scene,hero,camera,get,position,selectDummy,equip};
 }
