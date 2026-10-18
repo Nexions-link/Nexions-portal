@@ -1,3 +1,4 @@
+import {consumeAnimationTime} from './animation-budget.js?v=1';
 // NexGameWorld Stage 1: spherical WebSocket presence and visual-only remote avatars.
 // Combat, quests, loot and the player's local saves remain untouched.
 const WORLD_URL='wss://nexgame-world.onrender.com/ws/nexgameworld';
@@ -205,18 +206,19 @@ export function createSphericalPresence({
   for(const [id,model] of visuals)if(!needed.has(id)){
    disposeActor(model.actor.root);visuals.delete(id);
   }
-  for(const {peer} of rows){
+  for(const {peer,distance} of rows){
    let visual=visuals.get(peer.id);
    if(!visual){
     const colors=[0x836144,0x75513d,0x967055,0x695042];
     const color=colors[peer.id.charCodeAt(0)%colors.length];
     const actor=createAvatar({fur:color,player:false});
     actor.root.add(nameSprite(THREE,peer.name));
-    visual={actor,normal:new THREE.Vector3(...peer.normal),heading:peer.heading,phase:0};
+    visual={actor,normal:new THREE.Vector3(...peer.normal),targetNormal:new THREE.Vector3(),heading:peer.heading,phase:0};
     visuals.set(peer.id,visual);
    }
    const factor=1-Math.exp(-Math.min(.1,Math.max(0,dt))*12);
-   visual.normal.lerp(new THREE.Vector3(...peer.normal),factor).normalize();
+   visual.targetNormal.set(...peer.normal);
+   visual.normal.lerp(visual.targetNormal,factor).normalize();
    visual.heading+=angle(peer.heading,visual.heading)*factor;
    const normal=visual.normal;
    const lon=Math.atan2(normal.x,normal.z);
@@ -229,7 +231,11 @@ export function createSphericalPresence({
    visual.actor.root.quaternion.setFromRotationMatrix(matrix);
    visual.actor.root.position.copy(normal).multiplyScalar(getRadius()+heightAt(normal)+.06);
    visual.phase+=dt*(peer.moving?9.1:1.1);
-   animateAvatar(visual.actor,{dt,time,walk:peer.moving?1:0,phase:visual.phase});
+   // Always interpolate the remote actor transform; throttle only the bone
+   // pose for distant avatars that cannot be the local combatant.
+   const animationDt=consumeAnimationTime(visual,dt,distance);
+   if(animationDt>0)
+    animateAvatar(visual.actor,{dt:animationDt,time,walk:peer.moving?1:0,phase:visual.phase});
   }
  }
  function close(){

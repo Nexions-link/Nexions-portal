@@ -37,6 +37,7 @@ import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
 import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=6';
 import {canWadeAtLocal} from './start-zone.js?v=25';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
+import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
@@ -445,7 +446,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     mob.renderX=mob.x;mob.renderZ=mob.z;mob.renderYaw=mob.yaw;
    }
    mob.hp=remote.hp;mob.life=remote.life;mob.aggro=remote.aggro===true;mob.returning=false;
-   if(remote.phase!=='alive'||changedLife)mob.attackWindup=0;
+   if(remote.phase!=='alive'||changedLife){
+    mob.attackWindup=0;mob.animationPending=0;mob.animationTravel=0;
+   }
    // Creature levels are canonical; a malformed snapshot must not invent levels.
    if(remote.level===creatureByIndex(mob.index)?.level)mob.level=remote.level;
    mob.corpse=remote.phase==='corpse';mob.dead=mob.corpse?6:0;
@@ -1736,7 +1739,16 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      const turn=Math.atan2(Math.sin(mob.yaw-priorYaw),Math.cos(mob.yaw-priorYaw));
      mob.renderYaw=priorYaw+turn*t;
      setModelAt(mob,mob.renderX,mob.renderZ,mob.renderYaw);
-     birdAnimation(mob,dt,Math.hypot(mob.renderX-bx,mob.renderZ-bz));
+     // Render the server-authoritative movement and turn on EVERY frame.
+     // Only far-away, noncombat GLB pose updates may run at 15/30 Hz.
+     mob.animationTravel=(mob.animationTravel||0)+Math.hypot(mob.renderX-bx,mob.renderZ-bz);
+     const animationDt=consumeAnimationTime(mob,dt,distance(mob),{
+      urgent:mob.aggro||mob.attackWindup>0||mob.hit>0||mob===target
+     });
+     if(animationDt>0){
+      birdAnimation(mob,animationDt,mob.animationTravel);
+      mob.animationTravel=0;
+     }
     }
     continue;
    }
