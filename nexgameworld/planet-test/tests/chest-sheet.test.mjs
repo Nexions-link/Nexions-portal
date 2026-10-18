@@ -40,15 +40,30 @@ test('rejected chest open closes the loading sheet and releases movement with a 
  const h=harness({x:OFFLINE_CHEST.x,z:OFFLINE_CHEST.z});
  h.rpg.setMultiplayer({connected:true,openChest(){return true},closeChest(){}});
  h.rpg.interact();assert.equal(h.rpg.movementLocked,true);
- h.rpg.onChestResult({kind:'chestOpen',ok:false,reason:'interaction_too_far'});
+ h.rpg.onChestResult({kind:'chestOpen',ok:false,reason:'untrusted_interaction_context'});
  assert.equal(h.get('modal').hidden,true);assert.equal(h.rpg.movementLocked,false);
- assert.equal(h.get('toast').textContent,'Подойди ближе к сундуку');
+ assert.equal(h.get('toast').textContent,'Нельзя открыть сундук во время боя');
 });
 
 test('a denied chest request never enters the inspection camera before server confirmation',()=>{
  const h=harness({x:OFFLINE_CHEST.x,z:OFFLINE_CHEST.z});
  h.rpg.setMultiplayer({connected:true,openChest(){return true},closeChest(){}});
  h.rpg.interact();assert.equal(h.rpg.getWindowView().focus,null);
- h.rpg.onChestResult({ok:false,kind:'chestOpen',reason:'interaction_too_far'});
+ h.rpg.onChestResult({ok:false,kind:'chestOpen',reason:'untrusted_interaction_context'});
  assert.equal(h.rpg.getWindowView(),null);
+});
+
+test('temporary distance mismatch retries opening without closing the sheet',async()=>{
+ const h=harness({x:OFFLINE_CHEST.x,z:OFFLINE_CHEST.z});let opens=0,closes=0;
+ h.rpg.setMultiplayer({connected:true,openChest(){opens++;return true},closeChest(){closes++}});
+ h.rpg.interact();assert.equal(opens,1);
+ h.rpg.onChestResult({kind:'chestOpen',ok:false,reason:'interaction_too_far'});
+ assert.equal(h.get('modal').hidden,false);
+ assert.ok(descendants(h.get('mbody')).some(e=>e.textContent==='Синхронизируем положение с сервером…'));
+ await new Promise(resolve=>setTimeout(resolve,750));
+ assert.equal(opens,2);
+ h.rpg.onChestState({slots:Array(18).fill(null),revision:2,inventory:Array(12).fill(null)});
+ assert.equal(h.get('modal').hidden,false);
+ assert.ok(h.rpg.getWindowView().focus);
+ h.get('modalClose').click();assert.equal(closes,1);
 });

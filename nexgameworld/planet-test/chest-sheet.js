@@ -3,21 +3,21 @@ export function createChestSheet({items,qualityColors,move,notify}){
  let tab='chest',selected=null,pending=null;
  function reset(){tab='chest';selected=null;pending=null;}
  function result(event){if(event?.requestId===pending)pending=null;selected=null;}
- function render(body,snapshot,{connected=true}={}){
+ function render(body,snapshot,{connected=true,syncing=false}={}){
   const slots=snapshot?.slots,bag=snapshot?.inventory||[];
   const tabs=document.createElement('div');tabs.className='chest-tabs';tabs.setAttribute('role','tablist');
   for(const [key,label,rows,total] of [['chest','Сундук',slots,18],['bag','Рюкзак',bag,bag.length||12]]){
    const button=document.createElement('button');button.type='button';button.setAttribute('role','tab');
    button.setAttribute('aria-selected',String(tab===key));button.setAttribute('aria-controls','chestItems');
    button.textContent=label+' · '+(rows?rows.filter(Boolean).length:'…')+'/'+total;
-   button.addEventListener('click',()=>{tab=key;selected=null;body.replaceChildren();render(body,snapshot,{connected});});tabs.append(button);
+   button.addEventListener('click',()=>{tab=key;selected=null;body.replaceChildren();render(body,snapshot,{connected,syncing});});tabs.append(button);
   }
   body.append(tabs);
   const grid=document.createElement('div');grid.id='chestItems';grid.className='inventory-grid chest-sheet-grid';
   grid.setAttribute('role','tabpanel');grid.setAttribute('aria-label',tab==='chest'?'Содержимое сундука':'Содержимое рюкзака');
   const detail=document.createElement('div');detail.className='chest-selection';detail.setAttribute('aria-live','polite');
   const rows=tab==='chest'?slots:bag;
-  detail.textContent=!connected?'Нет связи с сервером. Открой сундук после подключения.':!slots?'Получаем содержимое сундука…':pending?'Перемещаем предмет…':'Выбери предмет, чтобы посмотреть и перенести.';
+  detail.textContent=!connected?'Нет связи с сервером. Открой сундук после подключения.':!slots?(syncing?'Синхронизируем положение с сервером…':'Получаем содержимое сундука…'):pending?'Перемещаем предмет…':'Выбери предмет, чтобы посмотреть и перенести.';
   for(let i=0;i<(tab==='chest'?18:bag.length||12);i++){
    const item=rows?.[i],def=items[item?.id];
    const cell=document.createElement('button');cell.type='button';cell.className='inventory-slot '+(item?'occupied':'empty');
@@ -40,7 +40,7 @@ export function createChestSheet({items,qualityColors,move,notify}){
       const current=rows?.[selected.index];if(!current||current.id!==selected.id||current.qty!==selected.qty)return;
       const requestId=crypto.randomUUID();
       if(move(tab==='chest'?'withdraw':'deposit',selected.index,requestId)===false){notify('Нет связи с сервером');return;}
-      pending=requestId;selected=null;body.replaceChildren();render(body,snapshot,{connected});
+      pending=requestId;selected=null;body.replaceChildren();render(body,snapshot,{connected,syncing});
      });detail.append(text,action);
     });
    }else cell.textContent='·';grid.append(cell);

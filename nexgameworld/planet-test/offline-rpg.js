@@ -1,4 +1,4 @@
-import {createChestSheet} from './chest-sheet.js?v=2';
+import {createChestSheet} from './chest-sheet.js?v=3';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT} from './native-hotbar-art.js?v=1';
@@ -174,6 +174,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const up=new THREE.Vector3(...UP_AXIS),anchorQuat=new THREE.Quaternion(),spinQuat=new THREE.Quaternion();
  const mobs=[],entities=[],citizens=[];
  let multiplayer=null,partyState={groupId:null,leaderId:null,members:[]},onlinePlayers=[],onlineChest=null;
+ let chestRetryTimer=null,chestRetryCount=0;
+ function clearChestRetry(){
+  if(chestRetryTimer!==null)clearTimeout(chestRetryTimer);
+  chestRetryTimer=null;chestRetryCount=0;
+ }
  const receivedCredits=new Set();
  const isOnline=()=>!!multiplayer?.connected;
  function setMultiplayer(transport){multiplayer=transport||null;}
@@ -187,7 +192,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function onChat(event){if(event?.text)msg((event.channel==='party'?'[Группа] ':'[Мир] ')+(event.name||'Игрок')+': '+event.text,3.3);}
  function onChestState(event){
   onlineChest={...(onlineChest||{}),...event};
-  if(Array.isArray(event?.slots))setChestUsed(event.slots,event.revision);
+  if(Array.isArray(event?.slots)){setChestUsed(event.slots,event.revision);clearChestRetry();}
   if(!modal.hidden&&modal.dataset.kind==='chest'){
    if(Array.isArray(event?.slots)){gathering.setChestOpen(true);chestLabel.visible=false;}
    renderModal();
@@ -210,8 +215,24 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    persist();draw();
    if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
   }else {
+   const awaitingOpen=!modal.hidden&&modal.dataset.kind==='chest'&&!Array.isArray(onlineChest?.slots);
+   // A server-owned hero position can trail the client after Safari throttles
+   // frames. Recheck only an OPEN rejection, never an inventory mutation.
+   if(awaitingOpen&&event?.reason==='interaction_too_far'&&
+      (!event.kind||event.kind==='chestOpen')&&isOnline()&&chestRetryCount<12){
+    chestRetryCount++;
+    if(chestRetryTimer!==null)clearTimeout(chestRetryTimer);
+    chestRetryTimer=setTimeout(()=>{
+     chestRetryTimer=null;
+     if(modal.hidden||modal.dataset.kind!=='chest'||Array.isArray(onlineChest?.slots))return;
+     if(!isOnline()||multiplayer.openChest(onlineChest?.inventory)===false){
+      closeWindow();msg('Нет связи с сервером');
+     }
+    },700);
+    renderModal();return;
+   }
    const labels={interaction_too_far:'Подойди ближе к сундуку',untrusted_interaction_context:'Нельзя открыть сундук во время боя',chest_not_open:'Открой сундук заново',chest_transfer_rejected:'В сундуке или рюкзаке нет места',pending_server_inventory:'Дождись загрузки персонажа',server_save_failed:'Сундук временно недоступен'};
-   if(!modal.hidden&&modal.dataset.kind==='chest'&&(!onlineChest?.slots||event?.kind==='chestOpen'))closeWindow();
+   if(awaitingOpen)closeWindow();
    if(event?.reason)msg(labels[event.reason]||'Не удалось переместить предмет. Открой сундук заново.');
    if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
   }
@@ -761,7 +782,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   move:(...args)=>isOnline()?multiplayer.moveChest(...args):false,notify:msg});
  function openWindow(kind){
   if(!modal.hidden&&modal.dataset.kind==='chest'&&kind!=='chest')closeWindow();
-  if(kind==='chest')chestSheet.reset();
+  if(kind==='chest'){clearChestRetry();chestSheet.reset();}
   if(kind!=='gatherLoot')camp.cancel();
   modal.hidden=false;modal.dataset.kind=kind;
   if(kind==='chest'&&!isOnline()&&!authenticatedProfile){gathering.setChestOpen(true);chestLabel.visible=false;}
@@ -775,6 +796,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function closeWindow(){
   if(modal.dataset.kind==='chest'){
+   clearChestRetry();
    gathering.setChestOpen(false);chestLabel.visible=true;
    if(isOnline())multiplayer.closeChest();
   }
@@ -1045,7 +1067,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   if(kind==='chest'&&(isOnline()||authenticatedProfile)){
    title.textContent='Общий сундук';
-   chestSheet.render(body,onlineChest,{connected:isOnline()});
+   chestSheet.render(body,onlineChest,{connected:isOnline(),syncing:chestRetryCount>0});
    return;
   }
   if(authenticatedProfile&&kind==='herbalist'){
