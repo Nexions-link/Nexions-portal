@@ -210,6 +210,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(Number.isInteger(event.revision)&&event.revision<lastChestRevision)return;
   knownChestUsed=event.occupied;
   if(Number.isInteger(event.revision))lastChestRevision=event.revision;
+  // A confirmed response ends the rapid initialization retries.
+  nextChestStatusCheck=clock+8;
   paintChestLabel();
  }
  function onChestResult(event){
@@ -1400,7 +1402,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   characterPreview.tick(dt);
   gathering.updateChestMotion(dt);
   if(isOnline()&&distance(gathering.chest)<12&&clock>=nextChestStatusCheck){
-   if(multiplayer.requestChestStatus())nextChestStatusCheck=clock+8;
+   // A lost/too-early proximity response must not leave the label at —/18
+   // until the player opens the chest. Retry faster until a count is known.
+   if(multiplayer.requestChestStatus())
+    nextChestStatusCheck=clock+(knownChestUsed===null?1.5:8);
   }
   if(!isOnline()){
    knownChestUsed=null;lastChestRevision=-1;nextChestStatusCheck=-1;

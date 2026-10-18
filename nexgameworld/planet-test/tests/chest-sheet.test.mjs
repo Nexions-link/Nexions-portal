@@ -45,6 +45,21 @@ test('rejected chest open closes the loading sheet and releases movement with a 
  assert.equal(h.get('toast').textContent,'Нельзя открыть сундук во время боя');
 });
 
+test('chest occupancy sync starts before the user opens storage',()=>{
+ const h=harness({x:OFFLINE_CHEST.x,z:OFFLINE_CHEST.z});let polls=0;
+ h.rpg.setMultiplayer({connected:true,requestChestStatus(){polls++;return true}});
+ h.rpg.update(.1);
+ assert.equal(polls,1,'nearby chest must request occupancy before opening');
+ assert.equal(h.get('modal').hidden,true);
+ h.rpg.update(.1);
+ assert.equal(polls,1,'requests are throttled while waiting for a response');
+ h.rpg.update(1.6);
+ assert.equal(polls,2,'a lost read-only status must retry quickly');
+ h.rpg.onChestStatus({occupied:3,revision:3});
+ h.rpg.update(.1);
+ assert.equal(polls,2,'a successful count returns to background refresh cadence');
+});
+
 test('a denied chest request never enters the inspection camera before server confirmation',()=>{
  const h=harness({x:OFFLINE_CHEST.x,z:OFFLINE_CHEST.z});
  h.rpg.setMultiplayer({connected:true,openChest(){return true},closeChest(){}});
