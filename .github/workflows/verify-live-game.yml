@@ -38,7 +38,7 @@ jobs:
              Object.values(targets).map(get));
             if(site.version!==upstream.version)throw Error('Nexions.ru is behind source '+site.version+'/'+upstream.version);
             if(server.build!==site.version||ready.build!==site.version)
-             throw Error('Render is behind the game '+server.build+'/'+site.version);
+             throw Error('Render is behind the game '+server.build+'/'+site.version+' (uptime '+server.uptimeSeconds+'s, ready '+ready.ready+', mobs '+server.mobs+')');
             if(!server.ok||!ready.ready)throw Error('Online game backend is not ready');
             console.log('Live NexGameWorld release verified: '+site.version+
              ', online mobs: '+server.mobs);
