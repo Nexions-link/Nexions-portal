@@ -36,7 +36,7 @@ jobs:
           const launcher=readFileSync('nexgameworld/index.html','utf8');
           assert.match(html,/Content-Security-Policy/);
           assert.match(html,/script-src 'self'/);
-          assert.match(html,/src="\.\/account\.js\?v=0\.7\.5"/);
+          assert.match(html,/src="\.\/account\.js\?v=0\.7\.6"/);
           assert.doesNotMatch(html,/<script type="module">/);
           assert.match(mirror,/--exclude='\/account\.js'/);
           assert.doesNotMatch(html,/id="inviteCode"/);
@@ -48,6 +48,13 @@ jobs:
           assert.match(js,/currentPassword/);
           assert.match(js,/ngw-selected-character/);
           assert.match(js,/account-play=1/);
-          assert.match(js,/sessionStorage\.removeItem/);
+          assert.match(js,/function clearSession\(/);
+          assert.match(js,/removeStorage\('sessionStorage',SESSION_KEY\)/);
+          assert.match(js,/removeStorage\('localStorage',REMEMBER_KEY\)/);
+          assert.match(js,/writeStorage\('localStorage',REMEMBER_KEY,token\)/);
+          assert.match(js,/writeStorage\('sessionStorage',SESSION_KEY,token\)/);
+          assert.match(html,/id="rememberLogin"/);
+          assert.match(html,/Запомнить меня на этом устройстве/);
+          assert.doesNotMatch(js,/localStorage\.setItem\([^\n]*password/i);
           console.log('Account page, auth flows, CSP and mirror exclusions: OK');
           JS
