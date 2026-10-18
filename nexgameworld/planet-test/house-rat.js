@@ -96,9 +96,19 @@ export async function unpackHouseRatMesh(){
 }
 export function createHouseRat(THREE,houseRoot){
  const patrol=createRatPatrol();
- const pivot=new THREE.Group();pivot.name='longhouse-street-rat';
+ const pivot=new THREE.Group();pivot.name='Крыска-Лариска';
  houseRoot.add(pivot);
  const body=new THREE.Group();pivot.add(body);
+ // Lightweight nameplate follows the rat; never intercepts taps or targeting.
+ const canvas=document.createElement('canvas');canvas.width=512;canvas.height=96;
+ const ctx=canvas.getContext('2d');
+ ctx.font='bold 43px system-ui, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.lineWidth=7;ctx.strokeStyle='rgba(20,15,12,.9)';ctx.strokeText('Крыска-Лариска',256,48);
+ ctx.fillStyle='#f3e1bb';ctx.fillText('Крыска-Лариска',256,48);
+ const texture=new THREE.CanvasTexture(canvas);
+ const label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false}));
+ label.name='rat-nameplate';label.position.set(0,.72,0);label.scale.set(1.65,.31,1);
+ pivot.add(label);
  let geometry=null,tailIndices=[],tailRest=[],lastTravel=0,runPhase=0;
  // Decompress once; game startup and other modules continue independently.
  void unpackHouseRatMesh().then(({positions,colors,indices})=>{

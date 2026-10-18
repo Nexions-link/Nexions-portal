@@ -5,7 +5,7 @@ import {createTaurenVisualDetails} from './tauren-visual-details.js?v=3';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
 import {canWalkCamp} from './sphere-physics.js?v=6';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=3';
-import {createHouseRat} from './house-rat.js?v=1';
+import {createHouseRat} from './house-rat.js?v=2';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
 
 // Spherical NexGame starting zone prototype.
