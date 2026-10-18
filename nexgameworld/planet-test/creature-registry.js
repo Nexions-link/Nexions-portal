@@ -1,0 +1,31 @@
+// Authoritative, shared creature catalog. A spawn ID is stable across clients,
+// the PvE server, economy storage, XP, target frames, and quest credit.
+import {DOLGONOG_LEVELS,DOLGONOG_SPAWNS,DOLGONOG_BOSS_INDEX,
+ mobBaseExperience,monsterMaxHealth} from './mob-levels.js';
+import {CREATURE_TYPE_BEAST,CREATURE_TYPE_HUMANOID} from './creature-types.js';
+export const BANDIT_CAMP=Object.freeze({x:-43,z:15});
+export const BANDIT_QUEST_GIVER=Object.freeze({x:-20,z:13,range:4.7});
+export const BANDIT_SPAWNS=Object.freeze([[-40,9],[-46,15],[-48,21]].map(p=>Object.freeze(p)));
+export const BANDIT_QUEST_KILLS=3;
+export const CREATURE_SPAWNS=Object.freeze([
+ ...DOLGONOG_SPAWNS.map(([x,z],i)=>Object.freeze({
+  id:'dolgonog-'+i,index:i,x,z,
+  family:i===DOLGONOG_BOSS_INDEX?'stormbeak':'dolgonog',
+  name:i===DOLGONOG_BOSS_INDEX?'Грозоклюв':'Равнинный долгоног',
+  level:DOLGONOG_LEVELS[i],boss:i===DOLGONOG_BOSS_INDEX,type:CREATURE_TYPE_BEAST
+ })),
+ ...BANDIT_SPAWNS.map(([x,z],i)=>Object.freeze({
+  id:'bandit-'+i,index:DOLGONOG_SPAWNS.length+i,x,z,
+  family:'bandit',name:'Разбойник Пыльной тропы',
+  level:i===2?3:2,boss:false,type:CREATURE_TYPE_HUMANOID
+ }))
+]);
+const BY_ID=new Map(CREATURE_SPAWNS.map(m=>[m.id,m]));
+export const creatureById=id=>BY_ID.get(id)||null;
+export const creatureByIndex=index=>CREATURE_SPAWNS[index]||null;
+export const creatureKillReward=mob=>({
+ xp:mobBaseExperience(mob.level,mob.boss),gold:0,
+ level:mob.level,type:mob.type,lootTable:mob.family
+});
+export const creatureSpawnHealth=mob=>mob.family==='bandit'?64+(mob.level-2)*14:
+ monsterMaxHealth(mob.level,mob.boss);

@@ -41,6 +41,9 @@ import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
 import {rollCreatureLoot} from './loot-tables.js?v=1';
+import {creatureByIndex,BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_KILLS} from './creature-registry.js?v=1';
+import {createBanditVisual} from './bandit-visual.js?v=1';
+import {rollCreatureCoins} from './creature-types.js?v=1';
 import {creatureTypeForMob,CREATURE_TYPE_LABELS,CORPSE_COIN_ID,isValidCorpseCoins} from './creature-types.js?v=1';
 import {DOLGONOG_SPAWNS,mobLevelForIndex,mobBaseExperience,monsterKillExperience,monsterDifficulty,MONSTER_LEVEL_COLORS,monsterMaxHealth,monsterAttackDamage} from './mob-levels.js?v=1';
 import {sellInventorySlot,buyBackFromMerchant,restoreBuyback} from './merchant-trade.js?v=1';
@@ -91,6 +94,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   safe.equipment=row.equipment||{};
   safe.quest=row.quests?.mentor?.step||0;
   safe.gatherStage=row.quests?.gather?.stage||0;
+   safe.banditQuest=row.quests?.bandit||{stage:0,kills:0};
   safe.hotbar=normalizeHotbar(row.actionBar?.length?row.actionBar:DEFAULT_HOTBAR,'warrior',safe.level);
   return safe;
  };
@@ -263,7 +267,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!authenticatedProfile||!event)return;
   if(event.kind==='lootTake')pendingLootTake=null;
   if(event.ok&&['lootAvailable','lootOpen','lootInspect','lootTake'].includes(event.kind)){
-   const mob=mobs.find(e=>'dolgonog-'+e.index===event.mobId);
+   const mob=mobs.find(e=>e.id===event.mobId);
    if(!mob||mob.life!==event.life)return;
    mob.loot=(Array.isArray(event.loot)?event.loot:[]).filter(row=>
     (ITEM_CATALOG[row?.id]&&Number.isInteger(row.qty)&&row.qty>0)||
@@ -329,7 +333,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    usePotion:'Зелье использовано и сохранено'
   };
   if(labels[event.kind])msg(labels[event.kind],2.2);
-  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','spells'].includes(modal.dataset.kind))
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','spells','banditQuest'].includes(modal.dataset.kind))
    renderModal();
  }
  function onVitals(event){
@@ -338,7 +342,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(Number.isFinite(event.resource))state.resource=clamp(event.resource,0,100);
  }
  function onCombatEvent(event,selfId){
-  const mob=mobs.find(e=>e.index===Number(String(event?.mobId).split('-').at(-1)));
+  const mob=mobs.find(e=>e.id===event?.mobId);
   if(!mob||event.life!==mob.life)return;
   if(Number.isFinite(event.hp))mob.hp=Math.max(0,event.hp);
   mob.hit=HIT_REACTION_SECONDS;
@@ -364,6 +368,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     &&!progress.quests.gather.accepted;
   }
   if(progress.quests?.mentor?.kills!==undefined)state.kills=progress.quests.mentor.kills;
+  if(progress.quests?.bandit)state.banditQuest={...progress.quests.bandit};
   if(source==='welcome'||source==='usePotion'){
    state.hp=progress.health;
    if(source==='welcome')state.resource=progress.resource;
@@ -371,7 +376,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   state.hotbar=normalizeHotbar(progress.actionBar?.length?progress.actionBar:DEFAULT_HOTBAR,'warrior',state.level);
   void updateEquipmentVisuals();
   draw();
-  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','spells'].includes(modal.dataset.kind))renderModal();
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','spells','banditQuest'].includes(modal.dataset.kind))renderModal();
   if(source==='mob'){
    // A saved revision can be rebroadcast during reconnect. Never animate it twice.
    if(Number.isInteger(progress.revision)&&progress.revision===lastMobXpRevision)return;
@@ -387,7 +392,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function onKillCredit(event){
   if(authenticatedProfile)return;
-  const mob=mobs.find(e=>e.index===Number(String(event?.mobId).split('-').at(-1)));
+  const mob=mobs.find(e=>e.id===event?.mobId);
   if(!mob||!Number.isInteger(event.life))return;
   const key=event.mobId+':'+event.life;
   if(receivedCredits.has(key))return;
@@ -407,7 +412,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function onMobTelegraph(event){
   if(!isOnline()||typeof event?.mobId!=='string')return;
-  const mob=mobs.find(e=>e.index===Number(event.mobId.split('-').at(-1)));
+  const mob=mobs.find(e=>e.id===event.mobId);
   if(!mob||mob.corpse||!mob.root.visible||event.life!==mob.life)return;
   // The authoritative server decides whether and when the hit lands.
   if(mob.birdVisual)mob.birdVisual.attackRemaining=Math.max(mob.birdVisual.attackRemaining||0,.8);
@@ -423,7 +428,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const byIndex=new Map(rows.filter(x=>Number.isInteger(x.index)).map(x=>[x.index,x]));
   for(const mob of mobs){
    const remote=byIndex.get(mob.index);
-   if(!remote||!['alive','corpse','hidden'].includes(remote.phase)||
+   if(!remote||(remote.id&&remote.id!==mob.id)||!['alive','corpse','hidden'].includes(remote.phase)||
     !Number.isFinite(remote.x)||!Number.isFinite(remote.z)||!Number.isFinite(remote.hp))continue;
    const wasCorpse=mob.corpse,wasHidden=!mob.root.visible,changedLife=mob.life!==remote.life;
    mob.x=remote.x;mob.z=remote.z;mob.yaw=Number.isFinite(remote.yaw)?remote.yaw:0;
@@ -432,14 +437,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    mob.hp=remote.hp;mob.life=remote.life;mob.aggro=remote.aggro===true;mob.returning=false;
    // Creature levels are canonical; a malformed snapshot must not invent levels.
-   if(remote.level===mobLevelForIndex(mob.index))mob.level=remote.level;
+   if(remote.level===creatureByIndex(mob.index)?.level)mob.level=remote.level;
    mob.corpse=remote.phase==='corpse';mob.dead=mob.corpse?6:0;
    mob.root.visible=remote.phase!=='hidden';
    if(mob.corpse&&!wasCorpse){
     mob.deathAnimation.begin(playerNormal());
     if(target===mob){target=null;autoplay=false;approach=null;timeline.clear();}
    }else if(remote.phase==='alive'&&(wasCorpse||wasHidden)){
-    mob.deathAnimation.reset();resetPlainstriderVisual(mob);
+    mob.deathAnimation.reset();if(mob.family!=='bandit')resetPlainstriderVisual(mob);
     mob.loot=null;mob.lootKnown=false;mob.lootInspectAt=0;mob.navigation=null;
    }else if(remote.phase==='hidden'){
     mob.loot=null;if(pendingLoot===mob)closeWindow();
@@ -505,6 +510,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   root.add(tag);
   const e={kind,name,x,z,yaw:.2,root,radius:1.5,actor:npcActor};entities.push(e);citizens.push(e);setModelAt(e);return e;
  }
+ const banditGuide=npc('banditQuest',BANDIT_QUEST_GIVER.x,BANDIT_QUEST_GIVER.z,'Следопыт Медная Стрела');
+ for(const glyph of ['!','?','·'])banditGuide.root.add(questMarkers.create(glyph,5.55));
  const mentor=npc('mentor',-1.5,-5,'Наставник Каменный Рог');
  for(const glyph of ['!','?','·'])mentor.root.add(questMarkers.create(glyph,5.55));
  const vendor=npc('vendor',6,11,'Борун Крепкая Ладонь');
@@ -541,7 +548,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const beak=new THREE.Mesh(new THREE.ConeGeometry(.18,.5,7),new THREE.MeshStandardMaterial({color:'#d5b16f'}));
   beak.rotation.x=Math.PI/2;beak.position.set(0,2.17,1.1);fallback.add(beak);
   for(const side of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.08,.075,1.2,6),mat);leg.position.set(side*.25,.6,0);fallback.add(leg);}
-  const entity={kind:'mob',index:i,level:mobLevelForIndex(i),name:'Равнинный долгоног',lootId:'dolgonog',root,x,z,yaw:.1,
+  const entity={kind:'mob',id:'dolgonog-'+i,index:i,family:'dolgonog',level:mobLevelForIndex(i),name:'Равнинный долгоног',lootId:'dolgonog',root,x,z,yaw:.1,
    spawnX:x,spawnZ:z,creatureType:creatureTypeForMob(i),hp:monsterMaxHealth(mobLevelForIndex(i)),maxHp:monsterMaxHealth(mobLevelForIndex(i)),aggro:false,attackCd:1.2,stun:0,dead:0,loot:null,corpse:false,
    respawn:0,returning:false,walk:0,visual:null,hit:0,attackWindup:0,alertRemaining:0,corpseAge:0,boss:false,contactShadow,roamTime:i*1.73,navigation:null};
   const tag=makeLabel(entity.name+' · ур. '+entity.level,'#f9df91',26);tag.position.y=4.25;root.add(tag);entity.nameTag=tag;
@@ -559,13 +566,35 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  SPAWNS.forEach(([x,z],i)=>createBird(x,z,i));
  // The original Narache elite uses the same GLB at 1.8× scale.
  const giant=createBird(BOSS_POSITION.x,BOSS_POSITION.z,mobs.length);
- giant.name='Грозоклюв — огромный долгоног';giant.boss=true;giant.lootId='stormbeak';
+ giant.name='Грозоклюв — огромный долгоног';giant.boss=true;giant.family='stormbeak';giant.lootId='stormbeak';
  giant.hp=giant.maxHp=monsterMaxHealth(giant.level,true);giant.root.scale.setScalar(1.8);
  const oldTag=giant.root.children.find(child=>child.isSprite&&child!==giant.alertTag);
  if(oldTag)oldTag.visible=false;
  const bossTag=makeLabel('Грозоклюв · ур. 3 · Элитный','#f9bd91',27);
  bossTag.position.y=3.4;bossTag.scale.set(4.7,.84,1);
  giant.root.add(bossTag);giant.nameTag=bossTag;giant.alertTag.position.y=4.0;
+ function createBandit(x,z,i){
+  const spec=creatureByIndex(DOLGONOG_SPAWNS.length+i);
+  const root=new THREE.Group();group.add(root);
+  const contactShadow=addContactShadow(root,.83),visual=createBanditVisual(THREE);
+  root.add(visual.root);
+  const hp=64+(spec.level-2)*14;
+  const mob={kind:'mob',id:spec.id,index:spec.index,family:'bandit',level:spec.level,
+   name:spec.name,lootId:'bandit',creatureType:spec.type,root,x,z,yaw:0,
+   spawnX:x,spawnZ:z,hp,maxHp:hp,aggro:false,attackCd:1.2,stun:0,dead:0,loot:null,corpse:false,
+   respawn:0,returning:false,walk:0,hit:0,attackWindup:0,alertRemaining:0,corpseAge:0,
+   boss:false,contactShadow,roamTime:spec.index*1.73,navigation:null,banditVisual:visual};
+  const nameTag=makeLabel(spec.name+' · ур. '+spec.level,'#e4c68f',24);
+  nameTag.position.y=3.7;root.add(nameTag);mob.nameTag=nameTag;
+  const alertTag=makeLabel('!','#ffc978',78);alertTag.position.y=4.25;alertTag.scale.set(1.55,1.4,1);
+  alertTag.visible=false;root.add(alertTag);mob.alertTag=alertTag;
+  const lootMarker=makeLabel('◆','#fff7df',68);lootMarker.position.y=1.45;
+  lootMarker.scale.set(1.3,1.06,1);lootMarker.visible=false;root.add(lootMarker);mob.lootMarker=lootMarker;
+  mob.fallbackVisual=visual.root;
+  mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:visual.root,getRadius,heightAt});
+  mobs.push(mob);entities.push(mob);setModelAt(mob);return mob;
+ }
+ BANDIT_SPAWNS.forEach(([x,z],i)=>createBandit(x,z,i));
  const dummyRoot=new THREE.Group();group.add(dummyRoot);addContactShadow(dummyRoot,1.1);
  const straw=new THREE.MeshStandardMaterial({color:'#bb9665',roughness:1});
  const dummyBody=new THREE.Mesh(new THREE.CylinderGeometry(.56,.63,2.2,12),straw);
@@ -648,7 +677,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(!loader)throw Error('GLTFLoader unavailable');
    const asset=await loader.loadAsync('../bestiary/models/dolgonog-v0.1.glb?v=0.3.5.43');
    if(!validatePlainstriderGltf(asset))throw Error('Unexpected Dolgonog clips');
-   for(const mob of mobs){
+   for(const mob of mobs.filter(m=>m.family!=='bandit')){
     // Never swap an already falling/settled corpse to a freshly loaded rig.
     if(mob.corpse)mob.pendingBirdAsset=asset;
     else attachBirdVisual(mob,asset);
@@ -675,6 +704,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  // Smooth original NexGame GLB Idle, Walk, Peck and hit reactions.
  function birdAnimation(mob,dt,moved=0){
+  if(mob.banditVisual){mob.banditVisual.animate(clock,moved,mob.attackWindup>0?1:0);return;}
   if(mob.birdVisual&&!mob.corpse)advancePlainstriderVisual(THREE,mob,dt,moved,false);
  }
  function player(){return toLocal(playerNormal(),getRadius());}
@@ -744,7 +774,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function showCorpseLoot(mob){
   if(!mob?.corpse||!mob.root.visible)return msg('Тело уже исчезло');
   if(distance(mob)>CORPSE_LOOT_RANGE)return msg('Подойди к телу ближе');
-  if(authenticatedProfile){sendAccountAction('lootOpen',{mobId:'dolgonog-'+mob.index,life:mob.life});return;}
+  if(authenticatedProfile){sendAccountAction('lootOpen',{mobId:mob.id,life:mob.life});return;}
   if(!mob.loot?.length)return msg('На теле ничего нет');
   pendingLoot=mob;openWindow('loot');
  }
@@ -768,7 +798,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(authenticatedProfile){
    if(pendingLootTake)return;
    const row=mob.loot?.[index];
-   if(row&&sendAccountAction('lootTake',{mobId:'dolgonog-'+mob.index,life:mob.life,itemId:row.id})){
+   if(row&&sendAccountAction('lootTake',{mobId:mob.id,life:mob.life,itemId:row.id})){
     pendingLootTake={mobId:mob.index,life:mob.life,at:Date.now()};
     renderModal();
    }
@@ -796,7 +826,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(distance(mob)>CORPSE_LOOT_RANGE)return msg('Подойди к телу ближе');
   if(authenticatedProfile){
    if(pendingLootTake)return;
-   if(sendAccountAction('lootTake',{mobId:'dolgonog-'+mob.index,life:mob.life})){
+   if(sendAccountAction('lootTake',{mobId:mob.id,life:mob.life})){
     pendingLootTake={mobId:mob.index,life:mob.life,at:Date.now()};
     renderModal();
    }
@@ -909,6 +939,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    if(nearby.kind==='mob')return showCorpseLoot(nearby);
    if(nearby.kind==='mentor'){openWindow('mentor');return}
+   if(nearby.kind==='banditQuest'){openWindow('banditQuest');return}
    if(nearby.kind==='vendor'){openWindow('merchant');return}
    if(nearby.kind==='herbalist'){openWindow('herbalist');return}
    if(nearby.kind==='chest'){openWindow('chest');return}
@@ -921,6 +952,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!nearby)return msg('Подойди к жителю или предмету ближе');
   if(camp.interact(nearby)){draw();return;}
   if(nearby.kind==='mentor')openWindow('mentor');
+  else if(nearby.kind==='banditQuest')openWindow('banditQuest');
   else if(nearby.kind==='relic')mentorChain.pickedRelic();
   else if(nearby.kind==='vendor')openWindow('merchant');
   else if(nearby.kind==='mob'&&nearby.corpse)showCorpseLoot(nearby);
@@ -950,7 +982,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    setModelAt(enemy);enemy.deathAnimation.begin(playerNormal());
    if(enemy.nameTag)enemy.nameTag.visible=false;
-   enemy.loot=rollCreatureLoot(enemy.lootId);
+   enemy.loot=[...rollCreatureLoot(enemy.lootId),...rollCreatureCoins(enemy.creatureType,enemy.level)];
    updateLootMarker(enemy);
    const gainedXp=monsterKillExperience(state.level,enemy.level,mobBaseExperience(enemy.level,enemy.boss));
    state.xp+=gainedXp; // Beasts drop no coins.
@@ -1065,6 +1097,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(stage===10)guidance.textContent='Красный пунктир ведёт к Грозоклюву · 108 HP';
   const glyph=mentorGlyph(state.quest);
   for(const child of mentor.root.children)if(child.userData.questMarker)child.visible=child.userData.glyph===glyph;
+  const banditStage=state.banditQuest?.stage??0;
+  const banditGlyph=banditStage===0?'!':banditStage===2?'?':banditStage===1?'·':null;
+  for(const child of banditGuide.root.children)if(child.userData.questMarker)
+   child.visible=child.userData.glyph===banditGlyph;
+  $('banditQuestTracker').hidden=!authenticatedProfile||banditStage!==1&&banditStage!==2;
+  if(authenticatedProfile&&banditStage>0&&banditStage<3)
+   $('banditQuestText').textContent=banditStage===2?'Готово! Вернись к следопыту.':
+    'Разбойники: '+(state.banditQuest?.kills??0)+' / '+BANDIT_QUEST_KILLS;
   const nearby=modal.hidden&&!camp.casting?nearestInteraction():null;
   $('interact').hidden=!nearby;
   if(nearby)$('interact').textContent=nearby.kind==='gather'?
@@ -1116,7 +1156,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    gesture:body.querySelector('.character-rotate')}:null;
   const characterScroll=kind==='character'?body.scrollTop:0;
   if(kind!=='character')characterPreview.release();
-  modal.classList.toggle('world-sheet',['chest','bag','loot','gatherLoot','merchant','mentor','herbalist','quests','spells'].includes(kind));
+  modal.classList.toggle('world-sheet',['chest','bag','loot','gatherLoot','merchant','mentor','herbalist','banditQuest','quests','spells'].includes(kind));
   $('panel').classList.toggle('chest-sheet',kind==='chest');
   $('panel').classList.toggle('character-modal',kind==='character');
   $('panel').classList.toggle('inventory-modal',kind==='bag');
@@ -1126,7 +1166,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   $('cameraControl').hidden=kind!=='menu';
   $('graphicsControl').hidden=kind!=='menu';
   title.textContent=({bag:'Рюкзак',character:'Персонаж',quests:'Журнал заданий',
-   merchant:'Торговец',spells:'Книга способностей',loot:'Обыск тела',menu:'Меню',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',party:'Группа и чат'})[kind]||'NexGameWorld';
+   merchant:'Торговец',spells:'Книга способностей',loot:'Обыск тела',menu:'Меню',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',party:'Группа и чат'})[kind]||'NexGameWorld';
   body.replaceChildren();
   const line=(label,caption,actions=[])=>{
    const row=document.createElement('div');row.className='rpgRow';
@@ -1179,6 +1219,19 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     line(quest.title,'Собрано '+count+' / '+quest.count+'. '+quest.hint,
      count>=quest.count?[['Сдать',()=>sendAccountAction('gatherTurnIn')]]:[]);
    }
+   return;
+  }
+  if(authenticatedProfile&&kind==='banditQuest'){
+   const q=state.banditQuest||{stage:0,kills:0};
+   if(q.stage===0)
+    line('Разбойники Пыльной тропы','Разбойники обосновались у западной тропы. Победи троих и возвращайся. Награда: 85 опыта и 18 монет.',
+     [['Принять задание',()=>sendAccountAction('banditAccept')]]);
+   else if(q.stage===1)
+    line('Разбойники Пыльной тропы','Побеждено разбойников: '+q.kills+' / '+BANDIT_QUEST_KILLS+'. Ищи их к западу от лагеря.');
+   else if(q.stage===2)
+    line('Разбойники Пыльной тропы','Трое разбойников побеждены. Награда: 85 опыта и 18 монет.',
+     [['Сдать задание',()=>sendAccountAction('banditTurnIn')]]);
+   else line('Тропа снова безопасна','Ты уже помог следопыту. Благодарю за службу.');
    return;
   }
   if(authenticatedProfile&&kind==='mentor'){
@@ -1329,6 +1382,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    body.append(tabs);
    const entries=mentorJournalRows(state).map(item=>({...item,npc:'Наставник Каменный Рог'}));
+   if(authenticatedProfile){
+    const q=state.banditQuest||{stage:0,kills:0};
+    entries.push({id:'bandit-trail',status:q.stage===0?'available':q.stage===3?'completed':'current',
+     title:'Разбойники Пыльной тропы',objective:'Победить 3 разбойников',
+     progress:q.stage===3?'Сдано':q.stage===2?'Готово к сдаче':q.kills+' / '+BANDIT_QUEST_KILLS,
+     reward:'85 опыта · 18 монет',npc:'Следопыт Медная Стрела'});
+   }
    for(let i=1;i<=3;i++){
     const quest=GATHER_QUESTS[i],stage=state.gatherStage;
     const status=stage>i?'completed':stage===i?(state.gatherAvailable?'available':'current'):i===1&&stage===0?'available':null;
@@ -1539,7 +1599,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }else if(impact&&isLivingHostile(impact.target)&&distance(impact.target)<=MELEE_RANGE){
    if(facesTarget(impact.target)){
     const bonus=impact.skill==='heavyStrike'?(getAbilityDefinition(impact.skill).damageBonus||0):0;
-    if(isOnline()&&impact.target.kind==='mob')multiplayer.sendAttack(impact.skill,'dolgonog-'+impact.target.index);
+    if(isOnline()&&impact.target.kind==='mob')multiplayer.sendAttack(impact.skill,impact.target.id);
     else harm(impact.target,rollMeleeDamage(stats(),bonus),impact.skill);
    }else if(impact.skill!=='autoAttack')msg('Цель не перед вами',1.1);
   }
@@ -1592,6 +1652,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     mob.lootMarker.material.opacity=.86+.13*Math.pow(Math.sin(clock*2.6),2);
    }
    if(mob.contactShadow)mob.contactShadow.visible=mob.root.visible;
+   if(mob.banditVisual&&!mob.corpse&&!isOnline())mob.banditVisual.animate(clock,0,mob.attackWindup>0?1:0);
    if(mob.nameTag){
     mob.nameTag.visible=mob.root.visible&&!mob.corpse;
     // Match the WoW-style relative-difficulty tint with target level.
@@ -1600,12 +1661,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    if(mob.alertTag){
     mob.alertTag.visible=mob.alertRemaining>0&&mob.root.visible&&!mob.corpse;
-    if(mob.alertTag.visible)mob.alertTag.position.y=(mob.boss?4:4.95)+Math.sin(clock*7)*.1;
+    if(mob.alertTag.visible)mob.alertTag.position.y=(mob.family==='bandit'?4.25:mob.boss?4:4.95)+Math.sin(clock*7)*.1;
    }
    if(isOnline()||authenticatedProfile){
     if(authenticatedProfile&&isOnline()&&mob.corpse&&!mob.lootKnown&&distance(mob)<=CORPSE_LOOT_RANGE&&clock>=(mob.lootInspectAt||0)){
      mob.lootInspectAt=clock+3;
-     sendAccountAction('lootInspect',{mobId:'dolgonog-'+mob.index,life:mob.life});
+     sendAccountAction('lootInspect',{mobId:mob.id,life:mob.life});
     }
     if(mob.corpse){
      const wasDying=mob.dying;mob.deathAnimation.update(dt);
@@ -1629,7 +1690,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      mob.navigation=null;
      mob.root.visible=true;mob.returning=false;mob.aggro=false;mob.attackCd=1.2;mob.attackWindup=0;mob.hit=0;mob.corpseAge=0;mob.alertRemaining=0;
      mob.deathAnimation.reset();
-     resetPlainstriderVisual(mob);
+     if(mob.family!=='bandit')resetPlainstriderVisual(mob);
      if(mob.pendingBirdAsset){attachBirdVisual(mob,mob.pendingBirdAsset);mob.pendingBirdAsset=null;}
      updateLootMarker(mob);setModelAt(mob);}
     continue;

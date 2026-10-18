@@ -7,7 +7,8 @@ test('all nine normal dolgonogs and the level-three boss are animals without coi
   assert.equal(creatureTypeForMob(i),CREATURE_TYPE_BEAST);
   assert.deepEqual(rollCreatureCoins(creatureTypeForMob(i),i===9?3:1,()=>1),[]);
  }
- assert.equal(creatureTypeForMob(10),null);
+ assert.equal(creatureTypeForMob(10),'humanoid');
+ assert.equal(creatureTypeForMob(13),null);
 });
 test('future humanoid coins have a bounded corpse-loot descriptor',()=>{
  const coins=rollCreatureCoins(CREATURE_TYPE_HUMANOID,3,()=>.5);

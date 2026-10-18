@@ -2,6 +2,10 @@
 // Prices and group drop chances are NexGame values, not Blizzard's drop statistics.
 const gear=(sourceId,name,slot,values)=>({sourceId,name,slot,rarity:'poor',quality:'Низкое качество',requiredLevel:1,stack:1,description:'Потрёпанное, но пригодное снаряжение.',...values});
 export const ITEM_CATALOG={
+ banditCloth:{name:'Истёртый лоскут',icon:'🧵',rarity:'poor',quality:'Низкое качество',sell:2,
+  description:'Обрывок походной одежды разбойника. Можно продать торговцу.'},
+ banditSeal:{name:'Медная печать разбойника',icon:'🪙',rarity:'uncommon',quality:'Необычный',sell:9,
+  description:'Редкий знак банды. Можно продать торговцу.'},
  feather:{name:'Перо долгонога',icon:'🪶',rarity:'poor',quality:'Низкое качество',sell:1,description:'Длинное крепкое перо. Можно продать торговцу.'},
  beak:{name:'Клюв долгонога',icon:'🦴',rarity:'poor',quality:'Низкое качество',sell:2,description:'Прочный клюв. Можно продать торговцу.'},
  down:{name:'Мягкий пух',icon:'☁️',rarity:'poor',quality:'Низкое качество',sell:2,description:'Тёплый и лёгкий пух с равнин.'},

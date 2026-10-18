@@ -7,7 +7,8 @@ export const CREATURE_TYPE_LABELS=Object.freeze({beast:'Животное',humano
 export const CORPSE_COIN_ID='coins';
 export const MAX_CORPSE_COIN_DROP=100000;
 export function creatureTypeForMob(index){
- return Number.isInteger(index)&&index>=0&&index<=9?CREATURE_TYPE_BEAST:null;
+ return Number.isInteger(index)&&index>=0&&index<=9?CREATURE_TYPE_BEAST:
+  Number.isInteger(index)&&index>=10&&index<=12?CREATURE_TYPE_HUMANOID:null;
 }
 export function rollCreatureCoins(creatureType,level,rng=Math.random){
  if(creatureType===CREATURE_TYPE_BEAST)return [];

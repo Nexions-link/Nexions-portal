@@ -12,6 +12,14 @@ export const CREATURE_LOOT_TABLES=Object.freeze({
   ],
   equipment:{poor:.06,uncommon:.01}
  },
+ bandit:{
+  name:'Разбойник Пыльной тропы',
+  materials:[
+   {id:'banditCloth',chance:.62,min:1,max:2},
+   {id:'banditSeal',chance:.14,min:1,max:1}
+  ],
+  equipment:{poor:.095,uncommon:.018}
+ },
  stormbeak:{
   name:'Грозоклюв',
   materials:[
