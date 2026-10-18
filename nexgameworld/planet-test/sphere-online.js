@@ -68,7 +68,10 @@ export function createSphericalPresence({
   const p=getPosition?.();
   if(!p||!validNormal(p.normal)||!finite(p.heading))return null;
   if(![87,174,261].includes(p.radius))return null;
-  return {normal:p.normal,heading:p.heading,radius:p.radius,moving:!!p.moving};
+  // All rotations are equivalent modulo 2π. Send the canonical angle so a
+  // long Safari session cannot cause server movement validation failures.
+  return {normal:p.normal,heading:Math.atan2(Math.sin(p.heading),Math.cos(p.heading)),
+   radius:p.radius,moving:!!p.moving};
  };
  function onSnapshot(rows){
   const p=position();

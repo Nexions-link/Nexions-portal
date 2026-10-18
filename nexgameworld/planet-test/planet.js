@@ -5,7 +5,7 @@ import {cameraObstruction} from './sphere-physics.js?v=6';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=63';
-import {createSphericalPresence} from './sphere-online.js?v=7';
+import {createSphericalPresence} from './sphere-online.js?v=8';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=5';
 import {sampleSphericalFooting} from './foot-placement.js?v=1';
@@ -280,6 +280,8 @@ try {
     orbitElevation:previousWorld?.orbitElevation??.34,
     orbitDistance:previousWorld?.orbitDistance??3.22,legCycle:0
   };
+  // A multi-turn heading from a previous save still represents the same pose.
+  state.heading=angleDelta(state.heading,0);
   const saveWorld=()=>isPortalPreview||accountMode?false:writePlanetView(localStorage,state,R);
   // Independent of existing save data and the multiplayer-disabled prototype.
   const graphicsStorageKey='nexgameworld-graphics-quality-v1';
@@ -707,7 +709,7 @@ try {
       }
       const newHeading = Math.atan2(travel.dot(tangentNorth),travel.dot(tangentEast));
       const turn = angleDelta(newHeading,state.heading);
-      state.heading += turn * Math.min(1, dt * 11);
+      state.heading = angleDelta(state.heading + turn * Math.min(1, dt * 11),0);
       prevHeading = newHeading;
       axis.crossVectors(state.normal,travel).normalize();
       const currentLocal=approach?normalToLocal(state.normal,R):null;
