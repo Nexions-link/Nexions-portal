@@ -50,20 +50,51 @@ test('portrait character sheet exposes real slots beside model and weapon/shield
  assert.equal(children.filter(e=>e.className==='character-rotate').length,1);
  assert.ok(slots.find(e=>e.dataset.slot==='weapon').className.includes('equipped'));
  assert.ok(slots.find(e=>e.dataset.slot==='shield').className.includes('equipped'));
- assert.ok(children.some(e=>e.textContent==='Основные характеристики'));
+ assert.ok(children.some(e=>e.textContent==='ОСНОВНЫЕ ХАРАКТЕРИСТИКИ'));
  assert.ok(children.some(e=>e.textContent==='Здоровье'));
  assert.equal(h.rpg.movementLocked,true);
  h.get('modalClose').click();
  assert.equal(h.rpg.movementLocked,false);
 });
-test('tapping character chest slot unequips through existing inventory rules',()=>{
+test('archived-style inspector selects first; requires explicit removal from backpack',()=>{
  const h=harness({save:{equipment:{chest:{id:'chainVest'},weapon:{id:'wornAxe'}}}});
  h.get('character').click();
  const slot=descendants(h.get('mbody')).find(e=>e.dataset.slot==='chest');
  assert.ok(slot.className.includes('equipped'));
  slot.click();
+ assert.equal(h.rpg.state.equipment.chest?.id,'chainVest','selection does not automatically unequip');
+ assert.equal(slot.attributes['aria-pressed'],'true');
+ assert.ok(descendants(h.get('mbody')).some(e=>e.textContent==='Тонкий кольчужный нагрудник'));
+ const remove=descendants(h.get('mbody')).find(e=>e.textContent==='Снять в рюкзак');
+ assert.ok(remove,'explicit unequip action in the original inspector');
+ remove.click();
  assert.equal(h.rpg.state.equipment.chest,undefined);
  assert.equal(h.rpg.state.inventory.some(e=>e.id==='chainVest'),true);
  assert.equal(descendants(h.get('mbody')).find(e=>e.dataset.slot==='chest').className,'character-socket');
+ h.get('modalClose').click();
+});
+
+test('original flat UI empty-slot silhouettes and explicit 3D rotation controls are present',()=>{
+ const h=harness({save:{equipment:{weapon:{id:'wornAxe'}}}});
+ h.get('character').click();
+ const el=descendants(h.get('mbody'));
+ const empty=el.find(e=>e.dataset?.slot==='head');
+ assert.equal(empty.className,'character-socket');
+ assert.ok(empty.children.some(c=>c.className==='character-empty-silhouette'));
+ const buttons=el.filter(e=>['Спереди','↶','↷'].includes(e.textContent));
+ assert.deepEqual(buttons.map(b=>b.textContent),['↶','Спереди','↷']);
+ buttons.forEach(button=>button.click());
+ const armor=el.find(e=>e.dataset?.slot==='chest');
+ armor.click();
+ assert.ok(el.some(e=>e.className==='character-item-detail'));
+ assert.equal(h.rpg.movementLocked,true);
+ h.get('modalClose').click();
+});
+test('character sheet can navigate to the existing backpack without stale preview',()=>{
+ const h=harness();
+ h.get('character').click();
+ const open=descendants(h.get('mbody')).find(e=>e.textContent==='Открыть рюкзак');
+ assert.ok(open);
+ open.click();assert.equal(h.get('modal').dataset.kind,'bag');
  h.get('modalClose').click();
 });

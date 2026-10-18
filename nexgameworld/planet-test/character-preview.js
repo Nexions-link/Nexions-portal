@@ -1,10 +1,11 @@
 // Interactive portrait view of the CURRENT player mesh (including equipment).
 // One extra WebGL context is used only while the character window is visible.
 export function createCharacterPreview({THREE,heroRoot}){
- let host=null,renderer=null,world=null,avatar=null,camera=null,angle=-.25,acc=0,disabled=false;
+ let host=null,renderer=null,world=null,avatar=null,camera=null,angle=-.25,acc=0,disabled=false,stand=null;
  const warm=0xf9dfa9;
  function release(){
   if(avatar){avatar.removeFromParent();avatar=null;}
+  if(stand){stand.removeFromParent();stand.geometry.dispose();stand.material.dispose();stand=null;}
   if(renderer){
    renderer.dispose();
    renderer.forceContextLoss?.();
@@ -28,14 +29,21 @@ export function createCharacterPreview({THREE,heroRoot}){
   if(!Number.isFinite(size.y)||size.y<=0)return;
   avatar.position.sub(center);
   world.add(avatar);
+  // A low carved stone pedestal replaces the flat, transparent preview void.
+  // Its materials are unique to the inspector and can be safely disposed.
+  if(stand)stand.removeFromParent();
+  if(stand){stand.geometry.dispose();stand.material.dispose();}
+  stand=new THREE.Mesh(new THREE.CylinderGeometry(.84,.93,.11,32),
+   new THREE.MeshStandardMaterial({color:0x5b5440,roughness:.94,metalness:.05}));
+  stand.position.set(0,-size.y/2-.06,0);stand.receiveShadow=false;world.add(stand);
   const rect=host.getBoundingClientRect();
   const w=Math.max(1,rect.width||320),h=Math.max(1,rect.height||350);
   const verticalFov=camera.fov*Math.PI/180;
   const horizontalFov=2*Math.atan(Math.tan(verticalFov/2)*w/h);
   // Keep the silhouette between the side sockets; the canvas itself spans
   // the entire panel to avoid a tiny cropped 3D viewport on mobile.
-  const radius=Math.max(size.y/(2*Math.tan(verticalFov/2))*.94,
-   size.x/(2*Math.tan(horizontalFov/2)*.69),3.7);
+  const radius=Math.max(size.y/(2*Math.tan(verticalFov/2))*.96,
+   size.x/(2*Math.tan(horizontalFov/2)*.91),3.7);
   camera.position.set(0,size.y*.025,radius);
   camera.lookAt(0,0,0);
   avatar.rotation.y=angle;
@@ -60,8 +68,8 @@ export function createCharacterPreview({THREE,heroRoot}){
     container.append(renderer.domElement);
     world=new THREE.Scene();
     world.add(new THREE.HemisphereLight(0xffeed0,0x625047,2.3));
-    const key=new THREE.DirectionalLight(warm,2.2);key.position.set(3,7,8);world.add(key);
-    const rim=new THREE.DirectionalLight(0x96b6a6,.9);rim.position.set(-5,4,-6);world.add(rim);
+    const key=new THREE.DirectionalLight(warm,2.9);key.position.set(-3,7,8);world.add(key);
+    const rim=new THREE.DirectionalLight(0x96b6a6,1.6);rim.position.set(4,4,-6);world.add(rim);
     camera=new THREE.PerspectiveCamera(38,1,.1,100);
     refresh();
    }catch(error){
@@ -96,6 +104,11 @@ export function createCharacterPreview({THREE,heroRoot}){
    });
   }
  }
+ function rotate(delta=null){
+  angle=delta===null?0:angle+delta;
+  if(avatar)avatar.rotation.y=angle;
+  acc=1; // Render on the very next animation frame.
+ }
  function tick(dt){
   if(!renderer||!host||!avatar||!camera)return;
   acc+=Math.min(.1,Math.max(0,dt));
@@ -112,5 +125,5 @@ export function createCharacterPreview({THREE,heroRoot}){
   }
   renderer.render(world,camera);
  }
- return {mount,refresh,tick,release};
+ return {mount,refresh,tick,release,rotate};
 }

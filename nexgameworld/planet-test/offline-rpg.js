@@ -1,6 +1,6 @@
 import {createChestSheet} from './chest-sheet.js?v=3';
-import {createCharacterPreview} from './character-preview.js?v=1';
-import {renderCharacterSheet} from './character-sheet.js?v=1';
+import {createCharacterPreview} from './character-preview.js?v=2';
+import {renderCharacterSheet} from './character-sheet.js?v=2';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT} from './native-hotbar-art.js?v=1';
@@ -1199,6 +1199,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     renderCharacterSheet({
      document,body,profile:authenticatedProfile,state,stats:stats(),items:ITEM_CATALOG,
      labels:LABEL,qualities:QUALITY_VISUALS,xpRequired,pretty,preview:characterPreview,
+     onOpenBag:()=>openWindow('bag'),
      onUnequip:(slot,def)=>{
       if(!def)return msg('Пустой слот. Надеть предмет можно из рюкзака.');
       if(authenticatedProfile){
