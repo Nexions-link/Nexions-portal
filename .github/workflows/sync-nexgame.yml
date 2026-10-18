@@ -1,4 +1,5 @@
 name: Sync NexGameWorld to nexions.ru
+# Re-run source-verified game mirror after the bandit camp release.
 
 on:
   push:
