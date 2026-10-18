@@ -40,9 +40,14 @@ h1{margin:12px 0 16px;font:600 clamp(30px,6.8vw,50px)/1.18 "Cinzel",Georgia,seri
 .support-card{margin:32px auto 0;max-width:530px;border:1px solid rgba(190,164,111,.37);border-radius:14px;padding:28px clamp(16px,6vw,32px);background:linear-gradient(180deg,rgba(30,55,61,.84),rgba(13,32,39,.94));box-shadow:0 20px 60px rgba(0,0,0,.15)}
 .support-card h2{margin:0 0 7px;color:#f0dfb9;font:600 20px/1.4 system-ui,-apple-system,sans-serif}
 .support-card p{margin:0;color:#bfccc6;font-size:14px}
-.payment{display:flex;justify-content:center;align-items:center;min-height:50px;margin:24px auto 12px;max-width:330px}
-.payment iframe{display:block;width:100%;max-width:330px;height:50px;border:0;background:transparent}
-.fallback{display:inline-block;font-size:12px;color:#adc2bc}
+.payment{display:flex;justify-content:center;align-items:center;margin:24px auto 10px}
+.payment-button{display:inline-flex;justify-content:center;align-items:center;gap:10px;width:min(100%,254px);min-height:52px;padding:12px 24px;border:1px solid #e8c98e;border-radius:8px;background:linear-gradient(180deg,#efd7a2,#d7b67a);color:#172820;font-weight:750;font-size:16px;line-height:1.2;letter-spacing:.015em;text-decoration:none;box-shadow:0 7px 19px rgba(3,14,18,.22),inset 0 1px 0 rgba(255,255,255,.35);transition:background .16s,transform .16s,box-shadow .16s}
+.payment-button:hover{background:linear-gradient(180deg,#f5e0b3,#e2c389);transform:translateY(-2px);box-shadow:0 9px 22px rgba(3,14,18,.27)}
+.payment-button:active{transform:translateY(0)}
+.payment-button:focus-visible{outline:3px solid #fff2cd;outline-offset:4px}
+.payment-button svg{flex-shrink:0;display:block;width:19px;height:19px}
+.payment-note{display:block;font-size:12px;color:#adc2bc}
+@media(prefers-reduced-motion:reduce){.payment-button{transition:none}}
 .details{margin:32px auto 0;max-width:560px;text-align:left}
 .details h2{margin:0 0 10px;color:#e6d3a9;font-size:16px}
 .details p{margin:0 0 12px;color:#bdcac5;font-size:14px}
@@ -73,9 +78,12 @@ h1{margin:12px 0 16px;font:600 clamp(30px,6.8vw,50px)/1.18 "Cinzel",Georgia,seri
   <h2 id="support-title">Подарить автору</h2>
   <p>Размер поддержки вы выбираете самостоятельно. Она не влияет на игровой процесс.</p>
   <div class="payment">
-   <iframe src="https://yoomoney.ru/quickpay/fundraise/button?billNumber=1L0D8O69TK9.261018&amp;" title="Кнопка добровольной поддержки через ЮMoney" width="330" height="50" frameborder="0" allowtransparency="true" scrolling="no"></iframe>
+   <a class="payment-button" href="https://yoomoney.ru/fundraise/1L0D8O69TK9.261018" target="_blank" rel="noopener noreferrer" aria-label="Подарить автору — перейти на страницу сбора ЮMoney">
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+    Подарить
+   </a>
   </div>
-  <a class="fallback" href="https://yoomoney.ru/quickpay/fundraise/button?billNumber=1L0D8O69TK9.261018" target="_blank" rel="noopener noreferrer">Если кнопка не открылась — перейти в ЮMoney ↗</a>
+  <span class="payment-note">Перевод оформляется на защищённой странице ЮMoney</span>
  </section>
  <section class="details" aria-labelledby="details-title">
   <h2 id="details-title">На что помогает поддержка</h2>
