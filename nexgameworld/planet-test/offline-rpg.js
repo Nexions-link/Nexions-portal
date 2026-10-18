@@ -209,6 +209,18 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  let lastServerScoutRequest=0;
  function onEconomyResult(event){
   if(!authenticatedProfile||!event)return;
+  if(event.ok&&['lootAvailable','lootOpen','lootInspect','lootTake'].includes(event.kind)){
+   const mob=mobs.find(e=>'dolgonog-'+e.index===event.mobId);
+   if(!mob||mob.life!==event.life)return;
+   mob.loot=(Array.isArray(event.loot)?event.loot:[]).filter(row=>ITEM_CATALOG[row?.id]&&Number.isInteger(row.qty)&&row.qty>0).map(row=>({...row}));
+   mob.lootKnown=true;updateLootMarker(mob);
+   if(event.kind==='lootOpen'){pendingLoot=mob;openWindow('loot')}
+   else if(event.kind==='lootTake'&&pendingLoot===mob&&!modal.hidden&&modal.dataset.kind==='loot'){
+    if(!mob.loot.length)finishCorpseLoot(mob);else renderModal();
+   }
+   if(event.taken?.length)msg('Получено: '+event.taken.map(row=>(ITEM_CATALOG[row.id]?.name||row.id)+(row.qty>1?' ×'+row.qty:'')).join(', '));
+   draw();return;
+  }
   if(!event.ok){
    if(event.kind==='gatherStart'||event.kind==='gatherFinish')pendingServerGather=null;
    const labels={
@@ -224,6 +236,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     quest_not_active:'Сначала прими задание травницы',
     mentor_reward_not_ready:'Испытание ещё не завершено',
     stale_revision:'Сохранение обновилось. Повтори действие',
+    corpse_unavailable:'Тело уже исчезло или недоступно',corpse_empty:'Тело уже обыскано',
+    corpse_not_owned:'Эта добыча принадлежит другому персонажу',
     equipment_requirements_not_met:'Это снаряжение пока нельзя надеть'
    };
    msg(labels[event.reason]||'Сервер отклонил действие: '+(event.reason||'ошибка'));
@@ -296,7 +310,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   void updateEquipmentVisuals();
   draw();
   if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest'].includes(modal.dataset.kind))renderModal();
-  if(source==='mob')msg('Награда за бой сохранена в Neon',2.6);
+  if(source==='mob')msg('Получены опыт и монеты. Предметы можно забрать с тела.',2.6);
  }
  function onKillCredit(event){
   if(authenticatedProfile)return;
@@ -349,7 +363,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     if(target===mob){target=null;autoplay=false;approach=null;timeline.clear();}
    }else if(remote.phase==='alive'&&(wasCorpse||wasHidden)){
     mob.deathAnimation.reset();resetPlainstriderVisual(mob);
-    mob.loot=null;mob.navigation=null;
+    mob.loot=null;mob.lootKnown=false;mob.lootInspectAt=0;mob.navigation=null;
    }else if(remote.phase==='hidden'){
     mob.loot=null;if(pendingLoot===mob)closeWindow();
    }
@@ -650,6 +664,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!mob?.corpse||!mob.root.visible)return msg('Тело уже исчезло');
   if(mob.dying)return msg('Дождись, пока тело опустится на землю');
   if(distance(mob)>3.1)return msg('Подойди к телу ближе');
+  if(authenticatedProfile){sendAccountAction('lootOpen',{mobId:'dolgonog-'+mob.index,life:mob.life});return;}
   if(!mob.loot?.length)return msg('На теле ничего нет');
   pendingLoot=mob;openWindow('loot');
  }
@@ -670,6 +685,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function takeLootFromCorpse(mob,index){
   if(pendingLoot!==mob||modal.hidden||modal.dataset.kind!=='loot')return;
   if(distance(mob)>3.1)return msg('Подойди к телу ближе');
+  if(authenticatedProfile){
+   const row=mob.loot?.[index];
+   if(row)sendAccountAction('lootTake',{mobId:'dolgonog-'+mob.index,life:mob.life,itemId:row.id});
+   return;
+  }
   const result=takeCorpseRow(mob,index,corpseLootServices());
   if(!result.ok)return lootNotice(result.reason==='full'?'Рюкзак заполнен — предмет остался в теле':'Добыча недоступна');
   updateLootMarker(mob);
@@ -681,6 +701,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function takeAllFromCorpse(mob){
   if(pendingLoot!==mob||modal.hidden||modal.dataset.kind!=='loot')return;
   if(distance(mob)>3.1)return msg('Подойди к телу ближе');
+  if(authenticatedProfile){sendAccountAction('lootTake',{mobId:'dolgonog-'+mob.index,life:mob.life});return;}
   const result=takeAllCorpseRows(mob,corpseLootServices());
   updateLootMarker(mob);
   if(!result.taken.length)return lootNotice('Рюкзак заполнен — добыча осталась в теле');
@@ -770,7 +791,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(nearby.kind==='relic'||nearby.kind==='scout'){
     sendAccountAction('mentorInteract',{interaction:nearby.kind});return;
    }
-   if(nearby.kind==='mob')return msg('Награда за убийство автоматически сохраняется в Neon');
+   if(nearby.kind==='mob')return showCorpseLoot(nearby);
    if(nearby.kind==='mentor'){openWindow('mentor');return}
    if(nearby.kind==='vendor'){openWindow('merchant');return}
    if(nearby.kind==='herbalist'){openWindow('herbalist');return}
@@ -1434,6 +1455,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     if(mob.alertTag.visible)mob.alertTag.position.y=(mob.boss?4:4.95)+Math.sin(clock*7)*.1;
    }
    if(isOnline()){
+    if(authenticatedProfile&&mob.corpse&&!mob.lootKnown&&distance(mob)<=3.1&&clock>=(mob.lootInspectAt||0)){
+     mob.lootInspectAt=clock+3;
+     sendAccountAction('lootInspect',{mobId:'dolgonog-'+mob.index,life:mob.life});
+    }
     if(mob.corpse){
      const wasDying=mob.dying;mob.deathAnimation.update(dt);
      if(wasDying&&!mob.dying)updateLootMarker(mob);

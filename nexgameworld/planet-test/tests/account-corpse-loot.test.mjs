@@ -1,0 +1,31 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {harness,descendants} from './harness.mjs';
+
+test('authenticated corpse opens the loot window and takes items only after server acknowledgement',()=>{
+ const h=harness({x:-9,z:-24,authenticatedProfile:{}}),sent=[];
+ h.rpg.setMultiplayer({connected:true,economy:(kind,args)=>{sent.push({kind,...args});return true;}});
+ h.rpg.onMobSnapshot([{index:0,phase:'corpse',life:1,hp:0,x:-9,z:-23}]);
+ for(let i=0;i<20;i++)h.rpg.update(.1);
+ const loot=[{id:'feather',qty:1},{id:'batteredBuckler',qty:1}];
+ h.rpg.onEconomyResult({ok:true,kind:'lootAvailable',mobId:'dolgonog-0',life:1,loot});
+ const before=JSON.stringify(h.rpg.state.inventory);
+ assert.equal(h.get('modal').hidden,true);
+ h.get('interact').click();
+ assert.equal(sent.at(-1).kind,'lootOpen');
+ assert.equal(JSON.stringify(h.rpg.state.inventory),before);
+ h.rpg.onEconomyResult({ok:true,kind:'lootOpen',mobId:'dolgonog-0',life:1,loot});
+ assert.equal(h.get('modal').dataset.kind,'loot');assert.equal(h.get('modal').hidden,false);
+ const buttons=()=>descendants(h.get('mbody'));
+ buttons().find(e=>e.className==='loot-item').click();
+ assert.equal(sent.at(-1).kind,'lootTake');assert.equal(sent.at(-1).itemId,'feather');
+ assert.equal(JSON.stringify(h.rpg.state.inventory),before);
+ h.rpg.onEconomyResult({ok:true,kind:'lootTake',mobId:'dolgonog-0',life:1,loot:[loot[1]],taken:[loot[0]]});
+ assert.equal(buttons().filter(e=>e.className==='loot-item').length,1);
+ buttons().find(e=>e.textContent==='Забрать всё').click();
+ assert.equal(sent.at(-1).kind,'lootTake');assert.equal(sent.at(-1).itemId,undefined);
+ h.rpg.onEconomyResult({ok:false,kind:'lootTake',reason:'inventory_full'});
+ assert.equal(h.get('modal').hidden,false);
+ h.rpg.onEconomyResult({ok:true,kind:'lootTake',mobId:'dolgonog-0',life:1,loot:[],taken:[loot[1]]});
+ assert.equal(h.get('modal').hidden,true);
+});

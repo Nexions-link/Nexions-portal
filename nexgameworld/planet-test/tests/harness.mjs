@@ -37,7 +37,7 @@ export function installDom(){
  document.getElementById('modal').hidden=true;
  return {nodes,writes};
 }
-export function harness({x=TRAINING_DUMMY.x,z=TRAINING_DUMMY.z-3,save={}}={}){
+export function harness({x=TRAINING_DUMMY.x,z=TRAINING_DUMMY.z-3,save={},authenticatedProfile=null}={}){
  const dom=installDom();
  localStorage.setItem('nexgame-planet-test-offline-rpg-v1',JSON.stringify({level:10,xp:0,gold:30,hp:90,resource:50,
   inventory:[{id:'wornAxe',qty:1}],equipment:{},hotbar:DEFAULT_HOTBAR,...save}));
@@ -53,7 +53,7 @@ export function harness({x=TRAINING_DUMMY.x,z=TRAINING_DUMMY.z-3,save={}}={}){
  }
  position(x,z);
  const rpg=createOfflineRpg({THREE,scene,hero,makeTauren:opts=>createTauren(THREE,scene,opts),playerNormal:()=>normal,
-  getRadius:()=>261,toNormal:localToNormal,toLocal:normalToLocal,heightAt:()=>0,camera,canvas});
+  getRadius:()=>261,toNormal:localToNormal,toLocal:normalToLocal,heightAt:()=>0,camera,canvas,authenticatedProfile});
  const get=id=>document.getElementById(id);
  function selectDummy(){rpg.targetNearest();if(get('targetName').textContent!==TRAINING_DUMMY.name)throw Error('Dummy not selected')}
  function equip(id){
