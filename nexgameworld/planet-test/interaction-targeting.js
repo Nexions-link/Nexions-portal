@@ -24,35 +24,63 @@ export function nearbyInteractable(entities,dist,resourceReady){
  rows.sort((a,b)=>a.d-b.d);
  return rows[0]?.entity||null;
 }
-// Classic-inspired Tab: centred targets first, then broad front, then sides,
-// then rear. Distance is the tie-breaker inside each zone; holding a target and
-// cycling backwards are still supported. This is our explicit, stable policy,
-// rather than claiming to reproduce Blizzard's unpublished internal algorithm.
-export const CENTER_TARGET_COSINE=Math.cos(Math.PI/6); // 30-degree half-angle
-export const FORWARD_TARGET_COSINE=.5; // 60-degree half-angle
+// NGW policy inspired by WoW's explicit Tab lock and forward/backward cycle.
+// Blizzard's native ranking is unpublished; these thresholds are our own.
+export const CENTER_TARGET_COSINE=Math.cos(Math.PI/6);
+export const FORWARD_TARGET_COSINE=.5;
+export const TARGET_CYCLE_TIMEOUT=2;
+export const TARGET_CYCLE_TURN=Math.cos(35*Math.PI/180);
 export function targetPriorityZone(alignment){
- if(!Number.isFinite(alignment))return 2; // distance-only fallback
+ if(!Number.isFinite(alignment))return 2;
  if(alignment>=CENTER_TARGET_COSINE)return 0;
  if(alignment>=FORWARD_TARGET_COSINE)return 1;
- if(alignment>=0)return 2;
- return 3;
+ return 2;
 }
-export function cycleHostileTarget(mobs,dummy,current,dist,step=1,alignment=null){
- const directed=typeof alignment==='function';
- const nearby=mobs.concat(dummy?[dummy]:[]).map((entity,index)=>{
-  const d=dist(entity);
-  // Cosine of the signed-independent angle in the hero's tangent plane.
-  // Undefined/singular facing falls back to distance-only selection.
-  const a=directed?alignment(entity):NaN;
-  return {entity,index,d,a:Number.isFinite(a)?Math.max(-1,Math.min(1,a)):NaN};
- }).filter(({entity,d})=>entity?.root?.visible&&entity.hp>0&&!entity.dead&&!entity.corpse&&
-   Number.isFinite(d)&&d<=TARGET_ACQUISITION_RADIUS)
+function hostileCandidates(mobs,dummy,dist,alignment,canSee){
+ return mobs.concat(dummy?[dummy]:[]).map((entity,index)=>{
+  const d=dist(entity),a=alignment?alignment(entity):NaN;
+  return {entity,index,d,a};
+ }).filter(({entity,d,a})=>entity?.root?.visible&&entity.hp>0&&!entity.dead&&!entity.corpse&&
+   Number.isFinite(d)&&d<=TARGET_ACQUISITION_RADIUS&&
+   // Nearby attackers remain reachable even after running behind the hero.
+   (!Number.isFinite(a)||a>=0||d<=5)&&(!canSee||canSee(entity)))
  .sort((a,b)=>{
-  const zoneA=targetPriorityZone(a.a),zoneB=targetPriorityZone(b.a);
-  return zoneA-zoneB||a.d-b.d||(Number.isFinite(a.a)&&Number.isFinite(b.a)?b.a-a.a:0)||a.index-b.index;
- }).map(item=>item.entity);
- if(!nearby.length)return null;
- const currentIndex=nearby.indexOf(current);
- if(currentIndex===-1)return nearby[0];
- return nearby[(currentIndex+(step<0?-1:1)+nearby.length)%nearby.length];
+  const closeA=a.d<=5?0:1,closeB=b.d<=5?0:1;
+  return closeA-closeB||targetPriorityZone(a.a)-targetPriorityZone(b.a)||a.d-b.d||a.index-b.index;
+ }).map(row=>row.entity);
+}
+export function cycleHostileTarget(mobs,dummy,current,dist,step=1,alignment=null,canSee=null){
+ const rows=hostileCandidates(mobs,dummy,dist,alignment,canSee);
+ if(!rows.length)return null;
+ const i=rows.indexOf(current);
+ return rows[i<0?0:(i+(step<0?-1:1)+rows.length)%rows.length];
+}
+// Freeze a short sequence so moving mobs cannot continually reorder Tab.
+// Reset on deliberate retargeting, a pause, a meaningful turn or displacement.
+export function createHostileTargetCycle(){
+ let order=[],last=null,startedAt=-Infinity,origin=null,forward=null;
+ function reset(){order=[];last=null;startedAt=-Infinity;origin=null;forward=null;}
+ function next({mobs,dummy,current,dist,alignment,canSee,step=1,now,position,facing}){
+  const available=hostileCandidates(mobs,dummy,dist,alignment,canSee);
+  const moved=origin&&position&&Math.hypot(position.x-origin.x,position.z-origin.z)>3;
+  const turned=forward&&facing&&forward.x*facing.x+forward.y*facing.y+forward.z*facing.z<TARGET_CYCLE_TURN;
+  const expired=now-startedAt>TARGET_CYCLE_TIMEOUT;
+  const reacquire=expired||moved||turned;
+  const restart=!order.length||current!==last||reacquire;
+  if(restart){
+   order=available;origin=position?{...position}:null;forward=facing?{...facing}:null;
+  }else{
+   const alive=new Set(available);
+   order=order.filter(e=>alive.has(e));
+   for(const entity of available)if(!order.includes(entity))order.push(entity);
+  }
+  startedAt=now;
+  if(!order.length){last=null;return null;}
+  // A fresh direction/position/pause acquires the best target again. A direct
+  // click starts cycling from that selected enemy, including Shift+Tab.
+  const index=reacquire&&current===last?-1:order.indexOf(current);
+  last=order[index<0?0:(index+(step<0?-1:1)+order.length)%order.length];
+  return last;
+ }
+ return {next,reset};
 }

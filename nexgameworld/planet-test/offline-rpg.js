@@ -17,7 +17,7 @@ import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=1';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
-import {cycleHostileTarget,nearbyInteractable} from './interaction-targeting.js?v=10';
+import {createHostileTargetCycle,nearbyInteractable} from './interaction-targeting.js?v=11';
 import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v=1';
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
@@ -29,7 +29,7 @@ import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
 import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v=1';
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
 import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
-import {canWalkCamp} from './sphere-physics.js?v=5';
+import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=5';
 import {canWadeAtLocal} from './start-zone.js?v=20';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
@@ -690,7 +690,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    renderModal();lootNotice('Часть добычи осталась в теле — рюкзак заполнен');draw();
   }
  }
- function targetEntity(entity){
+ const targetCycle=createHostileTargetCycle();
+ function targetEntity(entity,fromCycle=false){
+  if(!fromCycle)targetCycle.reset();
   if(entity&&!['mob','dummy'].includes(entity.kind))entity=null;
   if(entity&&(entity.hp<=0||entity.dead||!entity.root.visible))entity=null;
   if(target!==entity){autoplay=false;approach=null;}
@@ -700,12 +702,22 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function targetNearest(step=1){
   if(!modal.hidden)return;
-  // Limit targeting to living enemies within 40 m. Priority goes to mobs
-  // in front of the hero; repeated presses still cycle through all targets.
-  const next=cycleHostileTarget(mobs,dummy,target,distance,step,targetFacingAlignment);
-  if(next){targetEntity(next);}
-  else if(!target)msg('В радиусе 40 м нет противников');
+  const position=player(),normal=playerNormal();
+  const facing=new THREE.Vector3(0,0,1).applyQuaternion(hero.root.quaternion);
+  facing.addScaledVector(normal,-facing.dot(normal)).normalize();
+  const start=normal.clone().multiplyScalar(getRadius()+heightAt(normal)+2);
+  const canSee=entity=>{
+   const n=toNormal(entity.x,entity.z,getRadius());
+   const desired=n.clone().multiplyScalar(getRadius()+heightAt(n)+1.6);
+   return !cameraObstruction(THREE,{start,desired,getRadius,toLocal,heightAt,
+    heroLocal:position,clearance:.05,maxSamples:180});
+  };
+  const next=targetCycle.next({mobs,dummy,current:target,dist:distance,step,
+   alignment:targetFacingAlignment,canSee,now:clock,position,facing});
+  if(next)targetEntity(next,true);
+  else if(!target)msg('Впереди нет доступных противников в радиусе 40 м');
  }
+
  function nearestInteraction(){
   return nearbyInteractable(entities,distance,camp.available);
  }
@@ -1290,12 +1302,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  for(const [id,fn] of actions){const node=$(id);if(node)bind(node,'click',fn);}
  bind($('modalClose'),'click',()=>{chooseSlot=-1;closeWindow();});
  document.addEventListener('keydown',e=>{
+  if(e.target?.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/i.test(e.target?.tagName||''))return;
   const key=e.key.toLowerCase();
   if(key==='escape'&&!modal.hidden){closeWindow();e.preventDefault();}
   if(!modal.hidden)return;
   const shortcut={i:'bag',c:'character',j:'quests',b:'spells'};
   if(shortcut[key]&&!e.repeat){openWindow(shortcut[key]);e.preventDefault();}
-  if(key==='tab'){targetNearest(e.shiftKey?-1:1);e.preventDefault();}
+  if(key==='tab'){if(!e.repeat)targetNearest(e.shiftKey?-1:1);e.preventDefault();}
   if(key==='e'){interact();e.preventDefault();}
  });
  // Tap actors by their actual Three.js shapes; ordinary terrain taps clear selection.
