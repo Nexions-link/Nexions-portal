@@ -168,7 +168,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   characterPreview.refresh();
  }
 
- let target=null,autoplay=false,swing=0,clock=0,messageUntil=0,pendingLoot=null,chooseSlot=-1,gatherCast=null,
+ let target=null,autoplay=false,swing=0,clock=0,messageUntil=0,pendingLoot=null,pendingLootTake=null,chooseSlot=-1,gatherCast=null,
   blockRemaining=0,approach=null;
  const timeline=createCombatTimeline();
  let lastCombatAt=-100;
@@ -258,6 +258,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  let lastServerScoutRequest=0;
  function onEconomyResult(event){
   if(!authenticatedProfile||!event)return;
+  if(event.kind==='lootTake')pendingLootTake=null;
   if(event.ok&&['lootAvailable','lootOpen','lootInspect','lootTake'].includes(event.kind)){
    const mob=mobs.find(e=>'dolgonog-'+e.index===event.mobId);
    if(!mob||mob.life!==event.life)return;
@@ -272,6 +273,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   if(!event.ok){
    if(event.kind==='gatherStart'||event.kind==='gatherFinish')pendingServerGather=null;
+   if(event.kind==='lootTake'&&!modal.hidden&&modal.dataset.kind==='loot'){
+    renderModal();
+    const reason=event.reason==='inventory_full'?'Рюкзак заполнен — вещи остались на теле.':
+     event.reason==='interaction_too_far'?'Подойди к телу ближе.':
+     event.reason==='corpse_empty'?'Тело уже обыскано.':
+     'Не удалось забрать предмет. Попробуй ещё раз.';
+    lootNotice(reason);
+    return;
+   }
    const labels={
     interaction_too_far:'Подойди ближе к персонажу или предмету',
     untrusted_interaction_context:'Сейчас взаимодействовать нельзя',
@@ -734,8 +744,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(pendingLoot!==mob||modal.hidden||modal.dataset.kind!=='loot')return;
   if(distance(mob)>3.1)return msg('Подойди к телу ближе');
   if(authenticatedProfile){
+   if(pendingLootTake)return;
    const row=mob.loot?.[index];
-   if(row)sendAccountAction('lootTake',{mobId:'dolgonog-'+mob.index,life:mob.life,itemId:row.id});
+   if(row&&sendAccountAction('lootTake',{mobId:'dolgonog-'+mob.index,life:mob.life,itemId:row.id})){
+    pendingLootTake={mobId:mob.index,life:mob.life,at:Date.now()};
+    renderModal();
+   }
    return;
   }
   const result=takeCorpseRow(mob,index,corpseLootServices());
@@ -749,7 +763,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function takeAllFromCorpse(mob){
   if(pendingLoot!==mob||modal.hidden||modal.dataset.kind!=='loot')return;
   if(distance(mob)>3.1)return msg('Подойди к телу ближе');
-  if(authenticatedProfile){sendAccountAction('lootTake',{mobId:'dolgonog-'+mob.index,life:mob.life});return;}
+  if(authenticatedProfile){
+   if(pendingLootTake)return;
+   if(sendAccountAction('lootTake',{mobId:'dolgonog-'+mob.index,life:mob.life})){
+    pendingLootTake={mobId:mob.index,life:mob.life,at:Date.now()};
+    renderModal();
+   }
+   return;
+  }
   const result=takeAllCorpseRows(mob,corpseLootServices());
   updateLootMarker(mob);
   if(!result.taken.length)return lootNotice('Рюкзак заполнен — добыча осталась в теле');
@@ -810,6 +831,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   renderModal();
  }
  function closeWindow(){
+  pendingLootTake=null;
   characterPreview.release();
   if(modal.dataset.kind==='chest'){
    clearChestRetry();
@@ -1132,35 +1154,50 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     return;
    }
    $('msub').textContent='ДОБЫЧА С ТЕЛА · '+corpse.name;
-   const description=document.createElement('p');description.className='planet-loot-intro';
-   description.textContent='Нажми на нужный предмет, чтобы забрать его. Остальное останется в теле, если закрыть окно.';
-   body.append(description);
+   const summary=document.createElement('div');summary.className='planet-loot-summary';
+   const summaryLeft=document.createElement('span');
+   summaryLeft.textContent='На теле: '+corpse.loot.length+' '+(corpse.loot.length===1?'предмет':'предм.');
+   const summaryRight=document.createElement('span');
+   summaryRight.textContent='Рюкзак: '+state.inventory.length+' / 12';
+   summary.append(summaryLeft,summaryRight);body.append(summary);
    const notice=document.createElement('p');notice.className='planet-loot-notice';
    notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
+   notice.textContent=pendingLootTake?'Ожидаем подтверждение сервера…':'Нажми на предмет, чтобы забрать его.';
    body.append(notice);
    const list=document.createElement('div');list.className='loot-list';
+   list.setAttribute('aria-label','Предметы, оставшиеся на теле');
    corpse.loot.forEach((item,index)=>{
     const def=ITEM_CATALOG[item.id],rarity=itemRarity(def?.rarity);
     const button=document.createElement('button');button.type='button';button.className='loot-item';
     button.dataset.rarity=rarity;
+    button.disabled=!!pendingLootTake;
     button.setAttribute('aria-label','Взять '+(def?.name||item.id)+', '+item.qty+' шт.');
+    const icon=document.createElement('span');icon.className='loot-item-icon';
+    icon.textContent=def?.icon||'◆';icon.setAttribute('aria-hidden','true');
+    const copy=document.createElement('span');copy.className='loot-item-copy';
     const name=document.createElement('span');name.className='loot-item-name';
-    name.textContent=(def?.icon||'📦')+'  '+(def?.name||item.id)+(item.qty>1?' ×'+item.qty:'');
+    name.textContent=def?.name||item.id;
     name.style.color=QUALITY_VISUALS[rarity]?.color||'#e6d2aa';
-    button.append(name);
     const sub=document.createElement('small');sub.className='loot-item-stats';
-    sub.textContent=def?.slot?LABEL[def.slot]+' · '+(def.quality||'Снаряжение')+
-     (def.requiredLevel>1?' · Ур. '+def.requiredLevel:''):def?.description||'Предмет для продажи';
-    button.append(sub);
+    const stats=[def?.armor?'Броня '+def.armor:null,def?.strength?'Сила +'+def.strength:null,
+     def?.stamina?'Выносливость +'+def.stamina:null].filter(Boolean).join(' · ');
+    sub.textContent=stats||(def?.slot?LABEL[def.slot]+' · '+(def.quality||'Снаряжение'):
+     def?.description||'Предмет для продажи');
+    copy.append(name,sub);
+    const count=document.createElement('span');count.className='loot-item-count';
+    count.textContent=item.qty>1?'×'+item.qty:'›';
+    button.append(icon,copy,count);
     button.addEventListener('click',()=>takeLootFromCorpse(corpse,index));
     list.append(button);
    });
    body.append(list);
    const actions=document.createElement('div');actions.className='planet-loot-actions';
    const takeAll=document.createElement('button');takeAll.type='button';takeAll.className='choice';
-   takeAll.textContent='Забрать всё';takeAll.addEventListener('click',()=>takeAllFromCorpse(corpse));
+   takeAll.textContent=pendingLootTake?'Получаем добычу…':'Забрать всё';
+   takeAll.disabled=!!pendingLootTake;
+   takeAll.addEventListener('click',()=>takeAllFromCorpse(corpse));
    const leave=document.createElement('button');leave.type='button';leave.className='choice planet-loot-leave';
-   leave.textContent='Оставить и закрыть';leave.addEventListener('click',closeWindow);
+   leave.textContent='Закрыть';leave.addEventListener('click',closeWindow);
    actions.append(takeAll,leave);body.append(actions);
    return;
   }
@@ -1416,6 +1453,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function update(dt){
   clock+=dt;
   characterPreview.tick(dt);
+  // Recover a mobile connection that stopped responding after a loot request.
+  if(pendingLootTake&&(!isOnline()||Date.now()-pendingLootTake.at>8500)){
+   pendingLootTake=null;
+   if(!modal.hidden&&modal.dataset.kind==='loot'){
+    renderModal();
+    lootNotice('Ответ сервера задержался. Проверь соединение и попробуй снова.');
+   }
+  }
   gathering.updateChestMotion(dt);
   if(isOnline()&&distance(gathering.chest)<12&&clock>=nextChestStatusCheck){
    // A lost/too-early proximity response must not leave the label at —/18

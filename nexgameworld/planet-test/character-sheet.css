@@ -224,3 +224,80 @@
  .character-stats-summary,.character-open-bag{grid-column:1 / -1}
 }
 @media(prefers-reduced-motion:reduce){#panel.character-modal .character-socket{transition:none}}
+
+/* Character inspection: iPhone portrait, equipment readability and a real 3D focal point. */
+#panel.character-modal .character-view{
+ background:
+  radial-gradient(ellipse 72% 42% at 50% 48%,#8178563b,transparent 93%),
+  linear-gradient(90deg,#19251eee,#344235 52%,#19241eef);
+ border-color:#a58c5e;box-shadow:inset 0 0 26px #050d0878,0 0 0 1px #e0bd7330;
+}
+#panel.character-modal .character-view::before{
+ content:"";position:absolute;inset:12px 7px 22px;
+ border-radius:47% 47% 42% 42%;
+ border:1px solid #d6b97838;
+ background:radial-gradient(ellipse 52% 48% at 50% 35%,#e2c88720,transparent);
+ pointer-events:none;
+}
+#panel.character-modal .character-view::after{
+ content:"";position:absolute;bottom:7px;left:13%;right:13%;
+ height:10px;border-radius:50%;
+ background:#e0ba6e22;filter:blur(8px);pointer-events:none;
+}
+#panel.character-modal .character-rotate-hint{
+ bottom:8px;left:6px;right:6px;display:block;
+ padding:4px 2px;border-radius:4px;background:#111c15b0;
+ color:#f3dbac;font:9px/1.35 system-ui,sans-serif;
+}
+#panel.character-modal .character-slot-column{gap:5px}
+#panel.character-modal .character-socket{
+ padding:5px 3px 4px;
+ transition:border-color .12s,background .12s;
+}
+#panel.character-modal .character-socket:focus-visible,
+#panel.character-modal .character-turn-controls button:focus-visible,
+#panel.character-modal .character-open-bag:focus-visible{
+ outline:2px solid #f3d795;outline-offset:1px;
+}
+#panel.character-modal .character-socket.active{
+ border-color:#f7dc9a;
+ box-shadow:inset 0 0 10px #d3a56f30,0 0 0 1px #f0c581ba;
+}
+#panel.character-modal .character-socket-label{font-weight:700}
+#panel.character-modal .character-socket-status{max-width:100%;font-size:9px}
+#panel.character-modal .character-turn-controls button{
+ min-height:40px;min-width:45px;font-size:13px;
+ touch-action:manipulation;
+}
+#panel.character-modal .character-weapon-row .character-socket{min-height:74px}
+#panel.character-modal .character-item-detail{
+ border:1px solid #a58b5a73;border-radius:5px;
+ background:linear-gradient(90deg,#131f17,#293326,#131f17);
+}
+#panel.character-modal .character-open-bag{min-height:46px;font-weight:700}
+@media(orientation:portrait) and (max-width:480px){
+ #panel.character-modal{
+  width:min(100%,430px);
+  max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
+ }
+ #panel.character-modal .character-stage{
+  grid-template-columns:minmax(60px,21%) minmax(0,1fr) minmax(60px,21%);
+  height:clamp(270px,40dvh,355px);min-height:270px;
+  gap:4px;padding:5px 4px;
+ }
+ #panel.character-modal .character-socket-label{font-size:10px}
+ #panel.character-modal .character-socket-status{font-size:8px}
+ #panel.character-modal .character-weapon-row{gap:7px}
+ #panel.character-modal .character-stats-summary dl{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+ }
+}
+@media(orientation:portrait) and (max-height:700px){
+ #panel.character-modal{padding:10px 8px 8px!important}
+ #panel.character-modal .character-stage{height:clamp(224px,35dvh,275px);min-height:224px}
+ #panel.character-modal .character-identity{padding-bottom:2px}
+ #panel.character-modal .character-socket-status{display:none}
+ #panel.character-modal .character-slot-column{gap:4px}
+ #panel.character-modal .character-socket{padding:3px 2px}
+ #panel.character-modal .character-weapon-row .character-socket{min-height:62px}
+}

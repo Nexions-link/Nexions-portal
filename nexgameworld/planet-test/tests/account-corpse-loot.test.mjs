@@ -29,3 +29,31 @@ test('authenticated corpse opens the loot window and takes items only after serv
  h.rpg.onEconomyResult({ok:true,kind:'lootTake',mobId:'dolgonog-0',life:1,loot:[],taken:[loot[1]]});
  assert.equal(h.get('modal').hidden,true);
 });
+
+test('loot sheet displays quality, quantity and prevents duplicate online take requests',()=>{
+ const h=harness({x:-9,z:-24,authenticatedProfile:{nickname:'Герой',level:3,inventory:[],equipment:{}}});
+ const sent=[];
+ h.rpg.setMultiplayer({connected:true,economy:(kind,p)=>{sent.push({kind,...p});return true;}});
+ h.rpg.onMobSnapshot([{index:0,phase:'corpse',life:2,hp:0,x:-9,z:-23}]);
+ for(let i=0;i<20;i++)h.rpg.update(.1);
+ const loot=[{id:'feather',qty:3},{id:'batteredBuckler',qty:1}];
+ h.rpg.onEconomyResult({ok:true,kind:'lootOpen',mobId:'dolgonog-0',life:2,loot});
+ const nodes=()=>descendants(h.get('mbody'));
+ const first=nodes().filter(e=>e.className==='loot-item');
+ assert.equal(first.length,2);
+ assert.equal(first[0].dataset.rarity,'poor');
+ assert.ok(first[0].children.some(c=>c.className==='loot-item-icon'));
+ assert.equal(first[0].children.find(c=>c.className==='loot-item-count').textContent,'×3');
+ assert.ok(nodes().some(e=>e.className==='planet-loot-summary'));
+ first[0].click();first[0].click();
+ assert.equal(sent.filter(x=>x.kind==='lootTake').length,1,'duplicate taps must not duplicate server loot');
+ assert.ok(nodes().filter(e=>e.className==='loot-item').every(e=>e.disabled));
+ assert.equal(nodes().find(e=>e.textContent==='Получаем добычу…').disabled,true);
+ h.rpg.onEconomyResult({ok:false,kind:'lootTake',reason:'inventory_full'});
+ assert.ok(nodes().filter(e=>e.className==='loot-item').every(e=>!e.disabled));
+ assert.ok(nodes().some(e=>e.textContent.includes('Рюкзак заполнен')));
+ nodes().find(e=>e.textContent==='Забрать всё').click();
+ assert.equal(sent.filter(x=>x.kind==='lootTake').length,2);
+ h.rpg.onEconomyResult({ok:true,kind:'lootTake',mobId:'dolgonog-0',life:2,loot:[],taken:loot});
+ assert.equal(h.get('modal').hidden,true);
+});

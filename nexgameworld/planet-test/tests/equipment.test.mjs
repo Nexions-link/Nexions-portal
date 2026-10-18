@@ -147,3 +147,16 @@ test('3D inspector remains mounted and selection survives server progress refres
  assert.equal(next.find(e=>e.dataset.slot==='chest').attributes['aria-pressed'],'true');
  h.get('modalClose').click();
 });
+
+test('portrait and loot CSS have compact vertical layouts with touch-accessible buttons',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const character=readFileSync(new URL('../character-sheet.css',import.meta.url),'utf8');
+ const loot=readFileSync(new URL('../loot-sheet.css',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(character,/@media\(orientation:portrait\) and \(max-width:480px\)/);
+ assert.match(character,/character-turn-controls button\{\s*min-height:40px/);
+ assert.match(loot,/#modal\.world-sheet\[data-kind="loot"\] #panel/);
+ assert.match(loot,/\.loot-item:disabled/);
+ assert.match(loot,/overscroll-behavior:contain/);
+ assert.match(html,/loot-sheet\.css\?v=1/);
+});

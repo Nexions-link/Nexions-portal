@@ -1,0 +1,97 @@
+/* NexGameWorld mobile corpse loot: world remains visible above the sheet. */
+#modal.world-sheet[data-kind="loot"] #panel{
+ height:min(455px,49dvh);
+ max-height:calc(100dvh - env(safe-area-inset-top) - 18px);
+ border-color:#b69b68;
+ background:radial-gradient(ellipse at 50% -10%,#4a4932,#252c24 58%,#161f1b);
+ color:#ecdcb8;
+ box-shadow:0 -9px 34px #070d0bba,inset 0 1px 0 #e3c68b42;
+}
+#modal.world-sheet[data-kind="loot"] #panel h2{
+ margin-bottom:3px;
+ color:#f8dba0;
+ font:normal clamp(21px,5.3vw,27px)/1.32 Georgia,serif;
+ text-shadow:0 2px 12px #090f09;
+}
+#modal.world-sheet[data-kind="loot"] #mbody{
+ display:flex;flex-direction:column;gap:7px;min-height:0;
+ overflow:hidden;touch-action:pan-y;
+}
+#modal.world-sheet[data-kind="loot"] .planet-loot-summary{
+ display:flex;justify-content:space-between;align-items:center;
+ flex:none;gap:8px;padding:7px 9px;
+ border:1px solid #7d7352;border-radius:5px;
+ background:#111d17a8;color:#d2c09b;
+ font:600 11px/1.3 system-ui,sans-serif;
+ font-variant-numeric:tabular-nums;
+}
+#modal.world-sheet[data-kind="loot"] .planet-loot-notice{
+ flex:none;margin:0;min-height:17px;color:#ceb783;
+ font:11px/1.45 system-ui,sans-serif;
+}
+#modal.world-sheet[data-kind="loot"] .loot-list{
+ display:flex;flex-direction:column;flex:1 1 auto;
+ gap:6px;min-height:0;overflow-y:auto;
+ -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+ margin:0;padding:1px 3px 2px 0;
+}
+#modal.world-sheet[data-kind="loot"] .loot-item{
+ display:flex;flex-direction:row;align-items:center;justify-content:flex-start;
+ flex:none;gap:10px;width:100%;min-height:66px;
+ padding:8px 10px;border:1px solid #7d704a;border-left:3px solid var(--rarity-color,#bda67b);
+ border-radius:5px;
+ background:linear-gradient(125deg,#313b31 0%,#202a23 68%,#19241e 100%);
+ box-shadow:inset 0 1px 0 #e6d5a01b,0 2px 5px #0c120d72;
+ text-align:left;touch-action:manipulation;
+}
+#modal.world-sheet[data-kind="loot"] .loot-item[data-rarity="poor"]{--rarity-color:#a5a4a0}
+#modal.world-sheet[data-kind="loot"] .loot-item[data-rarity="uncommon"]{--rarity-color:#68ce8f}
+#modal.world-sheet[data-kind="loot"] .loot-item[data-rarity="rare"]{--rarity-color:#74a9f5}
+#modal.world-sheet[data-kind="loot"] .loot-item:focus-visible{
+ outline:2px solid #efd092;outline-offset:1px;
+}
+#modal.world-sheet[data-kind="loot"] .loot-item:disabled{
+ opacity:.56;filter:saturate(.65);
+}
+#modal.world-sheet[data-kind="loot"] .loot-item-icon{
+ display:grid;place-items:center;flex:none;
+ width:45px;height:45px;
+ border:1px solid var(--rarity-color,#bda67b);border-radius:5px;
+ background:radial-gradient(circle at 30% 20%,#77714c66,#18241df5 75%);
+ color:#f5e7be;font:25px/1 system-ui,sans-serif;
+ box-shadow:inset 0 0 8px #0a100d;
+}
+#modal.world-sheet[data-kind="loot"] .loot-item-copy{
+ display:flex;flex:1;min-width:0;flex-direction:column;gap:4px;
+}
+#modal.world-sheet[data-kind="loot"] .loot-item-name{
+ display:block;font:700 14px/1.3 Georgia,serif;
+ overflow-wrap:anywhere;
+}
+#modal.world-sheet[data-kind="loot"] .loot-item-stats{
+ display:block;font:11px/1.4 system-ui,sans-serif;color:#c1bea7;
+ white-space:normal;overflow-wrap:anywhere;
+}
+#modal.world-sheet[data-kind="loot"] .loot-item-count{
+ flex:none;min-width:24px;align-self:center;text-align:right;
+ color:#f4dc9e;font:700 19px/1 Georgia,serif;
+}
+#modal.world-sheet[data-kind="loot"] .planet-loot-actions{
+ display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);
+ gap:8px;flex:none;margin:2px 0 0;padding:6px 0 0;
+ border-top:1px solid #86765170;
+}
+#modal.world-sheet[data-kind="loot"] .planet-loot-actions .choice{
+ min-height:46px;border-radius:5px;font-size:13px;
+}
+#modal.world-sheet[data-kind="loot"] .planet-loot-actions .choice:disabled{opacity:.6}
+@media(max-height:680px){
+ #modal.world-sheet[data-kind="loot"] #panel{height:min(385px,54dvh);padding:9px}
+ #modal.world-sheet[data-kind="loot"] #mbody{gap:5px}
+ #modal.world-sheet[data-kind="loot"] .loot-item{min-height:58px;padding:6px 8px;gap:8px}
+ #modal.world-sheet[data-kind="loot"] .loot-item-icon{width:40px;height:40px}
+ #modal.world-sheet[data-kind="loot"] .planet-loot-actions .choice{min-height:42px}
+}
+@media(prefers-reduced-motion:reduce){
+ #modal.world-sheet[data-kind="loot"] #panel{animation:none}
+}
