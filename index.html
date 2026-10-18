@@ -53,6 +53,7 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
 .actions a:hover{transform:translateY(-2px)}
 .play{color:#142322;background:#e3c68f}
 .atlas{background:#152932;color:#e8d9b7;border-color:#5d726f!important}
+.support-link{color:#e8d9b7;background:rgba(35,55,54,.54);border-color:#7b7660!important}
 .release{position:fixed;z-index:5;right:max(18px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;pointer-events:none;font:500 11px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:.10em;color:#a6b3af;opacity:.49}
 .release span+span::before{content:"·";margin-right:8px}
 
@@ -62,6 +63,7 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
  .planet-wrap{width:min(95vw, min(54dvh,510px));margin:8px auto 3px}
  .actions{gap:10px}
  .actions a{min-width:142px;flex:1 1 40%;max-width:205px;padding:11px 12px;min-height:50px}
+ .actions a.support-link{flex:0 1 70%;min-width:160px;max-width:205px;min-height:44px;padding:10px 12px}
  .release{font-size:10px;right:max(13px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom))}
 }
 @media(max-height:620px) and (orientation:landscape){
@@ -93,6 +95,7 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
  <nav class="actions" aria-label="Основные разделы">
   <a class="play" href="/nexgameworld/account.html">Войти в мир</a>
   <a class="atlas" href="/atlas">Открыть Атлас</a>
+  <a class="support-link" href="/support/">Поддержать проект</a>
  </nav>
 </main>
 <footer class="release" aria-label="Статус и актуальная версия NexGameWorld">
