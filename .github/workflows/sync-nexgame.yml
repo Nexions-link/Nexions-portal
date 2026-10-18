@@ -173,8 +173,27 @@ jobs:
           git -c user.name="github-actions[bot]" \
               -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
               commit -m "sync: update NexGameWorld game assets from Nexgame/main"
-          git push origin HEAD:main
-          echo "changed=true" >> "$GITHUB_OUTPUT"
+          # Other workflows or people can update portal/main after checkout.
+          # Replay our already-validated mirror commit onto the newest portal
+          # history, and retry a rejected non-fast-forward without force push.
+          for attempt in 1 2 3 4; do
+            git fetch origin main:refs/remotes/origin/main
+            if ! git -c user.name="github-actions[bot]" \
+                     -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+                     rebase -X theirs origin/main; then
+              git rebase --abort || true
+              echo "::error::Could not replay verified mirror changes over updated portal/main"
+              exit 1
+            fi
+            if git push origin HEAD:main; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::warning::Portal main advanced during sync (attempt $attempt/4); retrying"
+            sleep "$((attempt * 2))"
+          done
+          echo "::error::NexGameWorld mirror could not be published after four safe retries"
+          exit 1
 
       - name: Request Pages rebuild after a bot commit
         if: steps.sync.outputs.changed == 'true'
