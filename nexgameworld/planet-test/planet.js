@@ -5,7 +5,7 @@ import {cameraObstruction} from './sphere-physics.js?v=6';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=66';
-import {createSphericalPresence} from './sphere-online.js?v=8';
+import {createSphericalPresence} from './sphere-online.js?v=9';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=5';
 import {sampleSphericalFooting} from './foot-placement.js?v=1';
@@ -357,6 +357,15 @@ try {
     onCombat:(msg,selfId)=>rpg.onCombatEvent(msg,selfId),
     onKillCredit:msg=>rpg.onKillCredit(msg),
     onVerifiedProgress:(progress,source)=>rpg.applyServerProgress(progress,source),
+    onPositionCorrection:correction=>{
+      if(!Array.isArray(correction?.normal)||correction.normal.length!==3||
+         !correction.normal.every(Number.isFinite))return;
+      const oldLon=Math.atan2(state.normal.x,state.normal.z);
+      state.normal.set(...correction.normal).normalize();
+      state.lonUnwrapped+=angleDelta(Math.atan2(state.normal.x,state.normal.z),oldLon);
+      if(Number.isFinite(correction.heading))state.heading=angleDelta(correction.heading,0);
+      updateActor();
+    },
     onEconomyResult:event=>rpg.onEconomyResult(event),
     onAuthRejected:reason=>rpg.onPartyNotice({message:reason}),
     onMobAttack:msg=>rpg.onMobAttack(msg),

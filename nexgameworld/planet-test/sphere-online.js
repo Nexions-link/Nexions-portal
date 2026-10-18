@@ -52,10 +52,10 @@ export function createSphericalPresence({
  onPlayers,onMobs,onVitals,onCombat,onKillCredit,onMobAttack,onMobTelegraph,onRespawn,
  onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
  onChestState,onChestStatus,onChestResult,onCombatRejected,onDisconnect,
- onVerifiedProgress,onAuthRejected,onEconomyResult,
+ onVerifiedProgress,onAuthRejected,onEconomyResult,onPositionCorrection,
  auth=null,url=WORLD_URL
 }){
- let socket=null,closed=false,selfId=null,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null;
+ let socket=null,closed=false,selfId=null,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null,lastCorrection=0,onlineCount=1;
  const peers=new Map(),visuals=new Map();
  const east=new THREE.Vector3(),north=new THREE.Vector3(),fwd=new THREE.Vector3(),
   right=new THREE.Vector3(),matrix=new THREE.Matrix4();
@@ -73,7 +73,7 @@ export function createSphericalPresence({
   return {normal:p.normal,heading:Math.atan2(Math.sin(p.heading),Math.cos(p.heading)),
    radius:p.radius,moving:!!p.moving};
  };
- function onSnapshot(rows){
+ function onSnapshot(rows,count=null){
   const p=position();
   if(!p||!Array.isArray(rows))return;
   const seen=new Set();
@@ -95,7 +95,8 @@ export function createSphericalPresence({
    }
   }
   onPlayers?.([...peers.values()]);
-  status('online',seen.size+1);
+  if(Number.isInteger(count)&&count>=1)onlineCount=count;
+  status('online',onlineCount);
  }
  function connect(){
   if(closed||!url||typeof WebSocket==='undefined')return;
@@ -130,21 +131,32 @@ export function createSphericalPresence({
      status('incompatible');ws.close();return;
     }
     selfId=m.id;
-    onSnapshot(Array.isArray(m.players)?m.players:[]);
+    onSnapshot(Array.isArray(m.players)?m.players:[],m.onlineCount);
     if(Array.isArray(m.mobs))onMobs?.(m.mobs);
     onVitals?.(m);
     if(auth&&m.authenticated&&m.progress)onVerifiedProgress?.(m.progress,'welcome');
    }else if(m.type==='snapshot'&&m.protocol===PROTOCOL&&m.radius===p.radius){
-    onSnapshot(m.players);
+    onSnapshot(m.players,m.onlineCount);
     if(Array.isArray(m.mobs))onMobs?.(m.mobs);
     const own=m.players?.find(player=>player.id===selfId);
-    if(own)onVitals?.(own);
+    if(own){
+     onVitals?.(own);
+     const deviation=greatCircleDistance(p.normal,own.normal,p.radius);
+     if(validNormal(own.normal)&&deviation>2.2&&Date.now()-lastCorrection>800){
+      lastCorrection=Date.now();
+      onPositionCorrection?.({normal:own.normal,heading:own.heading,reason:'snapshot'});
+     }
+    }
+    }else if(m.type==='positionCorrection'&&validNormal(m.normal)){
+    lastCorrection=Date.now();
+    onPositionCorrection?.(m);
    }else if(m.type==='leave'&&typeof m.id==='string'){
     peers.delete(m.id);
     const visual=visuals.get(m.id);
     if(visual){disposeActor(visual.actor.root);visuals.delete(m.id)}
     onPlayers?.([...peers.values()]);
-    status('online',peers.size+1);
+    onlineCount=Math.max(1,onlineCount-1);
+    status('online',onlineCount);
    }else if(m.type==='combat')onCombat?.(m,selfId);
    else if(m.type==='killCredit')onKillCredit?.(m);
    else if(m.type==='mobAttack')onMobAttack?.(m);
