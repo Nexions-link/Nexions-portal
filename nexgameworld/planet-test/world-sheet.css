@@ -1,0 +1,41 @@
+/* Portrait windows preserve the live world in the upper half. */
+#modal.world-sheet{align-items:end;justify-items:center;padding:0 max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));background:none;pointer-events:none}
+#modal.world-sheet #panel{pointer-events:auto;box-sizing:border-box;width:min(520px,100%);max-height:52dvh;display:flex;flex-direction:column;overflow:hidden;padding:12px;border:3px ridge #a88c54;border-radius:12px 12px 4px 4px;box-shadow:0 -4px 22px #0007;animation:sheet-arrive .22s ease-out}
+#modal.world-sheet #panel h2{flex:none;font-size:20px;margin:0 45px 8px 0;padding:0;line-height:30px}
+#modal.world-sheet #panel>.eyebrow,#modal.world-sheet .ornament,#modal.world-sheet .panel-corner{display:none}
+#modal.world-sheet #modalClose{position:absolute;top:9px;right:9px;margin:0;width:34px;height:34px;min-width:34px}
+#modal.world-sheet #mbody{flex:1;min-height:0;max-height:none;overflow-y:auto}
+body:has(#modal.world-sheet:not([hidden])) :is(#stick,#stickBase,#actionsBar,#hotbarUtilities,#interact,#top,#quest){visibility:hidden;pointer-events:none}
+#modal.world-sheet #panel.chest-sheet{height:min(410px,48dvh);background:radial-gradient(ellipse at top,#3d3c2b,#181c18 90%);color:#e6d2aa}
+#modal.world-sheet .chest-sheet h2{color:#f3d898}
+#modal.world-sheet .chest-sheet #mbody{display:flex;flex-direction:column;gap:8px}
+.chest-tabs{display:flex;gap:6px;flex:none}
+.chest-tabs button{flex:1;min-height:38px;border:1px solid #85754c;border-radius:4px;background:#292e23;color:#bcb398;font:bold 12px system-ui;touch-action:manipulation}
+.chest-tabs button[aria-selected="true"]{background:#625333;border-color:#d9ba76;color:#ffdf9f}
+#modal.world-sheet .chest-sheet-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;margin:0;flex:none}
+#modal.world-sheet .chest-sheet-grid .inventory-slot{height:clamp(38px,6dvh,52px);min-width:0;padding:2px;touch-action:manipulation}
+.chest-sheet-grid .inventory-slot.selected{outline:2px solid #ffe6a3;outline-offset:-2px;background:#78603b}
+.chest-sheet-grid .inventory-slot:disabled{opacity:.6}
+.chest-selection{display:flex;align-items:center;gap:8px;flex:1;min-height:50px;padding:7px 0 0;border-top:1px solid #81734a;color:#c5bba0;font:12px/1.4 system-ui}
+.chest-selection>div{flex:1;min-width:0}
+.chest-selection strong,.chest-selection small{display:block;overflow-wrap:anywhere}
+.chest-selection small{margin-top:3px;color:#b9b39f;font-size:10px}
+.chest-selection button{flex:none;min-height:42px;padding:6px 12px;border:1px solid #b89c61;border-radius:4px;background:#55482d;color:#ffe3aa;font:bold 12px system-ui;touch-action:manipulation}
+.chest-selection button:disabled{opacity:.45}
+#modal.world-sheet .inventory-grid:not(.chest-sheet-grid){grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;margin:8px 0}
+#modal.world-sheet .inventory-slot{height:48px;min-width:0}
+#modal.world-sheet .slot-icon{font-size:25px}
+@keyframes sheet-arrive{from{transform:translateY(24px);opacity:.4}to{transform:translateY(0);opacity:1}}
+@media(prefers-reduced-motion:reduce){#modal.world-sheet #panel{animation:none}}
+@media(max-height:650px){
+ #modal.world-sheet #panel.chest-sheet{padding:8px}
+ #modal.world-sheet .chest-sheet h2{font-size:18px;line-height:26px;margin-bottom:4px}
+ #modal.world-sheet .chest-sheet #mbody{gap:4px}
+ #modal.world-sheet .chest-tabs button{min-height:32px}
+ #modal.world-sheet .chest-sheet-grid{gap:4px}
+ #modal.world-sheet .chest-sheet-grid .inventory-slot{height:34px}
+ #modal.world-sheet .chest-selection{min-height:46px;padding-top:4px}
+ #modal.world-sheet .chest-selection small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+}
+/* Clear the chest's animation area while inspecting it. */
+body:has(#modal.world-sheet[data-kind="chest"]:not([hidden])) #hudTop{visibility:hidden;pointer-events:none}

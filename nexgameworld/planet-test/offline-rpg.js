@@ -1,3 +1,4 @@
+import {createChestSheet} from './chest-sheet.js?v=1';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT} from './native-hotbar-art.js?v=1';
@@ -198,13 +199,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   paintChestLabel();
  }
  function onChestResult(event){
+  chestSheet.result(event);
   if(event?.ok&&Array.isArray(event.inventory)){
    state.inventory=event.inventory.filter(Boolean).map(row=>({id:row.id,qty:row.qty}));
    onlineChest={slots:event.slots,revision:event.revision,inventory:event.inventory};
    setChestUsed(event.slots,event.revision);
    persist();draw();
    if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
-  }else if(event?.reason)msg(event.reason);
+  }else {if(event?.reason)msg(event.reason);if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();}
  }
  let pendingServerGather=null;
  let lastServerScoutRequest=0;
@@ -747,10 +749,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function nearestInteraction(){
   return nearbyInteractable(entities,distance,camp.available);
  }
+ const chestSheet=createChestSheet({items:ITEM_CATALOG,qualityColors:QUALITY_VISUALS,
+  move:(...args)=>isOnline()?multiplayer.moveChest(...args):false,notify:msg});
  function openWindow(kind){
+  if(!modal.hidden&&modal.dataset.kind==='chest'&&kind!=='chest')closeWindow();
+  if(kind==='chest')chestSheet.reset();
   if(kind!=='gatherLoot')camp.cancel();
   modal.hidden=false;modal.dataset.kind=kind;
-  if(kind==='chest')gathering.setChestOpen(true);
+  if(kind==='chest'){gathering.setChestOpen(true);chestLabel.visible=false;}
   if(kind==='chest'&&isOnline()){
    const items=authenticatedProfile?serverBagSlots.map(row=>row?{...row}:null):[...state.inventory];
    while(items.length<12)items.push(null);
@@ -761,7 +767,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function closeWindow(){
   if(modal.dataset.kind==='chest'){
-   gathering.setChestOpen(false);
+   gathering.setChestOpen(false);chestLabel.visible=true;
    if(isOnline())multiplayer.closeChest();
   }
   modal.hidden=true;pendingLoot=null;
@@ -986,6 +992,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function renderModal(){
   const kind=modal.dataset.kind,title=$('mtitle'),body=$('mbody');
+  modal.classList.toggle('world-sheet',['chest','bag','loot','gatherLoot','merchant','mentor','herbalist','quests','spells'].includes(kind));
+  $('panel').classList.toggle('chest-sheet',kind==='chest');
   $('panel').classList.toggle('character-modal',kind==='character');
   $('panel').classList.toggle('inventory-modal',kind==='bag');
   $('msub').textContent=isOnline()?'NEXGAMEWORLD · ОБЩИЙ МИР':'NEXGAMEWORLD · ЛОКАЛЬНЫЙ РЕЖИМ';
@@ -1027,22 +1035,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    ]);
    return;
   }
-  if(kind==='chest'&&isOnline()){
-   if(!onlineChest?.slots){line('Общий сундук','Загружаем 18 ячеек с сервера…');return;}
-   line('Общий сундук','18 ячеек синхронизируются через Render.');
-   for(let i=0;i<onlineChest.slots.length;i++){
-    const item=onlineChest.slots[i],def=ITEM_CATALOG[item?.id];
-    if(item)line('Ячейка '+(i+1)+' · '+(def?.name||item.id),'×'+item.qty,
-     [['Забрать',()=>multiplayer.moveChest('withdraw',i,crypto.randomUUID())]]);
-   }
-   line('Рюкзак','Нажми «Положить», чтобы переместить предмет.');
-   (onlineChest.inventory||state.inventory).forEach((item,i)=>{
-    if(!item)return;
-    const def=ITEM_CATALOG[item.id];
-    if(def&&!def.quest)
-     line(def.name+' ×'+item.qty,'Ячейка '+(i+1),
-      [['Положить',()=>multiplayer.moveChest('deposit',i,crypto.randomUUID())]]);
-   });
+  if(kind==='chest'&&(isOnline()||authenticatedProfile)){
+   title.textContent='Общий сундук';
+   chestSheet.render(body,onlineChest,{connected:isOnline()});
    return;
   }
   if(authenticatedProfile&&kind==='herbalist'){
@@ -1345,7 +1340,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  canvas.addEventListener('pointercancel',e=>startPointer.delete(e.pointerId));
  canvas.addEventListener('pointerup',e=>{
   const start=startPointer.get(e.pointerId);startPointer.delete(e.pointerId);
-  if(!start||Math.hypot(e.clientX-start.x,e.clientY-start.y)>14)return;
+  if(!modal.hidden||!start||Math.hypot(e.clientX-start.x,e.clientY-start.y)>14)return;
   const rect=canvas.getBoundingClientRect();
   const x=(e.clientX-rect.left)/rect.width*2-1,y=-((e.clientY-rect.top)/rect.height*2-1);
   picker.setFromCamera(new THREE.Vector2(x,y),camera);
@@ -1639,6 +1634,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
   setMultiplayer,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
   onVitals,onCombatEvent,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobTelegraph,onNetworkRespawn,onMobSnapshot,
-  get movementLocked(){return timeline.stompProgress>=0},
+  get movementLocked(){return !modal.hidden||timeline.stompProgress>=0},
+  getWindowView(){
+   if(modal.hidden||!modal.className.split(' ').includes('world-sheet'))return null;
+   return {height:$('panel').getBoundingClientRect().height,focus:modal.dataset.kind==='chest'?gathering.chest.root.localToWorld(new THREE.Vector3(0,1,0)):null};
+  },
   getAnimationState,getQuestMapState,setVisualQuality,updateQuestMarkers,draw,get state(){return state}};
 }

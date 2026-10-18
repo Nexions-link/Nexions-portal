@@ -4,7 +4,7 @@ import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction} from './sphere-physics.js?v=5';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=59';
+import {createOfflineRpg} from './offline-rpg.js?v=60';
 import {createSphericalPresence} from './sphere-online.js?v=6';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=5';
@@ -669,7 +669,8 @@ try {
     c.restore();
   }
 
-  let cameraSnap = true;
+  let cameraSnap = true,windowOffset=0,chestCameraOffset=null;
+  const windowFocus=new THREE.Vector3();let hasWindowFocus=false;
   const clock = new THREE.Clock();
   let elapsed = 0, uiClock = 0, introClock = 0;
   let fpsSeconds=0,fpsFrames=0;
@@ -751,6 +752,7 @@ try {
       dt,time:elapsed,walk:power,phase:state.legCycle,terrainFeet,...rpg.getAnimationState()
     });
 
+    const windowView=rpg.getWindowView();
     if (state.orbit) {
       const r = R * state.orbitDistance;
       const horizontalRadius = r * Math.cos(state.orbitElevation);
@@ -770,6 +772,17 @@ try {
       if (cameraGoal.length() < minRadius) cameraGoal.normalize().multiplyScalar(minRadius);
       camera.up.copy(state.normal);
     }
+    if(windowView?.focus&&!state.orbit){
+      // View the lid from beside the player rather than through their back.
+      focus.copy(windowView.focus);
+      if(chestCameraOffset===null){
+        const towardPlayer=hero.root.position.clone().sub(focus);
+        chestCameraOffset=Math.atan2(towardPlayer.dot(tangentNorth),towardPlayer.dot(tangentEast))+1.05-state.cameraHeading;
+      }
+      const angle=state.cameraHeading+chestCameraOffset;
+      camForward.copy(tangentEast).multiplyScalar(Math.cos(angle)).addScaledVector(tangentNorth,Math.sin(angle));
+      cameraGoal.copy(focus).addScaledVector(camForward,4.5).addScaledVector(state.normal,3);
+    }else chestCameraOffset=null;
     if(!state.orbit){
       const where=normalToLocal(state.normal,R);
       startZone.updateInteriorView(where.x,where.z);
@@ -794,7 +807,18 @@ try {
       const min=R+heightAt(n)+.8;
       if(camera.position.length()<min)camera.position.copy(n.multiplyScalar(min));
     }
-    camera.lookAt(focus);
+    // Lift the scene above the sheet without changing saved camera settings.
+    windowOffset+=((windowView?.height||0)/2-windowOffset)*(1-Math.exp(-dt*10));
+    if(windowView?.focus){
+      if(!hasWindowFocus)windowFocus.copy(focus);
+      windowFocus.lerp(windowView.focus,1-Math.exp(-dt*8));hasWindowFocus=true;
+    }else if(hasWindowFocus){
+      windowFocus.lerp(focus,1-Math.exp(-dt*10));
+      if(windowFocus.distanceToSquared(focus)<.0001)hasWindowFocus=false;
+    }
+    if(windowOffset>.1)camera.setViewOffset(innerWidth,innerHeight,0,windowOffset,innerWidth,innerHeight);
+    else if(camera.view?.enabled)camera.clearViewOffset();
+    camera.lookAt(hasWindowFocus?windowFocus:focus);
     rpg.updateQuestMarkers();
     if(shadowActive){
       // Keep the 62-metre shadow frustum centred around the active character.
