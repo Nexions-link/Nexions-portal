@@ -34,3 +34,11 @@ test('shared chest locks movement, preserves camera settings, and closes lid whe
  h.get('bag').click();assert.equal(closed,1);assert.equal(h.rpg.getWindowView()?.focus,null);
  h.get('modalClose').click();assert.equal(h.rpg.getWindowView(),null);assert.equal(h.rpg.movementLocked,false);
 });
+test('rejected chest open closes the loading sheet and releases movement with a readable message',()=>{
+ const h=harness({x:OFFLINE_CHEST.x,z:OFFLINE_CHEST.z});
+ h.rpg.setMultiplayer({connected:true,openChest(){return true},closeChest(){}});
+ h.rpg.interact();assert.equal(h.rpg.movementLocked,true);
+ h.rpg.onChestResult({kind:'chestOpen',ok:false,reason:'interaction_too_far'});
+ assert.equal(h.get('modal').hidden,true);assert.equal(h.rpg.movementLocked,false);
+ assert.equal(h.get('toast').textContent,'Подойди ближе к сундуку');
+});

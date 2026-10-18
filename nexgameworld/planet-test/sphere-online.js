@@ -55,7 +55,7 @@ export function createSphericalPresence({
  onVerifiedProgress,onAuthRejected,onEconomyResult,
  auth=null,url=WORLD_URL
 }){
- let socket=null,closed=false,selfId=null,joinedRadius=null,retry=null,sendLoop=null;
+ let socket=null,closed=false,selfId=null,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null;
  const peers=new Map(),visuals=new Map();
  const east=new THREE.Vector3(),north=new THREE.Vector3(),fwd=new THREE.Vector3(),
   right=new THREE.Vector3(),matrix=new THREE.Matrix4();
@@ -110,7 +110,11 @@ export function createSphericalPresence({
    else send({type:'join',name:'Странник',...p,...getCharacter?.()});
    sendLoop=setInterval(()=>{
     if(ws.readyState!==WebSocket.OPEN||(auth&&!selfId))return;
-    const p=position();if(p)send({type:'move',...p,...(auth?{}:getCharacter?.())});
+    const p=position();if(p){
+     send({type:'move',...p,...(auth?{}:getCharacter?.())});
+     // Same socket preserves ordering: proximity checks see the latest movement.
+     if(pendingChestOpen){send(pendingChestOpen);pendingChestOpen=null;}
+    }
    },100);
   };
   ws.onmessage=event=>{
@@ -160,7 +164,7 @@ export function createSphericalPresence({
   };
   ws.onclose=event=>{
    if(socket!==ws)return;
-   socket=null;selfId=null;joinedRadius=null;
+   socket=null;selfId=null;joinedRadius=null;pendingChestOpen=null;
    clearInterval(sendLoop);sendLoop=null;
    stopPeers();
    onPlayers?.([]);onMobs?.(null);onDisconnect?.();
@@ -233,10 +237,13 @@ export function createSphericalPresence({
   leaveParty:()=>send({type:'partyLeave'}),
   sendChat:(channel,text)=>send({type:'chatSend',channel,text}),
   requestChestStatus:()=>send({type:'chestStatus'}),
-  openChest:inventory=>send({type:'chestOpen',...(auth?{}:{inventory})}),
+  openChest:inventory=>{
+   if(!selfId||socket?.readyState!==WebSocket.OPEN)return false;
+   pendingChestOpen={type:'chestOpen',...(auth?{}:{inventory})};return true;
+  },
   moveChest:(action,slot,requestId)=>send({type:'chestMove',action,slot,requestId}),
   economy:(kind,params={})=>auth&&send({type:'economyAction',kind,...params}),
-  closeChest:()=>send({type:'chestClose'}),
+  closeChest:()=>{pendingChestOpen=null;return send({type:'chestClose'});},
   get players(){return [...peers.values()]},
   get connected(){return socket?.readyState===WebSocket.OPEN&&!!selfId}
  };

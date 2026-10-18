@@ -1,4 +1,4 @@
-import {createChestSheet} from './chest-sheet.js?v=1';
+import {createChestSheet} from './chest-sheet.js?v=2';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT} from './native-hotbar-art.js?v=1';
@@ -19,7 +19,7 @@ import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=1';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
 import {createCameraTargetFilter} from './camera-targeting.js?v=1';
-import {createHostileTargetCycle,nearbyInteractable} from './interaction-targeting.js?v=11';
+import {createHostileTargetCycle,nearbyInteractable} from './interaction-targeting.js?v=12';
 import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v=1';
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
@@ -206,7 +206,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    setChestUsed(event.slots,event.revision);
    persist();draw();
    if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
-  }else {if(event?.reason)msg(event.reason);if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();}
+  }else {
+   const labels={interaction_too_far:'Подойди ближе к сундуку',untrusted_interaction_context:'Нельзя открыть сундук во время боя',chest_not_open:'Открой сундук заново',chest_transfer_rejected:'В сундуке или рюкзаке нет места',pending_server_inventory:'Дождись загрузки персонажа',server_save_failed:'Сундук временно недоступен'};
+   if(!modal.hidden&&modal.dataset.kind==='chest'&&(!onlineChest?.slots||event?.kind==='chestOpen'))closeWindow();
+   if(event?.reason)msg(labels[event.reason]||'Не удалось переместить предмет. Открой сундук заново.');
+   if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
+  }
  }
  let pendingServerGather=null;
  let lastServerScoutRequest=0;
@@ -761,7 +766,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const items=authenticatedProfile?serverBagSlots.map(row=>row?{...row}:null):[...state.inventory];
    while(items.length<12)items.push(null);
    onlineChest={slots:null,inventory:items};
-   multiplayer.openChest(items);
+   if(multiplayer.openChest(items)===false){closeWindow();msg('Нет связи с сервером');return;}
   }
   renderModal();
  }
@@ -1637,7 +1642,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   get movementLocked(){return !modal.hidden||timeline.stompProgress>=0},
   getWindowView(){
    if(modal.hidden||!modal.className.split(' ').includes('world-sheet'))return null;
-   return {height:$('panel').getBoundingClientRect().height,focus:modal.dataset.kind==='chest'?gathering.chest.root.localToWorld(new THREE.Vector3(0,1,0)):null};
+   let focus=null;
+   if(modal.dataset.kind==='chest'){
+    focus=gathering.chest.root.localToWorld(new THREE.Vector3(0,1.1,0));
+    focus.lerp(hero.root.position.clone().addScaledVector(playerNormal(),1.8),.5);
+   }
+   return {height:$('panel').getBoundingClientRect().height,focus};
   },
   getAnimationState,getQuestMapState,setVisualQuality,updateQuestMarkers,draw,get state(){return state}};
 }

@@ -4,8 +4,8 @@ import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction} from './sphere-physics.js?v=5';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=60';
-import {createSphericalPresence} from './sphere-online.js?v=6';
+import {createOfflineRpg} from './offline-rpg.js?v=61';
+import {createSphericalPresence} from './sphere-online.js?v=7';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=5';
 import {sampleSphericalFooting} from './foot-placement.js?v=1';
@@ -777,11 +777,23 @@ try {
       focus.copy(windowView.focus);
       if(chestCameraOffset===null){
         const towardPlayer=hero.root.position.clone().sub(focus);
-        chestCameraOffset=Math.atan2(towardPlayer.dot(tangentNorth),towardPlayer.dot(tangentEast))+1.05-state.cameraHeading;
+        const base=Math.atan2(towardPlayer.dot(tangentNorth),towardPlayer.dot(tangentEast));
+        let bestAngle=base+1.15,bestClearance=-1;
+        const where=normalToLocal(state.normal,R);
+        // The chest is in a corner: choose the side with room for a wide shot.
+        for(const offset of [1.15,-1.15,1.6,-1.6,.8,-.8]){
+          const angle=base+offset;
+          const direction=tangentEast.clone().multiplyScalar(Math.cos(angle)).addScaledVector(tangentNorth,Math.sin(angle));
+          const desired=focus.clone().addScaledVector(direction,9).addScaledVector(state.normal,4.2);
+          const hit=cameraObstruction(THREE,{start:focus,desired,getRadius:()=>R,toLocal:normalToLocal,heightAt,heroLocal:where,clearance:.82});
+          const clearance=(hit||desired).distanceToSquared(focus);
+          if(clearance>bestClearance){bestClearance=clearance;bestAngle=angle;}
+        }
+        chestCameraOffset=bestAngle-state.cameraHeading;
       }
       const angle=state.cameraHeading+chestCameraOffset;
       camForward.copy(tangentEast).multiplyScalar(Math.cos(angle)).addScaledVector(tangentNorth,Math.sin(angle));
-      cameraGoal.copy(focus).addScaledVector(camForward,4.5).addScaledVector(state.normal,3);
+      cameraGoal.copy(focus).addScaledVector(camForward,9).addScaledVector(state.normal,4.2);
     }else chestCameraOffset=null;
     if(!state.orbit){
       const where=normalToLocal(state.normal,R);
