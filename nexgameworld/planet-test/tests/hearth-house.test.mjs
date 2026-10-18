@@ -84,3 +84,18 @@ test('Atlas GLB remains intact with Open and Close animations',()=>{
  motion.select('Close');assert.equal(hinge.rotation.x,half);
  motion.update(3);assert.ok(Math.abs(hinge.rotation.x)<1e-6);
 });
+
+test('every active browser geometry consumer uses the current shared module URL',()=>{
+ // A warm Safari cache must not mix the old chest anchor with the new server.
+ const consumers=['gather-world.js','start-zone.js','sphere-physics.js','interaction-targeting.js'];
+ for(const name of consumers){
+  const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
+  const imports=[...source.matchAll(/hearth-house\.js\?v=([^'"\s]+)/g)];
+  assert.ok(imports.length>0,name);
+  assert.ok(imports.every(row=>row[1]==='3'),name+' requests a stale geometry module');
+ }
+ for(const [name,dependency,version] of [['planet.js','start-zone.js','25'],['planet.js','offline-rpg.js','62'],['offline-rpg.js','gather-world.js','13'],['offline-rpg.js','camp-actions.js','12']]){
+  const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
+  assert.ok(source.includes(dependency+'?v='+version),name+' must invalidate its geometry dependency');
+ }
+});

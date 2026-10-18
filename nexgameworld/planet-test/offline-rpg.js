@@ -11,15 +11,15 @@ import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';
-import {GATHER_QUESTS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=12';
-import {createCampActions} from './camp-actions.js?v=11';
+import {GATHER_QUESTS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=13';
+import {createCampActions} from './camp-actions.js?v=12';
 import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1';
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=1';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
 import {createCameraTargetFilter} from './camera-targeting.js?v=1';
-import {createHostileTargetCycle,nearbyInteractable} from './interaction-targeting.js?v=12';
+import {createHostileTargetCycle,nearbyInteractable} from './interaction-targeting.js?v=13';
 import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v=1';
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
@@ -31,8 +31,8 @@ import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
 import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v=1';
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
 import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
-import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=5';
-import {canWadeAtLocal} from './start-zone.js?v=20';
+import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=6';
+import {canWadeAtLocal} from './start-zone.js?v=25';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
@@ -188,7 +188,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function onChestState(event){
   onlineChest={...(onlineChest||{}),...event};
   if(Array.isArray(event?.slots))setChestUsed(event.slots,event.revision);
-  if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
+  if(!modal.hidden&&modal.dataset.kind==='chest'){
+   if(Array.isArray(event?.slots)){gathering.setChestOpen(true);chestLabel.visible=false;}
+   renderModal();
+  }
  }
  function onChestStatus(event){
   if(!Number.isInteger(event?.occupied)||event.occupied<0||
@@ -761,7 +764,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(kind==='chest')chestSheet.reset();
   if(kind!=='gatherLoot')camp.cancel();
   modal.hidden=false;modal.dataset.kind=kind;
-  if(kind==='chest'){gathering.setChestOpen(true);chestLabel.visible=false;}
+  if(kind==='chest'&&!isOnline()&&!authenticatedProfile){gathering.setChestOpen(true);chestLabel.visible=false;}
   if(kind==='chest'&&isOnline()){
    const items=authenticatedProfile?serverBagSlots.map(row=>row?{...row}:null):[...state.inventory];
    while(items.length<12)items.push(null);
@@ -1643,7 +1646,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   getWindowView(){
    if(modal.hidden||!modal.className.split(' ').includes('world-sheet'))return null;
    let focus=null;
-   if(modal.dataset.kind==='chest'){
+   if(modal.dataset.kind==='chest'&&(!(isOnline()||authenticatedProfile)||Array.isArray(onlineChest?.slots))){
     focus=gathering.chest.root.localToWorld(new THREE.Vector3(0,1.1,0));
     focus.lerp(hero.root.position.clone().addScaledVector(playerNormal(),1.8),.5);
    }
