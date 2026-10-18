@@ -1608,7 +1608,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  let resetPosition=null;
  function onRespawn(fn){resetPosition=fn;}
  let questMarkerQuality=.68;
- function updateQuestMarkers(){questMarkers.update(clock,questMarkerQuality);}
+ function updateQuestMarkers(){
+  const name=mentor.root.getObjectByName('mentor-name');
+  if(name)name.material.depthTest=distance(mentor)>16;
+  questMarkers.update(clock,questMarkerQuality);
+ }
  function setVisualQuality(detail){
   combatVfx.setQuality(detail);
   camp.setVisualQuality(detail);
