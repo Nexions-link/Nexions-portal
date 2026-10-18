@@ -40,6 +40,7 @@ import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
 import {rollCreatureLoot} from './loot-tables.js?v=1';
+import {creatureTypeForMob,CREATURE_TYPE_LABELS,CORPSE_COIN_ID,isValidCorpseCoins} from './creature-types.js?v=1';
 import {DOLGONOG_SPAWNS,mobLevelForIndex,mobBaseExperience,monsterKillExperience,monsterDifficulty,MONSTER_LEVEL_COLORS,monsterMaxHealth,monsterAttackDamage} from './mob-levels.js?v=1';
 import {sellInventorySlot,buyBackFromMerchant,restoreBuyback} from './merchant-trade.js?v=1';
 
@@ -263,13 +264,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(event.ok&&['lootAvailable','lootOpen','lootInspect','lootTake'].includes(event.kind)){
    const mob=mobs.find(e=>'dolgonog-'+e.index===event.mobId);
    if(!mob||mob.life!==event.life)return;
-   mob.loot=(Array.isArray(event.loot)?event.loot:[]).filter(row=>ITEM_CATALOG[row?.id]&&Number.isInteger(row.qty)&&row.qty>0).map(row=>({...row}));
+   mob.loot=(Array.isArray(event.loot)?event.loot:[]).filter(row=>
+    (ITEM_CATALOG[row?.id]&&Number.isInteger(row.qty)&&row.qty>0)||
+    isValidCorpseCoins(row)).map(row=>({...row}));
    mob.lootKnown=true;updateLootMarker(mob);
    if(event.kind==='lootOpen'){pendingLoot=mob;openWindow('loot')}
    else if(event.kind==='lootTake'&&pendingLoot===mob&&!modal.hidden&&modal.dataset.kind==='loot'){
     if(!mob.loot.length)finishCorpseLoot(mob);else renderModal();
    }
-   if(event.taken?.length)msg('Получено: '+event.taken.map(row=>(ITEM_CATALOG[row.id]?.name||row.id)+(row.qty>1?' ×'+row.qty:'')).join(', '));
+   if(event.taken?.length)msg('Получено: '+event.taken.map(row=>row.id===CORPSE_COIN_ID?'Монеты +'+row.qty:(ITEM_CATALOG[row.id]?.name||row.id)+(row.qty>1?' ×'+row.qty:'')).join(', '));
    draw();return;
   }
   if(!event.ok){
@@ -372,10 +375,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    let gained=state.xp-previousXp;
    for(let level=previousLevel;level<state.level&&level<60;level++)gained+=xpRequired(level);
    gained=Math.max(0,gained);
-   const gold=Math.max(0,state.gold-previousGold);
    msg(gained>0?
-    'Получено +'+gained+' опыта, +'+gold+' монет. Добыча с тела.':
-    'Противник слишком слаб: 0 опыта, +'+gold+' монет. Добыча с тела.',2.6);
+    'Получено +'+gained+' опыта. Осмотри тело для получения добычи.':
+    'Противник слишком слаб: 0 опыта. Добыча остаётся на теле.',2.6);
   }
  }
  function onKillCredit(event){
@@ -385,9 +387,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const key=event.mobId+':'+event.life;
   if(receivedCredits.has(key))return;
   receivedCredits.add(key);
-  mob.loot=Array.isArray(event.loot)?event.loot.filter(row=>row&&ITEM_CATALOG[row.id]&&Number.isInteger(row.qty)&&row.qty>0).map(row=>({...row})):[];
+  mob.loot=Array.isArray(event.loot)?event.loot.filter(row=>row&&((ITEM_CATALOG[row.id]&&Number.isInteger(row.qty)&&row.qty>0)||isValidCorpseCoins(row))).map(row=>({...row})):[];
   const gainedXp=monsterKillExperience(state.level,mob.level,mobBaseExperience(mob.level,mob.boss));
-  state.xp+=gainedXp;state.gold+=Number(event.gold)||0;
+  state.xp+=gainedXp; // Coins are never awarded by a kill event.
   mentorChain.killed(mob);levelCheck();persist();updateLootMarker(mob);draw();
   msg('Награда за '+mob.name+': опыт '+gainedXp);
  }
@@ -532,7 +534,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   beak.rotation.x=Math.PI/2;beak.position.set(0,2.17,1.1);fallback.add(beak);
   for(const side of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.08,.075,1.2,6),mat);leg.position.set(side*.25,.6,0);fallback.add(leg);}
   const entity={kind:'mob',index:i,level:mobLevelForIndex(i),name:'Равнинный долгоног',lootId:'dolgonog',root,x,z,yaw:.1,
-   spawnX:x,spawnZ:z,hp:monsterMaxHealth(mobLevelForIndex(i)),maxHp:monsterMaxHealth(mobLevelForIndex(i)),aggro:false,attackCd:1.2,stun:0,dead:0,loot:null,corpse:false,
+   spawnX:x,spawnZ:z,creatureType:creatureTypeForMob(i),hp:monsterMaxHealth(mobLevelForIndex(i)),maxHp:monsterMaxHealth(mobLevelForIndex(i)),aggro:false,attackCd:1.2,stun:0,dead:0,loot:null,corpse:false,
    respawn:0,returning:false,walk:0,visual:null,hit:0,attackWindup:0,alertRemaining:0,corpseAge:0,boss:false,contactShadow,roamTime:i*1.73,navigation:null};
   const tag=makeLabel(entity.name+' · ур. '+entity.level,'#f9df91',26);tag.position.y=4.25;root.add(tag);entity.nameTag=tag;
   const alertTag=makeLabel('!','#ffc978',78);
@@ -764,6 +766,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    return;
   }
+  const selected=mob.loot?.[index];
+  if(selected?.id===CORPSE_COIN_ID){
+   if(!isValidCorpseCoins(selected))return lootNotice('Некорректная сумма монет');
+   state.gold+=selected.qty;mob.loot.splice(index,1);persist();updateLootMarker(mob);
+   const received='Получено монет: '+selected.qty;
+   if(!mob.loot.length){finishCorpseLoot(mob);msg(received);}
+   else{renderModal();lootNotice(received);draw();}
+   return;
+  }
   const result=takeCorpseRow(mob,index,corpseLootServices());
   if(!result.ok)return lootNotice(result.reason==='full'?'Рюкзак заполнен — предмет остался в теле':'Добыча недоступна');
   updateLootMarker(mob);
@@ -783,11 +794,17 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    return;
   }
+  let collectedCoins=0;
+  mob.loot=mob.loot.filter(row=>{
+   if(row.id!==CORPSE_COIN_ID||!isValidCorpseCoins(row))return true;
+   collectedCoins+=row.qty;return false;
+  });
+  if(collectedCoins){state.gold+=collectedCoins;persist();}
   const result=takeAllCorpseRows(mob,corpseLootServices());
   updateLootMarker(mob);
-  if(!result.taken.length)return lootNotice('Рюкзак заполнен — добыча осталась в теле');
+  if(!result.taken.length&&!collectedCoins)return lootNotice('Рюкзак заполнен — добыча осталась в теле');
   if(!result.remaining){
-   finishCorpseLoot(mob);msg('Собрано предметов: '+result.taken.length);
+   finishCorpseLoot(mob);msg('Собрано предметов: '+result.taken.length+(collectedCoins?' · Монеты: +'+collectedCoins:''));
   }else{
    renderModal();lootNotice('Часть добычи осталась в теле — рюкзак заполнен');draw();
   }
@@ -928,7 +945,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    enemy.loot=rollCreatureLoot(enemy.lootId);
    updateLootMarker(enemy);
    const gainedXp=monsterKillExperience(state.level,enemy.level,mobBaseExperience(enemy.level,enemy.boss));
-   state.xp+=gainedXp;state.gold+=enemy.boss?12:4;
+   state.xp+=gainedXp; // Beasts drop no coins.
    levelCheck();mentorChain.killed(enemy);
    if(!enemy.boss)msg('Долгоног повержен · '+(gainedXp?'+'+gainedXp+' опыта · ':'0 опыта · ')+'доступна добыча');
    persist();
@@ -1017,7 +1034,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     $('targetFill').style.width=clamp(target.hp/target.maxHp*100,0,100)+'%';
     $('targetHp').textContent=Math.ceil(target.hp)+' / '+target.maxHp;
     $('targetDistance').textContent='Дистанция: '+pretty(distance(target))+' м';
-    $('targetStatus').textContent=target.corpse?'Доступна добыча':autoplay?'Автоатака':'Нажми 1 для автоатаки';
+    const status=target.corpse?'Доступна добыча':autoplay?'Автоатака':'Нажми 1 для автоатаки';
+    $('targetStatus').textContent=target.kind==='mob'?
+     (CREATURE_TYPE_LABELS[target.creatureType]||'Существо')+' · '+status:status;
     $('dummyStats').hidden=target.kind!=='dummy';
   }
   const stage=state.quest,lines=QUEST_LINES[stage]||QUEST_LINES[12];
@@ -1184,25 +1203,26 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const list=document.createElement('div');list.className='loot-list';
    list.setAttribute('aria-label','Предметы, оставшиеся на теле');
    corpse.loot.forEach((item,index)=>{
+    const isMoney=item.id===CORPSE_COIN_ID;
     const def=ITEM_CATALOG[item.id],rarity=itemRarity(def?.rarity);
     const button=document.createElement('button');button.type='button';button.className='loot-item';
     button.dataset.rarity=rarity;
     button.disabled=!!pendingLootTake;
-    button.setAttribute('aria-label','Взять '+(def?.name||item.id)+', '+item.qty+' шт.');
+    button.setAttribute('aria-label',isMoney?'Забрать '+item.qty+' монет':'Взять '+(def?.name||item.id)+', '+item.qty+' шт.');
     const icon=document.createElement('span');icon.className='loot-item-icon';
-    icon.textContent=def?.icon||'◆';icon.setAttribute('aria-hidden','true');
+    icon.textContent=isMoney?'🪙':def?.icon||'◆';icon.setAttribute('aria-hidden','true');
     const copy=document.createElement('span');copy.className='loot-item-copy';
     const name=document.createElement('span');name.className='loot-item-name';
-    name.textContent=def?.name||item.id;
+    name.textContent=isMoney?'Монеты':def?.name||item.id;
     name.style.color=QUALITY_VISUALS[rarity]?.color||'#e6d2aa';
     const sub=document.createElement('small');sub.className='loot-item-stats';
     const stats=[def?.armor?'Броня '+def.armor:null,def?.strength?'Сила +'+def.strength:null,
      def?.stamina?'Выносливость +'+def.stamina:null].filter(Boolean).join(' · ');
-    sub.textContent=stats||(def?.slot?LABEL[def.slot]+' · '+(def.quality||'Снаряжение'):
+    sub.textContent=isMoney?'Зачисляются в кошелёк при получении':stats||(def?.slot?LABEL[def.slot]+' · '+(def.quality||'Снаряжение'):
      def?.description||'Предмет для продажи');
     copy.append(name,sub);
     const count=document.createElement('span');count.className='loot-item-count';
-    count.textContent=item.qty>1?'×'+item.qty:'›';
+    count.textContent=isMoney?'+'+item.qty:item.qty>1?'×'+item.qty:'›';
     button.append(icon,copy,count);
     button.addEventListener('click',()=>takeLootFromCorpse(corpse,index));
     list.append(button);
