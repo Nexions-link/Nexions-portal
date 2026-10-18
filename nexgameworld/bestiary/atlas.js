@@ -69,16 +69,17 @@ function paintCreatureLoot(entry){
  function renderRow(row){
   const item=ITEM_CATALOG[row.id],node=document.createElement('div');
   node.className='creature-loot-row';node.dataset.rarity=item?.rarity||'common';
-  const icon=document.createElement('span');icon.className='loot-icon';icon.textContent=item?.icon||'◇';
+  const icon=document.createElement('span');icon.className='loot-icon';icon.textContent=row.id==='coins'?'🪙':item?.icon||'◇';
   const body=document.createElement('span');body.className='loot-name';
-  const title=document.createElement('strong');title.textContent=item?.name||row.id;
+  const title=document.createElement('strong');title.textContent=row.id==='coins'?'Монеты':item?.name||row.id;
   const sub=document.createElement('small');
-  sub.textContent='Кол-во: '+(row.min===row.max?row.min:row.min+'–'+row.max)+' · '+(item?.quality||'Обычный');
+  sub.textContent='Кол-во: '+(row.min===row.max?row.min:row.min+'–'+row.max)+' · '+(row.id==='coins'?'Валюта':item?.quality||'Обычный');
   body.append(title,sub);
   const chance=document.createElement('strong');chance.className='loot-chance';
   chance.textContent=(row.chance*100).toLocaleString('ru-RU',{maximumFractionDigits:2})+'%';
   node.append(icon,body,chance);return node;
  }
+ if(entry.id==='bandit')host.append(renderRow({id:'coins',chance:1,min:5,max:13}));
  for(const row of all.filter(r=>r.group==='materials'))host.append(renderRow(row));
  const gear=all.filter(r=>r.group==='equipment');
  if(gear.length){

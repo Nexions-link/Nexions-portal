@@ -7,6 +7,7 @@ export const BANDIT_CAMP=Object.freeze({x:-43,z:15});
 export const BANDIT_QUEST_GIVER=Object.freeze({x:-20,z:13,range:4.7});
 export const BANDIT_SPAWNS=Object.freeze([[-40,9],[-46,15],[-48,21]].map(p=>Object.freeze(p)));
 export const BANDIT_QUEST_KILLS=3;
+export const BANDIT_QUEST_MIN_LEVEL=3;
 export const CREATURE_SPAWNS=Object.freeze([
  ...DOLGONOG_SPAWNS.map(([x,z],i)=>Object.freeze({
   id:'dolgonog-'+i,index:i,x,z,

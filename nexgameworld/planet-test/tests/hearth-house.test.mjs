@@ -94,7 +94,7 @@ test('every active browser geometry consumer uses the current shared module URL'
   assert.ok(imports.length>0,name);
   assert.ok(imports.every(row=>row[1]==='3'),name+' requests a stale geometry module');
  }
- for(const [name,dependency,version] of [['planet.js','start-zone.js','25'],['planet.js','offline-rpg.js','74'],['offline-rpg.js','gather-world.js','13'],['offline-rpg.js','camp-actions.js','12']]){
+ for(const [name,dependency,version] of [['planet.js','start-zone.js','25'],['planet.js','offline-rpg.js','75'],['offline-rpg.js','gather-world.js','13'],['offline-rpg.js','camp-actions.js','12']]){
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   assert.ok(source.includes(dependency+'?v='+version),name+' must invalidate its geometry dependency');
  }
