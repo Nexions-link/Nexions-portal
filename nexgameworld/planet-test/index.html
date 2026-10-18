@@ -71,12 +71,6 @@
 @media(max-width:440px){#mbody .planetEquipmentGrid{gap:5px}#mbody .planetEquipmentGrid .equipment-slot{min-height:70px;padding:4px 2px}#mbody .planetEquipmentGrid .equipment-slot small{font-size:9px}}
 
 #mbody{max-height:calc(79dvh - 135px);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
-#mbody #radiusPicker{display:block!important;border:1px solid #977a4c;background:#d1b98142;padding:10px;margin:7px 0 12px}
-#radiusPicker .caption{text-align:center;font:700 12px system-ui,sans-serif;color:#4b3623}
-#radiusChoices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:11px 0}
-.radius-choice{border:2px ridge #947449;background:#52422b;color:#f9e6b4;min-height:43px;border-radius:3px;font:700 14px system-ui,sans-serif}
-.radius-choice[aria-pressed="true"]{background:#caaa6c;color:#392815}
-#worldMetrics{text-align:center;color:#684a2c;font:11px system-ui,sans-serif}
 #mbody #tools{position:static;display:flex;flex-wrap:wrap;gap:7px;width:100%;margin:8px 0}
 #mbody #tools .tool{flex:1;min-width:95px;min-height:42px;border:2px ridge #957749;background:#51432e;color:#f9e5ba;padding:7px 5px;font:12px system-ui,sans-serif;touch-action:manipulation}
 #mbody #tools .tool[aria-pressed="true"]{background:#c9a66f;color:#301d10}
@@ -270,7 +264,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.38.5" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.38.6" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -343,15 +337,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <div id="stickBase" role="application" aria-label="Виртуальный джойстик"><div id="stickThumb"></div></div>
 <div id="footer">Радиус 261 м · окружность 1 640 м · офлайн-тест</div>
 </div>
-<div id="labSettingsSources" hidden><section id="radiusPicker" class="panel" aria-label="Размер планеты">
-    <div class="caption">🌍 ИЗМЕНИТЬ РАЗМЕР ПЛАНЕТЫ</div>
-    <div id="radiusChoices">
-      <button class="radius-choice" data-radius="87" type="button" aria-pressed="false">87 м</button>
-      <button class="radius-choice" data-radius="174" type="button" aria-pressed="false">174 м</button>
-      <button class="radius-choice" data-radius="261" type="button" aria-pressed="true">261 м</button>
-    </div>
-    <div id="worldMetrics" aria-live="polite">1 640 м по экватору · 6:45 бегом</div>
-  </section>
+<div id="labSettingsSources" hidden>
 <nav id="tools" aria-label="Управление обзором">
   <button id="orbitButton" type="button" class="tool" aria-pressed="false">🌍 Вся планета</button>
   <button id="zoomButton" type="button" class="tool">🔭 Камера: близко</button>
@@ -364,7 +350,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=75').catch(error=>{
+  import('./planet.js?v=76').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

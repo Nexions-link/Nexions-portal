@@ -31,9 +31,10 @@ if(accountMode&&!accountLaunch){
 }
 const accountProfile=accountMode?await fetchAuthenticatedProfile(accountLaunch):null;
 const BASE_RADIUS = START_RADIUS;
-const AVAILABLE_RADII = [87, 174, 261];
+const AVAILABLE_RADII = [BASE_RADIUS];
 const previousWorld=(isPortalPreview||accountMode)?null:readPlanetView(localStorage,AVAILABLE_RADII);
-let R = accountProfile?.worldRadius??previousWorld?.radius??BASE_RADIUS;
+// Online size belongs to the server; local settings cannot resize the world.
+const R = accountProfile?.worldRadius??BASE_RADIUS;
 const WALK_SPEED = 4.05;
 const TAU = Math.PI * 2;
 const NAMES = ['Степь Рассвета', 'Шепчущий лес', 'Янтарные пустоши', 'Каменные высоты'];
@@ -540,48 +541,24 @@ try {
   });
   $('resetButton').addEventListener('click', () => {doReset(); cameraSnap = true;});
 
-  // Resize the actual sphere and all objects (not a uniform scene-scale).
-  // Restart at the village after a change for a fair same-camera comparison.
-  const radiusButtons = [...document.querySelectorAll('[data-radius]')];
-  const worldMetrics = $('worldMetrics');
   const footer = $('footer');
-  function setRadius(nextRadius) {
-    if (!AVAILABLE_RADII.includes(nextRadius)) return;
-    if(accountMode&&nextRadius!==R)return;
-    if (R !== nextRadius) {
-      R = nextRadius;
-      reshapeGround();
-      relocateInstances();
-      startZone.rebuild();
-      applyGraphicsQuality();
-      rpg.resetWorldTransforms();
-      atmosphere.scale.setScalar((R + 12) / (BASE_RADIUS + 12));
-      stars.scale.setScalar(Math.max(1, R / BASE_RADIUS * 1.7));
-      doReset();
-      cameraSnap = true;
-      saveWorld();
-    }
+  function updateWorldMetrics() {
     const length = TAU * R;
     const totalSeconds = Math.round(length / WALK_SPEED);
     const duration = Math.floor(totalSeconds / 60) + ':' + String(totalSeconds % 60).padStart(2,'0');
     updateCameraClipping();
-    for (const button of radiusButtons)
-      button.setAttribute('aria-pressed', String(Number(button.dataset.radius) === R));
-    worldMetrics.textContent = Math.round(length) + ' м по экватору · ' + duration + ' бегом';
     footer.textContent = 'Радиус ' + R + ' м · окружность ' + Math.round(length) + ' м · без переходов';
     $('instruction').querySelector('div').textContent = 'Джойстик — двигаться · свайп — камера · Экватор: ' + duration;
   }
-  for (const button of radiusButtons)
-    button.addEventListener('click', () => setRadius(Number(button.dataset.radius)));
   rpg.onRespawn(()=>{doReset();cameraSnap=true;});
   rpg.onResetProgress(()=>{
     // Return to the camp after resetting quests, without changing graphics,
-    // zoom, follow-camera preference, or the currently selected planet size.
+    // zoom, follow-camera preference, or the server-defined planet size.
     state.orbit=false;
     doReset();
     cameraSnap=true;
   });
-  setRadius(R);
+  updateWorldMetrics();
   // Atmosphere geometry is created at BASE_RADIUS, so scale it even when
   // a larger saved radius is restored without a resize event.
   atmosphere.scale.setScalar((R+12)/(BASE_RADIUS+12));
