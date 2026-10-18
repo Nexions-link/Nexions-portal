@@ -671,13 +671,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  })();
  const mentorWorld=createMentorWorld({THREE,parent:group,
   place:e=>{entities.push(e);setModelAt(e);},getRadius,toNormal,heightAt});
- // Shared GLB: Atlas and all three in-world humanoids display the same model.
+ // Shared refined Raider GLB v0.3: Atlas and all three in-world humanoids display the same model.
  // The previous procedural geometry stays available only as a network fallback.
  void (async()=>{
   try{
    const loader=await modelLoader;
    if(!loader)throw Error('GLTFLoader unavailable');
-   const asset=await loader.loadAsync('../bestiary/models/dust-trail-raider-v0.1.glb?v=0.1');
+   const asset=await loader.loadAsync('../bestiary/models/dust-trail-raider-v0.3.glb?v=0.3');
    if(!['Idle','Walk','Attack','Hurt','Death'].every(name=>asset.animations.some(a=>a.name===name))||
       !asset.scene.getObjectByName('Arm_R')||!asset.scene.getObjectByName('Leg_L'))
     throw Error('Raider GLB rig or animation missing');
@@ -690,7 +690,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function attachBanditVisual(mob,asset){
   if(mob.banditGltf){mob.banditGltf.mixer.stopAllAction();mob.banditGltf.container.removeFromParent();}
   const rig=asset.scene.clone(true);
-  const container=new THREE.Group();container.name='dust-trail-raider-v0.1';
+  const container=new THREE.Group();container.name='dust-trail-raider-v0.3';
   container.add(rig);mob.root.add(container);mob.fallbackVisual.visible=false;
   rig.traverse(part=>{if(part.isMesh){part.castShadow=true;part.receiveShadow=false;}});
   const mixer=new THREE.AnimationMixer(rig);
