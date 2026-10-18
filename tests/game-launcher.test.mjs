@@ -94,7 +94,7 @@ test('older three-part mirror still retries when too old for account launch',asy
  const result=await attempt({local:'0.6.31',upstream:'0.6.34.1'});
  assert.equal(result.frame.src,null);
  assert.equal(result.retries.length,1);
- assert.equal(result.retries[0].delay,12000);
+ assert.equal(result.retries[0].delay,8000);
 });
 test('invalid or unavailable mirror never receives account session',async()=>{
  for(const local of ['0.6.34.1.1','0.6.bad.1',null]){
