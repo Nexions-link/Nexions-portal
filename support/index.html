@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1b22">
+<meta name="description" content="Добровольная поддержка автора NexGameWorld — бесплатной браузерной RPG.">
+<meta property="og:title" content="Поддержать NexGameWorld">
+<meta property="og:description" content="Добровольная поддержка разработки NexGameWorld.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="shortcut icon" href="/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&display=swap" rel="stylesheet">
+<title>Поддержать разработку · NexGameWorld</title>
+<style>
+:root{color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html{min-width:0;min-height:100%;background:#09151b;-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100dvh;color:#e9e7da;font:15px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:
+ radial-gradient(ellipse 80% 55% at 50% 40%,rgba(54,104,103,.21),transparent 78%),
+ linear-gradient(180deg,#07141c 0%,#10252d 58%,#0b1b22 100%)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.36;background-image:
+ radial-gradient(1px 1px at 8% 18%,#d3d8c6 99%,transparent),
+ radial-gradient(1px 1px at 22% 36%,#d3d8c6 99%,transparent),
+ radial-gradient(1px 1px at 61% 22%,#c6d1c6 99%,transparent),
+ radial-gradient(1px 1px at 84% 14%,#d3d8c6 99%,transparent);
+ background-size:650px 520px}
+a{color:#dfc99d}
+a:focus-visible{outline:2px solid #edca84;outline-offset:4px;border-radius:4px}
+.wrap{position:relative;max-width:780px;margin:0 auto;padding:24px 20px max(48px,env(safe-area-inset-bottom))}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font:600 18px "Cinzel",Georgia,serif;letter-spacing:.035em;text-decoration:none;color:#e6ce9f}
+.back{font-size:13px;color:#c4cfc9;text-decoration:none;border-bottom:1px solid #647b73;padding:4px 0}
+main{text-align:center;margin:clamp(36px,7vh,76px) auto 0}
+.eyebrow{color:#aebeb5;font-size:11px;font-weight:700;letter-spacing:.19em;text-transform:uppercase}
+h1{margin:12px 0 16px;font:600 clamp(30px,6.8vw,50px)/1.18 "Cinzel",Georgia,serif;background:linear-gradient(180deg,#faeacc 9%,#dac08f 66%,#a78b61);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{max-width:560px;margin:0 auto;color:#d1dcd4;font-size:clamp(15px,2.8vw,17px);line-height:1.75}
+.support-card{margin:32px auto 0;max-width:530px;border:1px solid rgba(190,164,111,.37);border-radius:14px;padding:28px clamp(16px,6vw,32px);background:linear-gradient(180deg,rgba(30,55,61,.84),rgba(13,32,39,.94));box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.support-card h2{margin:0 0 7px;color:#f0dfb9;font:600 20px/1.4 system-ui,-apple-system,sans-serif}
+.support-card p{margin:0;color:#bfccc6;font-size:14px}
+.payment{display:flex;justify-content:center;align-items:center;min-height:50px;margin:24px auto 12px;max-width:330px}
+.payment iframe{display:block;width:100%;max-width:330px;height:50px;border:0;background:transparent}
+.fallback{display:inline-block;font-size:12px;color:#adc2bc}
+.details{margin:32px auto 0;max-width:560px;text-align:left}
+.details h2{margin:0 0 10px;color:#e6d3a9;font-size:16px}
+.details p{margin:0 0 12px;color:#bdcac5;font-size:14px}
+.disclaimer{border-top:1px solid rgba(156,181,170,.2);padding-top:20px;margin-top:22px;font-size:12px;line-height:1.8;color:#a6b6b0}
+.bottom-links{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin:35px 0 0;font-size:13px}
+.bottom-links a{text-decoration:none;border-bottom:1px solid rgba(223,201,157,.5)}
+@media(max-width:420px){
+ .wrap{padding:19px 16px max(32px,env(safe-area-inset-bottom))}
+ .topbar .brand{font-size:16px}
+ main{margin-top:38px}
+ .support-card{margin-top:28px;padding:23px 13px}
+ .support-card h2{font-size:18px}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="topbar">
+ <a class="brand" href="/">NexGameWorld</a>
+ <a class="back" href="/">← На главную</a>
+</header>
+<main>
+ <div class="eyebrow">Независимая браузерная RPG</div>
+ <h1>Поддержать разработку</h1>
+ <p class="lead">NexGameWorld — бесплатная игра, которую я развиваю как независимый проект. Если вам нравится наш мир, вы можете добровольно поддержать его создание.</p>
+ <section class="support-card" aria-labelledby="support-title">
+  <h2 id="support-title">Подарить автору</h2>
+  <p>Размер поддержки вы выбираете самостоятельно. Она не влияет на игровой процесс.</p>
+  <div class="payment">
+   <iframe src="https://yoomoney.ru/quickpay/fundraise/button?billNumber=1L0D8O69TK9.261018&amp;" title="Кнопка добровольной поддержки через ЮMoney" width="330" height="50" frameborder="0" allowtransparency="true" scrolling="no"></iframe>
+  </div>
+  <a class="fallback" href="https://yoomoney.ru/quickpay/fundraise/button?billNumber=1L0D8O69TK9.261018" target="_blank" rel="noopener noreferrer">Если кнопка не открылась — перейти в ЮMoney ↗</a>
+ </section>
+ <section class="details" aria-labelledby="details-title">
+  <h2 id="details-title">На что помогает поддержка</h2>
+  <p>Средства помогают автору оплачивать серверы, необходимые для проекта инструменты и работу над новыми игровыми материалами.</p>
+  <div class="disclaimer">
+   Поддержка представляет собой добровольный безвозмездный денежный подарок автору — физическому лицу. Она не является оплатой товаров, услуг, доступа к игре, внутриигровых предметов или преимуществ и не предполагает обязательств по выпуску конкретных обновлений. Участие полностью добровольное.
+  </div>
+ </section>
+ <nav class="bottom-links" aria-label="Другие разделы">
+  <a href="/nexgameworld/account.html">Войти в мир</a>
+  <a href="/atlas/">Открыть Атлас</a>
+ </nav>
+</main>
+</div>
+</body>
+</html>
