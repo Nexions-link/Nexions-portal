@@ -1,8 +1,8 @@
 import {blocksRockOrMesa} from './planet-landmarks.js?v=1';
-import {LONGHOUSE,toHouseCoordinates,insideHouse} from './hearth-house.js?v=1';
-export {toHouseCoordinates} from './hearth-house.js?v=1';
+import {LONGHOUSE,toHouseCoordinates,insideHouse} from './hearth-house.js?v=2';
+export {toHouseCoordinates} from './hearth-house.js?v=2';
 // PT 0.6.0 — spherical contact and third-person camera constraints.
-// Static footprints match the ORIGINAL camp's physical dimensions. Geometry
+// The interior has no furniture colliders. Geometry
 // tests operate in local geodesic chart metres; world-space rays are converted
 // back to the radial normal before collision, never assumed to be planar Y-up.
 const TENTS=[
@@ -20,20 +20,18 @@ const circleHit=(x,z,cx,cz,r)=>Math.hypot(x-cx,z-cz)<r;
 export function isInLonghouse(x,z){return insideHouse(x,z);}
 export function canWalkCamp(x,z,playerRadius=.42){
  if(!Number.isFinite(x)||!Number.isFinite(z))return false;
- if(blocksRockOrMesa(x,z,playerRadius))return false;
- if(Math.hypot(x,z)>90)return true; // Beyond camp: mesas still use shared collision.
  const r=playerRadius,p=toHouseCoordinates(x,z),ax=Math.abs(p.x),az=Math.abs(p.z);
  const hw=LONGHOUSE.width/2,hd=LONGHOUSE.depth/2,t=LONGHOUSE.wallThickness;
  const atWallX=ax>hw-t-r&&ax<hw+r&&az<hd+r;
  const atWallZ=az>hd-t-r&&az<hd+r&&ax<hw+r;
  const door=p.z>0&&ax<LONGHOUSE.doorWidth/2-r;
  if(atWallX||(atWallZ&&!door))return false;
- // Real floor-level geometry only: bed, four narrow table legs, Atlas chest.
- // A tabletop cannot be represented by a floor-to-ceiling phantom box.
- if(boxHit(p.x,p.z,-5.2,-5,2.35+r,2.55+r))return false;
- for(const sx of [-1,1])for(const sz of [-1,1])
-  if(boxHit(p.x,p.z,3+sx*1.49,-1+sz*1.08,.135+r,.135+r))return false;
+ // The sole interior object is the real animated GLB chest.
  if(boxHit(p.x,p.z,LONGHOUSE.chestLocalX,LONGHOUSE.chestLocalZ,1.155+r,.725+r))return false;
+ // An empty house must not inherit outdoor collisions from old camp props.
+ if(ax<hw-t-r&&az<hd-t-r)return true;
+ if(blocksRockOrMesa(x,z,playerRadius))return false;
+ if(Math.hypot(x,z)>90)return true;
  for(const tent of TENTS){
   // Cone tents are solid in the current starting zone. Their fabric is a
   // surface obstacle but nearby interaction uses separate entity ranges.

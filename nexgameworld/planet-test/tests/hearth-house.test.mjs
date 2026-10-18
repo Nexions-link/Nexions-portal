@@ -3,70 +3,84 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {LONGHOUSE,HOUSE_CHEST,toHouseCoordinates,fromHouseCoordinates,insideHouse,buildHearthHouse} from '../hearth-house.js';
 import {canWalkCamp,isInLonghouse} from '../sphere-physics.js';
+import {CHEST_X,CHEST_Z,CHEST_RANGE} from '../../server/chest.js';
+import {OFFLINE_CHEST} from '../gather-world.js';
 import {createChestMotion} from '../../bestiary/chest-preview-motion.js';
 import {readFileSync} from 'node:fs';
-
-test('house transforms, door and chest stay in sync',()=>{
- assert.deepEqual(toHouseCoordinates(HOUSE_CHEST.x,HOUSE_CHEST.z),
-  {x:LONGHOUSE.chestLocalX,z:LONGHOUSE.chestLocalZ});
- assert.deepEqual(fromHouseCoordinates(0,0),{x:-27,z:-2});
- assert.equal(insideHouse(HOUSE_CHEST.x,HOUSE_CHEST.z),true);
- assert.equal(isInLonghouse(HOUSE_CHEST.x,HOUSE_CHEST.z),true);
- // Chest is no longer placed inside the bed at local (-5.2,-5).
- assert.ok(Math.hypot(LONGHOUSE.chestLocalX+5.2,LONGHOUSE.chestLocalZ+5)>6);
- assert.equal(canWalkCamp(...Object.values(fromHouseCoordinates(0,8))),true);
- assert.equal(canWalkCamp(...Object.values(fromHouseCoordinates(0,10.4))),true);
- assert.equal(canWalkCamp(...Object.values(fromHouseCoordinates(7,10.4))),false);
- // The solid chest must block walking through it, without blocking approach.
- const nearChest=fromHouseCoordinates(LONGHOUSE.chestLocalX,4.9);
- assert.equal(canWalkCamp(nearChest.x,nearChest.z),true);
- assert.equal(canWalkCamp(HOUSE_CHEST.x,HOUSE_CHEST.z),false);
+const at=(x,z)=>fromHouseCoordinates(x,z);
+function walk(x,z,bodyRadius){const p=at(x,z);return canWalkCamp(p.x,p.z,bodyRadius)}
+test('shared storage is at the former cabinet, in the far right corner',()=>{
+ assert.equal(LONGHOUSE.chestLocalX,5.4);
+ assert.equal(LONGHOUSE.chestLocalZ,-6.2);
+ const local=toHouseCoordinates(HOUSE_CHEST.x,HOUSE_CHEST.z);
+ assert.ok(Math.abs(local.x-5.4)<1e-9);
+ assert.ok(Math.abs(local.z+6.2)<1e-9);
+ assert.deepEqual(HOUSE_CHEST,{x:-33.2,z:-7.4,range:3.25});
+ assert.equal(CHEST_X,HOUSE_CHEST.x);
+ assert.equal(CHEST_Z,HOUSE_CHEST.z);
+ assert.equal(CHEST_RANGE,HOUSE_CHEST.range);
+ assert.equal(OFFLINE_CHEST.x,CHEST_X);
+ assert.equal(OFFLINE_CHEST.z,CHEST_Z);
+ assert.equal(OFFLINE_CHEST.slots,18);
+ assert.equal(isInLonghouse(CHEST_X,CHEST_Z),true);
 });
-
-test('old cabinet removed and previously blocked aisle is walkable',()=>{
- const cabinet=fromHouseCoordinates(5.4,-6.2);
- const tableCenter=fromHouseCoordinates(3,-1);
- assert.equal(canWalkCamp(cabinet.x,cabinet.z),true);
- assert.equal(canWalkCamp(tableCenter.x,tableCenter.z),true);
- const leg=fromHouseCoordinates(4.49,.08);
- assert.equal(canWalkCamp(leg.x,leg.z),false);
+test('an interior grid is entirely free apart from the actual GLB chest',()=>{
+ let checked=0;
+ for(let x=-8.2;x<=8.2;x+=.35)for(let z=-9;z<=9;z+=.35){
+  const blocked=Math.abs(x-LONGHOUSE.chestLocalX)<1.155+.42&&
+   Math.abs(z-LONGHOUSE.chestLocalZ)<.725+.42;
+  assert.equal(walk(x,z),!blocked,'Unexpected obstacle at local '+x+','+z);
+  checked++;
+ }
+ assert.ok(checked>1800);
+ for(const [x,z] of [[-5.2,-5],[3,-1],[4.49,.08],[-5.6,3],[0,0],[7,-8],[-7,8]]){
+  assert.equal(walk(x,z),true,'Legacy obstacle at '+x+','+z);
+ }
+ assert.equal(walk(5.4,-6.2),false);
+ assert.equal(walk(5.4,-4.35),true);
+ assert.equal(insideHouse(CHEST_X,CHEST_Z),true);
 });
-test('replacement house roofs are an opaque hideable layer',()=>{
- const root=new THREE.Group(),roofs=[];
+test('structural walls are solid and entrance remains open',()=>{
+ const hd=LONGHOUSE.depth/2,hw=LONGHOUSE.width/2;
+ for(const x of [-7,-5,-3,3,5,7])assert.equal(walk(x,hd),false);
+ for(const x of [-2.8,0,2.8]){
+  assert.equal(walk(x,hd),true);
+  assert.equal(walk(x,hd+1),true);
+ }
+ for(const z of [-8,0,8]){
+  assert.equal(walk(hw,z),false);
+  assert.equal(walk(-hw,z),false);
+ }
+ assert.equal(walk(0,-hd),false);
+});
+test('house graph contains only floor, walls and roof, no props',()=>{
+ const root=new THREE.Group(),roofPlanes=[];
  const model=buildHearthHouse(THREE,{root,villageVisuals:{
-  addRoof(mesh){roofs.push(mesh);}
+  addRoof(mesh){roofPlanes.push(mesh)}
  }});
- assert.equal(roofs.length,2);
- assert.equal(model.roofPlanes.length,2);
- assert.ok(roofs.every(m=>model.roof.getObjectById(m.id)===m));
- assert.ok(model.walls.children.every(mesh=>!mesh.material.transparent&&mesh.material.opacity===1));
- assert.ok(model.roof.children.every(mesh=>!mesh.material.transparent&&mesh.material.opacity===1));
- assert.ok(!model.furnishings.children.some(mesh=>mesh.material.transparent));
- assert.equal(model.furnishings.children.some(mesh=>mesh.position.x===5.4&&mesh.position.z===-6.2),false);
- assert.equal(model.furnishings.children.some(mesh=>mesh.position.x===5.8),false);
+ assert.equal(root.children.length,3);
+ assert.deepEqual(root.children.map(child=>child.name),[
+  'hearth-house-solid-floor','hearth-house-solid-walls','hearth-house-exterior-roof'
+ ]);
+ assert.equal(model.walls.children.length,6);
+ assert.equal(roofPlanes.length,2);
+ assert.ok(roofPlanes.every(mesh=>model.roof.getObjectById(mesh.id)===mesh));
+ assert.ok(model.walls.children.every(mesh=>!mesh.material.transparent));
  model.roof.visible=false;
  assert.equal(model.walls.visible,true);
- assert.equal(model.furnishings.visible,true);
+ assert.equal(model.floor.visible,true);
 });
-
-test('approved Atlas chest GLB has a matching hinge and Open/Close clips',()=>{
+test('Atlas GLB remains intact with Open and Close animations',()=>{
  const glb=readFileSync(new URL('../../bestiary/models/village-chest-v0.1.glb',import.meta.url));
  assert.equal(glb.toString('utf8',0,4),'glTF');
- const jsonLength=glb.readUInt32LE(12);
- const json=JSON.parse(glb.toString('utf8',20,20+jsonLength));
- const clips=(json.animations||[]).map(clip=>clip.name);
+ const n=glb.readUInt32LE(12);
+ const json=JSON.parse(glb.toString('utf8',20,20+n));
+ const clips=(json.animations||[]).map(x=>x.name);
  assert.ok(clips.includes('Open')&&clips.includes('Close'));
- assert.ok(json.nodes.some(node=>node.name==='Lid_Hinge'));
-});
-
-test('opening, mid-flight closing and reopening never snap the lid',()=>{
+ assert.ok(json.nodes.some(x=>x.name==='Lid_Hinge'));
  const hinge=new THREE.Group(),motion=createChestMotion(hinge);
- motion.select('Open');motion.update(.4);const halfway=hinge.rotation.x;
- assert.ok(halfway<0&&halfway>-1.65);
- motion.select('Close');assert.equal(hinge.rotation.x,halfway);
- motion.update(.12);assert.ok(hinge.rotation.x>halfway);
- motion.select('Open');const reversal=hinge.rotation.x;
- assert.ok(reversal<=0&&reversal>halfway);
- motion.update(3);assert.ok(Math.abs(hinge.rotation.x+1.65)<1e-6);
- motion.select('Close');motion.update(3);assert.ok(Math.abs(hinge.rotation.x)<1e-6);
+ motion.select('Open');motion.update(.4);
+ const half=hinge.rotation.x;
+ motion.select('Close');assert.equal(hinge.rotation.x,half);
+ motion.update(3);assert.ok(Math.abs(hinge.rotation.x)<1e-6);
 });

@@ -3,8 +3,8 @@ import {createSphericalMeadow} from './sphere-meadow.js?v=2';
 import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=3';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
-import {canWalkCamp} from './sphere-physics.js?v=4';
-import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=1';
+import {canWalkCamp} from './sphere-physics.js?v=5';
+import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=2';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
 
 // Spherical NexGame starting zone prototype.

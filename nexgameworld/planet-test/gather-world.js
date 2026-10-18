@@ -3,7 +3,7 @@
 // in this independent offline scene and do not write to the production save.
 import {lakeRadius} from './start-zone.js?v=14';
 import {RESOURCE_VISUAL_COLORS,resourceProximityCue} from './gather-visibility.js?v=1';
-import {LONGHOUSE,HOUSE_CHEST} from './hearth-house.js?v=1';
+import {LONGHOUSE,HOUSE_CHEST} from './hearth-house.js?v=2';
 import {createChestMotion} from '../bestiary/chest-preview-motion.js?v=1';
 
 export const GATHER_QUESTS=[
