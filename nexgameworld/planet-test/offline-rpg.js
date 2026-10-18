@@ -422,7 +422,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const npcActor=makeTauren(appearance);
   npcActor.root.scale.setScalar(appearance.scale);
   root.add(npcActor.root);
-  const tag=makeLabel(name,'#d9e2a1',25);tag.position.y=4.45;root.add(tag);
+  const tag=makeLabel(name,'#d9e2a1',25);tag.position.y=4.45;
+  if(kind==='mentor'){tag.name='mentor-name';tag.material.depthTest=false;tag.renderOrder=20;}
+  root.add(tag);
   const e={kind,name,x,z,yaw:.2,root,radius:1.5,actor:npcActor};entities.push(e);citizens.push(e);setModelAt(e);return e;
  }
  const mentor=npc('mentor',-1.5,-5,'Наставник Каменный Рог');

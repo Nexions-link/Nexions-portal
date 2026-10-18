@@ -118,13 +118,14 @@ export function createStartZone(three,scene,getRadius,heightAt){
   const doorway=box(g,new THREE.MeshStandardMaterial({color:'#1b1c17',side:THREE.DoubleSide}),0,r*.34,r*.73,r*.44,r*.69,.08);doorway.rotation.x=-.48;
  }
  tent(11,-7,4.2,-.5);tent(-15,12,3.8,2.2);tent(13,16,3.4,-1.7);tent(-23,-15,3,.5);
- function totem(x,z,scale){
-  const g=anchor(x,z);g.scale.setScalar(scale);cyl(g,wood2,0,2.4,0,.48,.65,4.8);
+ function totem(x,z,scale,crownLift=0){
+  const g=anchor(x,z);g.name=x===-3&&z===-5?'mentor-great-totem':'camp-totem';
+  g.scale.setScalar(scale);cyl(g,wood2,0,2.4+crownLift/2,0,.48,.65,4.8+crownLift);
   for(let i=0;i<3;i++){const y=.9+i*1.25;cyl(g,i%2?teal:red,0,y,0,.53,.52,.26);box(g,bone,0,y+.43,.55,.66,.38,.13)}
-  for(const sign of [-1,1]){const wing=box(g,teal,sign*1.1,4.3,0,2,.35,.3);wing.rotation.z=sign*.15}
-  ell(g,bone,0,5,0,.55,.43,.45);
+  for(const sign of [-1,1]){const wing=box(g,teal,sign*1.1,4.3+crownLift,0,2,.35,.3);wing.rotation.z=sign*.15}
+  ell(g,bone,0,5+crownLift,0,.55,.43,.45);
  }
- for(const [x,z,s] of [[-3,-5,1],[5,9,.75],[-5,25,.8],[35,-14,1.25]])totem(x,z,s);
+ for(const [x,z,s] of [[-3,-5,1],[5,9,.75],[-5,25,.8],[35,-14,1.25]])totem(x,z,s,x===-3&&z===-5?2:0);
  function banner(x,z,angle){
   const g=anchor(x,z,angle);
   rod(g,wood,-1,0,0,-1,4.6,0,.11);rod(g,wood,1,0,0,1,4.6,0,.11);rod(g,wood,-1,4.3,0,1,4.3,0,.11);
