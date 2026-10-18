@@ -19,6 +19,9 @@ input:focus{outline:2px solid #d8bd88;border-color:#d8bd88}
 .toggle-password{position:absolute;right:5px;top:50%;transform:translateY(-50%);min-height:40px;min-width:88px;border:0;border-radius:4px;background:transparent;color:#d8c291;font-size:13px;font-weight:600;padding:0 8px}
 .toggle-password:focus-visible{outline:2px solid #d8bd88;outline-offset:1px}
 .toggle-password:hover{background:#20323a}
+.remember-row{display:flex;align-items:center;gap:11px;margin:15px 0 4px;cursor:pointer;color:#e8dcc4;font-size:14px}
+.remember-row input{appearance:auto;width:19px;height:19px;min-height:19px;margin:0;flex:0 0 auto;accent-color:#d8bd88;cursor:pointer}
+.remember-note{margin:2px 0 5px 30px}
 button{font:inherit;cursor:pointer;min-height:45px;padding:10px 14px;border:1px solid #7b866e;border-radius:6px;background:#223638;color:#ecdfc3}
 button.primary{width:100%;margin:16px 0 8px;background:#dbc08a;color:#10201e;font-weight:700;border-color:#e0c795}
 button:disabled{opacity:.55;cursor:wait}.links{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.links button{background:transparent;border:none;color:#d8c291;text-decoration:underline;padding:6px;min-height:32px}
@@ -47,6 +50,8 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 <h2>Войти</h2><form id="loginForm">
 <label for="loginName">Логин</label><input id="loginName" name="username" required minlength="3" maxlength="24" autocomplete="username">
 <label for="loginPass">Пароль</label><div class="password-control"><input id="loginPass" name="password" type="password" required minlength="6" maxlength="128" autocomplete="current-password"><button class="toggle-password" type="button" data-show-password="loginPass" aria-controls="loginPass" aria-pressed="false" aria-label="Показать пароль">Показать</button></div>
+<label class="remember-row" for="rememberLogin"><input id="rememberLogin" name="remember" type="checkbox"><span>Запомнить меня на этом устройстве</span></label>
+<p class="hint remember-note">Вход без пароля до 7 дней. Не включайте на чужом устройстве.</p>
 <button class="primary" type="submit">Войти</button></form>
 <div class="links"><button type="button" data-view="register">Создать аккаунт</button><button type="button" data-view="recover">Забыл пароль?</button></div>
 </section>
@@ -115,4 +120,4 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 </form>
 </dialog>
 <footer style="text-align:center;font-size:12px;margin-top:15px"><a href="/">На главную</a></footer>
-</main><script type="module" src="./account.js?v=0.7.5"></script></body></html>
+</main><script type="module" src="./account.js?v=0.7.6"></script></body></html>
