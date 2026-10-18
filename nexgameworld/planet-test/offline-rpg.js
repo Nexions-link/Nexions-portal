@@ -10,7 +10,7 @@ import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';
-import {GATHER_QUESTS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=10';
+import {GATHER_QUESTS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=11';
 import {createCampActions} from './camp-actions.js?v=11';
 import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1';
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
@@ -183,11 +183,25 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function onPartyNotice(event){if(event?.message)msg(event.message);}
  function onChat(event){if(event?.text)msg((event.channel==='party'?'[Группа] ':'[Мир] ')+(event.name||'Игрок')+': '+event.text,3.3);}
- function onChestState(event){onlineChest={...(onlineChest||{}),...event};if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();}
+ function onChestState(event){
+  onlineChest={...(onlineChest||{}),...event};
+  if(Array.isArray(event?.slots))setChestUsed(event.slots,event.revision);
+  if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
+ }
+ function onChestStatus(event){
+  if(!Number.isInteger(event?.occupied)||event.occupied<0||
+     event.occupied>OFFLINE_CHEST.slots)return;
+  if(Number.isInteger(event.revision)&&event.revision<lastChestRevision)return;
+  knownChestUsed=event.occupied;
+  if(Number.isInteger(event.revision))lastChestRevision=event.revision;
+  paintChestLabel();
+ }
  function onChestResult(event){
   if(event?.ok&&Array.isArray(event.inventory)){
    state.inventory=event.inventory.filter(Boolean).map(row=>({id:row.id,qty:row.qty}));
-   onlineChest={slots:event.slots,revision:event.revision,inventory:event.inventory};persist();draw();
+   onlineChest={slots:event.slots,revision:event.revision,inventory:event.inventory};
+   setChestUsed(event.slots,event.revision);
+   persist();draw();
    if(!modal.hidden&&modal.dataset.kind==='chest')renderModal();
   }else if(event?.reason)msg(event.reason);
  }
@@ -469,8 +483,44 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  // Preserve original locations in metres and project every mesh onto the sphere.
  const gathering=createGatherWorld({THREE,parent:group,place:e=>{entities.push(e);setModelAt(e);}});
  const gatherNodes=gathering.nodes;
- const chestLabel=makeLabel('Общий сундук · 18','#ffe0a0',24);
- chestLabel.position.y=2.65;gathering.chest.root.add(chestLabel);
+ // Two-line live label; keep one canvas and update pixels without replacing meshes.
+ const chestCanvas=document.createElement('canvas');
+ chestCanvas.width=512;chestCanvas.height=160;
+ const chestContext=chestCanvas.getContext('2d');
+ const chestTexture=new THREE.CanvasTexture(chestCanvas);
+ chestTexture.colorSpace=THREE.SRGBColorSpace;
+ const chestLabel=new THREE.Sprite(new THREE.SpriteMaterial({
+  map:chestTexture,transparent:true,depthWrite:false
+ }));
+ chestLabel.position.y=2.75;chestLabel.scale.set(4.75,1.5,1);
+ gathering.chest.root.add(chestLabel);
+ let lastChestLabel=null,lastChestRevision=-1,knownChestUsed=null;
+ function setChestUsed(slots,revision=null){
+  if(!Array.isArray(slots)||slots.length!==OFFLINE_CHEST.slots)return;
+  if(Number.isInteger(revision)&&revision<lastChestRevision)return;
+  if(Number.isInteger(revision))lastChestRevision=revision;
+  knownChestUsed=slots.filter(Boolean).length;
+  paintChestLabel();
+ }
+ function paintChestLabel(){
+  const occupied=isOnline()?knownChestUsed:state.chestInventory.length;
+  const count=Number.isInteger(occupied)?occupied+'/'+OFFLINE_CHEST.slots:
+   '—/'+OFFLINE_CHEST.slots;
+  if(count===lastChestLabel)return;
+  lastChestLabel=count;
+  chestContext.clearRect(0,0,512,160);
+  chestContext.textAlign='center';chestContext.textBaseline='middle';
+  chestContext.lineJoin='round';chestContext.strokeStyle='#2d2017';
+  chestContext.font='bold 33px Georgia,serif';chestContext.lineWidth=6;
+  chestContext.strokeText('Общий сундук',256,55,476);
+  chestContext.fillStyle='#ffe0a0';chestContext.fillText('Общий сундук',256,55,476);
+  chestContext.font='bold 30px Georgia,serif';chestContext.lineWidth=5;
+  chestContext.strokeText(count,256,112,440);
+  chestContext.fillStyle='#d9cba9';chestContext.fillText(count,256,112,440);
+  chestTexture.needsUpdate=true;
+ }
+ paintChestLabel();
+ let nextChestStatusCheck=-1;
  // Atlas GLB: use the authored hinge node, opening angle and clip duration.
  // Atlas' current-pose transitions prevent Close snapping from the wrong pose.
  void (async()=>{
@@ -1290,6 +1340,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function update(dt){
   clock+=dt;
   gathering.updateChestMotion(dt);
+  if(isOnline()&&distance(gathering.chest)<12&&clock>=nextChestStatusCheck){
+   if(multiplayer.requestChestStatus())nextChestStatusCheck=clock+8;
+  }
+  if(!isOnline()){
+   knownChestUsed=null;lastChestRevision=-1;nextChestStatusCheck=-1;
+  }
+  paintChestLabel();
   blockRemaining=Math.max(0,blockRemaining-dt);
   const impact=timeline.update(dt);
   if(impact?.skill==='thunderStomp'){
@@ -1531,7 +1588,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  persist();draw();void updateEquipmentVisuals();
  return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
-  setMultiplayer,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestResult,
+  setMultiplayer,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
   onVitals,onCombatEvent,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobTelegraph,onNetworkRespawn,onMobSnapshot,
   get movementLocked(){return timeline.stompProgress>=0},
   getAnimationState,getQuestMapState,setVisualQuality,updateQuestMarkers,draw,get state(){return state}};

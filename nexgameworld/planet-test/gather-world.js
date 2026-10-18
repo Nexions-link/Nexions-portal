@@ -121,25 +121,15 @@ export function createGatherWorld({THREE,parent,place}){
       group.visible=false;nodes.push(node);place(node);
     });
   }
-  // Temporary solid fallback. Swap only its visual, never the gameplay entity.
-  const chestMat=material('#815233'),dark=material('#49352a'),
-   metal=material('#c6a46b',{metalness:.35,roughness:.7});
+  // The approved GLB is the only visible chest model.
   const chest=new THREE.Group();chest.name='hearth-house-shared-chest';parent.add(chest);
-  const fallback=new THREE.Group();fallback.name='hearth-chest-fallback';chest.add(fallback);
-  obj(fallback,new THREE.BoxGeometry(2.25,1.05,1.38),chestMat,0,.63,0,1,1,1);
-  for(const x of [-.90,.90])
-   obj(fallback,new THREE.BoxGeometry(.14,1.12,1.5),metal,x,.62,0,1,1,1);
-  const lidHinge=new THREE.Group();lidHinge.name='Lid_Hinge';
-  lidHinge.position.set(0,1.15,-.695);fallback.add(lidHinge);
-  obj(lidHinge,new THREE.BoxGeometry(2.31,.20,1.5),dark,0,.11,.695,1,1,1);
-  obj(lidHinge,new THREE.BoxGeometry(.30,.08,1.50),metal,0,.23,.695,1,1,1);
-  const chestEntity={kind:'chest',name:'Сундук · 18 ячеек',
+  const chestEntity={kind:'chest',name:'Общий сундук',
    x:OFFLINE_CHEST.x,z:OFFLINE_CHEST.z,yaw:LONGHOUSE.yaw,root:chest};
   place(chestEntity);
-  let chestIsOpen=false,chestMotion=createChestMotion(lidHinge);
+  let chestIsOpen=false,chestMotion=null;
   function setChestOpen(value){
    chestIsOpen=!!value;
-   chestMotion.select(chestIsOpen?'Open':'Close');
+   chestMotion?.select(chestIsOpen?'Open':'Close');
   }
   function installChestModel(model,{openAngle=-1.65,duration=1.15}={}){
    const hinge=model?.getObjectByName('Lid_Hinge');
@@ -149,13 +139,12 @@ export function createGatherWorld({THREE,parent,place}){
     if(child.isMesh){child.castShadow=false;child.receiveShadow=true;}
    });
    chest.add(model);
-   fallback.visible=false;
    chestMotion=createChestMotion(hinge,{openAngle,duration});
    if(chestIsOpen)chestMotion.select('Open');
    return true;
   }
   return {nodes,chest:chestEntity,setChestOpen,installChestModel,
-    updateChestMotion(dt){chestMotion.update(dt);},
+    updateChestMotion(dt){chestMotion?.update(dt);},
     setVisualQuality(value){visualQuality=Number.isFinite(value)?Math.max(0,Math.min(1,value)):.68;},
     update(clock,isAvailable,getDistance){
       for(const node of nodes){

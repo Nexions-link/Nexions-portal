@@ -23,6 +23,14 @@ test('house transforms, door and chest stay in sync',()=>{
  assert.equal(canWalkCamp(HOUSE_CHEST.x,HOUSE_CHEST.z),false);
 });
 
+test('old cabinet removed and previously blocked aisle is walkable',()=>{
+ const cabinet=fromHouseCoordinates(5.4,-6.2);
+ const tableCenter=fromHouseCoordinates(3,-1);
+ assert.equal(canWalkCamp(cabinet.x,cabinet.z),true);
+ assert.equal(canWalkCamp(tableCenter.x,tableCenter.z),true);
+ const leg=fromHouseCoordinates(4.49,.08);
+ assert.equal(canWalkCamp(leg.x,leg.z),false);
+});
 test('replacement house roofs are an opaque hideable layer',()=>{
  const root=new THREE.Group(),roofs=[];
  const model=buildHearthHouse(THREE,{root,villageVisuals:{
@@ -34,6 +42,8 @@ test('replacement house roofs are an opaque hideable layer',()=>{
  assert.ok(model.walls.children.every(mesh=>!mesh.material.transparent&&mesh.material.opacity===1));
  assert.ok(model.roof.children.every(mesh=>!mesh.material.transparent&&mesh.material.opacity===1));
  assert.ok(!model.furnishings.children.some(mesh=>mesh.material.transparent));
+ assert.equal(model.furnishings.children.some(mesh=>mesh.position.x===5.4&&mesh.position.z===-6.2),false);
+ assert.equal(model.furnishings.children.some(mesh=>mesh.position.x===5.8),false);
  model.roof.visible=false;
  assert.equal(model.walls.visible,true);
  assert.equal(model.furnishings.visible,true);

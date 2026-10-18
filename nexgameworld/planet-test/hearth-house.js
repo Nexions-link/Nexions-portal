@@ -129,14 +129,10 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
   for(const sign of [-1,1])createBox(furnishings,M.wood,x+sign*(w*.43),.80,z-d*.45,.24,1.6,.30);
  };
  bed(-5.2,-5,4.7,5.1);
- createBox(furnishings,M.darkWood,5.4,1.32,-6.2,3.4,2.6,2.4);
- createBox(furnishings,M.beam,5.4,2.72,-6.2,3.7,.24,2.65);
+ // Retired the square legacy storage cabinet; the animated Atlas GLB is the only chest.
  createBox(furnishings,M.wood,3,.97,-1,3.5,.24,3);
  for(const sx of [-1,1])for(const sz of [-1,1])
   createBox(furnishings,M.darkWood,3+sx*1.49,.49,-1+sz*1.08,.27,.93,.27);
- for(const zz of [-3.6,2]){
-  createBox(furnishings,M.wood,5.8,.70,zz,1.24,1.24,1.30);
-  createBox(furnishings,M.bedding,5.8,1.38,zz,1.12,.12,1.1);
- }
+ // Removed the obsolete square storage props next to the old cabinet.
  return {roof,roofPlanes,walls,floor,furnishings};
 }

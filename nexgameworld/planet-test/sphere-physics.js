@@ -28,10 +28,11 @@ export function canWalkCamp(x,z,playerRadius=.42){
  const atWallZ=az>hd-t-r&&az<hd+r&&ax<hw+r;
  const door=p.z>0&&ax<LONGHOUSE.doorWidth/2-r;
  if(atWallX||(atWallZ&&!door))return false;
- // Explicit furniture and GLB chest bounds match the visible scene.
+ // Real floor-level geometry only: bed, four narrow table legs, Atlas chest.
+ // A tabletop cannot be represented by a floor-to-ceiling phantom box.
  if(boxHit(p.x,p.z,-5.2,-5,2.35+r,2.55+r))return false;
- if(boxHit(p.x,p.z,5.4,-6.2,1.7+r,1.2+r))return false;
- if(boxHit(p.x,p.z,3,-1,1.75+r,1.5+r))return false;
+ for(const sx of [-1,1])for(const sz of [-1,1])
+  if(boxHit(p.x,p.z,3+sx*1.49,-1+sz*1.08,.135+r,.135+r))return false;
  if(boxHit(p.x,p.z,LONGHOUSE.chestLocalX,LONGHOUSE.chestLocalZ,1.155+r,.725+r))return false;
  for(const tent of TENTS){
   // Cone tents are solid in the current starting zone. Their fabric is a

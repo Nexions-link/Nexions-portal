@@ -51,7 +51,7 @@ export function createSphericalPresence({
  THREE,scene,createAvatar,animateAvatar,getPosition,getCharacter,getRadius,heightAt,onStatus,
  onPlayers,onMobs,onVitals,onCombat,onKillCredit,onMobAttack,onMobTelegraph,onRespawn,
  onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
- onChestState,onChestResult,onCombatRejected,onDisconnect,
+ onChestState,onChestStatus,onChestResult,onCombatRejected,onDisconnect,
  onVerifiedProgress,onAuthRejected,onEconomyResult,
  auth=null,url=WORLD_URL
 }){
@@ -151,6 +151,7 @@ export function createSphericalPresence({
    else if(m.type==='chat')onChat?.(m);
    else if(m.type==='chatRejected')onChatRejected?.(m);
    else if(m.type==='chestState')onChestState?.(m);
+   else if(m.type==='chestStatus')onChestStatus?.(m);
    else if(m.type==='chestResult')onChestResult?.(m);
    else if(m.type==='progressSaved')onVerifiedProgress?.(m.progress,m.source);
    else if(m.type==='progressError')onAuthRejected?.(m.reason||'Ошибка сохранения');
@@ -231,6 +232,7 @@ export function createSphericalPresence({
   respondInvite:(fromId,accept)=>send({type:'partyRespond',fromId,accept}),
   leaveParty:()=>send({type:'partyLeave'}),
   sendChat:(channel,text)=>send({type:'chatSend',channel,text}),
+  requestChestStatus:()=>send({type:'chestStatus'}),
   openChest:inventory=>send({type:'chestOpen',...(auth?{}:{inventory})}),
   moveChest:(action,slot,requestId)=>send({type:'chestMove',action,slot,requestId}),
   economy:(kind,params={})=>auth&&send({type:'economyAction',kind,...params}),
