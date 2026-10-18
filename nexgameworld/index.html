@@ -7,6 +7,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#101a1c">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <meta name="description" content="NexGameWorld — сферическая фэнтезийная RPG. Играйте прямо на nexions.ru.">
 <title>NexGameWorld · Играть</title>
 <link rel="canonical" href="https://nexions.ru/nexgameworld/">
@@ -40,6 +42,9 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
  const notice=document.getElementById('notice');
  const local='./planet-test/';
  const fallback='https://nexions-link.github.io/Nexgame/planet-test/';
+ // Nexgame/main is authoritative; GitHub Pages and nexions.ru are mirrors.
+ const source='https://raw.githubusercontent.com/Nexions-link/Nexgame/main/planet-test/';
+ let checking=false,retryTimer=null,loadedVersion=null,loadedUrl=null;
  const params=new URLSearchParams(location.search);
  // The main game is now account-only. A bare /nexgameworld/ route or an old
  // anonymous bookmark must never silently start a local "Странник" character.
@@ -86,36 +91,84 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
   if(!version)throw Error('Invalid NexGameWorld release');
   return version;
  }
+ function scheduleRetry(){
+  if(retryTimer!==null)return;
+  retryTimer=setTimeout(()=>{
+   retryTimer=null;
+   void start();
+  },8000);
+ }
  async function start(){
-  let url=local,version='';
-  const [onDomain,upstream]=await Promise.allSettled([readBuild(local),readBuild(fallback)]);
-  const localVersion=onDomain.status==='fulfilled'?onDomain.value:null;
-  const upstreamVersion=upstream.status==='fulfilled'?upstream.value:null;
-  const accountPlay=params.get('account-play')==='1';
-  if(accountPlay){
-   // Auth credentials live on nexions.ru. Never open the GitHub Pages fallback
-   // in the account iframe: sessionStorage would not be available there.
-   if(!localVersion||isNewer('0.6.32',localVersion)){
-    loading.querySelector('p').textContent='Готовим обновление для входа персонажем. Страница повторит проверку автоматически…';
-    setTimeout(start,12000);
+  if(checking)return;
+  checking=true;
+  try{
+   // Compare the same-domain mirror with BOTH upstream deployment and the
+   // authoritative main-branch release. A scheduled mirror can lag by minutes.
+   const [onDomain,upstream,mainBranch]=await Promise.allSettled([
+    readBuild(local),readBuild(fallback),readBuild(source)
+   ]);
+   const localVersion=onDomain.status==='fulfilled'?onDomain.value:null;
+   const upstreamVersion=upstream.status==='fulfilled'?upstream.value:null;
+   const sourceVersion=mainBranch.status==='fulfilled'?mainBranch.value:null;
+   let newest=localVersion;
+   for(const candidate of [upstreamVersion,sourceVersion]){
+    if(candidate&&(!newest||isNewer(candidate,newest)))newest=candidate;
+   }
+   const accountPlay=params.get('account-play')==='1';
+   let url=local,version=localVersion;
+   if(accountPlay){
+    // Sessions are same-origin only; NEVER forward login tokens to upstream.
+    // Do not launch an older account client while the scheduled mirror catches up.
+    if(!localVersion||isNewer('0.6.32',localVersion)||newest&&isNewer(newest,localVersion)){
+     loading.hidden=false;
+     const waiting=newest&&localVersion&&isNewer(newest,localVersion);
+     loading.querySelector('p').textContent=waiting
+      ?'Доступна Alpha '+newest+'. Обновляем Nexions.ru (пока '+localVersion+'). Проверяем снова…'
+      :'Ожидаем актуальную версию игры на Nexions.ru. Повторная проверка автоматически…';
+     scheduleRetry();
+     return;
+    }
+   }else if(!localVersion||(upstreamVersion&&isNewer(upstreamVersion,localVersion))){
+    url=fallback;version=upstreamVersion;
+    notice.hidden=false;
+    if(!localVersion)console.warn('Local NexGameWorld mirror unavailable; using upstream');
+    else console.info('NexGameWorld mirror updating: '+localVersion+' → '+upstreamVersion);
+   }
+   // A preview also must not silently call an older published client "latest".
+   if(newest&&(!version||isNewer(newest,version))){
+    loading.hidden=false;
+    loading.querySelector('p').textContent='Публикуется Alpha '+newest+'. Проверяем готовность…';
+    scheduleRetry();
     return;
    }
-   url=local;version=localVersion;
-  }else if(!localVersion||(upstreamVersion&&isNewer(upstreamVersion,localVersion))){
-   url=fallback;version=upstreamVersion||'';
-   notice.hidden=false;
-   if(!localVersion)console.warn('Local NexGameWorld mirror is unavailable; opening the published upstream');
-   else console.info('NexGameWorld mirror still updating: '+localVersion+' → '+upstreamVersion);
-  }else version=localVersion;
-  const target=new URL(url,location.href);
-  if(version)target.searchParams.set('v',version);
-  else target.searchParams.set('fresh',String(Date.now()));
-  if(params.get('portal-preview')==='1')target.searchParams.set('portal-preview','1');
-  if(params.get('account-play')==='1')target.searchParams.set('account-play','1');
-  frame.addEventListener('load',()=>{loading.hidden=true;},{once:true});
-  frame.src=target.href;
+   if(!version){
+    loading.hidden=false;
+    loading.querySelector('p').textContent='Не удалось проверить версию игры. Повторяем запрос…';
+    scheduleRetry();
+    return;
+   }
+   if(retryTimer!==null){clearTimeout(retryTimer);retryTimer=null;}
+   const target=new URL(url,location.href);
+   target.searchParams.set('v',version);
+   // Safari can cache an iframe document even when its version query was
+   // unchanged. A new URL forces a fresh HTML navigation on each launch.
+   target.searchParams.set('fresh',String(Date.now()));
+   if(params.get('portal-preview')==='1')target.searchParams.set('portal-preview','1');
+   if(accountPlay)target.searchParams.set('account-play','1');
+   if(loadedVersion===version&&loadedUrl===url&&frame.src)return;
+   loadedVersion=version;loadedUrl=url;
+   loading.hidden=false;
+   frame.addEventListener('load',()=>{loading.hidden=true;},{once:true});
+   frame.src=target.href;
+  }finally{checking=false;}
  }
- start();
+ // Safari may restore the entire launcher + iframe from its back/forward cache.
+ // Recheck after returning to the tab as well as on an initial visit.
+ window.addEventListener('pageshow',event=>{if(event.persisted)void start();});
+ document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden)void start();
+ });
+ void start();
 })();
 </script>
 </body>

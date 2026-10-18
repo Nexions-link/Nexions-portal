@@ -10,7 +10,7 @@ const launcher=match[1];
 const SESSION_TOKEN='a'.repeat(43);
 const CHARACTER_ID='12345678-1234-4123-8123-123456789abc';
 
-async function attempt({local='0.6.34.1',upstream='0.6.34.1',
+async function attempt({local='0.6.34.1',upstream='0.6.34.1',source=upstream,
  accountPlay=true,portalPreview=false,token=SESSION_TOKEN,characterId=CHARACTER_ID}={}){
  const params=new URLSearchParams();
  if(accountPlay)params.set('account-play','1');
@@ -21,9 +21,11 @@ async function attempt({local='0.6.34.1',upstream='0.6.34.1',
  }};
  const loading={hidden:false,querySelector(){return this.paragraph||(this.paragraph={textContent:'Загружаем игровой мир…'})}};
  const notice={hidden:true};
- const retries=[],redirects=[];
+ const retries=[],redirects=[],windowEvents={},documentEvents=[];
  const context={
-  document:{getElementById(id){return {game:frame,loading,notice}[id]}},
+  document:{hidden:false,getElementById(id){return {game:frame,loading,notice}[id]},
+   addEventListener(name,fn){documentEvents.push({name,fn})}},
+  window:{addEventListener(name,fn){windowEvents[name]=fn}},
   location:{href:'https://nexions.ru/nexgameworld/'+search,search,
    replace(url){redirects.push(url)}},
   sessionStorage:{getItem(key){
@@ -32,35 +34,46 @@ async function attempt({local='0.6.34.1',upstream='0.6.34.1',
    return null;
   }},
   URL,URLSearchParams,console:{warn(){},info(){}},
-  setTimeout:(fn,delay)=>retries.push({fn,delay}),
+  setTimeout:(fn,delay)=>{retries.push({fn,delay});return retries.length;},
+  clearTimeout:()=>{},
   fetch:async url=>{
-   const isLocal=String(url).startsWith('./planet-test/');
-   const version=isLocal?local:upstream;
+   const address=String(url);
+   const isLocal=address.startsWith('./planet-test/');
+   const isSource=address.startsWith('https://raw.githubusercontent.com/');
+   const version=isLocal?local:isSource?source:upstream;
    if(!version)return {ok:false};
    return {ok:true,json:async()=>({project:'NexGameWorld',version})};
   }
  };
  runInNewContext(launcher,context);
  await new Promise(resolve=>setImmediate(resolve));
- return {frame,loading,notice,retries,redirects};
+ return {frame,loading,notice,retries,redirects,windowEvents,documentEvents};
 }
 
 test('account hero launch accepts current four-part hotfix version',async()=>{
  const result=await attempt();
- assert.match(result.frame.src,/^https:\/\/nexions\.ru\/nexgameworld\/planet-test\/\?v=0\.6\.34\.1&account-play=1$/);
+ const url=new URL(result.frame.src);
+ assert.equal(url.origin,'https://nexions.ru');
+ assert.equal(url.searchParams.get('v'),'0.6.34.1');
+ assert.ok(/^\d+$/.test(url.searchParams.get('fresh')));
+ assert.equal(url.searchParams.get('account-play'),'1');
  assert.equal(result.retries.length,0);
  assert.ok(result.frame.loadCallback);
  result.frame.loadCallback();
  assert.equal(result.loading.hidden,true);
 });
-test('account hero launch accepts older three-part releases',async()=>{
+test('account hero never launches a stale local three-part build',async()=>{
  const result=await attempt({local:'0.6.34',upstream:'0.6.34.1'});
- assert.match(result.frame.src,/nexions\.ru\/nexgameworld\/planet-test\/\?v=0\.6\.34&account-play=1/);
- assert.equal(result.retries.length,0);
+ assert.equal(result.frame.src,null);
+ assert.equal(result.retries.length,1);
+ assert.match(result.loading.paragraph.textContent,/0\.6\.34\.1/);
 });
 test('portal globe preview can still select newer upstream release',async()=>{
  const result=await attempt({local:'0.6.34',upstream:'0.6.34.1',accountPlay:false,portalPreview:true});
- assert.match(result.frame.src,/nexions-link\.github\.io\/Nexgame\/planet-test\/\?v=0\.6\.34\.1/);
+ const url=new URL(result.frame.src);
+ assert.equal(url.origin,'https://nexions-link.github.io');
+ assert.equal(url.searchParams.get('v'),'0.6.34.1');
+ assert.ok(url.searchParams.get('fresh'));
  assert.equal(result.notice.hidden,false);
  assert.equal(result.redirects.length,0);
 });
@@ -89,4 +102,27 @@ test('invalid or unavailable mirror never receives account session',async()=>{
   assert.equal(result.frame.src,null);
   assert.equal(result.retries.length,1);
  }
+});
+
+test('main-branch 0.6.38.12 blocks stale 0.6.38.10, even when Pages also lags',async()=>{
+ const result=await attempt({local:'0.6.38.10',upstream:'0.6.38.10',source:'0.6.38.12'});
+ assert.equal(result.frame.src,null);
+ assert.equal(result.retries.length,1);
+ assert.match(result.loading.paragraph.textContent,/Alpha 0\.6\.38\.12/);
+ assert.match(result.loading.paragraph.textContent,/0\.6\.38\.10/);
+});
+test('current local mirror launches even when upstream Pages is unreachable',async()=>{
+ const result=await attempt({local:'0.6.38.12',upstream:null,source:'0.6.38.12'});
+ const url=new URL(result.frame.src);
+ assert.equal(url.origin,'https://nexions.ru');
+ assert.equal(url.searchParams.get('v'),'0.6.38.12');
+ assert.ok(url.searchParams.get('fresh'));
+});
+test('return from Safari bfcache rechecks latest build without reloading the same game',async()=>{
+ const result=await attempt({local:'0.6.38.12',upstream:'0.6.38.12'});
+ const first=result.frame.src;
+ assert.ok(result.windowEvents.pageshow);
+ result.windowEvents.pageshow({persisted:true});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(result.frame.src,first);
 });
