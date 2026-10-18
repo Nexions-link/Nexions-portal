@@ -24,7 +24,7 @@ import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumbe
 import {createMentorWorld} from './mentor-world.js?v=1';
 import {createSphericalTargetRing} from './spherical-target-ring.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=3';
-import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=2';
+import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=3';
 import {createCombatTimeline,MELEE_RANGE,APPROACH_RANGE,rageForHit,rollMeleeDamage} from './combat-timeline.js?v=1';
 import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
 import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v=1';
