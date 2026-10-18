@@ -40,10 +40,11 @@ import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
 import {rollCreatureLoot} from './loot-tables.js?v=1';
+import {DOLGONOG_SPAWNS,mobLevelForIndex,mobBaseExperience,monsterKillExperience,monsterDifficulty,MONSTER_LEVEL_COLORS,monsterMaxHealth,monsterAttackDamage} from './mob-levels.js?v=1';
 import {sellInventorySlot,buyBackFromMerchant,restoreBuyback} from './merchant-trade.js?v=1';
 
 const UP_AXIS=[0,1,0], TAU=Math.PI*2;
-const SPAWNS=[[-9,-23],[1,-28],[13,-22],[21,-33],[-22,-35],[-28,29],[15,36],[48,9]];
+const SPAWNS=DOLGONOG_SPAWNS.slice(0,-1);
 const SAVE_KEY=OFFLINE_RPG_SAVE_KEY;
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -344,6 +345,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function applyServerProgress(progress,source='checkpoint'){
   if(!authenticatedProfile||!progress||!Number.isInteger(progress.level))return;
+  const previousLevel=state.level,previousXp=state.xp,previousGold=state.gold;
   state.level=progress.level;
   state.xp=progress.experience;
   state.gold=progress.gold;
@@ -366,7 +368,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   void updateEquipmentVisuals();
   draw();
   if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','spells'].includes(modal.dataset.kind))renderModal();
-  if(source==='mob')msg('Получены опыт и монеты. Предметы можно забрать с тела.',2.6);
+  if(source==='mob'){
+   let gained=state.xp-previousXp;
+   for(let level=previousLevel;level<state.level&&level<60;level++)gained+=xpRequired(level);
+   gained=Math.max(0,gained);
+   const gold=Math.max(0,state.gold-previousGold);
+   msg(gained>0?
+    'Получено +'+gained+' опыта, +'+gold+' монет. Добыча с тела.':
+    'Противник слишком слаб: 0 опыта, +'+gold+' монет. Добыча с тела.',2.6);
+  }
  }
  function onKillCredit(event){
   if(authenticatedProfile)return;
@@ -376,9 +386,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(receivedCredits.has(key))return;
   receivedCredits.add(key);
   mob.loot=Array.isArray(event.loot)?event.loot.filter(row=>row&&ITEM_CATALOG[row.id]&&Number.isInteger(row.qty)&&row.qty>0).map(row=>({...row})):[];
-  state.xp+=Number(event.xp)||0;state.gold+=Number(event.gold)||0;
+  const gainedXp=monsterKillExperience(state.level,mob.level,mobBaseExperience(mob.level,mob.boss));
+  state.xp+=gainedXp;state.gold+=Number(event.gold)||0;
   mentorChain.killed(mob);levelCheck();persist();updateLootMarker(mob);draw();
-  msg('Награда за '+mob.name+': опыт '+(Number(event.xp)||0));
+  msg('Награда за '+mob.name+': опыт '+gainedXp);
  }
  function onMobAttack(event){
   if(!isOnline())return;
@@ -412,6 +423,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     mob.renderX=mob.x;mob.renderZ=mob.z;mob.renderYaw=mob.yaw;
    }
    mob.hp=remote.hp;mob.life=remote.life;mob.aggro=remote.aggro===true;mob.returning=false;
+   // Creature levels are canonical; a malformed snapshot must not invent levels.
+   if(remote.level===mobLevelForIndex(mob.index))mob.level=remote.level;
    mob.corpse=remote.phase==='corpse';mob.dead=mob.corpse?6:0;
    mob.root.visible=remote.phase!=='hidden';
    if(mob.corpse&&!wasCorpse){
@@ -518,10 +531,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const beak=new THREE.Mesh(new THREE.ConeGeometry(.18,.5,7),new THREE.MeshStandardMaterial({color:'#d5b16f'}));
   beak.rotation.x=Math.PI/2;beak.position.set(0,2.17,1.1);fallback.add(beak);
   for(const side of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.08,.075,1.2,6),mat);leg.position.set(side*.25,.6,0);fallback.add(leg);}
-  const entity={kind:'mob',index:i,name:'Равнинный долгоног',lootId:'dolgonog',root,x,z,yaw:.1,
-   spawnX:x,spawnZ:z,hp:54,maxHp:54,aggro:false,attackCd:1.2,stun:0,dead:0,loot:null,corpse:false,
+  const entity={kind:'mob',index:i,level:mobLevelForIndex(i),name:'Равнинный долгоног',lootId:'dolgonog',root,x,z,yaw:.1,
+   spawnX:x,spawnZ:z,hp:monsterMaxHealth(mobLevelForIndex(i)),maxHp:monsterMaxHealth(mobLevelForIndex(i)),aggro:false,attackCd:1.2,stun:0,dead:0,loot:null,corpse:false,
    respawn:0,returning:false,walk:0,visual:null,hit:0,attackWindup:0,alertRemaining:0,corpseAge:0,boss:false,contactShadow,roamTime:i*1.73,navigation:null};
-  const tag=makeLabel(entity.name,'#f9df91',26);tag.position.y=4.25;root.add(tag);entity.nameTag=tag;
+  const tag=makeLabel(entity.name+' · ур. '+entity.level,'#f9df91',26);tag.position.y=4.25;root.add(tag);entity.nameTag=tag;
   const alertTag=makeLabel('!','#ffc978',78);
   alertTag.position.y=4.95;alertTag.scale.set(1.55,1.4,1);alertTag.visible=false;
   root.add(alertTag);entity.alertTag=alertTag;
@@ -537,10 +550,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  // The original Narache elite uses the same GLB at 1.8× scale.
  const giant=createBird(BOSS_POSITION.x,BOSS_POSITION.z,mobs.length);
  giant.name='Грозоклюв — огромный долгоног';giant.boss=true;giant.lootId='stormbeak';
- giant.hp=giant.maxHp=108;giant.root.scale.setScalar(1.8);
+ giant.hp=giant.maxHp=monsterMaxHealth(giant.level,true);giant.root.scale.setScalar(1.8);
  const oldTag=giant.root.children.find(child=>child.isSprite&&child!==giant.alertTag);
  if(oldTag)oldTag.visible=false;
- const bossTag=makeLabel('Грозоклюв · Исполин','#f9bd91',27);
+ const bossTag=makeLabel('Грозоклюв · ур. 3 · Элитный','#f9bd91',27);
  bossTag.position.y=3.4;bossTag.scale.set(4.7,.84,1);
  giant.root.add(bossTag);giant.nameTag=bossTag;giant.alertTag.position.y=4.0;
  const dummyRoot=new THREE.Group();group.add(dummyRoot);addContactShadow(dummyRoot,1.1);
@@ -914,9 +927,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(enemy.nameTag)enemy.nameTag.visible=false;
    enemy.loot=rollCreatureLoot(enemy.lootId);
    updateLootMarker(enemy);
-   state.xp+=enemy.boss?70:22;state.gold+=enemy.boss?12:4;
+   const gainedXp=monsterKillExperience(state.level,enemy.level,mobBaseExperience(enemy.level,enemy.boss));
+   state.xp+=gainedXp;state.gold+=enemy.boss?12:4;
    levelCheck();mentorChain.killed(enemy);
-   if(!enemy.boss)msg('Долгоног повержен · доступна добыча');
+   if(!enemy.boss)msg('Долгоног повержен · '+(gainedXp?'+'+gainedXp+' опыта · ':'0 опыта · ')+'доступна добыча');
    persist();
   }
   persist();draw();
@@ -995,7 +1009,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const hostile=target&&['mob','dummy'].includes(target.kind)&&target.root.visible&&target.hp>0&&!target.dead;
   $('targetFrame').hidden=!hostile;$('targetPlaceholder').hidden=!!hostile;
   if(hostile){
-    $('targetName').textContent=target.boss?'Грозоклюв · 5 · Элитный':target.name;
+    const difficulty=target.kind==='mob'?monsterDifficulty(state.level,target.level):'yellow';
+    $('targetName').textContent=target.kind==='mob'?
+     target.boss?'Грозоклюв · ур. '+target.level+' · Элитный':
+      target.name+' · ур. '+target.level:target.name;
+    $('targetName').style.color='#'+MONSTER_LEVEL_COLORS[difficulty].toString(16).padStart(6,'0');
     $('targetFill').style.width=clamp(target.hp/target.maxHp*100,0,100)+'%';
     $('targetHp').textContent=Math.ceil(target.hp)+' / '+target.maxHp;
     $('targetDistance').textContent='Дистанция: '+pretty(distance(target))+' м';
@@ -1539,7 +1557,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     mob.lootMarker.material.opacity=.86+.13*Math.pow(Math.sin(clock*2.6),2);
    }
    if(mob.contactShadow)mob.contactShadow.visible=mob.root.visible;
-   if(mob.nameTag)mob.nameTag.visible=mob.root.visible&&!mob.corpse;
+   if(mob.nameTag){
+    mob.nameTag.visible=mob.root.visible&&!mob.corpse;
+    // Match the WoW-style relative-difficulty tint with target level.
+    if(mob.nameTag.material?.color&&mob.level)
+     mob.nameTag.material.color.setHex(MONSTER_LEVEL_COLORS[monsterDifficulty(state.level,mob.level)]);
+   }
    if(mob.alertTag){
     mob.alertTag.visible=mob.alertRemaining>0&&mob.root.visible&&!mob.corpse;
     if(mob.alertTag.visible)mob.alertTag.position.y=(mob.boss?4:4.95)+Math.sin(clock*7)*.1;
@@ -1648,7 +1671,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
       const result=incomingShieldHit({
        THREE,heroNormal:playerNormal(),heroRoot:hero.root,
        enemyNormal:toNormal(mob.x,mob.z,getRadius()),stats:stats(),
-       raw:mob.boss?14:9,attackerLevel:mob.boss?5:1
+       raw:monsterAttackDamage(mob.level,mob.boss),attackerLevel:mob.level
       });
       lastCombatAt=clock;state.hp=Math.max(0,state.hp-result.damage);
       if(result.blocked){

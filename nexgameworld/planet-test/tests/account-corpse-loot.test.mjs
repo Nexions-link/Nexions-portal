@@ -75,3 +75,21 @@ test('loot action appears at killing distance without stepping closer or waiting
  h.position(-9,-27.8);h.rpg.draw();
  assert.equal(h.get('interact').hidden,true,'cannot search beyond authorized distance');
 });
+
+test('monster levels are visible in target frame and scale with hero difficulty',()=>{
+ const h=harness({x:-9,z:-25,authenticatedProfile:{nickname:'Герой',level:1,experience:0,inventory:[],equipment:{}}});
+ h.rpg.targetNearest();
+ assert.match(h.get('targetName').textContent,/ур\. 1/);
+ assert.equal(h.get('targetName').style.color,'#f6d774');
+});
+
+test('server progress displays exact experience gained even across a level-up and warns for gray mobs',()=>{
+ const profile={nickname:'Воин',level:1,experience:95,gold:30,health:120,
+  inventory:Array(12).fill(null),equipment:{},quests:{}};
+ const h=harness({authenticatedProfile:profile});
+ h.rpg.applyServerProgress({...profile,level:2,experience:17,gold:34},'mob');
+ assert.match(h.get('toast').textContent,/\+22 опыта, \+4 монет/);
+ h.rpg.applyServerProgress({...profile,level:6,experience:0,gold:34},'welcome');
+ h.rpg.applyServerProgress({...profile,level:6,experience:0,gold:38},'mob');
+ assert.match(h.get('toast').textContent,/0 опыта, \+4 монет/);
+});
