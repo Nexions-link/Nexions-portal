@@ -1,0 +1,34 @@
+/* Fixed-size WoW-inspired target HUD: name may wrap, level never gets cut. */
+/* The existing 94px frame dimensions in style.css remain untouched. */
+#hudTop #targetFrame:not(.dummy-target) #targetHeading{
+ display:flex;gap:4px;align-items:flex-start;
+ width:100%;height:29px;min-height:29px;min-width:0;
+ margin:0 0 3px;padding:0;overflow:hidden;
+}
+#hudTop #targetFrame #targetName{
+ flex:1 1 auto;min-width:0;max-width:100%;
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+ overflow:hidden;overflow-wrap:anywhere;
+ white-space:normal;text-overflow:clip;
+ font:700 11px/13px Georgia,serif;margin:0;
+}
+#hudTop #targetFrame #targetLevel{
+ flex:0 0 auto;align-self:flex-start;min-width:29px;
+ padding:2px 3px;border:1px solid #9b875b;border-radius:4px;
+ background:#22271dcf;color:#f7e5b8;
+ font:700 9px/12px system-ui,-apple-system,sans-serif;
+ text-align:center;white-space:nowrap;
+}
+#hudTop #targetFrame #targetLevel[hidden]{display:none!important}
+#hudTop #targetFrame:not(.dummy-target) #targetStatus{
+ overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+@media(max-width:760px){
+ #hudTop #targetFrame #targetHeading{gap:3px}
+ #hudTop #targetFrame #targetName{font-size:10px;line-height:12px}
+ #hudTop #targetFrame #targetLevel{min-width:27px;padding:1px 2px;font-size:8px}
+}
+@media(max-width:360px){
+ #hudTop #targetFrame #targetName{font-size:9.5px;line-height:12px;letter-spacing:-.15px}
+ #hudTop #targetFrame #targetLevel{min-width:25px;font-size:7.5px}
+}

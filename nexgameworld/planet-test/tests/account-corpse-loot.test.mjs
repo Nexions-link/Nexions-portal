@@ -79,7 +79,9 @@ test('loot action appears at killing distance without stepping closer or waiting
 test('monster levels are visible in target frame and scale with hero difficulty',()=>{
  const h=harness({x:-9,z:-25,authenticatedProfile:{nickname:'Герой',level:1,experience:0,inventory:[],equipment:{}}});
  h.rpg.targetNearest();
- assert.match(h.get('targetName').textContent,/ур\. 1/);
+ assert.equal(h.get('targetName').textContent,'Равнинный долгоног');
+ assert.equal(h.get('targetLevel').textContent,'ур. 1');
+ assert.equal(h.get('targetLevel').hidden,false);
  assert.equal(h.get('targetName').style.color,'#f6d774');
 });
 
@@ -113,4 +115,58 @@ test('server-approved coins appear as loot and are not added to wallet until col
  h.rpg.onEconomyResult({ok:true,kind:'lootTake',mobId:'dolgonog-0',life:25,
   loot:[],taken:[{id:'coins',qty:13}]});
  assert.equal(h.get('modal').hidden,true);
+});
+
+test('level badge is separate, and a boss keeps the complete name inside a fixed size target slot',()=>{
+ const h=harness({x:39,z:43,authenticatedProfile:{nickname:'Герой',level:3,experience:0,inventory:[],equipment:{}}});
+ h.rpg.targetNearest();
+ assert.equal(h.get('targetName').textContent,'Грозоклюв');
+ assert.equal(h.get('targetLevel').textContent,'ур. 3');
+ assert.match(h.get('targetLevel').title,/Элитный/);
+ assert.equal(h.get('targetName').style.color,'#f6d774');
+});
+
+test('server XP after a killing blow rises on screen and deduplicates the same revision',()=>{
+ const profile={nickname:'Воин',level:1,experience:95,gold:30,health:120,
+  inventory:Array(12).fill(null),equipment:{},quests:{}};
+ const h=harness({authenticatedProfile:profile});
+ const xp=h.get('xpFeedback');
+ assert.equal(xp.children.length,0);
+ const event={...profile,revision:1,level:2,experience:17};
+ h.rpg.applyServerProgress(event,'mob');
+ assert.equal(xp.children.length,1);
+ assert.match(xp.children[0].textContent,/\+ 22 опыта.*Новый уровень!/);
+ assert.match(xp.children[0].className,/ngw-xp-positive/);
+ h.rpg.applyServerProgress(event,'mob');
+ assert.equal(xp.children.length,1,'same server revision must not produce another popup');
+ h.rpg.applyServerProgress({...event,revision:2,level:2,experience:43},'mob');
+ assert.equal(xp.children.length,2);
+ assert.equal(xp.children[1].textContent,'+ 26 опыта');
+});
+test('gray monster gives a muted 0 XP float and non-kill progress does not animate',()=>{
+ const profile={nickname:'Воин',level:6,experience:0,gold:30,health:120,
+  inventory:Array(12).fill(null),equipment:{},quests:{}};
+ const h=harness({authenticatedProfile:profile});
+ const xp=h.get('xpFeedback');
+ h.rpg.applyServerProgress({...profile,revision:1,experience:0},'welcome');
+ assert.equal(xp.children.length,0);
+ h.rpg.applyServerProgress({...profile,revision:2,experience:0},'mob');
+ assert.equal(xp.children.length,1);
+ assert.equal(xp.children[0].textContent,'0 опыта');
+ assert.match(xp.children[0].className,/ngw-xp-gray/);
+ h.rpg.applyServerProgress({...profile,revision:3,experience:0},'lootTake');
+ assert.equal(xp.children.length,1,'taking loot is not a kill');
+});
+test('the overlay never expands the target HUD or intercepts touch interactions',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const css=readFileSync(new URL('../xp-feedback.css',import.meta.url),'utf8');
+ const target=readFileSync(new URL('../target-hud.css',import.meta.url),'utf8');
+ const page=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(css,/#xpFeedback[\s\S]*?pointer-events:none/);
+ assert.match(css,/@keyframes ngw-xp-rise/);
+ assert.match(css, /prefers-reduced-motion:reduce/);
+ assert.match(target,/height:29px;min-height:29px/);
+ assert.doesNotMatch(target,/#targetFrame\{[^}]*width:/);
+ assert.match(page,/id="targetLevel"/);
+ assert.match(page,/id="xpFeedback"/);
 });

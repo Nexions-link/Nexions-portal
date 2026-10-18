@@ -40,6 +40,8 @@
 <link rel="stylesheet" href="./world-sheet.css?v=1">
 <link rel="stylesheet" href="./character-sheet.css?v=3">
 <link rel="stylesheet" href="./loot-sheet.css?v=1">
+<link rel="stylesheet" href="./target-hud.css?v=1">
+<link rel="stylesheet" href="./xp-feedback.css?v=1">
 <style id="planet-native-adapter">
 /* The exact original HUD sizing and styling is sourced from ../style.css. */
 #viewport{position:fixed;inset:0;z-index:0;touch-action:none;outline:none}
@@ -205,6 +207,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <body>
 <main id="viewport" aria-label="Сферический мир NexGameWorld"></main>
 <div id="combatFeedback" aria-hidden="true"></div>
+<div id="xpFeedback" aria-live="polite" aria-atomic="false" aria-label="Полученный опыт"></div>
 <div id="vignette"></div>
 <div id="hudTop" aria-label="Игровые панели персонажа цели и карты">
 <header id="playerFrame" class="frame">
@@ -213,7 +216,9 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </header>
 <div id="targetFrame" class="frame" hidden>
  <button id="targetClear" aria-label="Снять цель" title="Снять цель">×</button>
- <span id="targetName"></span>
+ <div id="targetHeading" aria-label="Название и уровень цели">
+  <span id="targetName"></span><span id="targetLevel" hidden></span>
+ </div>
  <div class="bar health"><div id="targetFill"></div><span id="targetHp"></span></div>
  <div id="targetDistance" aria-live="off"></div>
  <div id="targetStatus" aria-live="off"></div>
@@ -267,7 +272,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.40.1" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.40.2" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -353,7 +358,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=93').catch(error=>{
+  import('./planet.js?v=94').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');
