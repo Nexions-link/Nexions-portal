@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import {screenMoveVector,turnTowardsAngle} from '../movement-controls.js?v=0.3.7.0';
 import {readPlanetView,writePlanetView} from './world-save.js?v=3';
-import {cameraObstruction,createCameraProbe} from './sphere-physics.js?v=7';
+import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=7';
+import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=79';
+import {createOfflineRpg} from './offline-rpg.js?v=80';
 import {createSphericalPresence} from './sphere-online.js?v=10';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=5';
@@ -294,6 +295,8 @@ try {
   function storePreference(key,value){try{localStorage.setItem(key,value)}catch{}}
   const graphicsSelect=$('graphicsQuality'),qualityHelp=$('qualityHelp');
   const fpsToggle=$('showFps'),fpsCounter=$('fpsCounter');
+  const fpsCopy=$('copyFpsReport'),fpsReset=$('resetFpsReport'),fpsHelp=$('fpsHelp');
+  const frameProfiler=createFrameProfiler();
   // Graphics settings belong exclusively to the menu; renderModal owns visibility.
   let qualityName=resolveGraphicsPreset(readPreference(graphicsStorageKey,'balanced'));
   if(isPortalPreview)qualityName='economy';
@@ -336,9 +339,26 @@ try {
     fpsCounter.hidden=!fpsToggle.checked;
     fpsToggle.addEventListener('change',()=>{
       fpsCounter.hidden=!fpsToggle.checked;
+      frameProfiler.reset();
+      fpsCounter.textContent='FPS —';
       storePreference(fpsStorageKey,String(fpsToggle.checked));
     });
   }
+  fpsCopy?.addEventListener('click',async()=>{
+    const version=$('planetBuildWidget')?.dataset.build||'unknown';
+    const report=frameProfiler.report({version,quality:qualityName});
+    try{
+      await navigator.clipboard.writeText(report);
+      if(fpsHelp)fpsHelp.textContent='Показатели скопированы. Можно вставить их в чат.';
+    }catch{
+      if(fpsHelp)fpsHelp.textContent='Буфер обмена недоступен в этом браузере.';
+    }
+  });
+  fpsReset?.addEventListener('click',()=>{
+    frameProfiler.reset();
+    if(fpsCounter)fpsCounter.textContent='FPS —';
+    if(fpsHelp)fpsHelp.textContent='Замеры сброшены. Проверь камеру, бой и вход в дом.';
+  });
   applyGraphicsQuality();
   let saveClock=0;
   const rpg=createOfflineRpg({THREE,scene,hero,makeTauren:options=>createTauren(THREE,scene,options),playerNormal:()=>state.normal,
@@ -697,12 +717,13 @@ try {
   let fpsSeconds=0,fpsFrames=0;
   function animate() {
     requestAnimationFrame(animate);
+    const measureFrames=!!fpsCounter&&!fpsCounter.hidden&&!document.hidden;
+    const frameStart=measureFrames?performance.now():0;
     const rawDt=clock.getDelta();
     const dt = Math.min(rawDt, .05);
     elapsed += dt; uiClock += dt; introClock += dt;
-    if(fpsCounter&&!fpsCounter.hidden&&rawDt>0){
+    if(measureFrames&&rawDt>0&&rawDt<=.25){
       fpsFrames++;fpsSeconds+=rawDt;
-      if(fpsSeconds>=.7){fpsCounter.textContent='FPS '+Math.round(fpsFrames/fpsSeconds);fpsFrames=0;fpsSeconds=0;}
     }else{fpsSeconds=0;fpsFrames=0;}
     if (introClock > 7) $('instruction').style.opacity = '0';
 
@@ -862,6 +883,20 @@ try {
       sun.target.updateMatrixWorld();
     }
     renderer.render(scene,camera);
+    if(measureFrames){
+      const sceneName=selectFrameScene({orbit:state.orbit,combat:rpg.combatActive,
+       house:!!cameraPlayerLocal&&isInLonghouse(cameraPlayerLocal.x,cameraPlayerLocal.z),
+       dragging:touches.size>0});
+      frameProfiler.record(rawDt*1000,performance.now()-frameStart,
+       sceneName,renderer.info.render.calls);
+      if(fpsSeconds>=.7){
+       const row=frameProfiler.stats(sceneName);
+       fpsCounter.textContent='FPS '+Math.round(fpsFrames/fpsSeconds)+
+        (row?' · P95 '+Math.round(row.p95Ms)+' мс · '+row.slowFrames+' лаг. · '+
+         ({world:'Мир',camera:'Камера',combat:'Бой',house:'Дом'}[sceneName]):'');
+       fpsFrames=0;fpsSeconds=0;
+      }
+    }
     saveClock+=dt;
     if(saveClock>=.8){saveClock=0;saveWorld();}
     if (uiClock > .12) {uiClock = 0;updateHUD();}
@@ -873,7 +908,7 @@ try {
   }
   addEventListener('resize',resize);
   document.addEventListener('visibilitychange',()=>{
-    if(document.hidden)saveWorld();
+    if(document.hidden){saveWorld();fpsSeconds=0;fpsFrames=0;}
     clock.getDelta();
   });
   window.addEventListener('pagehide',saveWorld);

@@ -1910,6 +1910,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
   setMultiplayer,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
   onVitals,onCombatEvent,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobTelegraph,onNetworkRespawn,onMobSnapshot,
+  get combatActive(){return !!inCombat()},
   get movementLocked(){return !modal.hidden||timeline.stompProgress>=0},
   getWindowView(){
    if(modal.hidden||!modal.className.split(' ').includes('world-sheet'))return null;

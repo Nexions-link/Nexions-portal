@@ -52,6 +52,12 @@ test('mobile menu quality/FPS inputs are wired to rendering, not only labels',()
  assert.match(planet,/renderer\.shadowMap\.enabled=enabled/);
  assert.match(planet,/startZone\.setGraphics/);
  assert.match(planet,/fpsFrames\/fpsSeconds/);
+ assert.match(planet,/createFrameProfiler/);
+ assert.match(planet,/selectFrameScene/);
+ assert.match(planet,/frameProfiler\.record/);
+ assert.match(planet,/frameProfiler\.report/);
+ assert.match(html,/id="copyFpsReport"/);
+ assert.match(html,/id="resetFpsReport"/);
  assert.match(html,/id="graphicsQuality"/);
  assert.match(html,/id="showFps"/);
  assert.match(zone,/function setGraphics\(preset/);
