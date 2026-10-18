@@ -5,7 +5,9 @@ import {DOLGONOG_LEVELS,DOLGONOG_SPAWNS,DOLGONOG_BOSS_INDEX,
 import {CREATURE_TYPE_BEAST,CREATURE_TYPE_HUMANOID} from './creature-types.js';
 export const BANDIT_CAMP=Object.freeze({x:-43,z:15});
 export const BANDIT_QUEST_GIVER=Object.freeze({x:-20,z:13,range:4.7});
-export const BANDIT_SPAWNS=Object.freeze([[-40,9],[-46,15],[-48,21]].map(p=>Object.freeze(p)));
+export const BANDIT_SPAWNS=Object.freeze([[-40,9],[-46,15],[-48,21],[-43,26]].map(p=>Object.freeze(p)));
+export const BANDIT_BOSS_INDEX=3;
+export const BANDIT_BOSS_SCALE=1.35;
 export const BANDIT_QUEST_KILLS=3;
 export const BANDIT_QUEST_MIN_LEVEL=3;
 export const CREATURE_SPAWNS=Object.freeze([
@@ -17,8 +19,8 @@ export const CREATURE_SPAWNS=Object.freeze([
  })),
  ...BANDIT_SPAWNS.map(([x,z],i)=>Object.freeze({
   id:'bandit-'+i,index:DOLGONOG_SPAWNS.length+i,x,z,
-  family:'bandit',name:'Разбойник Пыльной тропы',
-  level:i===2?3:2,boss:false,type:CREATURE_TYPE_HUMANOID
+  family:'bandit',name:i===BANDIT_BOSS_INDEX?'Главарь Пыльной тропы':'Разбойник Пыльной тропы',
+  level:i===BANDIT_BOSS_INDEX?5:i===2?3:2,boss:i===BANDIT_BOSS_INDEX,type:CREATURE_TYPE_HUMANOID
  }))
 ]);
 const BY_ID=new Map(CREATURE_SPAWNS.map(m=>[m.id,m]));
@@ -28,5 +30,5 @@ export const creatureKillReward=mob=>({
  xp:mobBaseExperience(mob.level,mob.boss),gold:0,
  level:mob.level,type:mob.type,lootTable:mob.family
 });
-export const creatureSpawnHealth=mob=>mob.family==='bandit'?64+(mob.level-2)*14:
+export const creatureSpawnHealth=mob=>mob.family==='bandit'?(64+(mob.level-2)*14)*(mob.boss?2:1):
  monsterMaxHealth(mob.level,mob.boss);

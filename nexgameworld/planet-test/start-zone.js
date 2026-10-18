@@ -7,6 +7,7 @@ import {canWalkCamp} from './sphere-physics.js?v=6';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=3';
 import {createHouseRat} from './house-rat.js?v=2';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
+import {createBanditCampVisuals} from './bandit-camp-visuals.js?v=1';
 
 // Spherical NexGame starting zone prototype.
 // Layout, terrain, village and character geometry derived from the actual main-game
@@ -102,6 +103,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
    item.g.quaternion.copy(q).multiply(twist.setFromAxisAngle(UP,item.yaw));
   }
  }
+ const banditCampVisuals=createBanditCampVisuals(THREE,{anchor,shadowCasters});
  // Rebuilt longhouse: matching opaque physics and exterior roof layers.
  const houseAnchor=anchor(LONGHOUSE.x,LONGHOUSE.z,LONGHOUSE.yaw);
  const longhouse=buildHearthHouse(THREE,{root:houseAnchor,villageVisuals});
@@ -347,7 +349,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
   }
  }
  return {rebuild,updateInteriorView,setGraphics,meadow,
-  animate(t){houseRat.animate(t);
+  animate(t){houseRat.animate(t);banditCampVisuals.animate(t);
    flame.scale.y=1+Math.sin(t*9)*.12;
    rippleTexture.offset.set(t*.006,t*.003);
    waterMat.color.copy(waterTint).multiplyScalar(1+.018*Math.sin(t*1.3));}};

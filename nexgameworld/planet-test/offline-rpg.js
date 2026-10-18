@@ -42,7 +42,7 @@ import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
 import {rollCreatureLoot} from './loot-tables.js?v=1';
-import {creatureByIndex,BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_KILLS,BANDIT_QUEST_MIN_LEVEL} from './creature-registry.js?v=2';
+import {creatureByIndex,BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_KILLS,BANDIT_QUEST_MIN_LEVEL,BANDIT_BOSS_SCALE} from './creature-registry.js?v=3';
 import {createBanditVisual} from './bandit-visual.js?v=1';
 import {rollCreatureCoins} from './creature-types.js?v=1';
 import {creatureTypeForMob,CREATURE_TYPE_LABELS,CORPSE_COIN_ID,isValidCorpseCoins} from './creature-types.js?v=1';
@@ -96,6 +96,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   safe.quest=row.quests?.mentor?.step||0;
   safe.gatherStage=row.quests?.gather?.stage||0;
    safe.banditQuest=row.quests?.bandit||{stage:0,kills:0};
+  safe.banditChiefQuest=row.quests?.banditChief||{stage:0};
   safe.hotbar=normalizeHotbar(row.actionBar?.length?row.actionBar:DEFAULT_HOTBAR,'warrior',safe.level);
   return safe;
  };
@@ -371,6 +372,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   if(progress.quests?.mentor?.kills!==undefined)state.kills=progress.quests.mentor.kills;
   if(progress.quests?.bandit)state.banditQuest={...progress.quests.bandit};
+  if(progress.quests?.banditChief)state.banditChiefQuest={...progress.quests.banditChief};
   if(source==='welcome'||source==='usePotion'){
    state.hp=progress.health;
    if(source==='welcome')state.resource=progress.resource;
@@ -593,15 +595,16 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const root=new THREE.Group();group.add(root);
   const contactShadow=addContactShadow(root,.83),visual=createBanditVisual(THREE);
   root.add(visual.root);
-  const hp=64+(spec.level-2)*14;
+  const hp=(64+(spec.level-2)*14)*(spec.boss?2:1);
   const mob={kind:'mob',id:spec.id,index:spec.index,family:'bandit',level:spec.level,
    name:spec.name,lootId:'bandit',creatureType:spec.type,root,x,z,yaw:0,
    spawnX:x,spawnZ:z,hp,maxHp:hp,aggro:false,attackCd:1.2,stun:0,dead:0,loot:null,corpse:false,
    respawn:0,returning:false,walk:0,hit:0,attackWindup:0,alertRemaining:0,corpseAge:0,
-   boss:false,contactShadow,roamTime:spec.index*1.73,navigation:null,banditVisual:visual};
+   boss:spec.boss,contactShadow,roamTime:spec.index*1.73,navigation:null,banditVisual:visual};
+  if(spec.boss){visual.root.scale.setScalar(BANDIT_BOSS_SCALE);contactShadow.scale.setScalar(BANDIT_BOSS_SCALE);contactShadow.position.y=.02;}
   const nameTag=makeLabel(spec.name+' · ур. '+spec.level,'#e4c68f',24);
-  nameTag.position.y=3.7;root.add(nameTag);mob.nameTag=nameTag;
-  const alertTag=makeLabel('!','#ffc978',78);alertTag.position.y=4.25;alertTag.scale.set(1.55,1.4,1);
+  nameTag.position.y=spec.boss?4.9:3.7;root.add(nameTag);mob.nameTag=nameTag;
+  const alertTag=makeLabel('!','#ffc978',78);alertTag.position.y=spec.boss?5.35:4.25;alertTag.scale.set(1.55,1.4,1);
   alertTag.visible=false;root.add(alertTag);mob.alertTag=alertTag;
   const lootMarker=makeLabel('◆','#fff7df',68);lootMarker.position.y=1.45;
   lootMarker.scale.set(1.3,1.06,1);lootMarker.visible=false;root.add(lootMarker);mob.lootMarker=lootMarker;
@@ -705,6 +708,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const rig=asset.scene.clone(true);
   const container=new THREE.Group();container.name='dust-trail-raider-v0.3';
   container.add(rig);mob.root.add(container);mob.fallbackVisual.visible=false;
+  if(mob.boss)container.scale.setScalar(BANDIT_BOSS_SCALE);
   rig.traverse(part=>{if(part.isMesh){part.castShadow=true;part.receiveShadow=false;}});
   const mixer=new THREE.AnimationMixer(rig);
   const actions=Object.fromEntries(asset.animations.map(clip=>[clip.name,mixer.clipAction(clip)]));
@@ -1152,11 +1156,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const glyph=mentorGlyph(state.quest);
   for(const child of mentor.root.children)if(child.userData.questMarker)child.visible=child.userData.glyph===glyph;
   const banditStage=state.banditQuest?.stage??0;
-  const banditGlyph=banditStage===0?(state.level>=BANDIT_QUEST_MIN_LEVEL?'!':null):banditStage===2?'?':banditStage===1?'·':null;
+  const chiefStage=state.banditChiefQuest?.stage??0;
+  const banditGlyph=banditStage===0?(state.level>=BANDIT_QUEST_MIN_LEVEL?'!':null):banditStage===2||chiefStage===2?'?':banditStage===1||chiefStage===1?'·':banditStage===3&&chiefStage===0&&state.level>=4?'!':null;
   for(const child of banditGuide.root.children)if(child.userData.questMarker)
    child.visible=child.userData.glyph===banditGlyph;
-  $('banditQuestTracker').hidden=!authenticatedProfile||banditStage!==1&&banditStage!==2;
-  if(authenticatedProfile&&banditStage>0&&banditStage<3)
+  const showChief=banditStage===3&&(chiefStage===1||chiefStage===2);
+  $('banditQuestTracker').hidden=!authenticatedProfile||!(showChief||banditStage===1||banditStage===2);
+  if(authenticatedProfile&&showChief)
+   $('banditQuestText').textContent=chiefStage===2?'Главарь повержен! Вернись к следопыту.':'Главарь: 0 / 1';
+  else if(authenticatedProfile&&banditStage>0&&banditStage<3)
    $('banditQuestText').textContent=banditStage===2?'Готово! Вернись к следопыту.':
     'Разбойники: '+(state.banditQuest?.kills??0)+' / '+BANDIT_QUEST_KILLS;
   const nearby=modal.hidden&&!camp.casting?nearestInteraction():null;
@@ -1287,7 +1295,17 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    else if(q.stage===2)
     line('Разбойники Пыльной тропы','Трое разбойников побеждены. Награда: 85 опыта и 18 монет.',
      [['Сдать задание',()=>sendAccountAction('banditTurnIn')]]);
-   else line('Тропа снова безопасна','Ты уже помог следопыту. Благодарю за службу.');
+   else if((state.banditChiefQuest?.stage??0)===0&&state.level<4)
+    line('Последний противник','Ты справился с разбойниками. Вернись на 4-м уровне, чтобы получить задание на главаря.');
+   else if((state.banditChiefQuest?.stage??0)===0)
+    line('Главарь Пыльной тропы','В глубине лагеря находится главарь 5-го уровня. Победи его и возвращайся. Награда: 180 опыта и 35 монет.',
+     [['Принять задание',()=>sendAccountAction('banditChiefAccept')]]);
+   else if(state.banditChiefQuest.stage===1)
+    line('Главарь Пыльной тропы','Победи главаря разбойников в глубине лагеря.');
+   else if(state.banditChiefQuest.stage===2)
+    line('Главарь Пыльной тропы','Главарь повержен. Награда: 180 опыта и 35 монет.',
+     [['Сдать задание',()=>sendAccountAction('banditChiefTurnIn')]]);
+   else line('Тропа снова безопасна','Главарь повержен. Благодарю за службу.');
    return;
   }
   if(authenticatedProfile&&kind==='mentor'){
@@ -1444,6 +1462,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      title:'Разбойники Пыльной тропы',objective:'Победить 3 разбойников',
      progress:q.stage===3?'Сдано':q.stage===2?'Готово к сдаче':q.kills+' / '+BANDIT_QUEST_KILLS,
      reward:'85 опыта · 18 монет',npc:'Следопыт Медная Стрела'});
+    const chief=state.banditChiefQuest||{stage:0};
+    if(q.stage===3)entries.push({id:'bandit-chief',
+     status:chief.stage===0?(state.level>=4?'available':'locked'):chief.stage===3?'completed':'current',
+     title:'Главарь Пыльной тропы',objective:'Победить главаря разбойников',
+     progress:chief.stage===3?'Сдано':chief.stage===2?'Готово к сдаче':chief.stage===1?'0 / 1':'Не принято',
+     reward:'180 опыта · 35 монет',npc:'Следопыт Медная Стрела'});
    }
    for(let i=1;i<=3;i++){
     const quest=GATHER_QUESTS[i],stage=state.gatherStage;
