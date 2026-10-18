@@ -2,21 +2,30 @@
 // No real NexGameWorld player accounts are created, modified or deleted.
 import {before,after,test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createServer} from 'node:http';
+import {createServer} from 'node:https';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {execFileSync} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {resolve,sep,extname} from 'node:path';
+import {resolve,sep,extname,join} from 'node:path';
 import {webkit} from 'playwright';
 
 const root=resolve(fileURLToPath(new URL('../',import.meta.url)));
 const characterId='11111111-1111-4111-8111-111111111111';
 const token='A'.repeat(43);
-let server,base,browser;
+let server,base,browser,certDir;
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8',
  '.json':'application/json; charset=utf-8','.css':'text/css; charset=utf-8'};
 
 before(async()=>{
- server=createServer(async(req,res)=>{
+ certDir=await mkdtemp(join(tmpdir(),'ngw-webkit-https-'));
+ const key=join(certDir,'server.key'),cert=join(certDir,'server.crt');
+ execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-sha256','-nodes',
+  '-keyout',key,'-out',cert,'-days','1',
+  '-subj','/CN=localhost','-addext','subjectAltName=IP:127.0.0.1,DNS:localhost'],{stdio:'ignore'});
+ const [privateKey,certificate]=await Promise.all([readFile(key),readFile(cert)]);
+ server=createServer({key:privateKey,cert:certificate},async(req,res)=>{
   try{
    const original=new URL(req.url,'http://localhost').pathname;
    let pathname=decodeURIComponent(original);
@@ -36,14 +45,14 @@ before(async()=>{
   }
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- base='http://127.0.0.1:'+server.address().port;
+ base='https://127.0.0.1:'+server.address().port;
  browser=await webkit.launch({headless:true});
 });
-after(async()=>{await browser?.close();if(server)await new Promise(resolve=>server.close(resolve));});
+after(async()=>{await browser?.close();if(server)await new Promise(resolve=>server.close(resolve));if(certDir)await rm(certDir,{recursive:true,force:true});});
 
 async function portrait(){
  const context=await browser.newContext({
-  viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true
+  viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,ignoreHTTPSErrors:true
  });
  const page=await context.newPage();
  page.setDefaultTimeout(12000);
