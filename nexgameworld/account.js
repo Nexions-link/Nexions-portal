@@ -1,7 +1,22 @@
 const API='https://nexgame-world.onrender.com/api/ngw';
 const $=id=>document.getElementById(id);
 const views=['login','register','recoveryCodes','recover','characters'];
-let token=sessionStorage.getItem('ngw-alpha-session')||'',codes=[];
+// Persist only a revocable seven-day session, never a plaintext password.
+const SESSION_KEY='ngw-alpha-session';
+const REMEMBER_KEY='ngw-alpha-remembered-session';
+const USERNAME_KEY='ngw-alpha-remembered-username';
+const VALID_TOKEN=/^[A-Za-z0-9_-]{43}$/;
+function readStorage(area,key){try{return window[area].getItem(key)}catch{return null}}
+function writeStorage(area,key,value){try{window[area].setItem(key,value);return true}catch{return false}}
+function removeStorage(area,key){try{window[area].removeItem(key)}catch{}}
+const rememberedToken=readStorage('localStorage',REMEMBER_KEY);
+const tabToken=readStorage('sessionStorage',SESSION_KEY);
+let token=VALID_TOKEN.test(tabToken||'')?tabToken:
+ VALID_TOKEN.test(rememberedToken||'')?rememberedToken:'';
+if(token&&token!==tabToken)writeStorage('sessionStorage',SESSION_KEY,token);
+if(rememberedToken&&!VALID_TOKEN.test(rememberedToken))
+ removeStorage('localStorage',REMEMBER_KEY);
+let codes=[];
 let pendingDelete=null;
 const deleteDialog=$('deleteDialog');
 function openDeleteDialog(character){
@@ -47,6 +62,15 @@ $('deleteHeroForm').addEventListener('submit',async event=>{
  }
 });
 
+function clearSession(){
+ token='';
+ removeStorage('sessionStorage',SESSION_KEY);
+ removeStorage('sessionStorage','ngw-selected-character');
+ removeStorage('localStorage',REMEMBER_KEY);
+ removeStorage('localStorage',USERNAME_KEY);
+ $('rememberLogin').checked=false;
+ $('loginName').value='';
+}
 function show(view){maskPasswords();for(const id of views)$(id).hidden=id!==view;feedback('');}
 function feedback(text,error=false){$('feedback').hidden=!text;$('feedback').textContent=text;$('feedback').dataset.error=String(error);}
 function maskPasswords(){for(const field of document.querySelectorAll('.password-control input'))field.type='password';for(const toggle of document.querySelectorAll('.toggle-password')){toggle.textContent='Показать';toggle.setAttribute('aria-pressed','false');toggle.setAttribute('aria-label','Показать пароль')}}
@@ -57,7 +81,11 @@ async function api(path,{method='GET',body=null,authorized=false}={}){
  if(authorized&&token)headers.Authorization='Bearer '+token;
  const response=await fetch(API+path,{method,headers,body:body===null?undefined:JSON.stringify(body),cache:'no-store'});
  let data;try{data=await response.json()}catch{data={error:'Ответ сервера недоступен'}}
- if(!response.ok)throw Error(data.error||'Ошибка запроса');
+ if(!response.ok){
+  const error=new Error(data.error||'Ошибка запроса');
+  error.status=response.status;
+  throw error;
+ }
  return data;
 }
 async function submit(event,action){
@@ -90,10 +118,28 @@ $('registerForm').addEventListener('submit',event=>submit(event,async form=>{
 $('copyCodes').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(codes.join('\n'));feedback('Коды скопированы. Сохраните их в надёжном месте.')}catch{feedback('Скопируйте коды вручную.',true)}});
 $('codesSaved').addEventListener('change',()=>{$('codesContinue').disabled=!$('codesSaved').checked});
 $('codesContinue').addEventListener('click',()=>{codes=[];$('codes').replaceChildren();show('login');feedback('Аккаунт создан. Теперь войдите.')});
+const savedUsername=readStorage('localStorage',USERNAME_KEY);
+if(typeof savedUsername==='string'&&/^[A-Za-z][A-Za-z0-9_-]{2,23}$/.test(savedUsername))
+ $('loginName').value=savedUsername;
+$('rememberLogin').checked=VALID_TOKEN.test(rememberedToken||'');
 $('loginForm').addEventListener('submit',event=>submit(event,async form=>{
  const data=await api('/login',{method:'POST',body:{username:String(form.get('username')),password:String(form.get('password'))}});
- token=data.token;sessionStorage.setItem('ngw-alpha-session',token);
- $('accountName').textContent=data.account.username;await loadCharacters();show('characters');
+ token=data.token;
+ writeStorage('sessionStorage',SESSION_KEY,token);
+ const remember=$('rememberLogin').checked;
+ let saved=true;
+ if(remember){
+  saved=writeStorage('localStorage',REMEMBER_KEY,token);
+  if(saved)writeStorage('localStorage',USERNAME_KEY,data.account.username);
+  else removeStorage('localStorage',USERNAME_KEY);
+ }else{
+  removeStorage('localStorage',REMEMBER_KEY);
+  removeStorage('localStorage',USERNAME_KEY);
+ }
+ $('accountName').textContent=data.account.username;
+ await loadCharacters();show('characters');
+ if(remember&&!saved)
+  feedback('Браузер не разрешил сохранить вход. После закрытия вкладки потребуется повторный вход.',true);
 }));
 $('recoverForm').addEventListener('submit',event=>submit(event,async form=>{
  await api('/recover',{method:'POST',body:{username:String(form.get('username')),recoveryCode:String(form.get('recoveryCode')).trim(),newPassword:String(form.get('newPassword'))}});
@@ -147,7 +193,7 @@ $('passwordChangeForm').addEventListener('submit',event=>submit(event,async form
  if(newPassword!==$('repeatAccountPassword').value)
   throw Error('Новые пароли не совпадают');
  await api('/password',{method:'POST',authorized:true,body:{currentPassword,newPassword}});
- token='';sessionStorage.removeItem('ngw-alpha-session');
+ clearSession();
  $('passwordChangeForm').reset();
  $('passwordChangeForm').hidden=true;
  $('openPasswordChange').hidden=false;
@@ -156,8 +202,16 @@ $('passwordChangeForm').addEventListener('submit',event=>submit(event,async form
 }));
 $('logout').addEventListener('click',async()=>{
  try{await api('/logout',{method:'POST',body:{},authorized:true})}catch{}
- token='';sessionStorage.removeItem('ngw-alpha-session');sessionStorage.removeItem('ngw-selected-character');show('login');
+ clearSession();show('login');
 });
 if(token){api('/me',{authorized:true}).then(data=>{
  $('accountName').textContent=data.username;return loadCharacters();
-}).then(()=>show('characters')).catch(()=>{token='';sessionStorage.removeItem('ngw-alpha-session');show('login')})}
+}).then(()=>show('characters')).catch(error=>{
+ if(error.status===401||error.status===403){
+  clearSession();show('login');
+  feedback('Срок сохранённого входа истёк. Войдите снова.');
+ }else{
+  show('login');
+  feedback('Не удалось проверить сохранённый вход. Возможно, сервер временно недоступен.',true);
+ }
+})}
