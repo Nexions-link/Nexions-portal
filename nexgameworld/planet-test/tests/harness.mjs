@@ -31,6 +31,22 @@ export function installDom(){
  const nodes=new Map(),writes=[];
  globalThis.document={documentElement:{clientWidth:844,clientHeight:390},
   createElement:tag=>tag==='canvas'?Object.assign(createCanvas(64,64),new Element(tag)):new Element(tag),
+  // Real SVG elements expose a read-only SVGAnimatedString className, unlike
+  // HTML elements. Model that difference so Safari-only crashes fail tests.
+  createElementNS:(_namespace,tag)=>{
+   const node=new Element(tag);
+   if(tag==='svg'){
+    const classes=new Set(),animated={baseVal:''};
+    Object.defineProperty(node,'className',{get(){return animated;},
+     set(){throw new TypeError('SVG.className is a read-only SVGAnimatedString');}});
+    node.classList={
+     add:(...names)=>{names.forEach(name=>classes.add(name));animated.baseVal=[...classes].join(' ');},
+     remove:(...names)=>{names.forEach(name=>classes.delete(name));animated.baseVal=[...classes].join(' ');},
+     contains:name=>classes.has(name)
+    };
+   }
+   return node;
+  },
   getElementById:id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)},addEventListener(){}};
  const storage=new Map();
  globalThis.localStorage={getItem:key=>storage.get(key)??null,setItem:(key,value)=>{writes.push(key);storage.set(key,value)}};

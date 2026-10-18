@@ -36,11 +36,11 @@ export function equipmentPropertyRows(def,pretty=String){
  if((def.requiredLevel||1)>1)out.push('Требуется '+def.requiredLevel+' уровень');
  return out;
 }
-function emptySilhouette(document,slot){
+export function createEmptyEquipmentSilhouette(document,slot){
  // DOM namespace also works in mobile Safari and in the lightweight test DOM.
  const svg=document.createElementNS?document.createElementNS('http://www.w3.org/2000/svg','svg'):document.createElement('svg');
  svg.setAttribute('viewBox','0 0 48 48');svg.setAttribute('aria-hidden','true');
- svg.className='character-empty-silhouette';
+ svg.classList.add('character-empty-silhouette'); // SVG.className is read-only SVGAnimatedString in Safari.
  const path=document.createElementNS?document.createElementNS('http://www.w3.org/2000/svg','path'):document.createElement('path');
  path.setAttribute('d',SLOT_SHAPES[slot]);
  path.setAttribute('fill','currentColor');path.setAttribute('fill-opacity','0.08');
@@ -116,7 +116,7 @@ export function renderCharacterSheet({
    const icon=document.createElement('span');icon.className='character-socket-icon';
    icon.textContent=def.icon||'◆';icon.setAttribute('aria-hidden','true');button.append(icon);
   }else{
-   button.append(emptySilhouette(document,slot));
+   button.append(createEmptyEquipmentSilhouette(document,slot));
   }
   const label=document.createElement('span');label.className='character-socket-label';
   label.textContent=labels[slot];button.append(label);

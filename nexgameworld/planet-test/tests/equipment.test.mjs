@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {ITEM_CATALOG,deriveStats} from '../../items.js';
 import {equipFromBag,unequipToBag} from '../equipment-rules.js';
 import {harness,descendants} from './harness.mjs';
+import {createEmptyEquipmentSilhouette} from '../character-sheet.js';
 const fresh=()=>({level:10,hp:60,equipment:{},inventory:[]});
 test('equipping stamina does not heal; unequipping clamps HP to new maximum',()=>{
  const id=Object.keys(ITEM_CATALOG).find(id=>ITEM_CATALOG[id].slot!=='weapon'&&ITEM_CATALOG[id].stamina>0);
@@ -80,7 +81,7 @@ test('original flat UI empty-slot silhouettes and explicit 3D rotation controls 
  const el=descendants(h.get('mbody'));
  const empty=el.find(e=>e.dataset?.slot==='head');
  assert.equal(empty.className,'character-socket');
- assert.ok(empty.children.some(c=>c.className==='character-empty-silhouette'));
+ assert.ok(empty.children.some(c=>c.className?.baseVal==='character-empty-silhouette'));
  const buttons=el.filter(e=>['Спереди','↶','↷'].includes(e.textContent));
  assert.deepEqual(buttons.map(b=>b.textContent),['↶','Спереди','↷']);
  buttons.forEach(button=>button.click());
@@ -96,5 +97,20 @@ test('character sheet can navigate to the existing backpack without stale previe
  const open=descendants(h.get('mbody')).find(e=>e.textContent==='Открыть рюкзак');
  assert.ok(open);
  open.click();assert.equal(h.get('modal').dataset.kind,'bag');
+ h.get('modalClose').click();
+});
+
+test('empty equipment SVG works with browser-like readonly SVGAnimatedString className',()=>{
+ const h=harness();
+ const documentSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ assert.equal(typeof documentSvg.className,'object');
+ assert.throws(()=>{documentSvg.className='character-empty-silhouette'},/read-only/);
+ const icon=createEmptyEquipmentSilhouette(document,'head');
+ assert.equal(icon.className.baseVal,'character-empty-silhouette');
+ assert.equal(icon.children[0].attributes.d.startsWith('M10'),true);
+ h.get('character').click();
+ assert.equal(h.get('modal').hidden,false);
+ assert.equal(h.get('modal').dataset.kind,'character');
+ assert.ok(descendants(h.get('mbody')).some(e=>e.className?.baseVal==='character-empty-silhouette'));
  h.get('modalClose').click();
 });

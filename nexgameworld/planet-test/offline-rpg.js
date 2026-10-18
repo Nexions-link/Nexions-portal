@@ -1,6 +1,6 @@
 import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=2';
-import {renderCharacterSheet} from './character-sheet.js?v=2';
+import {renderCharacterSheet} from './character-sheet.js?v=3';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT} from './native-hotbar-art.js?v=1';
