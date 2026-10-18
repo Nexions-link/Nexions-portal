@@ -19,7 +19,7 @@ import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
 import {createXpFeedback} from './xp-feedback.js?v=1';
-import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=1';
+import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=2';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
 import {createCameraTargetFilter} from './camera-targeting.js?v=1';
 import {createHostileTargetCycle,nearbyInteractable,CORPSE_LOOT_RANGE} from './interaction-targeting.js?v=14';
@@ -34,7 +34,7 @@ import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
 import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v=1';
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
 import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
-import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=6';
+import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=7';
 import {canWadeAtLocal} from './start-zone.js?v=25';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
@@ -473,7 +473,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const combatFeedback=createSphereCombatFeedback({THREE,document,camera,layer:feedbackLayer});
  const xpFeedback=createXpFeedback({document,layer:$('xpFeedback')});
  let lastMobXpRevision=null;
-  const combatVfx=createSphericalCombatVfx({THREE,parent:scene});
+  const combatVfx=createSphericalCombatVfx({THREE,parent:scene,
+   getViewerNormal:playerNormal,getRadius});
   const questMarkers=createQuestMarkerFactory(THREE,{document,camera});
  const nameEl=$('playerName'),objective=$('qtext');
  const originalControls=$('labSettingsSources');

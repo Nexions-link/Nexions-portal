@@ -65,15 +65,24 @@ function geometryAt(x,z,height,interior=false){
  }
  return false;
 }
+// Reusable per-camera ray workspace. Collision sampling remains every frame,
+// including the post-lerp sweep, so no wall clipping is traded for performance.
+export function createCameraProbe(THREE){
+ return {line:new THREE.Vector3(),point:new THREE.Vector3(),
+  direction:new THREE.Vector3(),result:new THREE.Vector3()};
+}
 export function cameraObstruction(THREE,{
  start,desired,getRadius,toLocal,heightAt,heroLocal,
  clearance=.7,maxSamples=140
-}){
+},scratch=null){
  if(!start||!desired)return null;
- const line=desired.clone().sub(start),length=line.length();
+ const line=scratch?.line||new THREE.Vector3();
+ line.copy(desired).sub(start);
+ const length=line.length();
  if(!Number.isFinite(length)||length<.1)return null;
  const N=Math.min(maxSamples,Math.max(12,Math.ceil(length/.45)));
- const point=new THREE.Vector3(),direction=new THREE.Vector3();
+ const point=scratch?.point||new THREE.Vector3(),
+  direction=scratch?.direction||new THREE.Vector3();
  const radius=getRadius(),inside=heroLocal&&isInLonghouse(heroLocal.x,heroLocal.z);
  let safe=1,blocked=false;
  for(let i=2;i<=N;i++){
@@ -89,6 +98,6 @@ export function cameraObstruction(THREE,{
    blocked=true;break;
   }
  }
- return blocked?start.clone().addScaledVector(line,safe):null;
+ return blocked?(scratch?.result||new THREE.Vector3()).copy(start).addScaledVector(line,safe):null;
 }
 export const CAMP_COLLISION_ASSETS=Object.freeze({tents:TENTS.length,trees:TREES.length,totems:TOTEMS.length});

@@ -1,6 +1,6 @@
 // NexGameWorld's lightweight radial impact glints. Cosmetic only:
 // no physics, raycasts, target changes, extra damage, or WebGL post-processing.
-export function createSphericalCombatVfx({THREE,parent}){
+export function createSphericalCombatVfx({THREE,parent,getViewerNormal=null,getRadius=null,maxVisibleMetres=55}){
  const UP=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
  const geometry=new THREE.ConeGeometry(.068,.27,4);
  const palette={hit:0xffdc83,strong:0xff9c66,stomp:0xc5d9f2,block:0xb5f4f4};
@@ -25,10 +25,16 @@ export function createSphericalCombatVfx({THREE,parent}){
   if(density<.3||!entity?.root?.position)return false;
   const p=entity.root.position;
   if(p.lengthSq()<1)return false;
+  normal.copy(p).normalize();
+  // Remote hits stay server-authoritative; their tiny additive glints are
+  // cosmetic and need not consume fill rate beyond the mobile view distance.
+  const viewer=getViewerNormal?.(),radius=getRadius?.();
+  if(viewer?.isVector3&&Number.isFinite(radius)&&radius>0&&
+    radius*Math.acos(Math.max(-1,Math.min(1,normal.dot(viewer))))>maxVisibleMetres)
+   return false;
   const effect=effects[cursor];cursor=(cursor+1)%effects.length;
   effect.kind=Object.hasOwn(palette,kind)?kind:'hit';
   effect.age=0;effect.life=effect.kind==='block'?.33:.27;
-  normal.copy(p).normalize();
   effect.group.position.copy(p).addScaledVector(normal,
    effect.kind==='block'?1.7:entity.trainingDummy?2:1.62);
   effect.group.quaternion.setFromUnitVectors(UP,normal);

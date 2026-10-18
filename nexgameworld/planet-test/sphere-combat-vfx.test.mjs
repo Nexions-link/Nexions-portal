@@ -47,3 +47,19 @@ test('economy disables particles; max quality displays five pooled sparks',()=>{
  fx.clear();
  assert.equal(fx.activeCount(),0);
 });
+
+test('distant impact glints are culled, while nearby hit/block stay fully visible',()=>{
+ const scene=new THREE.Scene(),viewer=new THREE.Vector3(0,0,1);
+ const fx=createSphericalCombatVfx({
+  THREE,parent:scene,getViewerNormal:()=>viewer,getRadius:()=>261,maxVisibleMetres:55
+ });
+ const remote={root:new THREE.Group()},near={root:new THREE.Group()};
+ remote.root.position.set(0,0,-261);
+ near.root.position.set(0,0,261);
+ assert.equal(fx.trigger(remote,'hit'),false);
+ assert.equal(fx.activeCount(),0);
+ assert.equal(fx.trigger(near,'hit'),true);
+ assert.equal(fx.trigger(near,'block'),true);
+ assert.equal(fx.activeCount(),2);
+ fx.clear();assert.equal(fx.activeCount(),0);
+});

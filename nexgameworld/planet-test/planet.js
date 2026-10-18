@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import {screenMoveVector,turnTowardsAngle} from '../movement-controls.js?v=0.3.7.0';
 import {readPlanetView,writePlanetView} from './world-save.js?v=3';
-import {cameraObstruction} from './sphere-physics.js?v=6';
+import {cameraObstruction,createCameraProbe} from './sphere-physics.js?v=7';
+import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=78';
+import {createOfflineRpg} from './offline-rpg.js?v=79';
 import {createSphericalPresence} from './sphere-online.js?v=10';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=5';
@@ -137,6 +138,9 @@ try {
   scene.add(fill);
   // Near-camera shadows only: never render a whole-planet shadow pass.
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  // Never render an unchanged shadow pass solely because the camera drew.
+  renderer.shadowMap.autoUpdate=false;
+  const shadowBudget=createShadowRefreshBudget();
   const localFog=new THREE.Fog(skyDay,105,290);
   sun.shadow.camera.left=-31;sun.shadow.camera.right=31;
   sun.shadow.camera.top=31;sun.shadow.camera.bottom=-31;
@@ -306,6 +310,7 @@ try {
     }
     sun.castShadow=enabled;
     renderer.shadowMap.enabled=enabled;
+    shadowBudget.reset();
     shadowActive=enabled;
     scene.fog=state.orbit||isPortalPreview?null:localFog;
     localFog.near=profile.fogNear;localFog.far=profile.fogFar;
@@ -393,6 +398,11 @@ try {
   window.addEventListener('pagehide',()=>onlinePresence?.close());
   let prevHeading = 0;
   const cameraGoal = new THREE.Vector3();
+  const cameraProbe=createCameraProbe(THREE);
+  const cameraRadial=new THREE.Vector3(),cameraCandidate=new THREE.Vector3();
+  const cameraOffsetDirection=new THREE.Vector3(),cameraToHero=new THREE.Vector3();
+  const actorForward=new THREE.Vector3();
+  const cameraWorldRadius=()=>R;
   const focus = new THREE.Vector3();
   const camForward = new THREE.Vector3();
   const tangentEast = new THREE.Vector3();
@@ -411,7 +421,7 @@ try {
     tangentBasis(normal);
     const position = R + heightAt(normal);
     actor.position.copy(normal).multiplyScalar(position + .06);
-    const fwd = tangentEast.clone().multiplyScalar(Math.cos(state.heading))
+    const fwd = actorForward.copy(tangentEast).multiplyScalar(Math.cos(state.heading))
       .addScaledVector(tangentNorth, Math.sin(state.heading)).normalize();
     // Tauren's face is model-local +Z; keep it facing the travel direction.
     right.crossVectors(normal, fwd).normalize();
@@ -779,24 +789,24 @@ try {
       focus.copy(state.normal).multiplyScalar(h+2.3);
       cameraGoal.copy(focus).addScaledVector(camForward,-state.zoom*Math.cos(state.cameraPitch));
       cameraGoal.addScaledVector(state.normal,state.zoom*Math.sin(state.cameraPitch)+1.1);
-      const minRadius = R + heightAt(cameraGoal.clone().normalize()) + 1.0;
+      const minRadius = R + heightAt(cameraRadial.copy(cameraGoal).normalize()) + 1.0;
       if (cameraGoal.length() < minRadius) cameraGoal.normalize().multiplyScalar(minRadius);
       camera.up.copy(state.normal);
     }
+    const cameraPlayerLocal=!state.orbit?normalToLocal(state.normal,R):null;
     if(windowView?.focus&&!state.orbit){
       // View the lid from beside the player rather than through their back.
       focus.copy(windowView.focus);
       if(chestCameraOffset===null){
-        const towardPlayer=hero.root.position.clone().sub(focus);
+        const towardPlayer=cameraToHero.copy(hero.root.position).sub(focus);
         const base=Math.atan2(towardPlayer.dot(tangentNorth),towardPlayer.dot(tangentEast));
         let bestAngle=base+1.15,bestClearance=-1;
-        const where=normalToLocal(state.normal,R);
         // The chest is in a corner: choose the side with room for a wide shot.
         for(const offset of [1.15,-1.15,1.6,-1.6,.8,-.8]){
           const angle=base+offset;
-          const direction=tangentEast.clone().multiplyScalar(Math.cos(angle)).addScaledVector(tangentNorth,Math.sin(angle));
-          const desired=focus.clone().addScaledVector(direction,9).addScaledVector(state.normal,4.2);
-          const hit=cameraObstruction(THREE,{start:focus,desired,getRadius:()=>R,toLocal:normalToLocal,heightAt,heroLocal:where,clearance:.82});
+          const direction=cameraOffsetDirection.copy(tangentEast).multiplyScalar(Math.cos(angle)).addScaledVector(tangentNorth,Math.sin(angle));
+          const desired=cameraCandidate.copy(focus).addScaledVector(direction,9).addScaledVector(state.normal,4.2);
+          const hit=cameraObstruction(THREE,{start:focus,desired,getRadius:cameraWorldRadius,toLocal:normalToLocal,heightAt,heroLocal:cameraPlayerLocal,clearance:.82},cameraProbe);
           const clearance=(hit||desired).distanceToSquared(focus);
           if(clearance>bestClearance){bestClearance=clearance;bestAngle=angle;}
         }
@@ -807,12 +817,11 @@ try {
       cameraGoal.copy(focus).addScaledVector(camForward,9).addScaledVector(state.normal,4.2);
     }else chestCameraOffset=null;
     if(!state.orbit){
-      const where=normalToLocal(state.normal,R);
-      startZone.updateInteriorView(where.x,where.z);
+      startZone.updateInteriorView(cameraPlayerLocal.x,cameraPlayerLocal.z);
       const hit=cameraObstruction(THREE,{
-       start:focus,desired:cameraGoal,getRadius:()=>R,toLocal:normalToLocal,
-       heightAt,heroLocal:where,clearance:.82
-      });
+       start:focus,desired:cameraGoal,getRadius:cameraWorldRadius,toLocal:normalToLocal,
+       heightAt,heroLocal:cameraPlayerLocal,clearance:.82
+      },cameraProbe);
       if(hit)cameraGoal.copy(hit);
     }
     if (cameraSnap) {camera.position.copy(cameraGoal);cameraSnap=false;}
@@ -820,13 +829,12 @@ try {
     if(!state.orbit){
       // A lerp can sweep a safe target through a tent, building or cliff.
       // Validate the *actual* camera, not merely its target.
-      const where=normalToLocal(state.normal,R);
       const sweptHit=cameraObstruction(THREE,{
-       start:focus,desired:camera.position,getRadius:()=>R,
-       toLocal:normalToLocal,heightAt,heroLocal:where,clearance:.8
-      });
+       start:focus,desired:camera.position,getRadius:cameraWorldRadius,
+       toLocal:normalToLocal,heightAt,heroLocal:cameraPlayerLocal,clearance:.8
+      },cameraProbe);
       if(sweptHit)camera.position.copy(sweptHit);
-      const n=camera.position.clone().normalize();
+      const n=cameraRadial.copy(camera.position).normalize();
       const min=R+heightAt(n)+.8;
       if(camera.position.length()<min)camera.position.copy(n.multiplyScalar(min));
     }
@@ -843,7 +851,9 @@ try {
     else if(camera.view?.enabled)camera.clearViewOffset();
     camera.lookAt(hasWindowFocus?windowFocus:focus);
     rpg.updateQuestMarkers();
-    if(shadowActive){
+    const redrawShadows=shadowBudget.next(dt,{enabled:shadowActive,quality:qualityName});
+    renderer.shadowMap.needsUpdate=redrawShadows;
+    if(redrawShadows){
       // Keep the 62-metre shadow frustum centred around the active character.
       tangentBasis(state.normal);
       sun.target.position.copy(actor.position);
