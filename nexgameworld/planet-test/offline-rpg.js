@@ -407,6 +407,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function onMobAttack(event){
   if(!isOnline())return;
+  // End the visual windup on the server-confirmed hit, not on client guesswork.
+  const attacker=mobs.find(m=>m.id===event?.mobId);
+  if(attacker)attacker.attackWindup=0;
   if(Number.isFinite(event.hp))state.hp=Math.max(0,event.hp);
   if(event.blocked){blockRemaining=.65;hero.root.userData.blockRecoil=.65;combatVfx.trigger({root:hero.root},'block');}
   state.resource=changeResource(state.resource,5,'warrior');lastCombatAt=clock;draw(false);
@@ -415,8 +418,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!isOnline()||typeof event?.mobId!=='string')return;
   const mob=mobs.find(e=>e.id===event.mobId);
   if(!mob||mob.corpse||!mob.root.visible||event.life!==mob.life)return;
-  // The authoritative server decides whether and when the hit lands.
-  if(mob.birdVisual)mob.birdVisual.attackRemaining=Math.max(mob.birdVisual.attackRemaining||0,.8);
+  // Drive both the bandit GLB Attack clip and the longstrider peck from the
+  // authoritative windup. The next server hit/cancel or expiry ends this state.
+  const seconds=Number.isFinite(event.windupMs)?
+   Math.min(1,Math.max(.1,event.windupMs/1000)):.45;
+  mob.attackWindup=Math.max(mob.attackWindup||0,seconds+.12);
+  if(mob.birdVisual)mob.birdVisual.attackRemaining=Math.max(
+   mob.birdVisual.attackRemaining||0,seconds+.12);
  }
  function onNetworkRespawn(event){
   state.hp=Number(event.hp)||stats().maxHp;state.resource=0;
@@ -437,6 +445,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     mob.renderX=mob.x;mob.renderZ=mob.z;mob.renderYaw=mob.yaw;
    }
    mob.hp=remote.hp;mob.life=remote.life;mob.aggro=remote.aggro===true;mob.returning=false;
+   if(remote.phase!=='alive'||changedLife)mob.attackWindup=0;
    // Creature levels are canonical; a malformed snapshot must not invent levels.
    if(remote.level===creatureByIndex(mob.index)?.level)mob.level=remote.level;
    mob.corpse=remote.phase==='corpse';mob.dead=mob.corpse?6:0;
@@ -1685,6 +1694,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(hitEnemy(target))swing=stats().speed;
   }
   for(const mob of mobs){
+   if(isOnline())mob.attackWindup=Math.max(0,(mob.attackWindup||0)-dt);
    mob.hit=Math.max(0,(mob.hit||0)-dt);
    mob.alertRemaining=Math.max(0,(mob.alertRemaining||0)-dt);
    if(mob.lootMarker?.visible){
