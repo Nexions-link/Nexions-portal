@@ -23,7 +23,7 @@ planetViewport.addEventListener('contextmenu',event=>event.preventDefault());
 
 // NexGameWorld uses isolated spherical WebSockets for player presence; RPG combat stays local.
 const isPortalPreview = new URLSearchParams(location.search).get('portal-preview') === '1';
-const accountMode=!isPortalPreview&&new URLSearchParams(location.search).get('account-play')==='1';
+const accountMode=!isPortalPreview;
 const accountLaunch=accountMode?getAccountLaunch(sessionStorage):null;
 if(accountMode&&!accountLaunch){
  location.replace('/nexgameworld/account.html');
