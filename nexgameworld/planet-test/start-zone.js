@@ -2,6 +2,7 @@ import {createLandscapeMap} from '../landscape.js?v=0.3.7.0';
 import {createSphericalMeadow} from './sphere-meadow.js?v=2';
 import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=3';
+import {createTaurenAnatomy} from './tauren-anatomy.js?v=1';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
 import {canWalkCamp} from './sphere-physics.js?v=14';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=10';
@@ -381,7 +382,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
 
 // Original Tauren procedural mesh as it exists in NexGame's game.js,
 // with networking, equipment and inventory intentionally not copied.
-export function createTauren(THREE,scene,{fur=0x836144,clothColor=null,player=false}={}){
+export function createTauren(THREE,scene,{fur=0x836144,clothColor=null,player=false,remotePlayer=false}={}){
  const TAU=Math.PI*2;
  let seed=531;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
  const material=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,...extra});
@@ -495,7 +496,16 @@ function makeTauren({fur=0x836144,cloth=M.red,weapon=false,scale=1}={}){
 }
 
   const actor=makeTauren({weapon:false,fur,cloth:clothColor===null?M.red:material(clothColor)});
-  // Cosmetic layer follows the old animated joints; NPCs remain lightweight.
+  // Refreshed anatomy attaches only to existing joints, without moving the
+  // weapon/shield grips. Existing NPCs stay lightweight; remote players receive
+  // the shared silhouette at reduced detail.
+  const anatomy=(player||remotePlayer)?createTaurenAnatomy(THREE,actor,{fur,remote:remotePlayer}):null;
   const visualDetails=player?createTaurenVisualDetails(THREE,actor):null;
-  return {root:actor.root,body:actor.body,chest:actor.chest,neck:actor.neck,tail:actor.tail,braids:actor.braids,arms:actor.arms,legs:actor.legs,head:actor.head,visualDetails};
+  if(visualDetails&&anatomy){
+   const setOriginalQuality=visualDetails.setQuality.bind(visualDetails);
+   visualDetails.setQuality=value=>{setOriginalQuality(value);anatomy.setQuality(value);};
+  }
+  return {root:actor.root,body:actor.body,chest:actor.chest,neck:actor.neck,
+   tail:actor.tail,braids:actor.braids,arms:actor.arms,legs:actor.legs,
+   head:actor.head,visualDetails,anatomy};
 }
