@@ -20,17 +20,14 @@ async function attempt({local='0.6.34.1',upstream='0.6.34.1',source=upstream,
   if(type==='load')this.loadCallback=callback;
  }};
  const loading={hidden:false,querySelector(){return this.paragraph||(this.paragraph={textContent:'Загружаем игровой мир…'})}};
- const notice={hidden:true},noticeText={textContent:''};
- const noticeReload={hidden:true,addEventListener(event,fn){if(event==='click')this.click=fn}};
- const state={local,upstream,source};
- const reloads=[];
+ const notice={hidden:true};
  const retries=[],redirects=[],windowEvents={},documentEvents=[];
  const context={
-  document:{hidden:false,getElementById(id){return {game:frame,loading,notice,noticeText,noticeReload}[id]},
+  document:{hidden:false,getElementById(id){return {game:frame,loading,notice}[id]},
    addEventListener(name,fn){documentEvents.push({name,fn})}},
   window:{addEventListener(name,fn){windowEvents[name]=fn}},
   location:{href:'https://nexions.ru/nexgameworld/'+search,search,
-   replace(url){redirects.push(url)},reload(){reloads.push(true)}}, 
+   replace(url){redirects.push(url)}},
   sessionStorage:{getItem(key){
    if(key==='ngw-alpha-session')return token;
    if(key==='ngw-selected-character')return characterId;
@@ -43,14 +40,14 @@ async function attempt({local='0.6.34.1',upstream='0.6.34.1',source=upstream,
    const address=String(url);
    const isLocal=address.startsWith('./planet-test/');
    const isSource=address.startsWith('https://raw.githubusercontent.com/');
-   const version=isLocal?state.local:isSource?state.source:state.upstream;
+   const version=isLocal?local:isSource?source:upstream;
    if(!version)return {ok:false};
    return {ok:true,json:async()=>({project:'NexGameWorld',version})};
   }
  };
  runInNewContext(launcher,context);
  await new Promise(resolve=>setImmediate(resolve));
- return {frame,loading,notice,noticeText,noticeReload,retries,redirects,windowEvents,documentEvents,state,reloads};
+ return {frame,loading,notice,retries,redirects,windowEvents,documentEvents};
 }
 
 test('account hero launch accepts current four-part hotfix version',async()=>{
@@ -65,17 +62,11 @@ test('account hero launch accepts current four-part hotfix version',async()=>{
  result.frame.loadCallback();
  assert.equal(result.loading.hidden,true);
 });
-test('account hero starts compatible same-origin game during a Pages release delay',async()=>{
+test('account hero never launches a stale local three-part build',async()=>{
  const result=await attempt({local:'0.6.34',upstream:'0.6.34.1'});
- const url=new URL(result.frame.src);
- assert.equal(url.origin,'https://nexions.ru','never expose account session to fallback');
- assert.equal(url.searchParams.get('v'),'0.6.34');
+ assert.equal(result.frame.src,null);
  assert.equal(result.retries.length,1);
- assert.equal(result.retries[0].delay,30000);
- assert.equal(result.notice.hidden,false);
- assert.match(result.noticeText.textContent,/0\.6\.34\.1/);
- result.frame.loadCallback();
- assert.equal(result.loading.hidden,true,'game becomes playable despite delayed Pages');
+ assert.match(result.loading.paragraph.textContent,/0\.6\.34\.1/);
 });
 test('portal globe preview can still select newer upstream release',async()=>{
  const result=await attempt({local:'0.6.34',upstream:'0.6.34.1',accountPlay:false,portalPreview:true});
@@ -113,13 +104,12 @@ test('invalid or unavailable mirror never receives account session',async()=>{
  }
 });
 
-test('source main ahead of both mirrors no longer freezes compatible account game',async()=>{
+test('main-branch 0.6.38.12 blocks stale 0.6.38.10, even when Pages also lags',async()=>{
  const result=await attempt({local:'0.6.38.10',upstream:'0.6.38.10',source:'0.6.38.12'});
- assert.equal(new URL(result.frame.src).searchParams.get('v'),'0.6.38.10');
+ assert.equal(result.frame.src,null);
  assert.equal(result.retries.length,1);
- assert.equal(result.retries[0].delay,30000);
- assert.match(result.noticeText.textContent,/0\.6\.38\.12/);
- assert.match(result.noticeText.textContent,/0\.6\.38\.10/);
+ assert.match(result.loading.paragraph.textContent,/Alpha 0\.6\.38\.12/);
+ assert.match(result.loading.paragraph.textContent,/0\.6\.38\.10/);
 });
 test('current local mirror launches even when upstream Pages is unreachable',async()=>{
  const result=await attempt({local:'0.6.38.12',upstream:null,source:'0.6.38.12'});
@@ -137,23 +127,17 @@ test('return from Safari bfcache rechecks latest build without reloading the sam
  assert.equal(result.frame.src,first);
 });
 
-test('actual screenshot scenario: old 0.6.43.24 launches while 0.6.43.27 propagates',async()=>{
+test('production 0.6.43.24 must never enter while authoritative main is 0.6.43.27',async()=>{
  const result=await attempt({local:'0.6.43.24',upstream:'0.6.43.24',source:'0.6.43.27'});
- assert.equal(new URL(result.frame.src).searchParams.get('v'),'0.6.43.24');
- result.frame.loadCallback();
- assert.equal(result.loading.hidden,true);
- assert.equal(result.notice.hidden,false);
- assert.equal(result.noticeReload.hidden,false);
+ assert.equal(result.frame.src,null,'stale game must not start');
+ assert.equal(result.retries.length,1,'recheck site after publication');
+ assert.equal(result.retries[0].delay,8000);
+ assert.match(result.loading.paragraph.textContent,/0\.6\.43\.27/);
+ assert.match(result.loading.paragraph.textContent,/0\.6\.43\.24/);
 });
-test('when latest version appears, do not restart an active battle without consent',async()=>{
- const result=await attempt({local:'0.6.43.24',upstream:'0.6.43.27',source:'0.6.43.27'});
- const oldFrame=result.frame.src;
- result.state.local='0.6.43.27';
- result.retries[0].fn();
- await new Promise(resolve=>setImmediate(resolve));
- assert.equal(result.frame.src,oldFrame,'player stays in the ongoing combat');
- assert.match(result.noticeText.textContent,/Новая версия Alpha 0\.6\.43\.27 готова/);
- assert.equal(result.noticeReload.hidden,false);
- result.noticeReload.click();
- assert.equal(result.reloads.length,1,'one tap reload explicitly selects latest');
+test('same-origin current 0.6.43.27 launches after mirror completes',async()=>{
+ const result=await attempt({local:'0.6.43.27',upstream:'0.6.43.27',source:'0.6.43.27'});
+ assert.equal(new URL(result.frame.src).origin,'https://nexions.ru');
+ assert.equal(new URL(result.frame.src).searchParams.get('v'),'0.6.43.27');
+ assert.equal(result.retries.length,0);
 });

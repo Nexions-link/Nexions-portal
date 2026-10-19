@@ -26,16 +26,14 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
 #loading div{max-width:350px}
 #loading strong{font-size:clamp(23px,7vw,40px);font-weight:400;letter-spacing:.035em}
 #loading p{font:13px/1.6 system-ui,sans-serif;color:#bdbaae}
-#notice{position:absolute;inset:auto 12px calc(12px + env(safe-area-inset-bottom,0px));z-index:2;max-width:340px;margin:auto;padding:8px 11px;background:#151f23dc;border:1px solid #74674c;border-radius:5px;color:#e1d2b6;font:11px/1.5 system-ui,sans-serif;pointer-events:auto}
+#notice{position:absolute;inset:auto 12px calc(12px + env(safe-area-inset-bottom,0px));z-index:2;max-width:340px;margin:auto;padding:8px 11px;background:#151f23dc;border:1px solid #74674c;border-radius:5px;color:#e1d2b6;font:11px/1.5 system-ui,sans-serif;pointer-events:none}
 #notice[hidden]{display:none!important}
-#noticeReload{margin:6px 0 0;display:block;background:#806138;border:1px solid #e1bf80;border-radius:4px;color:#fff6df;padding:7px 12px;font:600 12px system-ui,sans-serif;cursor:pointer;touch-action:manipulation}
-#noticeReload[hidden]{display:none!important}
 </style>
 </head>
 <body>
 <iframe id="game" title="NexGameWorld — игровая сцена" allow="fullscreen; autoplay" loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe>
 <div id="loading" role="status"><div><strong>NexGameWorld</strong><p>Загружаем игровой мир…</p></div></div>
-<div id="notice" hidden><span id="noticeText">Пока обновляется версия на домене, игра открыта с резервного адреса. Сохранения на этих адресах раздельные.</span><button id="noticeReload" type="button" hidden>Проверить обновление</button></div>
+<div id="notice" hidden>Пока обновляется версия на домене, игра открыта с резервного адреса. Сохранения на этих адресах раздельные.</div>
 <!-- NexGameWorld 0.6.34: verify latest economy and quest assets on nexions.ru. -->
 <!-- NexGameWorld 0.6.34.1: request verified roof material hotfix sync. -->
 <!-- NexGameWorld 0.6.36: resynchronize mirrored assets after verified Tab targeting release. -->
@@ -51,9 +49,6 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
  const frame=document.getElementById('game');
  const loading=document.getElementById('loading');
  const notice=document.getElementById('notice');
- const noticeText=document.getElementById('noticeText');
- const noticeReload=document.getElementById('noticeReload');
- noticeReload?.addEventListener('click',()=>location.reload());
  const local='./planet-test/';
  const fallback='https://nexions-link.github.io/Nexgame/planet-test/';
  // Nexgame/main is authoritative; GitHub Pages and nexions.ru are mirrors.
@@ -83,8 +78,7 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
  // No third-party iframe for the normal route: the fully mirrored game is
  // served from nexions.ru and saves under this domain on iOS Safari.
  // Read both the same-domain mirror and the current upstream release.
- // While Pages deployment catches up, allow the latest safe same-origin build.
- // Never reveal account credentials to another host.
+ // During the few minutes before sync completes, launch the newest published build.
  function parseVersion(data){
   // Patch releases use four parts (e.g. 0.6.34.1); older builds use three.
   return data?.project==='NexGameWorld'&&/^[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/.test(data?.version||'')?
@@ -106,12 +100,12 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
   if(!version)throw Error('Invalid NexGameWorld release');
   return version;
  }
- function scheduleRetry(delay=8000){
+ function scheduleRetry(){
   if(retryTimer!==null)return;
   retryTimer=setTimeout(()=>{
    retryTimer=null;
    void start();
-  },delay);
+  },8000);
  }
  async function start(){
   if(checking)return;
@@ -132,45 +126,25 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
    const accountPlay=params.get('account-play')==='1';
    let url=local,version=localVersion;
    if(accountPlay){
-    // Only a same-origin game can read this tab's account session.
-    // Missing/unreasonably old mirrors still fail closed. However, a normal
-    // GitHub Pages deployment delay must never lock an authenticated player
-    // on a full-screen spinner while a compatible local game is available.
-    if(!localVersion||isNewer('0.6.32',localVersion)){
+    // Sessions are same-origin only; NEVER forward login tokens to upstream.
+    // Do not launch an older account client while the scheduled mirror catches up.
+    if(!localVersion||isNewer('0.6.32',localVersion)||newest&&isNewer(newest,localVersion)){
      loading.hidden=false;
-     loading.querySelector('p').textContent='Ожидаем совместимую игровую сборку на Nexions.ru. Повторная проверка…';
+     const waiting=newest&&localVersion&&isNewer(newest,localVersion);
+     loading.querySelector('p').textContent=waiting
+      ?'Доступна Alpha '+newest+'. Обновляем Nexions.ru (пока '+localVersion+'). Проверяем снова…'
+      :'Ожидаем актуальную версию игры на Nexions.ru. Повторная проверка автоматически…';
      scheduleRetry();
      return;
-    }
-    if(loadedVersion&&isNewer(localVersion,loadedVersion)&&frame.src){
-     // A newer release appeared while the user was playing. Never reload
-     // their game mid-combat: allow an explicit refresh with one tap.
-     notice.hidden=false;
-     if(noticeText)noticeText.textContent='Новая версия Alpha '+localVersion+' готова. Обновите игру, когда будет удобно.';
-     if(noticeReload)noticeReload.hidden=false;
-     if(retryTimer!==null){clearTimeout(retryTimer);retryTimer=null;}
-     return;
-    }
-    if(newest&&isNewer(newest,localVersion)){
-     notice.hidden=false;
-     if(noticeText)noticeText.textContent='Играем в Alpha '+localVersion+'. Обновление '+newest+' ещё публикуется на Nexions.ru. Данные аккаунта остаются на этом домене.';
-     if(noticeReload)noticeReload.hidden=false;
-     // Keep checking in the background, without interrupting active gameplay.
-     scheduleRetry(30000);
-    }else{
-     notice.hidden=true;
-     if(noticeReload)noticeReload.hidden=true;
     }
    }else if(!localVersion||(upstreamVersion&&isNewer(upstreamVersion,localVersion))){
     url=fallback;version=upstreamVersion;
     notice.hidden=false;
-    if(noticeText)noticeText.textContent='Игра запущена с резервного адреса. Сохранения на этих адресах раздельные.';
     if(!localVersion)console.warn('Local NexGameWorld mirror unavailable; using upstream');
     else console.info('NexGameWorld mirror updating: '+localVersion+' → '+upstreamVersion);
    }
-   // A read-only globe preview may use the public Pages mirror; an
-   // authenticated world must NEVER forward tokens to that other origin.
-   if(!accountPlay&&newest&&(!version||isNewer(newest,version))){
+   // A preview also must not silently call an older published client "latest".
+   if(newest&&(!version||isNewer(newest,version))){
     loading.hidden=false;
     loading.querySelector('p').textContent='Публикуется Alpha '+newest+'. Проверяем готовность…';
     scheduleRetry();
@@ -182,8 +156,7 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
     scheduleRetry();
     return;
    }
-   // Keep the background availability check only while local Pages lags.
-   if(retryTimer!==null&&(!accountPlay||!newest||!isNewer(newest,localVersion))){clearTimeout(retryTimer);retryTimer=null;}
+   if(retryTimer!==null){clearTimeout(retryTimer);retryTimer=null;}
    const target=new URL(url,location.href);
    target.searchParams.set('v',version);
    // Safari can cache an iframe document even when its version query was
