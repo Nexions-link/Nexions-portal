@@ -81,6 +81,18 @@ export function createStartZone(three,scene,getRadius,heightAt){
  const UP=new THREE.Vector3(0,1,0);
  let textureSeed=531;
  const rand=()=>((textureSeed=(Math.imul(textureSeed,1664525)+1013904223)>>>0)/4294967296);
+ // Kept independent of the shared avatar fur atlas: house hides and water
+ // ripples both need this local world texture factory (Safari 0.6.43.30 fix).
+ function texture(draw,size=128){
+  const canvas=document.createElement('canvas');
+  canvas.width=canvas.height=size;
+  const context=canvas.getContext('2d');
+  if(!context)throw Error('NexGameWorld world texture context unavailable');
+  draw(context,size);
+  const t=new THREE.CanvasTexture(canvas);
+  t.colorSpace=THREE.SRGBColorSpace;
+  return t;
+ }
  const hideTexture=texture((c,s)=>{c.fillStyle='#dbc39a';c.fillRect(0,0,s,s);for(let i=0;i<900;i++){c.fillStyle=rand()>.5?'#fff0ca18':'#53392313';c.fillRect(rand()*s,rand()*s,rand()*12,1)}c.strokeStyle='#6d3d2b';c.lineWidth=9;c.beginPath();for(let x=0;x<=s;x+=16){c.lineTo(x,40+(x%32?13:-13))}c.stroke();c.fillStyle='#ac5938';c.fillRect(0,54,s,12);c.fillStyle='#346c66';c.fillRect(0,74,s,6);c.fillStyle='#795034';c.fillRect(0,s-7,s,7)});
  hideTexture.wrapS=THREE.RepeatWrapping;
  hideTexture.repeat.set(3,1);

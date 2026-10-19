@@ -40,7 +40,7 @@ import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
 import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
 import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=14';
-import {canWadeAtLocal} from './start-zone.js?v=44';
+import {canWadeAtLocal} from './start-zone.js?v=45';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceCreatureGait} from './creature-gait.js?v=1';

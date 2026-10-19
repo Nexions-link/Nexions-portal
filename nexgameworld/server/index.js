@@ -16,7 +16,7 @@ import {runAccountSmoke} from './account-smoke.js';
 import {CHEST_X,CHEST_Z,CHEST_RANGE} from './chest.js';
 // Render builds from server/; keep a server-scoped release marker so corrected
 // client modules receive the same validated server deployment as Alpha 0.6.43.14.
-const PORT=Number(process.env.PORT||3000),BUILD='0.6.43.29';
+const PORT=Number(process.env.PORT||3000),BUILD='0.6.43.31';
 const guestWorldEnabled=process.env.NGW_GUEST_WORLD_ENABLED==='true';
 const configuredOrigins=(process.env.ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean);
 const origins=new Set([...configuredOrigins,'https://nexions.ru',
