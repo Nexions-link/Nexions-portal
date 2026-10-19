@@ -1,4 +1,5 @@
 name: Verify live NexGameWorld on nexions.ru
+# Audit Alpha 0.6.43.3: portal game, upstream manifest and live Render parity.
 # Audit Alpha 0.6.42.12 iOS Safari inventory scroll fix.
 # Confirm Alpha 0.6.42.11 inventory comparison stays open after refresh.
 # Audit 0.6.42.10 live site and Render after inventory and hotbar release.
