@@ -1,6 +1,6 @@
 import {blocksRockOrMesa} from './planet-landmarks.js?v=1';
-import {LONGHOUSE,toHouseCoordinates,insideHouse} from './hearth-house.js?v=5';
-export {toHouseCoordinates} from './hearth-house.js?v=5';
+import {LONGHOUSE,toHouseCoordinates,insideHouse} from './hearth-house.js?v=6';
+export {toHouseCoordinates} from './hearth-house.js?v=6';
 // PT 0.6.0 — spherical contact and third-person camera constraints.
 // The interior has no furniture colliders. Geometry
 // tests operate in local geodesic chart metres; world-space rays are converted

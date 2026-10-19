@@ -1,4 +1,4 @@
-import {LONGHOUSE} from './hearth-house.js?v=5';
+import {LONGHOUSE} from './hearth-house.js?v=6';
 import {HOUSE_RAT_COMPRESSED} from './house-rat-data.js?v=1';
 
 // Decorative resident of the longhouse. This is deliberately NOT a server mob:

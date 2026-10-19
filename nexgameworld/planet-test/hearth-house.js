@@ -135,6 +135,34 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
   }
  }
  beams(accents,'hearth-house-hide-lacings',lacing,M.lightWood);
+ // Flared exterior facade wings break up the rectangular building silhouette.
+ // Every wing is outside the solid envelope; the doorway and room stay untouched.
+ const wingPanels=[];
+ for(const sign of [-1,1]){
+  for(const z of [-5.4,1.0,6.5]){
+   const wing=createBox(accents,M.wood,sign*(hw+.31),4.45,z,.33,5.95,3.15);
+   wing.rotation.y=sign*.17;
+   wing.name='hearth-house-side-wing';
+   wingPanels.push(wing);
+   const hideCover=createBox(wing,M.hide,sign*.22,.15,.045,.12,5.0,2.56);
+   hideCover.name='hearth-house-wing-hide';
+  }
+  // Raised segmented face panels surround, but never cover, the 6.8m doorway.
+  for(const x of [sign*6.15,sign*8.22]){
+   const face=createBox(accents,M.lightWood,x,4.1,hd+.32,.85,5.3,.30);
+   face.name='hearth-house-front-pier';
+   createBox(face,M.hide,0,.2,.19,.64,4.25,.05);
+  }
+ }
+ // Batched side counter-braces instead of an uninterrupted box-shaped wall.
+ const sideBraces=[];
+ for(const sign of [-1,1])for(const z of [-7.0,0,7.0]){
+  sideBraces.push([[sign*(hw+.25),h-.68,z],
+   [sign*(hw+1.43),.33,z+.24],.20]);
+  sideBraces.push([[sign*(hw+.25),3.1,z-1.05],
+   [sign*(hw+1.13),.43,z-1.05],.13]);
+ }
+ beams(accents,'hearth-house-side-counter-braces',sideBraces,M.darkWood);
  // Warm and turquoise woven talismans on either side of the entrance.
  for(const s of [-1,1]){
   const bx=s*(door/2+1.35),front=hd+.48;
@@ -163,6 +191,59 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
   }
  }
  beams(accents,'hearth-house-entrance-carvings',carvings,M.bone);
+ // Two ceremonial signposts give the elder's lodge a focal point.
+ // Their feet stand outside the protected central entrance corridor.
+ const totemRods=[];
+ const totemOrnaments=[];
+ for(const sign of [-1,1]){
+  const x=sign*7.55,z=hd+1.50;
+  totemRods.push([[x,.25,z],[x,5.05,z],.24]);
+  totemRods.push([[x,4.2,z],[x+sign*.85,4.62,z],.13]);
+  totemRods.push([[x,4.2,z],[x-sign*.72,4.48,z],.13]);
+  totemRods.push([[x,5.05,z],[x+sign*.34,5.6,z],.12]);
+  for(const y of [2.35,3.18,4.0]){
+   totemOrnaments.push({x,y,z,radius:.34});
+  }
+  const hanging=createBox(accents,sign<0?M.red:M.teal,
+   x+sign*.75,3.21,z,.61,1.56,.095);
+  hanging.name='hearth-house-ceremonial-totem-pennant';
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(.24,.49,5),
+   M.bone);
+  tip.name='hearth-house-totem-finial';
+  tip.position.set(x+sign*.34,5.73,z);
+  accents.add(tip);
+ }
+ beams(accents,'hearth-house-ceremonial-posts',totemRods,M.darkWood);
+ const collarGeo=new THREE.CylinderGeometry(1,1,1,9);
+ const collarBatch=new THREE.InstancedMesh(collarGeo,M.teal,totemOrnaments.length);
+ collarBatch.name='hearth-house-totem-collars';
+ totemOrnaments.forEach(({x,y,z,radius},i)=>{
+  dummy.position.set(x,y,z);dummy.quaternion.identity();
+  dummy.scale.set(radius,.16,radius);dummy.updateMatrix();
+  collarBatch.setMatrixAt(i,dummy.matrix);
+ });
+ collarBatch.instanceMatrix.needsUpdate=true;accents.add(collarBatch);
+ // Low stone edging marks the forecourt without obstructing its open centre.
+ // This is entirely decorative: it does not define any collision surface.
+ const stones=[];
+ for(const sign of [-1,1])for(let row=0;row<5;row++){
+  const x=sign*(4.9+(row%2)*.55),z=hd+1.14+row*.70;
+  stones.push({x,y:.13,z,sx:.67+(row%3)*.09,sz:.40+(row%2)*.10});
+ }
+ const pebbleBatch=new THREE.InstancedMesh(
+  new THREE.DodecahedronGeometry(1,0),M.foundation,stones.length);
+ pebbleBatch.name='hearth-house-forecourt-edging';
+ stones.forEach((stone,i)=>{
+  dummy.position.set(stone.x,stone.y,stone.z);
+  dummy.rotation.set(0,(i%5)*.17,0);
+  dummy.scale.set(stone.sx,.12,stone.sz);dummy.updateMatrix();
+  pebbleBatch.setMatrixAt(i,dummy.matrix);
+ });
+ pebbleBatch.instanceMatrix.needsUpdate=true;accents.add(pebbleBatch);
+ // A low wooden threshold visually ties the forecourt to the existing floor.
+ const threshold=createBox(accents,M.plank,0,.155,hd+.43,
+  door-.34,.145,.53);
+ threshold.name='hearth-house-entry-threshold';
 
  const roof=new THREE.Group();roof.name='hearth-house-exterior-roof';root.add(roof);
  const roofPlanes=[],slope=Math.atan2(LONGHOUSE.roofRise,hw);
@@ -258,6 +339,16 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
   }
  }
  beams(roof,'hearth-house-gable-timber',gableBeams,M.darkWood);
+ // Staggered small ornamental eaves, batched under the hideable roof,
+ // add varied depth without changing the camera's original roof planes.
+ const fringes=[];
+ for(const sign of [-1,1])for(const z of [-8.0,-4.0,1.1,6.2]){
+  fringes.push([[sign*(hw-.18),h+.13,z-.86],
+    [sign*(hw+.55),h-.57,z-.86],.11]);
+  fringes.push([[sign*(hw-.18),h+.13,z+.86],
+    [sign*(hw+.55),h-.57,z+.86],.11]);
+ }
+ beams(roof,'hearth-house-eave-details',fringes,M.lightWood);
  const finials=[];
  for(const z of [-hd-.35,hd+.35]){
   for(const s of [-1,1]){

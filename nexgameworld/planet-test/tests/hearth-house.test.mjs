@@ -92,9 +92,9 @@ test('every active browser geometry consumer uses the current shared module URL'
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   const imports=[...source.matchAll(/hearth-house\.js\?v=([^'"\s]+)/g)];
   assert.ok(imports.length>0,name);
-  assert.ok(imports.every(row=>row[1]==='5'),name+' requests a stale geometry module');
+  assert.ok(imports.every(row=>row[1]==='6'),name+' requests a stale geometry module');
  }
- for(const [name,dependency,version] of [['planet.js','start-zone.js','32'],['planet.js','offline-rpg.js','98'],['offline-rpg.js','gather-world.js','15'],['offline-rpg.js','camp-actions.js','14']]){
+ for(const [name,dependency,version] of [['planet.js','start-zone.js','33'],['planet.js','offline-rpg.js','99'],['offline-rpg.js','gather-world.js','16'],['offline-rpg.js','camp-actions.js','15']]){
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   assert.ok(source.includes(dependency+'?v='+version),name+' must invalidate its geometry dependency');
  }
@@ -146,6 +146,45 @@ test('elder longhouse porch remains outside the walkable space',()=>{
  assert.equal(model.walls.visible,true);
  assert.equal(model.floor.visible,true);
  for(const x of [-2.8,0,2.8])assert.equal(walk(x,LONGHOUSE.depth/2),true);
+ root.traverse(node=>{
+  assert.notEqual(node.userData.collidable,true);
+  assert.notEqual(node.userData.targetable,true);
+ });
+});
+
+test('elder architectural facades frame the doorway and retain the original walkable grid',()=>{
+ const root=new THREE.Group();
+ const model=buildHearthHouse(THREE,{root,villageVisuals:{addRoof(){}}});
+ const wing=model.accents.getObjectByName('hearth-house-side-wing');
+ const posts=model.accents.getObjectByName('hearth-house-ceremonial-posts');
+ const collars=model.accents.getObjectByName('hearth-house-totem-collars');
+ const paving=model.accents.getObjectByName('hearth-house-forecourt-edging');
+ const threshold=model.accents.getObjectByName('hearth-house-entry-threshold');
+ assert.ok(wing && wing.isMesh);
+ assert.equal(model.accents.children.filter(x=>x.name==='hearth-house-side-wing').length,6);
+ assert.equal(model.accents.children.filter(x=>x.name==='hearth-house-front-pier').length,4);
+ assert.ok(posts?.isInstancedMesh);
+ assert.equal(posts.count,8);
+ assert.equal(collars?.count,6);
+ assert.equal(paving?.count,10);
+ assert.ok(threshold?.isMesh);
+ assert.equal(threshold.geometry.parameters.width,LONGHOUSE.doorWidth-.34);
+ assert.ok(model.roof.getObjectByName('hearth-house-eave-details').isInstancedMesh);
+ assert.equal(model.walls.children.filter(x=>x.isMesh).length,6);
+ assert.equal(root.children.length,3);
+ // Freestanding signposts and stone edging must never intrude on the central path.
+ assert.ok(paving.geometry && Math.abs(threshold.position.x)<1e-9);
+ const span=LONGHOUSE.doorWidth/2;
+ model.accents.children.filter(x=>x.name==='hearth-house-ceremonial-totem-pennant').forEach(x=>{
+  assert.ok(Math.abs(x.position.x)>span+2);
+ });
+ for(const x of [-2.8,0,2.8]){
+  assert.equal(walk(x,LONGHOUSE.depth/2),true);
+  assert.equal(walk(x,LONGHOUSE.depth/2+1),true);
+ }
+ model.roof.visible=false;
+ assert.equal(model.floor.visible,true);
+ assert.equal(model.walls.visible,true);
  root.traverse(node=>{
   assert.notEqual(node.userData.collidable,true);
   assert.notEqual(node.userData.targetable,true);
