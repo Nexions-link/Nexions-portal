@@ -206,6 +206,52 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const up=new THREE.Vector3(...UP_AXIS),anchorQuat=new THREE.Quaternion(),spinQuat=new THREE.Quaternion();
  const mobs=[],entities=[],citizens=[];
  let multiplayer=null,partyState={groupId:null,leaderId:null,members:[]},onlinePlayers=[],onlineChest=null;
+ let selectedAllyId=null;
+ const chatHistory=[];
+ const rosterKey=rows=>JSON.stringify(rows.map(({id,name,level})=>[id,name,level]).sort((a,b)=>a[0].localeCompare(b[0])));
+ function paintChatHistory(){
+  const log=$('partyChatLog');
+  if(!log)return;
+  const atBottom=log.scrollHeight-log.clientHeight-log.scrollTop<35;
+  log.replaceChildren();
+  for(const entry of chatHistory){
+   const row=document.createElement('div');
+   row.className='ngw-chat-entry';
+   const prefix=document.createElement('strong');
+   prefix.textContent=(entry.channel==='party'?'[Группа] ':'[Мир] ')+(entry.name||'Игрок')+': ';
+   const body=document.createElement('span');
+   body.textContent=entry.text;
+   row.append(prefix,body);log.append(row);
+  }
+  if(atBottom)log.scrollTop=log.scrollHeight;
+ }
+ function paintAllyTarget(){
+  const ally=selectedAllyId?onlinePlayers.find(player=>player.id===selectedAllyId):null;
+  const frame=$('allyFrame');
+  frame.hidden=!ally||!isOnline();
+  if(!ally||!isOnline())return false;
+  $('allyName').textContent=ally.name||'Игрок';
+  $('allyLevel').textContent='Уровень '+(ally.level||1)+' · Таурен · Воин';
+  const max=Number(ally.maxHp)||0,hp=Math.max(0,Number(ally.hp)||0);
+  $('allyHpFill').style.width=(max>0?clamp(hp/max*100,0,100):0)+'%';
+  $('allyHpText').textContent=max>0?Math.ceil(hp)+' / '+max:'HP —';
+  const alreadyMember=partyState.members.some(member=>member.id===ally.id);
+  const notLeader=!!partyState.groupId&&partyState.leaderId!==multiplayer?.selfId;
+  const invite=$('allyInvite');
+  invite.disabled=alreadyMember||notLeader||partyState.members.length>=5;
+  invite.textContent=alreadyMember?'В вашей группе':notLeader?'Приглашает лидер':'Пригласить в группу';
+  return true;
+ }
+ function selectAlly(id){
+  if(!onlinePlayers.some(row=>row.id===id))return;
+  targetEntity(null);
+  selectedAllyId=id;
+  draw();
+ }
+ function inviteSelectedAlly(){
+  if(!selectedAllyId||!isOnline())return msg('Игрок недоступен');
+  if(!multiplayer.invite(selectedAllyId))msg('Не удалось отправить приглашение');
+ }
  let chestRetryTimer=null,chestRetryCount=0;
  function clearChestRetry(){
   if(chestRetryTimer!==null)clearTimeout(chestRetryTimer);
@@ -215,13 +261,33 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const isOnline=()=>!!multiplayer?.connected;
  function setMultiplayer(transport){multiplayer=transport||null;}
  function networkCharacter(){return {level:state.level,hp:state.hp,equipment:state.equipment};}
- function onOnlinePlayers(rows){onlinePlayers=Array.isArray(rows)?rows:[];if(!modal.hidden&&modal.dataset.kind==='party')renderModal();}
- function onPartyState(event){partyState=event||{groupId:null,leaderId:null,members:[]};if(!modal.hidden&&modal.dataset.kind==='party')renderModal();}
+ function onOnlinePlayers(rows){
+  const next=Array.isArray(rows)?rows:[];
+  const changed=rosterKey(next)!==rosterKey(onlinePlayers);
+  onlinePlayers=next;
+  const lostSelection=!!selectedAllyId&&!next.some(peer=>peer.id===selectedAllyId);
+  if(lostSelection)selectedAllyId=null;
+  paintAllyTarget();
+  if(lostSelection)draw(false);
+  if(changed&&!modal.hidden&&modal.dataset.kind==='party')renderModal();
+ }
+ function onPartyState(event){
+  partyState=event||{groupId:null,leaderId:null,members:[]};
+  paintAllyTarget();
+  if(!modal.hidden&&modal.dataset.kind==='party')renderModal();
+ }
  function onPartyInvite(event){
   if(isOnline())multiplayer.respondInvite(event.fromId,window.confirm((event.fromName||'Игрок')+' приглашает в группу. Принять?'));
  }
  function onPartyNotice(event){if(event?.message)msg(event.message);}
- function onChat(event){if(event?.text)msg((event.channel==='party'?'[Группа] ':'[Мир] ')+(event.name||'Игрок')+': '+event.text,3.3);}
+ function onChat(event){
+  if(!event?.text)return;
+  chatHistory.push({channel:event.channel,name:event.name,text:event.text});
+  if(chatHistory.length>60)chatHistory.shift();
+  paintChatHistory();
+  if(modal.hidden||modal.dataset.kind!=='party')
+   msg((event.channel==='party'?'[Группа] ':'[Мир] ')+(event.name||'Игрок')+': '+event.text,3.3);
+ }
  function onChestState(event){
   onlineChest={...(onlineChest||{}),...event};
   if(Array.isArray(event?.inventory))syncServerBag(event.inventory);
@@ -1014,6 +1080,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(target!==entity){autoplay=false;approach=null;}
   if(!entity&&timeline.current?.skill!=='thunderStomp')timeline.clear();
   target=entity;
+  selectedAllyId=null;
   updateSelection();draw();
  }
  function targetNearest(step=1){
@@ -1245,7 +1312,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   $('xpFill').style.width=Math.min(100,state.xp/xpRequired(state.level)*100)+'%';
   $('xpText').textContent='Опыт '+state.xp+' / '+xpRequired(state.level);
   const hostile=target&&['mob','dummy'].includes(target.kind)&&target.root.visible&&target.hp>0&&!target.dead;
-  $('targetFrame').hidden=!hostile;$('targetPlaceholder').hidden=!!hostile;
+  const allySelected=paintAllyTarget();
+  $('targetFrame').hidden=!hostile;$('targetPlaceholder').hidden=!!hostile||allySelected;
   if(hostile){
     const difficulty=target.kind==='mob'?monsterDifficulty(state.level,target.level):'yellow';
     // Keep the full creature name readable. The level is a separate compact
@@ -1431,12 +1499,22 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    line('Группа',partyState.groupId?'Участников: '+partyState.members.length+' / 5':'Вы пока не в группе',
     partyState.groupId?[['Покинуть',()=>multiplayer.leaveParty()]]:[]);
    for(const member of partyState.members)
-    line(member.name||'Игрок',(member.id===partyState.leaderId?'Лидер · ':'')+'Уровень '+(member.level||1));
+    line(member.name||'Игрок',(member.id===partyState.leaderId?'Лидер · ':'')+'Уровень '+(member.level||1),
+     onlinePlayers.some(peer=>peer.id===member.id)?[['Выбрать',()=>{selectAlly(member.id);closeWindow()}]]:[]);
    if(!partyState.groupId||partyState.members.length<5){
     line('Игроки в мире','Выбери игрока для приглашения.');
     for(const peer of onlinePlayers)if(!partyState.members.some(x=>x.id===peer.id))
-     line(peer.name||'Странник','Уровень '+(peer.level||1),[['Пригласить',()=>multiplayer.invite(peer.id)]]);
+     line(peer.name||'Странник','Уровень '+(peer.level||1),[
+      ['Выбрать',()=>{selectAlly(peer.id);closeWindow()}],
+      ['Пригласить',()=>multiplayer.invite(peer.id)]
+     ]);
+    if(!onlinePlayers.length)line('Никого рядом','Другие игроки в этом мире пока не обнаружены.');
+
    }
+   const log=document.createElement('div');
+   log.id='partyChatLog';log.className='ngw-chat-log';log.setAttribute('role','log');
+   log.setAttribute('aria-label','Последние сообщения чата');
+   body.append(log);paintChatHistory();
    const message=document.createElement('input');message.type='text';message.maxLength=180;
    message.placeholder='Написать сообщение…';message.style.cssText='width:100%;margin:8px 0;padding:9px';
    body.append(message);
@@ -1445,7 +1523,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      message.value='';msg('Сообщение отправлено',1.2);
     }
    };
-   line('Чат','Общий чат или чат участников группы',[
+   message.addEventListener('keydown',event=>{
+    if(event.key==='Enter'){event.preventDefault();sendMessage('world');}
+   });
+   line('Чат','Enter — в мир · сообщения текущей сессии',[
     ['В мир',()=>sendMessage('world')],['В группу',()=>sendMessage('party')]
    ]);
    return;
@@ -1898,6 +1979,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   ['pause',()=>openWindow('menu')],
   ['partyOpen',()=>openWindow('party')],
   ['targetClear',()=>{targetEntity(null);autoplay=false;draw()}],
+  ['allyClear',()=>{selectedAllyId=null;draw()}],
+  ['allyInvite',inviteSelectedAlly],
   ['dummyReset',()=>{dummy.trainingStats=createTrainingStats();draw();}]
  ];
  for(const [id,fn] of actions){const node=$(id);if(node)bind(node,'click',fn);}
@@ -1925,8 +2008,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const visible=entities.filter(o=>o.root.visible&&!(o.kind==='mob'&&o.dead&&!o.corpse));
   const roots=visible.map(o=>o.root);
   const intersects=picker.intersectObjects(roots,true);
-  const hit=intersects.find(v=>v.distance<100)?.object;
+  const entityHit=intersects.find(v=>v.distance<100);
+  const hit=entityHit?.object;
   const selected=hit?visible.find(o=>{let p=hit;while(p){if(p===o.root)return true;p=p.parent;}return false;}):null;
+  const allyHit=multiplayer?.pickPlayer?.(picker,100);
+  if(allyHit?.peer&&(!entityHit||allyHit.distance<entityHit.distance)){
+   selectAlly(allyHit.peer.id);return;
+  }
   if(selected?.kind==='mob'&&selected.corpse){
    if(distance(selected)<=CORPSE_LOOT_RANGE)showCorpseLoot(selected);
    return;
