@@ -11,6 +11,25 @@ export function footStrideZ(phase,index){
  const t=(p-.58)/.42;
  return -.775+1.55*(t*t*(3-2*t));
 }
+// Hoof leaves and contacts the floor at zero height; only the swing phase lifts.
+// Heel-to-toe motion never shifts the authoritative character or terrain probe.
+export function hoofSwingLift(phase,index){
+ const p=((phase/(Math.PI*2)+index*.5)%1+1)%1;
+ if(p<.58)return 0;
+ const t=(p-.58)/.42;
+ return Math.pow(Math.sin(t*Math.PI),1.15);
+}
+export function hoofToeFlex(phase,index){
+ const p=((phase/(Math.PI*2)+index*.5)%1+1)%1;
+ // Soft toe-off in the last third of planted contact; a slight lifted toe
+ // during the swing. Both functions return to zero at phase boundaries.
+ if(p<.58){
+  const t=Math.max(0,Math.min(1,(p-.33)/.25));
+  return .075*Math.sin(Math.PI*t);
+ }
+ const t=(p-.58)/.42;
+ return -.085*Math.sin(Math.PI*t);
+}
 export function sampleSphericalFooting({THREE,normal,quaternion,radius,heightAt,phase=0,walk=0}){
  if(!THREE||!normal||!quaternion||typeof heightAt!=='function'
   ||!Number.isFinite(radius)||radius<=0)return null;

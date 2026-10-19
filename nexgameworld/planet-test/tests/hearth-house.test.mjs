@@ -101,7 +101,11 @@ test('every active browser geometry consumer uses the current shared module URL'
  }
  for(const [name,dependency,version] of [['planet.js','start-zone.js','40'],['planet.js','offline-rpg.js','110'],['offline-rpg.js','gather-world.js','23'],['offline-rpg.js','camp-actions.js','21']]){
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
-  assert.ok(source.includes(dependency+'?v='+version),name+' must invalidate its geometry dependency');
+  const marker=dependency+'?v=';
+  const at=source.indexOf(marker);
+  const actual=at<0?NaN:Number.parseInt(source.slice(at+marker.length),10);
+  assert.ok(Number.isInteger(actual)&&actual>=Number(version),
+   name+' must invalidate its geometry dependency without rejecting newer cache revisions');
  }
 });
 

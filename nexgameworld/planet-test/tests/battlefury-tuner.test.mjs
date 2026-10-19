@@ -10,7 +10,8 @@ import {BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_GROUPS,BATTLEFURY_TUNER_STORA
 test('the client invalidates old cached equipment and scene modules on deployment',()=>{
  const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
  assert.ok(read('../offline-rpg.js').includes('character-sheet.js?v=5'));
- assert.ok(read('../planet.js').includes('offline-rpg.js?v=110'));
+ const rpgImport=read('../planet.js').match(/offline-rpg\.js\?v=(\d+)/);
+ assert.ok(rpgImport&&Number(rpgImport[1])>=111,'new RPG scene must invalidate cached creature animation');
  const gameImport=read('../index.html').match(/import\('\.\/planet\.js\?v=(\d+)'\)/);
  assert.ok(gameImport,'game HTML must version the main spherical module');
  assert.ok(Number(gameImport[1])>=134,'deploy must invalidate the previous scene module');

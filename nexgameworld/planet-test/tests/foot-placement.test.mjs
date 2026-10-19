@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {footStrideZ,sampleSphericalFooting} from '../foot-placement.js';
+import {footStrideZ,hoofSwingLift,hoofToeFlex,sampleSphericalFooting} from '../foot-placement.js';
 import {animateSphericalTauren} from '../tauren-animation.js';
 import {harness} from './harness.mjs';
 
@@ -121,5 +121,27 @@ test('combat, gathering and stomping retain finite animation poses on uneven gro
    assert.ok([leg.hip.rotation.x,leg.knee.rotation.x,leg.foot.rotation.x,
      leg.foot.rotation.z].every(Number.isFinite));
   }
+ }
+});
+
+
+test('hooves plant through stance and flex softly while swinging',()=>{
+ const TAU=Math.PI*2;
+ const near=(a,b)=>assert.ok(Math.abs(a-b)<.002,`Expected ${a} near ${b}`);
+ near(hoofSwingLift(0,0),0);
+ near(hoofSwingLift(.58*TAU,0),0);
+ assert.ok(hoofSwingLift(.79*TAU,0)>.9,'swing rises halfway through');
+ near(hoofSwingLift(TAU,0),0);
+ near(hoofToeFlex(0,0),0);
+ near(hoofToeFlex(.58*TAU,0),0);
+ near(hoofToeFlex(TAU,0),0);
+ assert.ok(hoofToeFlex(.44*TAU,0)>.05,'the stance pushes off the toe');
+ assert.ok(hoofToeFlex(.79*TAU,0)<-.07,'swing lifts the toe');
+ // The opposite hoof is exactly half a step out of phase.
+ near(hoofSwingLift(0,1),hoofSwingLift(Math.PI,0));
+ for(let i=0;i<=120;i++){
+  const phase=i/120*TAU;
+  assert.ok(Number.isFinite(hoofToeFlex(phase,0)));
+  assert.ok(hoofSwingLift(phase,1)>=0);
  }
 });

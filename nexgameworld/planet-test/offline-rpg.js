@@ -32,7 +32,7 @@ import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
 import {createSphericalTargetRing} from './spherical-target-ring.js?v=1';
-import {animateSphericalTauren} from './tauren-animation.js?v=3';
+import {animateSphericalTauren} from './tauren-animation.js?v=7';
 import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=3';
 import {createCombatTimeline,MELEE_RANGE,APPROACH_RANGE,rageForHit,rollMeleeDamage} from './combat-timeline.js?v=1';
 import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
@@ -43,6 +43,7 @@ import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=14';
 import {canWadeAtLocal} from './start-zone.js?v=40';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
+import {advanceCreatureGait} from './creature-gait.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
@@ -893,7 +894,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   rig.traverse(part=>{if(part.isMesh){part.castShadow=true;part.receiveShadow=false;}});
   const mixer=new THREE.AnimationMixer(rig);
   const actions=Object.fromEntries(asset.animations.map(clip=>[clip.name,mixer.clipAction(clip)]));
-  mob.banditGltf={container,rig,mixer,actions,mode:null,action:null,walkBlend:0,walkGrace:0};
+  mob.banditGltf={container,rig,mixer,actions,mode:null,action:null,walkBlend:0,walkGrace:0,
+   gait:{},wasWindup:false,attackRemaining:0};
   mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:container,getRadius,heightAt,mixer});
   banditAnimation(mob,0,0);
  }
@@ -902,18 +904,38 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!gltf)return mob.banditVisual?.animate(clock,moved,mob.attackWindup>0?1:0);
   if(mob.corpse)return;
   const delta=Math.min(Math.max(0,dt),.12);
-  // Ignore tiny pathfinding jitters: retain the walk for a brief grace period.
-  gltf.walkBlend+=((moved>.015?1:0)-gltf.walkBlend)*(1-Math.exp(-delta*9));
-  gltf.walkGrace=moved>.015?.16:Math.max(0,gltf.walkGrace-delta);
-  const walking=gltf.walkGrace>0||gltf.walkBlend>.32;
-  const mode=mob.hit>0?'Hurt':mob.attackWindup>0?'Attack':walking?'Walk':'Idle';
+  // Animate from the actual rendered movement; network pauses retain a brief
+  // walk grace instead of repeatedly resetting the raider's feet.
+  const gait=advanceCreatureGait(gltf.gait,delta,moved,{
+   nominalSpeed:2.05,holdSeconds:.22
+  });
+  gltf.walkBlend=gltf.gait.rate;gltf.walkGrace=gltf.gait.hold;
+  const windup=mob.attackWindup>0;
+  if(windup&&!gltf.wasWindup){
+   const duration=gltf.actions.Attack?.getClip?.()?.duration;
+   gltf.attackRemaining=Number.isFinite(duration)?Math.max(.45,Math.min(1.05,duration)):.7;
+  }
+  gltf.wasWindup=windup;
+  gltf.attackRemaining=Math.max(0,gltf.attackRemaining-delta);
+  // Finish each authored strike instead of interrupting it when the server
+  // clears its windup. Damage timing and target selection stay authoritative.
+  const attacking=windup||gltf.attackRemaining>0;
+  const mode=mob.hit>0?'Hurt':attacking?'Attack':gait.walking?'Walk':'Idle';
   if(mode!==gltf.mode){
    const fade=mode==='Attack'?.085:mode==='Hurt'?.10:.22;
    if(gltf.action)gltf.action.fadeOut(fade);
    gltf.action=gltf.actions[mode];
+   if(mode==='Attack'||mode==='Hurt'){
+    gltf.action.setLoop(THREE.LoopOnce,1);
+    gltf.action.clampWhenFinished=true;
+   }else{
+    gltf.action.setLoop(THREE.LoopRepeat,Infinity);
+    gltf.action.clampWhenFinished=false;
+   }
    gltf.action.reset().fadeIn(fade).play();
    gltf.mode=mode;
   }
+  if(mode==='Walk')gltf.action?.setEffectiveTimeScale?.(gait.clipRate);
   gltf.mixer.update(delta);
  }
  // Use the exact approved longstrider model and clips when the shared GLB loads.
@@ -952,7 +974,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  // Smooth original NexGame GLB Idle, Walk, Peck and hit reactions.
  function birdAnimation(mob,dt,moved=0){
   if(mob.banditVisual){banditAnimation(mob,dt,moved);return;}
-  if(mob.birdVisual&&!mob.corpse)advancePlainstriderVisual(THREE,mob,dt,moved,false);
+  if(mob.birdVisual&&!mob.corpse){
+   advancePlainstriderVisual(THREE,mob,dt,moved,false);
+   const bird=mob.birdVisual;
+   const gait=advanceCreatureGait(bird.gait??(bird.gait={}),dt,moved,{
+    nominalSpeed:2.05,holdSeconds:.32
+   });
+   if(bird.mode==='Walk')bird.actions.Walk?.setEffectiveTimeScale?.(gait.clipRate);
+  }
  }
  function player(){return toLocal(playerNormal(),getRadius());}
  function distance(entity){

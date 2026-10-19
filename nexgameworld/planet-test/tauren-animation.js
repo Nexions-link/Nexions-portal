@@ -2,7 +2,7 @@
 // local radial-up frame. Equipment grip tuners remain the source of truth.
 import {weaponSwingProfile,daggerThrustPose} from '../weapon-visuals.js?v=0.3.7.1';
 import {shieldBlockPose} from '../shield-block.js?v=0.3.7.1';
-import {footStrideZ} from './foot-placement.js?v=1';
+import {footStrideZ,hoofSwingLift,hoofToeFlex} from './foot-placement.js?v=2';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const ease=(a,b,t)=>{const x=clamp((t-a)/(b-a),0,1);return x*x*(3-2*x)};
 const smooth=x=>x*x*(3-2*x);
@@ -67,10 +67,9 @@ export function animateSphericalTauren(actor,{
  const feet=user.terrainFeet??(user.terrainFeet=[{height:0,pitch:0,roll:0},{height:0,pitch:0,roll:0}]);
  const footBlend=1-Math.exp(-seconds*11);
  for(let i=0;i<2;i++){
-  const leg=actor.legs[i],p=((phase/(Math.PI*2)+i*.5)%1+1)%1;
-  let z=footStrideZ(phase,i)*w,lift=0;
-  if(p>=.58){const t=(p-.58)/.42;lift=Math.sin(t*Math.PI)*.22}
-  lift*=w*(1-bend);
+  const leg=actor.legs[i];
+  let z=footStrideZ(phase,i)*w;
+  let lift=hoofSwingLift(phase,i)*.22*w*(1-bend);
   if(stomping&&i===1){lift+=.42*Math.sin(Math.min(stompPower/.48,1)*Math.PI);z+=.17*Math.sin(stompPower*Math.PI);}
   const sample=terrainFeet?.[i],foot=feet[i];
   for(const axis of ['height','pitch','roll']){
@@ -87,7 +86,8 @@ export function animateSphericalTauren(actor,{
   leg.hip.rotation.x=Math.atan2(-z,-y)-Math.atan2(.68*Math.sin(knee),.72+.68*Math.cos(knee));
   leg.knee.rotation.x=knee;
   const planted=1-clamp(lift/.22,0,1)*.65;
-  leg.foot.rotation.x=-leg.hip.rotation.x-knee+foot.pitch*planted;
+  leg.foot.rotation.x=-leg.hip.rotation.x-knee+foot.pitch*planted
+   +hoofToeFlex(phase,i)*w*(1-bend);
   leg.foot.rotation.y=(i===0?-1:1)*.032*pivot*planted;
   leg.foot.rotation.z=foot.roll*planted;
  }
