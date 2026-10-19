@@ -407,6 +407,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const labels={
    hotbarSet:'Панель умений сохранена',merchantBuy:'Покупка сохранена',merchantSell:'Продажа сохранена',
    gatherAccept:'Задание травницы принято',gatherFinish:'Ресурс собран и сохранён',
+   banditAccept:'Разведка принята · найди лагерь на западе.',
+   banditTurnIn:'Разведка завершена! Следопыт предложит собрать кинжалы.',
    banditWeaponsAccept:'Задание «Оружие разбойников» принято',
    banditWeaponFinish:'Кинжал разбойника собран',
    banditWeaponsTurnIn:'Оружие сдано следопыту! Открывается задание на главаря.',
@@ -1723,6 +1725,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     button.textContent=label;button.addEventListener('click',()=>{journalTab=tab;renderModal();});tabs.append(button);
    }
    body.append(tabs);
+   if(journalTab!=='completed'){
+    const note=document.createElement('p');note.className='ngw-journal-help';
+    note.textContent='Нажми «Отслеживать» возле задания, чтобы увидеть цель и расстояние прямо в игровом мире.';
+    body.append(note);
+   }
    const entries=mentorJournalRows(state).map(item=>({...item,routeId:'mentor',npc:'Наставник Каменный Рог'}));
    if(authenticatedProfile){
     const q=state.banditQuest||{stage:0,kills:0};

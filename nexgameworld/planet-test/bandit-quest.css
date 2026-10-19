@@ -57,3 +57,7 @@
  #quest .ngw-route-hint{font-size:10px;line-height:1.35;padding:5px 6px;gap:5px}
  #modal.world-sheet #mbody .rpgRow button{max-width:115px;font-size:10px}
 }
+
+#modal.world-sheet #mbody .ngw-journal-help{margin:4px 0 8px;padding:8px 9px;
+ border-left:2px solid #648c66;border-radius:3px;
+ background:#22362613;color:#644b2c;font:11px/1.45 system-ui,sans-serif}
