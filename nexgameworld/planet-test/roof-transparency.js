@@ -1,7 +1,9 @@
-// Visual-only roof fade: clone roof materials to avoid affecting solid walls
-// and shared village shingles. Shadow caster geometry remains untouched.
-export function createRoofTransparency(roof,{indoorOpacity=.12,fadeSpeed=9}={}){
- if(!roof?.traverse)throw Error('Roof group is required');
+// Cosmetic fade for the house envelope. Each structure clones its materials
+// once, protecting shared scenery, floor, lights and gameplay state.
+export function createSurfaceTransparency(group,{
+ indoorOpacity=.12,fadeSpeed=9,shouldFade=()=>true
+}={}){
+ if(!group?.traverse)throw Error('Surface group is required');
  const targetAlpha=Math.max(.04,Math.min(.6,Number(indoorOpacity)||.12));
  const speed=Math.max(.01,Number(fadeSpeed)||9);
  const copies=new Map(),materials=[];
@@ -14,8 +16,10 @@ export function createRoofTransparency(roof,{indoorOpacity=.12,fadeSpeed=9}={}){
    baseTransparent:source.transparent,baseDepthWrite:source.depthWrite});
   return clone;
  }
- roof.traverse(mesh=>{
-  if(!mesh.isMesh)return;
+ let meshCount=0;
+ group.traverse(mesh=>{
+  if(!mesh.isMesh||!shouldFade(mesh))return;
+  meshCount++;
   mesh.material=Array.isArray(mesh.material)?mesh.material.map(isolate):isolate(mesh.material);
  });
  let opacity=1;
@@ -42,6 +46,9 @@ export function createRoofTransparency(roof,{indoorOpacity=.12,fadeSpeed=9}={}){
    return opacity;
   },
   get opacity(){return opacity;},
-  get materialCount(){return materials.length;}
+  get materialCount(){return materials.length;},
+  get meshCount(){return meshCount;}
  };
 }
+// Backwards-compatible roof controller for the existing game and tests.
+export const createRoofTransparency=createSurfaceTransparency;

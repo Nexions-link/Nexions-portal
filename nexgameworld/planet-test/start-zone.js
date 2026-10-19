@@ -5,7 +5,7 @@ import {createTaurenVisualDetails} from './tauren-visual-details.js?v=3';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
 import {canWalkCamp} from './sphere-physics.js?v=11';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=7';
-import {createRoofTransparency} from './roof-transparency.js?v=1';
+import {createRoofTransparency,createSurfaceTransparency} from './roof-transparency.js?v=2';
 import {createHouseRat} from './house-rat.js?v=6';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
 import {createBanditCampVisuals} from './bandit-camp-visuals.js?v=3';
@@ -111,6 +111,22 @@ export function createStartZone(three,scene,getRadius,heightAt){
  const houseAnchor=anchor(LONGHOUSE.x,LONGHOUSE.z,LONGHOUSE.yaw);
  const longhouse=buildHearthHouse(THREE,{root:houseAnchor,villageVisuals});
  const roofTransparency=createRoofTransparency(longhouse.roof,{indoorOpacity:.12,fadeSpeed:9});
+ // Structural walls and attached hides fade, not the house floor or the
+ // freestanding totems and stepping stones by the front entrance.
+ const permanentOutdoorDetails=new Set([
+  'hearth-house-ceremonial-posts',
+  'hearth-house-totem-collars',
+  'hearth-house-totem-finial',
+  'hearth-house-ceremonial-totem-pennant',
+  'hearth-house-bone-wind-charms',
+  'hearth-house-forecourt-edging',
+  'hearth-house-forecourt-stepping-stones',
+  'hearth-house-entry-threshold'
+ ]);
+ const wallTransparency=createSurfaceTransparency(longhouse.walls,{
+  indoorOpacity:.20,fadeSpeed:9,
+  shouldFade:mesh=>!permanentOutdoorDetails.has(mesh.name)
+ });
  const houseRat=createHouseRat(THREE,houseAnchor);
  longhouseRoofs.push(...longhouse.roofPlanes);
  shadowCasters.push(...longhouse.roofPlanes);
@@ -345,8 +361,9 @@ export function createStartZone(three,scene,getRadius,heightAt){
  }
  function updateInteriorView(x,z,dt=1/60){
   const inside=insideHouse(x,z);
-  // Visual roof fade does not change roof geometry, sun or shadow casters.
+  // Roof and walls fade together; floor, actors, sun and shadows stay unchanged.
   roofTransparency.update(inside,dt);
+  wallTransparency.update(inside,dt);
  }
  return {rebuild,updateInteriorView,setGraphics,meadow,
   animate(t){houseRat.animate(t);banditCampVisuals.animate(t);
