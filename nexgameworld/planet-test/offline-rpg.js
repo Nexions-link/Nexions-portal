@@ -191,7 +191,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   return swinging||preparingStomp||mobs.some(m=>m.root.visible&&m.hp>0&&!m.corpse&&m.aggro);
  }
  let journalTab='current',merchantTab='buy',selectedEquipmentSlot=null;
- let selectedBagSlot=-1,selectedBagItemId=null;
+ let selectedBagSlot=-1,selectedBagItemId=null,bagRenderSnapshot=null;
  const group=new THREE.Group();scene.add(group);
  // The mesh is bent vertex-by-vertex onto the actual spherical terrain:
  // no texture intersection/z-fighting and a saturated red outline.
@@ -1021,7 +1021,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(kind==='chest'){clearChestRetry();chestSheet.reset();}
   if(kind==='character')selectedEquipmentSlot=null;
   if(kind==='bag'&&(modal.hidden||modal.dataset.kind!=='bag')){
-   selectedBagSlot=-1;selectedBagItemId=null;
+   selectedBagSlot=-1;selectedBagItemId=null;bagRenderSnapshot=null;
   }
   if(kind!=='gatherLoot')camp.cancel();
   modal.hidden=false;modal.dataset.kind=kind;
@@ -1043,7 +1043,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(isOnline())multiplayer.closeChest();
   }
   modal.hidden=true;pendingLoot=null;
-  selectedBagSlot=-1;selectedBagItemId=null;
+  selectedBagSlot=-1;selectedBagItemId=null;bagRenderSnapshot=null;
  }
  let resetProgressView=null;
  function onResetProgress(fn){resetProgressView=typeof fn==='function'?fn:null;}
@@ -1333,6 +1333,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function renderModal(){
   const kind=modal.dataset.kind,title=$('mtitle'),body=$('mbody');
+  // iOS Safari scroll anchoring is disrupted whenever the inventory panel's
+  // children are destroyed, even if scrollTop is restored synchronously.
+  // Skip all DOM replacement when actual bag and equipment data are unchanged.
+  // A checkpoint, combat HUD redraw or server ping must not scroll the sheet.
+  if(kind==='bag'){
+   const snapshot=JSON.stringify([state.inventory,state.equipment,state.level,state.gold]);
+   if(bagRenderSnapshot===snapshot&&body.querySelector('.inventory-grid'))return;
+   bagRenderSnapshot=snapshot;
+  }
   const characterReuse=kind==='character'?{
    viewport:body.querySelector('.character-preview-viewport'),
    gesture:body.querySelector('.character-rotate')}:null;

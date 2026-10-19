@@ -50,12 +50,18 @@ test('bag comparison survives periodic HUD rerenders and server progress without
  const compare=()=>descendants(bag()).filter(x=>x.className?.includes('ngw-gear-compare'));
  assert.equal(compare().length,1);
  bag().scrollTop=165;
+ const preservedGrid=bag().querySelector('.inventory-grid');
+ const preservedDetail=bag().querySelector('.inventory-detail');
  for(let i=0;i<20;i++){
   h.rpg.update(.2);
   h.rpg.draw();
   assert.equal(compare().length,1,'comparison must not vanish at refresh '+i);
   assert.equal(first().className.includes('active'),true);
   assert.equal(bag().scrollTop,165);
+  assert.equal(bag().querySelector('.inventory-grid'),preservedGrid,
+   'Safari inventory nodes must never be detached during unchanged HUD refreshes');
+  assert.equal(bag().querySelector('.inventory-detail'),preservedDetail,
+   'comparison panel remains the same mounted element');
  }
 });
 test('bag selection follows item until removed, then clears safely',()=>{
