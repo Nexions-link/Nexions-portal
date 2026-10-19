@@ -170,3 +170,33 @@ test('the overlay never expands the target HUD or intercepts touch interactions'
  assert.match(page,/id="targetLevel"/);
  assert.match(page,/id="xpFeedback"/);
 });
+
+test('a corpse can be inspected even if asynchronous loot notification was missed',()=>{
+ const h=harness({x:-9,z:-24,authenticatedProfile:{nickname:'Воин',level:4,inventory:[],equipment:{}}}),sent=[];
+ h.rpg.setMultiplayer({connected:true,economy:(kind,args)=>{sent.push({kind,...args});return true;}});
+ h.rpg.onMobSnapshot([{index:0,phase:'corpse',life:33,hp:0,x:-9,z:-23}]);
+ // No lootAvailable packet. The corpse still must expose the authoritative
+ // lootOpen action, even during the falling animation.
+ h.rpg.draw();
+ assert.equal(h.get('interact').hidden,false);
+ assert.equal(h.get('interact').textContent,'Обыскать');
+ h.get('interact').click();
+ assert.ok(sent.some(e=>e.kind==='lootOpen'&&e.mobId==='dolgonog-0'&&e.life===33));
+ h.rpg.onEconomyResult({ok:true,kind:'lootOpen',mobId:'dolgonog-0',life:33,
+  loot:[{id:'feather',qty:1}]});
+ assert.equal(h.get('modal').dataset.kind,'loot');
+ assert.ok(descendants(h.get('mbody')).some(e=>e.textContent==='Перо долгонога'));
+});
+
+test('an empty corpse can be confirmed and does not repeatedly advertise loot',()=>{
+ const h=harness({x:-9,z:-24,authenticatedProfile:{nickname:'Воин',level:4,inventory:[],equipment:{}}}),sent=[];
+ h.rpg.setMultiplayer({connected:true,economy:(kind,args)=>{sent.push({kind,...args});return true;}});
+ h.rpg.onMobSnapshot([{index:0,phase:'corpse',life:34,hp:0,x:-9,z:-23}]);
+ h.rpg.draw();
+ assert.equal(h.get('interact').hidden,false);
+ h.rpg.onEconomyResult({ok:true,kind:'lootInspect',mobId:'dolgonog-0',life:34,loot:[]});
+ h.rpg.draw();
+ assert.equal(h.get('interact').hidden,true);
+ h.rpg.onEconomyResult({ok:true,kind:'lootOpen',mobId:'dolgonog-0',life:34,loot:[]});
+ assert.ok(descendants(h.get('mbody')).some(e=>e.textContent==='Нет добычи'));
+});

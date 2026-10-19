@@ -23,7 +23,7 @@ import {createXpFeedback} from './xp-feedback.js?v=1';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=2';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
 import {createCameraTargetFilter} from './camera-targeting.js?v=1';
-import {createHostileTargetCycle,nearbyInteractable,CORPSE_LOOT_RANGE} from './interaction-targeting.js?v=15';
+import {createHostileTargetCycle,nearbyInteractable,CORPSE_LOOT_RANGE} from './interaction-targeting.js?v=16';
 import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v=1';
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
@@ -891,10 +891,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function updateLootMarker(mob){
   if(!mob?.lootMarker)return;
-  const available=mob.corpse&&!mob.dying&&mob.root.visible&&mob.loot?.length>0;
+  const available=mob.corpse&&!mob.dying&&mob.root.visible&&
+   (mob.loot?.length>0||authenticatedProfile&&!mob.lootKnown);
   mob.lootMarker.visible=!!available;
   if(!available)return;
-  const rarity=highestLootRarity(mob.loot,ITEM_CATALOG);
+  const rarity=mob.loot?.length?highestLootRarity(mob.loot,ITEM_CATALOG):'poor';
   mob.lootMarker.material.color.setHex(QUALITY_VISUALS[rarity].marker);
   mob.lootMarker.userData.rarity=rarity;
  }
@@ -1009,7 +1010,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   itemCount(BANDIT_WEAPON_ITEM)<BANDIT_WEAPON_REQUIRED&&clock>=node.readyAt;
  function nearestInteraction(){
   return nearbyInteractable(entities,distance,node=>
-   node.kind==='banditWeapon'?weaponsAvailable(node):camp.available(node));
+   node.kind==='banditWeapon'?weaponsAvailable(node):camp.available(node),!!authenticatedProfile);
  }
  const chestSheet=createChestSheet({items:ITEM_CATALOG,qualityColors:QUALITY_VISUALS,
   move:(...args)=>isOnline()?multiplayer.moveChest(...args):false,notify:msg});
