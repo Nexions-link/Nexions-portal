@@ -17,10 +17,11 @@ test('house rat uses colour-baked geometry from uploaded rat model',async()=>{
 });
 test('rat patrol respects walls and gives chest free space',()=>{
  assert.equal(ratCanStand(0,0),true);
- assert.equal(ratCanStand(5.4,-6.2),false);
- assert.equal(ratCanStand(5.4,-4.95),false);
+ assert.equal(ratCanStand(LONGHOUSE.chestLocalX,LONGHOUSE.chestLocalZ),false);
+ assert.equal(ratCanStand(0,-7.4),false,'rat must avoid new chest buffer');
+ assert.equal(ratCanStand(5.4,-6.2),true,'old chest corner is unobstructed');
  assert.equal(ratCanStand(LONGHOUSE.width/2,0),false);
- assert.equal(ratRouteOpen(0,-6.2,7,-6.2),false);
+ assert.equal(ratRouteOpen(-4,-8.6,4,-8.6),false);
  assert.equal(ratRouteOpen(-4,0,2,0),true);
 });
 test('rat never runs into walls, exits the building or cuts across the chest',()=>{

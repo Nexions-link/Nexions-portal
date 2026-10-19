@@ -9,13 +9,17 @@ import {createChestMotion} from '../../bestiary/chest-preview-motion.js';
 import {readFileSync} from 'node:fs';
 const at=(x,z)=>fromHouseCoordinates(x,z);
 function walk(x,z,bodyRadius){const p=at(x,z);return canWalkCamp(p.x,p.z,bodyRadius)}
-test('shared storage is at the former cabinet, in the far right corner',()=>{
- assert.equal(LONGHOUSE.chestLocalX,5.4);
- assert.equal(LONGHOUSE.chestLocalZ,-6.2);
+test('shared chest is centered opposite the longhouse doorway, against its far wall',()=>{
+ assert.equal(LONGHOUSE.chestLocalX,0);
+ assert.equal(LONGHOUSE.chestLocalZ,-8.6);
  const local=toHouseCoordinates(HOUSE_CHEST.x,HOUSE_CHEST.z);
- assert.ok(Math.abs(local.x-5.4)<1e-9);
- assert.ok(Math.abs(local.z+6.2)<1e-9);
- assert.deepEqual(HOUSE_CHEST,{x:-33.2,z:-7.4,range:3.25});
+ assert.ok(Math.abs(local.x)<1e-9,'door and chest share the same x-axis');
+ assert.ok(Math.abs(local.z+8.6)<1e-9);
+ assert.deepEqual(HOUSE_CHEST,{x:-35.6,z:-2,range:3.25});
+ assert.equal(LONGHOUSE.doorWidth,6.8);
+ const innerBackFace=-LONGHOUSE.depth/2+LONGHOUSE.wallThickness;
+ assert.ok(local.z-.725>innerBackFace+.35,'leave space for rear lid and camera');
+ assert.ok(local.z< -LONGHOUSE.depth/2+2.25,'keep chest at rear wall');
  assert.equal(CHEST_X,HOUSE_CHEST.x);
  assert.equal(CHEST_Z,HOUSE_CHEST.z);
  assert.equal(CHEST_RANGE,HOUSE_CHEST.range);
@@ -36,8 +40,9 @@ test('an interior grid is entirely free apart from the actual GLB chest',()=>{
  for(const [x,z] of [[-5.2,-5],[3,-1],[4.49,.08],[-5.6,3],[0,0],[7,-8],[-7,8]]){
   assert.equal(walk(x,z),true,'Legacy obstacle at '+x+','+z);
  }
- assert.equal(walk(5.4,-6.2),false);
- assert.equal(walk(5.4,-4.35),true);
+ assert.equal(walk(0,-8.6),false);
+ assert.equal(walk(0,-6.65),true);
+ assert.equal(walk(5.4,-6.2),true,'old chest corner must be open');
  assert.equal(insideHouse(CHEST_X,CHEST_Z),true);
 });
 test('structural walls are solid and entrance remains open',()=>{
@@ -92,9 +97,9 @@ test('every active browser geometry consumer uses the current shared module URL'
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   const imports=[...source.matchAll(/hearth-house\.js\?v=([^'"\s]+)/g)];
   assert.ok(imports.length>0,name);
-  assert.ok(imports.every(row=>row[1]==='8'),name+' requests a stale geometry module');
+  assert.ok(imports.every(row=>row[1]==='9'),name+' requests a stale geometry module');
  }
- for(const [name,dependency,version] of [['planet.js','start-zone.js','37'],['planet.js','offline-rpg.js','103'],['offline-rpg.js','gather-world.js','20'],['offline-rpg.js','camp-actions.js','19']]){
+ for(const [name,dependency,version] of [['planet.js','start-zone.js','38'],['planet.js','offline-rpg.js','104'],['offline-rpg.js','gather-world.js','21'],['offline-rpg.js','camp-actions.js','20']]){
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   assert.ok(source.includes(dependency+'?v='+version),name+' must invalidate its geometry dependency');
  }
@@ -246,7 +251,7 @@ test("elder's interior is permanent solid-looking decor, not part of fading roof
  assert.equal(seat?.isGroup,true);
  assert.ok(seat.position.x<0);
  assert.ok(Math.hypot(seat.position.x-LONGHOUSE.chestLocalX,
-  seat.position.z-LONGHOUSE.chestLocalZ)>8);
+  seat.position.z-LONGHOUSE.chestLocalZ)>5.5);
  assert.equal(seat.getObjectByName('hearth-house-elder-symbol').isMesh,true);
  const hearth=interior.getObjectByName('hearth-house-decorative-hearth');
  assert.equal(hearth?.isGroup,true);
@@ -274,4 +279,23 @@ test("elder's interior is permanent solid-looking decor, not part of fading roof
   assert.equal(walk(x,z),true,'unchanged corridor/collision at '+x+','+z);
  }
  assert.equal(walk(LONGHOUSE.chestLocalX,LONGHOUSE.chestLocalZ),false);
+});
+
+test('chest transfer keeps route, camera clearance and elder room props accessible',()=>{
+ const doorZ=LONGHOUSE.depth/2;
+ const cx=LONGHOUSE.chestLocalX,cz=LONGHOUSE.chestLocalZ;
+ assert.equal(cx,0,'center of chest and doorway must share the same local x');
+ assert.equal(walk(0,doorZ+1),true);
+ assert.equal(walk(0,doorZ),true);
+ for(const z of [7,4,1,-2,-5,-6.65])assert.equal(walk(0,z),true,'route to chest: '+z);
+ assert.equal(walk(0,cz),false,'solid physical footprint');
+ for(const x of [-3.0,3.0])assert.equal(walk(x,cz),true,'side clearance for interaction');
+ for(const z of [-7.0,-6.65])assert.ok(Math.abs(z-cz)<HOUSE_CHEST.range-.5);
+ const root=new THREE.Group(),house=buildHearthHouse(THREE,{root,villageVisuals:{addRoof(){}}});
+ const seat=house.interior.getObjectByName('hearth-house-elder-seat');
+ const hearth=house.interior.getObjectByName('hearth-house-decorative-hearth');
+ assert.ok(Math.hypot(seat.position.x-cx,seat.position.z-cz)>4);
+ assert.ok(Math.hypot(hearth.position.x-cx,hearth.position.z-cz)>6);
+ assert.equal(house.roof.visible,true);
+ assert.equal(root.children.length,3);
 });

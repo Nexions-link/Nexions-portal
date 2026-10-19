@@ -3,7 +3,7 @@
 export const LONGHOUSE=Object.freeze({
  x:-27,z:-2,yaw:Math.PI/2,width:19.2,depth:20.8,height:9.1,
  wallThickness:.52,doorWidth:6.8,roofRise:4.7,
- chestLocalX:5.4,chestLocalZ:-6.2,chestRange:3.25
+ chestLocalX:0,chestLocalZ:-8.6,chestRange:3.25
 });
 export function toHouseCoordinates(x,z){
  return {x:-(z-LONGHOUSE.z),z:x-LONGHOUSE.x};
@@ -108,7 +108,7 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
  wall(0,h-.84,hd-t/2,door,1.68,t);
  
  // Hide panels and lashed poles echo the smaller canvas tents in this village.
- // The roof, doorway and chest remain in precisely their former coordinates.
+ // The roof and doorway stay unchanged; the shared chest now faces the entrance from the rear wall.
  const accents=new THREE.Group();accents.name='hearth-house-tribal-exterior';walls.add(accents);
  const hidePanels=[
   ...[-1,1].flatMap(s=>[-7.4,-3.7,0,3.7,7.4].map((z,i)=>({
@@ -522,7 +522,7 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
  if(hangings.instanceColor)hangings.instanceColor.needsUpdate=true;
  interior.add(hangings);
  // A ceremonial elder's resting place along the left rear wall,
- // well away from the shared chest on the opposite side.
+ // clear of the newly centered shared chest on the rear wall.
  const elderSeat=new THREE.Group();elderSeat.name='hearth-house-elder-seat';
  elderSeat.position.set(-5.75,0,-8.16);interior.add(elderSeat);
  createBox(elderSeat,M.darkWood,0,.43,0,4.15,.62,1.48);

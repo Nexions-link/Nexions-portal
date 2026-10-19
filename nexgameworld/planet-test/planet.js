@@ -1,19 +1,19 @@
 import * as THREE from 'three';
 import {screenMoveVector,turnTowardsAngle} from '../movement-controls.js?v=0.3.7.0';
 import {readPlanetView,writePlanetView} from './world-save.js?v=3';
-import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=12';
+import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=13';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=103';
+import {createOfflineRpg} from './offline-rpg.js?v=104';
 import {createSphericalPresence} from './sphere-online.js?v=10';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=5';
 import {sampleSphericalFooting} from './foot-placement.js?v=1';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=37';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=38';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -829,7 +829,7 @@ try {
         const towardPlayer=cameraToHero.copy(hero.root.position).sub(focus);
         const base=Math.atan2(towardPlayer.dot(tangentNorth),towardPlayer.dot(tangentEast));
         let bestAngle=base+1.15,bestClearance=-1;
-        // The chest is in a corner: choose the side with room for a wide shot.
+        // The chest is centered by the far wall: choose a clear side for a wide shot.
         for(const offset of [1.15,-1.15,1.6,-1.6,.8,-.8]){
           const angle=base+offset;
           const direction=cameraOffsetDirection.copy(tangentEast).multiplyScalar(Math.cos(angle)).addScaledVector(tangentNorth,Math.sin(angle));
