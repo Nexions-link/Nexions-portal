@@ -134,3 +134,48 @@ test('animated eye glints remain outside iris and match the newly positioned pup
   assert.ok(point.z>.538,'glint must not be hidden behind the dark pupil');
  }
 });
+
+test('refined original face has symmetric cheek, nasal and muzzle silhouette below eyes',()=>{
+ const {actor}=spawn({player:true});
+ const names=actor.anatomy.meshes.map(m=>m.name);
+ for(const part of ['nasal-bridge','cheek-and-jowl','cheek-fur-ridges','muzzle-folds']){
+  assert.ok(names.includes('ngw-anatomy-v2-'+part),part+' should be present');
+ }
+ const headMeshes=actor.anatomy.meshes.filter(m=>m.parent===actor.head);
+ const eyeY=.134;
+ for(const mesh of headMeshes.filter(m=>/nasal-bridge|cheek-and-jowl|cheek-fur-ridges|muzzle-folds/.test(m.name))){
+  for(let i=0;i<mesh.count;i++){
+   const transform=new THREE.Matrix4();
+   mesh.getMatrixAt(i,transform);
+   const position=new THREE.Vector3().setFromMatrixPosition(transform);
+   assert.ok(position.y<eyeY-.15,
+    mesh.name+' must not cover the eye line');
+  }
+ }
+ actor.anatomy.setQuality(1);
+ assert.ok(actor.anatomy.triangles<=18000,'keep iPhone high quality below the 18k triangle budget');
+});
+test('both eyes stay visible from front and three-quarter camera angles',()=>{
+ const {actor}=spawn({player:true});
+ actor.root.updateWorldMatrix(true,true);
+ for(const quality of [.15,.68,1]){
+  actor.anatomy.setQuality(quality);
+  for(const sign of [-1,1]){
+   const pupil=new THREE.Vector3(sign*.247,.134,.538);
+   for(const offset of [0,sign*.19,sign*.31]){
+    const eye=new THREE.Vector3(pupil.x+offset,.14,1.60);
+    const direction=pupil.clone().sub(eye);
+    const distance=direction.length();
+    const ray=new THREE.Raycaster(
+     actor.head.localToWorld(eye),
+     direction.normalize().transformDirection(actor.head.matrixWorld),
+     .001,distance-.015);
+    for(const mesh of actor.anatomy.meshes.filter(m=>m.visible&&m.parent===actor.head)){
+     const hits=[];THREE.InstancedMesh.prototype.raycast.call(mesh,ray,hits);
+     assert.equal(hits.length,0,
+      mesh.name+' obscures eye '+sign+' at quality '+quality+' offset '+offset);
+    }
+   }
+  }
+ }
+});

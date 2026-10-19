@@ -64,6 +64,35 @@ export function createTaurenAnatomy(THREE,actor,{fur=0x836144,remote=false}={}){
   row([-.255,-.305,.75],[.18,.13,.21]),
   row([.255,-.305,.75],[.18,.13,.21])
  ]);
+ // Facial finishing is confined below the eye line. Shape transitions sit
+ // on animated head geometry, with no new occluders around the pupils.
+ // The shallow nasal bridge joins forehead and muzzle without a round "ball".
+ add(head,'nasal-bridge',sphere,skin,[
+  row([0,-.112,.49],[.145,.20,.135]),
+  row([0,-.27,.57],[.22,.13,.115])
+ ],'enhanced');
+ // Raised cheek pads and slight taper under the jaw clarify the silhouette
+ // from side and three-quarter views while keeping eye sockets unobstructed.
+ add(head,'cheek-and-jowl',fineSphere,skin,[
+  row([-.455,-.30,.355],[.145,.21,.17],-.17),
+  row([.455,-.30,.355],[.145,.21,.17],.17),
+  row([-.27,-.525,.38],[.17,.12,.18],-.14),
+  row([.27,-.525,.38],[.17,.12,.18],.14)
+ ],'enhanced');
+ add(head,'cheek-fur-ridges',cone,furAccent,[
+  row([-.515,-.34,.29],[.074,.23,.078],.24),
+  row([.515,-.34,.29],[.074,.23,.078],-.24),
+  row([-.455,-.48,.24],[.062,.16,.065],.36),
+  row([.455,-.48,.24],[.062,.16,.065],-.36)
+ ],'high');
+ // Subtle leather-toned folds follow the upper snout and mouth corners;
+ // they sit below the eyes, never in front of the iris or highlights.
+ add(head,'muzzle-folds',fineSphere,lip,[
+  row([-.36,-.267,.85],[.036,.083,.037],-.12),
+  row([.36,-.267,.85],[.036,.083,.037],.12),
+  row([-.282,-.452,.79],[.055,.027,.036],-.14),
+  row([.282,-.452,.79],[.055,.027,.036],.14)
+ ],'high');
  add(head,'nostril-rims',fineSphere,lip,[
   row([-.238,-.125,1.090],[.116,.071,.026],-.2),
   row([.238,-.125,1.090],[.116,.071,.026],.2)
