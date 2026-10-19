@@ -32,7 +32,7 @@ import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
 import {createSphericalTargetRing} from './spherical-target-ring.js?v=1';
-import {animateSphericalTauren} from './tauren-animation.js?v=7';
+import {animateSphericalTauren} from './tauren-animation.js?v=8';
 import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=3';
 import {createCombatTimeline,MELEE_RANGE,APPROACH_RANGE,rageForHit,rollMeleeDamage} from './combat-timeline.js?v=1';
 import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
@@ -44,6 +44,7 @@ import {canWadeAtLocal} from './start-zone.js?v=40';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceCreatureGait} from './creature-gait.js?v=1';
+import {advanceMobImpact,mobVisualMode} from './mob-impact.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
@@ -527,6 +528,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!mob||event.life!==mob.life)return;
   if(Number.isFinite(event.hp))mob.hp=Math.max(0,event.hp);
   mob.hit=HIT_REACTION_SECONDS;
+  mob.visualHitSequence=(mob.visualHitSequence||0)+1;
   combatFeedback.hit(mob,event.damage,event.abilityId);
   combatVfx.trigger(mob,event.abilityId==='heavyStrike'?'strong':event.abilityId==='thunderStomp'?'stomp':'hit');
   if(event.fromId===selfId)lastCombatAt=clock;
@@ -641,6 +643,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     if(target===mob){target=null;autoplay=false;approach=null;timeline.clear();}
    }else if(remote.phase==='alive'&&(wasCorpse||wasHidden)){
     mob.deathAnimation.reset();if(mob.family!=='bandit')resetPlainstriderVisual(mob);
+    resetCreatureImpact(mob);
     if(mob.pendingBanditAsset){attachBanditVisual(mob,mob.pendingBanditAsset);mob.pendingBanditAsset=null;}
     mob.loot=null;mob.lootKnown=false;mob.lootInspectAt=0;mob.navigation=null;
    }else if(remote.phase==='hidden'){
@@ -895,9 +898,31 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const mixer=new THREE.AnimationMixer(rig);
   const actions=Object.fromEntries(asset.animations.map(clip=>[clip.name,mixer.clipAction(clip)]));
   mob.banditGltf={container,rig,mixer,actions,mode:null,action:null,walkBlend:0,walkGrace:0,
-   gait:{},wasWindup:false,attackRemaining:0};
+   gait:{},wasWindup:false,attackRemaining:0,
+   impact:{seen:mob.visualHitSequence||0,wasHit:false}};
   mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:container,getRadius,heightAt,mixer});
   banditAnimation(mob,0,0);
+ }
+ function resetCreatureImpact(mob){
+  // Death poses freeze the mixer; reset cosmetic state for a new life.
+  // Preserve server position, aggro, inventory, combat and equipment.
+  mob.visualHitSequence=0;
+  mob.hit=0;
+  if(mob.banditGltf){
+   const gltf=mob.banditGltf;
+   gltf.mixer.stopAllAction();
+   gltf.mode=null;gltf.action=null;gltf.wasWindup=false;gltf.attackRemaining=0;
+   gltf.impact={seen:0,wasHit:false};gltf.gait={};
+   gltf.container.rotation.set(0,0,0);
+   gltf.container.position.set(0,0,0);
+  }
+  if(mob.birdVisual){
+   const bird=mob.birdVisual;
+   bird.impact={seen:0,wasHit:false};
+   bird.impactPivot?.rotation.set(0,0,0);
+   bird.impactPivot?.position.set(0,0,0);
+   bird.gait={};
+  }
  }
  function banditAnimation(mob,dt,moved=0){
   const gltf=mob.banditGltf;
@@ -920,11 +945,22 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   // Finish each authored strike instead of interrupting it when the server
   // clears its windup. Damage timing and target selection stay authoritative.
   const attacking=windup||gltf.attackRemaining>0;
-  const mode=mob.hit>0?'Hurt':attacking?'Attack':gait.walking?'Walk':'Idle';
-  if(mode!==gltf.mode){
+  const impact=advanceMobImpact(gltf.impact,delta,{
+   sequence:mob.visualHitSequence||0,hitRemaining:mob.hit,duration:.34
+  });
+  // Recoil is only visual: collision and server locations never change.
+  gltf.container.rotation.x=-.085*impact.weight;
+  gltf.container.rotation.z=.075*impact.weight*impact.side;
+  gltf.container.position.z=-.09*impact.weight;
+  const mode=mobVisualMode({hit:impact.active&&!!gltf.actions.Hurt,
+   attack:attacking,walking:gait.walking});
+  // A second hit during Hurt restarts its clip instead of freezing on its last frame.
+  if(mode!==gltf.mode||(impact.started&&mode==='Hurt')){
    const fade=mode==='Attack'?.085:mode==='Hurt'?.10:.22;
-   if(gltf.action)gltf.action.fadeOut(fade);
-   gltf.action=gltf.actions[mode];
+   const nextAction=gltf.actions[mode]||gltf.actions.Idle;
+   const replay=gltf.action===nextAction;
+   if(gltf.action&&!replay)gltf.action.fadeOut(fade);
+   gltf.action=nextAction;
    if(mode==='Attack'||mode==='Hurt'){
     gltf.action.setLoop(THREE.LoopOnce,1);
     gltf.action.clampWhenFinished=true;
@@ -932,7 +968,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     gltf.action.setLoop(THREE.LoopRepeat,Infinity);
     gltf.action.clampWhenFinished=false;
    }
-   gltf.action.reset().fadeIn(fade).play();
+   gltf.action.reset();
+   if(!replay)gltf.action.fadeIn(fade);
+   gltf.action.play();
    gltf.mode=mode;
   }
   if(mode==='Walk')gltf.action?.setEffectiveTimeScale?.(gait.clipRate);
@@ -963,11 +1001,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const bird=asset.scene.clone(true);
   const container=new THREE.Group();container.name='dolgonog-original-v0.1';
   container.scale.setScalar(PLAINSTRIDER_VISUAL_SCALE);
-  container.add(bird);mob.root.add(container);mob.fallbackVisual.visible=false;
+  const impactPivot=new THREE.Group();impactPivot.name='dolgonog-hit-response';
+  impactPivot.add(bird);container.add(impactPivot);
+  mob.root.add(container);mob.fallbackVisual.visible=false;
   bird.traverse(obj=>{if(obj.isMesh){obj.castShadow=/^(Body|Head|Neck|Wing)/.test(obj.name);obj.receiveShadow=false;}});
   const mixer=new THREE.AnimationMixer(bird);
   const actions=Object.fromEntries(PLAINSTRIDER_REQUIRED_CLIPS.map(k=>[k,mixer.clipAction(asset.animations.find(a=>a.name===k))]));
-  mob.birdVisual={container,bird,mixer,actions,mode:null,walkGrace:0,attackRemaining:0,lastAttackCd:mob.attackCd};
+  mob.birdVisual={container,bird,impactPivot,mixer,actions,mode:null,walkGrace:0,attackRemaining:0,
+   lastAttackCd:mob.attackCd,impact:{seen:mob.visualHitSequence||0,wasHit:false}};
   mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:container,getRadius,heightAt,mixer});
   advancePlainstriderVisual(THREE,mob,1/60,0,false);
  }
@@ -981,6 +1022,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     nominalSpeed:2.05,holdSeconds:.32
    });
    if(bird.mode==='Walk')bird.actions.Walk?.setEffectiveTimeScale?.(gait.clipRate);
+   // Approved longstrider v0.1 contains no Hurt clip: apply visual-only
+   // head/body flinch after the authored walk/peck pose has been evaluated.
+   const impact=advanceMobImpact(bird.impact,dt,{
+    sequence:mob.visualHitSequence||0,hitRemaining:mob.hit,duration:.30
+   });
+   bird.impactPivot.rotation.x=-.105*impact.weight;
+   bird.impactPivot.rotation.z=.087*impact.weight*impact.side;
+   bird.impactPivot.position.y=.04*impact.weight;
+   bird.impactPivot.position.z=-.09*impact.weight;
   }
  }
  function player(){return toLocal(playerNormal(),getRadius());}
@@ -1270,6 +1320,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(enemy.kind==='dummy'){applyTrainingHit(enemy,damage,clock,skill);combatFeedback.hit(enemy,damage,skill);combatVfx.trigger(enemy,skill==='heavyStrike'?'strong':skill==='thunderStomp'?'stomp':'hit');persist();draw();return;}
   if(enemy.kind!=='mob'||enemy.dead||isOnline())return;
   lastCombatAt=clock;enemy.hp=Math.max(0,enemy.hp-damage);enemy.aggro=true;enemy.returning=false;enemy.hit=HIT_REACTION_SECONDS;
+  enemy.visualHitSequence=(enemy.visualHitSequence||0)+1;
   combatFeedback.hit(enemy,damage,skill);
   combatVfx.trigger(enemy,skill==='heavyStrike'?'strong':skill==='thunderStomp'?'stomp':'hit');
   if(enemy.hp===0){
@@ -2289,6 +2340,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      mob.root.visible=true;mob.returning=false;mob.aggro=false;mob.attackCd=1.2;mob.attackWindup=0;mob.hit=0;mob.corpseAge=0;mob.alertRemaining=0;
      mob.deathAnimation.reset();
      if(mob.family!=='bandit')resetPlainstriderVisual(mob);
+     resetCreatureImpact(mob);
      if(mob.pendingBirdAsset){attachBirdVisual(mob,mob.pendingBirdAsset);mob.pendingBirdAsset=null;}
      if(mob.pendingBanditAsset){attachBanditVisual(mob,mob.pendingBanditAsset);mob.pendingBanditAsset=null;}
      updateLootMarker(mob);setModelAt(mob);}
