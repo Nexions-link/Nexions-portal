@@ -1,5 +1,6 @@
 name: Sync NexGameWorld to nexions.ru
 # Release gate 2026-10-19: verify public Nexions.ru after each mirror update.
+# Publish Alpha 0.6.43.14: elder lodge ceremonial interior, beams, wall drapes and decorative hearth.
 # Publish Alpha 0.6.43.13: interior fade for house walls and roof, without lighting changes.
 # Publish Alpha 0.6.43.12: smooth elder house roof opacity without changing shadows.
 # Mirror Alpha 0.6.43.11: upgraded elder lodge surfaces and roofing, safeguard keyboard and touch.
