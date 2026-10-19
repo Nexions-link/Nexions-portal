@@ -13,7 +13,7 @@ import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';
-import {GATHER_QUESTS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=13';
+import {GATHER_QUESTS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=13';
 import {BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED,BANDIT_WEAPON_RESPAWN_SECONDS,createBanditWeaponWorld} from './bandit-weapons.js?v=1';
 import {createCampActions} from './camp-actions.js?v=12';
 import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1';
@@ -266,6 +266,57 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
  }
  let pendingServerGather=null;
+ let serverGatherTimer=null;
+ // Online plants and bandit daggers share the herbalist's original casting UI
+ // and the same Tauren kneeling pose. The server remains authoritative over
+ // elapsed cast time, collection range, item grant and cooldown.
+ function stopServerGatherCast(){
+  if(serverGatherTimer!==null)clearTimeout(serverGatherTimer);
+  serverGatherTimer=null;pendingServerGather=null;
+  if(!camp.casting){
+   $('gatherCast').hidden=true;
+   $('gatherCastFill').style.width='0%';
+   $('gatherCast').setAttribute('aria-valuenow','0');
+  }
+ }
+ function startServerGatherCast(job,castMs){
+  if(serverGatherTimer!==null)clearTimeout(serverGatherTimer);
+  job.phase='casting';job.startedAt=Date.now();
+  job.durationMs=Math.max(1500,Math.min(20000,Number(castMs)||1500));
+  $('gatherCast').hidden=false;
+  $('gatherCastLabel').textContent=job.kind==='banditWeapon'?
+   'Сбор: Кинжал разбойника':'Сбор: '+(ITEM_CATALOG[GATHER_QUESTS[job.stage]?.item]?.name||'Растение');
+  $('gatherCastTime').textContent=(job.durationMs/1000).toFixed(1).replace('.',',')+' с';
+  $('gatherCastFill').style.width='0%';
+  $('gatherCast').setAttribute('aria-valuenow','0');
+  serverGatherTimer=setTimeout(()=>{
+   serverGatherTimer=null;
+   if(pendingServerGather!==job)return;
+   if(!isOnline()){stopServerGatherCast();return}
+   job.phase='finishing';
+   $('gatherCastFill').style.width='100%';
+   $('gatherCastTime').textContent='0,0 с';
+   $('gatherCast').setAttribute('aria-valuenow','100');
+   const sent=job.kind==='banditWeapon'?
+    sendAccountAction('banditWeaponFinish',{index:job.index}):
+    sendAccountAction('gatherFinish',{stage:job.stage,index:job.index});
+   if(!sent)stopServerGatherCast();
+  },job.durationMs+120);
+ }
+ function updateServerGatherCast(){
+  const job=pendingServerGather;
+  if(!job||!['casting','finishing'].includes(job.phase))return;
+  if(!isOnline()){stopServerGatherCast();return}
+  if(Date.now()-job.startedAt>10000){
+   stopServerGatherCast();msg('Сервер не подтвердил сбор. Попробуй снова.');return;
+  }
+  const elapsed=Math.max(0,Date.now()-job.startedAt);
+  const percent=job.phase==='finishing'?100:Math.min(100,elapsed/job.durationMs*100);
+  $('gatherCast').hidden=false;
+  $('gatherCastFill').style.width=percent.toFixed(1)+'%';
+  $('gatherCastTime').textContent=(Math.max(0,job.durationMs-elapsed)/1000).toFixed(1).replace('.',',')+' с';
+  $('gatherCast').setAttribute('aria-valuenow',String(Math.round(percent)));
+ }
  let lastServerScoutRequest=0;
  function onEconomyResult(event){
   if(!authenticatedProfile||!event)return;
@@ -286,7 +337,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   if(!event.ok){
    if(['gatherStart','gatherFinish','banditWeaponStart','banditWeaponFinish'].includes(event.kind))
-    pendingServerGather=null;
+    stopServerGatherCast();
    if(event.kind==='lootTake'&&!modal.hidden&&modal.dataset.kind==='loot'){
     renderModal();
     const reason=event.reason==='inventory_full'?'Рюкзак заполнен — вещи остались на теле.':
@@ -325,17 +376,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   if((event.kind==='gatherStart'||event.kind==='banditWeaponStart')&&pendingServerGather){
    const job=pendingServerGather;
-   const matching=event.kind===(job.kind==='banditWeapon'?'banditWeaponStart':'gatherStart');
-   if(!matching)return;
-   setTimeout(()=>{
-    if(!isOnline()||pendingServerGather!==job)return;
-    if(job.kind==='banditWeapon')sendAccountAction('banditWeaponFinish',{index:job.index});
-    else sendAccountAction('gatherFinish',{stage:job.stage,index:job.index});
-   },Math.max(1500,event.castMs||1500)+120);
+   if(event.kind!==(job.kind==='banditWeapon'?'banditWeaponStart':'gatherStart'))return;
+   if(job.phase==='request')startServerGatherCast(job,event.castMs);
    return;
   }
   if((event.kind==='gatherFinish'||event.kind==='banditWeaponFinish')&&pendingServerGather){
-   const job=pendingServerGather;pendingServerGather=null;
+   const job=pendingServerGather;
+   if(event.kind!==(job.kind==='banditWeapon'?'banditWeaponFinish':'gatherFinish')||
+      job.phase!=='finishing')return;
+   stopServerGatherCast();
    const node=job.kind==='banditWeapon'?banditWeapons.nodes.find(n=>n.index===job.index):
     gathering.nodes.find(n=>n.stage===job.stage&&n.index===job.index);
    if(node)node.readyAt=clock+(job.kind==='banditWeapon'?BANDIT_WEAPON_RESPAWN_SECONDS:GATHER_RESPAWN_SECONDS);
@@ -1010,15 +1059,17 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const nearby=nearestInteraction();
    if(!nearby)return msg('Подойди ближе к жителю или предмету');
    if(nearby.kind==='banditWeapon'){
-    const job={kind:'banditWeapon',index:nearby.index};
+    const job={kind:'banditWeapon',index:nearby.index,phase:'request'};
     if(sendAccountAction('banditWeaponStart',{index:job.index})){
      pendingServerGather=job;msg('Собираем кинжал разбойника… 1,5 с');
     }
     return;
    }
    if(nearby.kind==='gather'){
-    const job={kind:'gather',stage:nearby.stage,index:nearby.index};
-    if(sendAccountAction('gatherStart',job)){
+    const job={kind:'gather',stage:nearby.stage,index:nearby.index,phase:'request'};
+    // Never forward the local job.kind: it would override economyAction.kind
+    // and turn the authenticated gatherStart request into an unsupported action.
+    if(sendAccountAction('gatherStart',{stage:job.stage,index:job.index})){
      pendingServerGather=job;msg('Сбор растения… 1,5 с');
     }
     return;
@@ -1105,7 +1156,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    msg('Связь с сервером отсутствует. Боевые действия приостановлены.');
    return false;
   }
-  if(!modal.hidden||camp.casting||state.hp<=0)return false;
+  if(!modal.hidden||camp.casting||pendingServerGather||state.hp<=0)return false;
   const def=getAbilityDefinition(id);if(!def)return false;
   if(id==='autoAttack'){
    approach=null;
@@ -1709,6 +1760,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function update(dt){
   clock+=dt;
+  updateServerGatherCast();
   characterPreview.tick(dt);
   // Recover a mobile connection that stopped responding after a loot request.
   if(pendingLootTake&&(!isOnline()||Date.now()-pendingLootTake.at>8500)){
@@ -1978,7 +2030,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   questMarkerQuality=Number.isFinite(detail)?detail:.68;
  }
  function getAnimationState(){
-  return {gather:camp.casting,attack:timeline.attackProgress,
+  return {gather:camp.casting||['casting','finishing'].includes(pendingServerGather?.phase),attack:timeline.attackProgress,
    stomp:timeline.stompProgress,blockRemaining,weaponKind:hero.root.userData.weaponKind||'none'};
  }
  function getQuestMapState(){
@@ -1999,7 +2051,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   setMultiplayer,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
   onVitals,onCombatEvent,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobTelegraph,onNetworkRespawn,onMobSnapshot,
   get combatActive(){return !!inCombat()},
-  get movementLocked(){return !modal.hidden||timeline.stompProgress>=0},
+  get movementLocked(){return !modal.hidden||timeline.stompProgress>=0||
+   ['casting','finishing'].includes(pendingServerGather?.phase)},
   getWindowView(){
    if(modal.hidden||!modal.className.split(' ').includes('world-sheet'))return null;
    let focus=null;

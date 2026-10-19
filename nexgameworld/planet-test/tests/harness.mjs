@@ -59,6 +59,7 @@ export function installDom(){
  const storage=new Map();
  globalThis.localStorage={getItem:key=>storage.get(key)??null,setItem:(key,value)=>{writes.push(key);storage.set(key,value)}};
  document.getElementById('modal').hidden=true;
+ document.getElementById('gatherCast').hidden=true;
  return {nodes,writes};
 }
 export function harness({x=TRAINING_DUMMY.x,z=TRAINING_DUMMY.z-3,save={},authenticatedProfile=null}={}){
