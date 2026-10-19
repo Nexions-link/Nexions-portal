@@ -77,6 +77,8 @@ jobs:
           test -s nexgameworld/planet-test/index.html
           test -s nexgameworld/planet-test/version.json
           test -s nexgameworld/planet-test/planet.js
+          # PC input must ship with the matching game build; do not mirror a partial release.
+          test -s nexgameworld/planet-test/keyboard-movement.js
           test -s nexgameworld/style.css
           test -s nexgameworld/skills.js
           test ! -e nexgameworld/app.html
@@ -85,6 +87,7 @@ jobs:
           test ! -e nexgameworld/portal
           # Reject incomplete or mixed releases before committing.
           for file in planet-test/index.html planet-test/planet.js \
+                      planet-test/keyboard-movement.js \
                       planet-test/offline-rpg.js \
                       planet-test/interaction-targeting.js \
                       planet-test/version.json; do
