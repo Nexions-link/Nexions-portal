@@ -1,4 +1,5 @@
 import {consumeAnimationTime} from './animation-budget.js?v=1';
+import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
 import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
 // NexGameWorld Stage 1: spherical WebSocket presence and visual-only remote avatars.
 // Combat, quests, loot and the player's local saves remain untouched.
@@ -288,7 +289,12 @@ export function createSphericalPresence({
    syncBattlefury(visual,peer);
    const factor=1-Math.exp(-Math.min(.1,Math.max(0,dt))*12);
    visual.targetNormal.set(...peer.normal);
+   const oldAngle=Math.acos(clamp(visual.normal.dot(visual.targetNormal),-1,1));
+   const previousHeading=visual.heading;
    visual.normal.lerp(visual.targetNormal,factor).normalize();
+   const newAngle=Math.acos(clamp(visual.normal.dot(visual.targetNormal),-1,1));
+   // Travel from the rendered transform, bounded against teleport corrections.
+   const visualMetres=Math.min(Math.max(0,oldAngle-newAngle)*getRadius(),4.05*dt*2);
    visual.heading+=angle(peer.heading,visual.heading)*factor;
    const normal=visual.normal;
    const lon=Math.atan2(normal.x,normal.z);
@@ -300,12 +306,14 @@ export function createSphericalPresence({
    matrix.makeBasis(right,normal,fwd);
    visual.actor.root.quaternion.setFromRotationMatrix(matrix);
    visual.actor.root.position.copy(normal).multiplyScalar(getRadius()+heightAt(normal)+.06);
-   visual.phase+=dt*(peer.moving?9.1:1.1);
+   visual.phase=advanceStridePhase(visual.phase,visualMetres);
+   const poseWalk=Math.max(movementStrength(visualMetres,dt,4.05),peer.moving?.55:0);
+   const poseTurn=turnStrength(previousHeading,visual.heading,dt);
    // Always interpolate the remote actor transform; throttle only the bone
    // pose for distant avatars that cannot be the local combatant.
    const animationDt=consumeAnimationTime(visual,dt,distance);
    if(animationDt>0)
-    animateAvatar(visual.actor,{dt:animationDt,time,walk:peer.moving?1:0,phase:visual.phase});
+    animateAvatar(visual.actor,{dt:animationDt,time,walk:poseWalk,turn:poseTurn,phase:visual.phase});
   }
  }
  function pickPlayer(raycaster,maxDistance=100){

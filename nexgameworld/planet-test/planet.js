@@ -8,9 +8,10 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=110';
-import {createSphericalPresence} from './sphere-online.js?v=12';
+import {createSphericalPresence} from './sphere-online.js?v=13';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
-import {animateSphericalTauren} from './tauren-animation.js?v=5';
+import {animateSphericalTauren} from './tauren-animation.js?v=6';
+import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=1';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
 import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=40';
@@ -741,6 +742,8 @@ try {
     // The spherical tangent basis maps flat X -> East and flat Z -> -North.
     const input=screenMoveVector(horizontal, -forward, state.cameraHeading-Math.PI/2);
     if(input.strength>.11)rpg.cancelAutoApproach();
+    const previousHeading=state.heading;
+    let travelled=0;
     let power=state.orbit||rpg.movementLocked?0:input.strength;
     // Preserve manual camera-relative controls, but when idle allow the same
     // short-range auto-approach to a combat target as in the original NexGame.
@@ -771,23 +774,25 @@ try {
         if(approach)rpg.stopAutoApproach();
         power=0;
       }else{
+        travelled=move.travelled;
         const oldLon=Math.atan2(state.normal.x,state.normal.z);
         state.normal.copy(move.normal);
         const newLon=Math.atan2(state.normal.x,state.normal.z);
         state.lonUnwrapped+=angleDelta(newLon,oldLon);
         state.meters+=move.travelled;
       }
-      state.legCycle += dt * power * 9.1;
-    } else {
-      state.legCycle += dt * 1.1;
     }
+    // Only real travel advances the gait; held movement at a wall does not.
+    state.legCycle=advanceStridePhase(state.legCycle,travelled);
+    const poseWalk=movementStrength(travelled,dt,WALK_SPEED);
+    const poseTurn=turnStrength(previousHeading,state.heading,dt);
     followCooldown=Math.max(0,followCooldown-dt);
     // Spherical analogue of native followCameraYaw: tangent heading is the
     // camera's view-forward, not the eye-backward yaw of the flat implementation.
     // Follow only after controls are released; never overwrite vertical pitch.
     if(state.cameraFollow&&!state.orbit&&power<.11&&touches.size===0&&followCooldown<=0)
      state.cameraHeading=turnTowardsAngle(state.cameraHeading,state.heading,dt,3.8);
-    presenceMoving=power>.11;
+    presenceMoving=poseWalk>.11;
     updateActor();
     onlinePresence?.tick(dt,elapsed);
     startZone.animate(elapsed);
@@ -796,10 +801,10 @@ try {
     // No second subsystem may reset the hip, knee, torso or arm angles.
     const terrainFeet=sampleSphericalFooting({
       THREE,normal:state.normal,quaternion:actor.quaternion,radius:R,heightAt,
-      phase:state.legCycle,walk:hero.root.userData.walkBlend??power
+      phase:state.legCycle,walk:hero.root.userData.walkBlend??poseWalk
     });
     animateSphericalTauren(hero,{
-      dt,time:elapsed,walk:power,phase:state.legCycle,terrainFeet,...rpg.getAnimationState()
+      dt,time:elapsed,walk:poseWalk,turn:poseTurn,phase:state.legCycle,terrainFeet,...rpg.getAnimationState()
     });
 
     const windowView=rpg.getWindowView();
