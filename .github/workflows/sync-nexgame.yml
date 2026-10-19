@@ -1,6 +1,7 @@
 name: Sync NexGameWorld to nexions.ru
 # Sync Alpha 0.6.43.23: ground-travel gait, turn poses, network locomotion and aligned Render build.
 # Release gate 2026-10-19: verify public Nexions.ru after each mirror update.
+# Mirror NGW Alpha 0.6.43.26: cosmetic mob hit response, death/respawn transitions; no Atlas catalog updates.
 # Sync Alpha 0.6.43.25: new cosmetic combat poses and regression-tested weapon grip.
 # Request immediate NGW Alpha 0.6.43.24 sync: hoof contact and creature motion polish, production CI verified.
 # Explicit resync request: upstream NexGameWorld Alpha 0.6.43.19; verified client CI repaired.
