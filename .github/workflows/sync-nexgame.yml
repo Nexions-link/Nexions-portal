@@ -1,5 +1,6 @@
 name: Sync NexGameWorld to nexions.ru
 # Release gate 2026-10-19: verify public Nexions.ru after each mirror update.
+# Publish Alpha 0.6.43.10: elder lodge facade and carved totems, preserve PC/mobile input.
 # Publish Alpha 0.6.43.9: elder longhouse update on top of the preserved PC keyboard controls.
 # Sync 0.6.43.6: starter quest journal tracking, waypoints, NPC hand-in guidance.
 # Publish 0.6.42.12: prevent iOS Safari bag scroll jumps on HUD updates.
