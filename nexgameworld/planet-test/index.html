@@ -198,6 +198,16 @@
 .planet-hotbar-slot-picker{display:grid;grid-template-columns:repeat(8,minmax(0,1fr))}
 .planet-hotbar-slot-picker .choice{font-size:13px;min-height:35px}
 #chatDock,#partyHud,#partyInvitation{display:none!important}
+/* Client-only social UI: visible logs with a stable input on iPhone and PC. */
+#mbody .ngw-chat-log{min-height:84px;max-height:190px;overflow-y:auto;overscroll-behavior:contain;
+ touch-action:pan-y;padding:7px 9px;border:1px solid #92794e;border-radius:5px;
+ background:#24291f;color:#eddfbd;font:12px/1.5 system-ui,sans-serif;
+ -webkit-overflow-scrolling:touch}
+#mbody .ngw-chat-entry{padding:4px 0;overflow-wrap:anywhere;border-bottom:1px solid #9b8c5733}
+#mbody .ngw-chat-entry:last-child{border-bottom:0}
+#mbody .ngw-chat-entry strong{color:#d4e9bf;font-weight:700}
+#allyFrame[hidden]{display:none!important}
+
 #mbody .rpgRow button:focus-visible{outline:2px solid #e7b467}
 @media(max-width:760px){#actionsBar .ability .planetAbilityIcon{font-size:22px;line-height:39px}}
 
@@ -305,7 +315,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.43.17" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.43.18" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -392,7 +402,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=129').catch(error=>{
+  import('./planet.js?v=130').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');
