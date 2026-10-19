@@ -61,16 +61,6 @@ export function renderCharacterSheet({
  hero.append(name,subtitle,progress);sheet.append(hero);
  const sectionLabel=document.createElement('div');sectionLabel.className='character-section-label';
  sectionLabel.textContent='✦  СНАРЯЖЕНИЕ  ✦';sheet.append(sectionLabel);
- // Always-visible entry, not hidden behind a selected equipment socket or scroll.
- // The server grants the item; this is only a browser-local visual adjustment.
- if(state.equipment?.weapon?.id==='adminBattlefury'&&items.adminBattlefury?.adminOnly){
-  const tune=document.createElement('button');tune.type='button';
-  tune.className='character-battlefury-tune';
-  tune.textContent='⚒ Настроить «Боевой гнев»';
-  tune.setAttribute('aria-label','Открыть тюнер положения, поворота и размера Боевого гнева');
-  tune.addEventListener('click',onTuneWeapon);
-  sheet.append(tune);
- }
  const stage=document.createElement('div');stage.className='character-stage';
  const detail=document.createElement('section');detail.className='character-item-detail';
  detail.setAttribute('role','status');detail.setAttribute('aria-live','polite');
@@ -104,11 +94,6 @@ export function renderCharacterSheet({
    if(def.description){
     const desc=document.createElement('p');desc.className='character-detail-description';
     desc.textContent=def.description;detail.append(desc);
-   }
-   if(slot==='weapon'&&def.adminOnly&&def.modelPath){
-    const tune=document.createElement('button');tune.type='button';
-    tune.className='character-detail-tune';tune.textContent='Настроить положение и размер';
-    tune.addEventListener('click',onTuneWeapon);detail.append(tune);
    }
    const remove=document.createElement('button');remove.type='button';remove.className='character-detail-remove';
    remove.textContent='Снять в рюкзак';

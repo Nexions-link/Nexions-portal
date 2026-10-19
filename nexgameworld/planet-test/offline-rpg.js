@@ -1,6 +1,6 @@
 import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
-import {renderCharacterSheet} from './character-sheet.js?v=5';
+import {renderCharacterSheet} from './character-sheet.js?v=6';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
 import {questWaypoint,questDirection,preferredQuestId} from './starter-quest-guidance.js?v=1';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
@@ -13,7 +13,7 @@ import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,a
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
 import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.3.7.0';
 import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
-import {BATTLEFURY_ITEM_ID,BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_FIELDS,BATTLEFURY_TUNER_GROUPS,readBattlefuryTuning,saveBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
+import {BATTLEFURY_ITEM_ID,BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_FIELDS,BATTLEFURY_TUNER_GROUPS,readBattlefuryTuning,saveBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=2';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';

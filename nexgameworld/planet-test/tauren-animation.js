@@ -2,6 +2,7 @@
 // local radial-up frame. Equipment grip tuners remain the source of truth.
 import {weaponSwingProfile,daggerThrustPose} from '../weapon-visuals.js?v=0.3.7.1';
 import {shieldBlockPose} from '../shield-block.js?v=0.3.7.1';
+import {combatPose} from './combat-pose.js?v=1';
 import {footStrideZ,hoofSwingLift,hoofToeFlex} from './foot-placement.js?v=2';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const ease=(a,b,t)=>{const x=clamp((t-a)/(b-a),0,1);return x*x*(3-2*x)};
@@ -33,15 +34,17 @@ export function animateSphericalTauren(actor,{
  const windup=playing&&!stabbing?ease(0,.32,attack)*(1-ease(.38,.65,attack)):0;
  const swing=playing&&!stabbing?ease(.32,.58,attack)*(1-ease(.64,1,attack)):0;
  const block=shieldBlockPose(blockRemaining);
+ const posture=combatPose({attack,weaponKind,blockRemaining,recoil,walk:w});
  // Support-side weight shift, slight forward drive and turn banking remain in
  // the already animated torso; foot IK and all equipment attachment joints stay.
  actor.body.position.set(stride*.047*w+.013*pivot,
   1.4+.012*breath*idle+.034*(1-beat)*w-.47*bend-.025*recoil,0);
- actor.body.rotation.set(.012*w+.012*acceleration,.022*stride*w+.020*pivot,
-  -.036*pivot-.024*stride*w);
- actor.chest.rotation.set(.035*w+.20*bend+block.chestX+.019*acceleration,
+ actor.body.rotation.set(.012*w+.012*acceleration+posture.brace,
+  .022*stride*w+.020*pivot-posture.anticipation*.045,
+  -.036*pivot-.024*stride*w+posture.impact*.027);
+ actor.chest.rotation.set(.035*w+.20*bend+block.chestX+.019*acceleration+posture.brace*.6,
   Math.sin(phase)*.065*w+block.chestY+.095*pivot,
-  -stride*.025*w+.038*pivot);
+  -stride*.025*w+.038*pivot+posture.impact*.035);
  actor.chest.scale.y=1+breath*.005;
  actor.neck.rotation.set(-.018*breath+.10*bend,-actor.chest.rotation.y*.65,stride*.015*w);
  // Head remains parented to the original neck joint, including both horns.
@@ -59,6 +62,7 @@ export function animateSphericalTauren(actor,{
   actor.body.position.z=0;
  }
  actor.body.position.z-=.045*recoil;
+ actor.body.position.z+=posture.lunge;
  const stomping=stomp>=0,stompPower=clamp(stomp,0,1);
  if(stomping)actor.body.position.y-=.14*Math.sin(Math.min(stompPower/.55,1)*Math.PI);
  // Two-segment IK for each leg. Independent terrain samples are smoothed
@@ -95,8 +99,10 @@ export function animateSphericalTauren(actor,{
   const arm=actor.arms[i],sign=i?1:-1;
   arm.shoulder.rotation.x=sign*stride*.31*w+sign*.045*pivot
    -(i?profile.shoulderWindup*windup-profile.shoulderSwing*swing:0);
-  arm.shoulder.rotation.z=-sign*(.12+.025*breath)+(i?profile.shoulderSlash*swing:0);
-  arm.elbow.rotation.x=-.14-Math.abs(stride)*.11*w-(i?profile.elbowWindup*windup:0);
+  arm.shoulder.rotation.z=-sign*(.12+.025*breath)+(i?profile.shoulderSlash*swing:0)
+   +(i?-.09:.055)*posture.stance;
+  arm.elbow.rotation.x=-.14-Math.abs(stride)*.11*w-(i?profile.elbowWindup*windup:0)
+   -(i?.14:.08)*posture.stance;
   arm.shoulder.rotation.x-=bend*(i?.95:1.12);
   arm.elbow.rotation.x-=.45*bend;
   if(stomping)arm.shoulder.rotation.z-=sign*.17*Math.sin(stompPower*Math.PI);

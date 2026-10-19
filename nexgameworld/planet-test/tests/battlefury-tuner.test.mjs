@@ -1,75 +1,43 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {harness,descendants} from './harness.mjs';
 import {readFileSync} from 'node:fs';
-import {AXE_TUNER_DEFAULTS} from '../../axe-tuner.js';
-import {BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_GROUPS,BATTLEFURY_TUNER_STORAGE_KEY,
- normalizeBattlefuryTuning,readBattlefuryTuning,applyBattlefuryPose} from '../battlefury-tuner.js';
+import {harness,descendants} from './harness.mjs';
+import {BATTLEFURY_TUNER_DEFAULTS,readBattlefuryTuning,saveBattlefuryTuning,applyBattlefuryPose} from '../battlefury-tuner.js';
 
-test('the client invalidates old cached equipment and scene modules on deployment',()=>{
- const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
- assert.ok(read('../offline-rpg.js').includes('character-sheet.js?v=5'));
- const rpgImport=read('../planet.js').match(/offline-rpg\.js\?v=(\d+)/);
- assert.ok(rpgImport&&Number(rpgImport[1])>=111,'new RPG scene must invalidate cached creature animation');
- const gameImport=read('../index.html').match(/import\('\.\/planet\.js\?v=(\d+)'\)/);
- assert.ok(gameImport,'game HTML must version the main spherical module');
- assert.ok(Number(gameImport[1])>=134,'deploy must invalidate the previous scene module');
- assert.ok(read('../index.html').includes('character-sheet.css?v=4'));
+const FIXED={posX:-1.13,posY:-0.125,posZ:0.055,axeX:-21,axeY:180,axeZ:-120,handX:-180,handY:-67,handZ:-82,scale:2.3};
+test('Battlefury retains the approved immutable pose on every browser',()=>{
+ assert.deepEqual({...BATTLEFURY_TUNER_DEFAULTS},FIXED);
+ const storage={getItem:()=>JSON.stringify({scale:0.25,posX:2}),setItem:()=>{throw Error('Must not write to storage')}};
+ assert.deepEqual(readBattlefuryTuning(storage),FIXED);
+ assert.deepEqual(saveBattlefuryTuning(storage,{scale:0.5}),FIXED);
 });
-test('the exclusive tuner offers nine pose axes plus independent uniform scale',()=>{
- assert.equal(BATTLEFURY_TUNER_GROUPS.flatMap(group=>group.fields).length,10);
- assert.deepEqual({...BATTLEFURY_TUNER_DEFAULTS},{...AXE_TUNER_DEFAULTS,scale:1});
- const n=normalizeBattlefuryTuning({scale:100,posX:-100,handY:-300,axeZ:9.34,other:77});
- assert.equal(n.scale,3);
- assert.equal(n.posX,-2);
- assert.equal(n.handY,-180);
- assert.equal(n.axeZ,9);
- assert.equal(n.posY,AXE_TUNER_DEFAULTS.posY);
- assert.equal('other' in n,false);
- assert.deepEqual(normalizeBattlefuryTuning({scale:NaN}),BATTLEFURY_TUNER_DEFAULTS);
-});
-test('Battlefury scaling updates only the dedicated mesh and wrist',()=>{
+test('Battlefury attaches with the published size and grip',()=>{
  const mesh=new THREE.Group(),hand=new THREE.Group();
- const grip=applyBattlefuryPose(mesh,hand,{...BATTLEFURY_TUNER_DEFAULTS,scale:1.8,posX:.21});
- assert.equal(mesh.scale.x,1.8);
- assert.equal(mesh.scale.y,1.8);
- assert.equal(mesh.scale.z,1.8);
- assert.equal(mesh.position.x,.21);
+ const grip=applyBattlefuryPose(mesh,hand,readBattlefuryTuning());
+ assert.equal(mesh.scale.x,2.3);
+ assert.equal(mesh.scale.y,2.3);
+ assert.equal(mesh.scale.z,2.3);
+ assert.equal(mesh.position.x,-1.13);
+ assert.equal(mesh.position.y,-0.125);
+ assert.equal(mesh.position.z,0.055);
  assert.equal(grip.order,'XYZ');
  assert.equal(hand.rotation.x,grip.x);
 });
-test('the character inspector exposes one tuner only for equipped Battlefury',()=>{
+test('the admin axe no longer displays any tuning controls',()=>{
  const h=harness({save:{equipment:{weapon:{id:'adminBattlefury'}}}});
  const body=h.get('mbody');
  h.get('character').click();
- const visible=descendants(body).find(e=>e.className==='character-battlefury-tune');
- assert.ok(visible,'visible entry is displayed before selecting any equipment');
- assert.equal(visible.textContent,'⚒ Настроить «Боевой гнев»');
+ assert.equal(descendants(body).some(e=>e.className==='character-battlefury-tune'),false);
  const weapon=descendants(body).find(e=>e.dataset.slot==='weapon');
  assert.ok(weapon);
  weapon.click();
- assert.ok(descendants(body).find(e=>e.className==='character-detail-tune'));
- visible.click();
- assert.equal(h.get('modal').dataset.kind,'battlefuryTuner');
- const current=descendants(body).filter(e=>e.dataset.axis);
- assert.equal(current.length,10);
- const size=current.find(e=>e.dataset.axis==='scale');
- assert.ok(size);
- size.value='1.65';size.events.input[0]();
- assert.equal(readBattlefuryTuning(localStorage).scale,1.65);
- assert.ok(localStorage.getItem(BATTLEFURY_TUNER_STORAGE_KEY));
- // Normal HUD redraw must preserve touch drag and the selected slider.
- h.rpg.draw();
- assert.equal(descendants(body).find(e=>e.dataset.axis==='scale'),size);
- const reset=descendants(body).find(e=>e.textContent==='Сбросить настройки');
- reset.click();
- assert.equal(readBattlefuryTuning(localStorage).scale,1);
- assert.equal(size.value,'1');
- h.get('modalClose').click();
- h.rpg.state.equipment.weapon={id:'wornAxe'};
- h.get('character').click();
- descendants(body).find(e=>e.dataset.slot==='weapon').click();
  assert.equal(descendants(body).some(e=>e.className==='character-detail-tune'),false);
- assert.equal(descendants(body).some(e=>e.className==='character-battlefury-tune'),false);
+});
+test('updated scene invalidates cached grip and character sheet',()=>{
+ const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
+ assert.match(read('../offline-rpg.js'),/battlefury-tuner\.js\?v=2/);
+ assert.match(read('../offline-rpg.js'),/character-sheet\.js\?v=6/);
+ assert.match(read('../planet.js'),/offline-rpg\.js\?v=112/);
+ assert.match(read('../index.html'),/planet\.js\?v=136/);
 });
