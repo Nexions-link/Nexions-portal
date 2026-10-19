@@ -1,19 +1,19 @@
 import * as THREE from 'three';
 import {screenMoveVector,turnTowardsAngle} from '../movement-controls.js?v=0.3.7.0';
 import {readPlanetView,writePlanetView} from './world-save.js?v=3';
-import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=8';
+import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=9';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=97';
+import {createOfflineRpg} from './offline-rpg.js?v=98';
 import {createSphericalPresence} from './sphere-online.js?v=10';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=5';
 import {sampleSphericalFooting} from './foot-placement.js?v=1';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=31';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=32';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.

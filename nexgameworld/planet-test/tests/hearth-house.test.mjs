@@ -92,9 +92,9 @@ test('every active browser geometry consumer uses the current shared module URL'
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   const imports=[...source.matchAll(/hearth-house\.js\?v=([^'"\s]+)/g)];
   assert.ok(imports.length>0,name);
-  assert.ok(imports.every(row=>row[1]==='4'),name+' requests a stale geometry module');
+  assert.ok(imports.every(row=>row[1]==='5'),name+' requests a stale geometry module');
  }
- for(const [name,dependency,version] of [['planet.js','start-zone.js','31'],['planet.js','offline-rpg.js','97'],['offline-rpg.js','gather-world.js','14'],['offline-rpg.js','camp-actions.js','13']]){
+ for(const [name,dependency,version] of [['planet.js','start-zone.js','32'],['planet.js','offline-rpg.js','98'],['offline-rpg.js','gather-world.js','15'],['offline-rpg.js','camp-actions.js','14']]){
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   assert.ok(source.includes(dependency+'?v='+version),name+' must invalidate its geometry dependency');
  }
@@ -124,6 +124,28 @@ test('tribal exterior adds lightweight art without colliders or blocking the doo
  model.roof.visible=false;
  assert.equal(model.walls.visible,true);
  assert.equal(model.floor.visible,true);
+ root.traverse(node=>{
+  assert.notEqual(node.userData.collidable,true);
+  assert.notEqual(node.userData.targetable,true);
+ });
+});
+
+test('elder longhouse porch remains outside the walkable space',()=>{
+ const root=new THREE.Group();
+ const model=buildHearthHouse(THREE,{root,villageVisuals:{addRoof(){}}});
+ const porch=model.roof.getObjectByName('hearth-house-ceremonial-porch');
+ assert.ok(porch?.isGroup);
+ assert.equal(porch.children.filter(node=>node.name==='hearth-house-porch-hide-roof').length,2);
+ assert.equal(porch.children.filter(node=>node.name==='hearth-house-porch-pennant').length,2);
+ assert.equal(model.roof.getObjectByName('hearth-house-gable-timber').isInstancedMesh,true);
+ assert.equal(model.walls.getObjectByName('hearth-house-hide-lacings').isInstancedMesh,true);
+ assert.equal(model.walls.getObjectByName('hearth-house-entrance-carvings').isInstancedMesh,true);
+ assert.equal(model.walls.children.filter(node=>node.isMesh).length,6);
+ assert.equal(model.floor.children.length,16);
+ model.roof.visible=false;
+ assert.equal(model.walls.visible,true);
+ assert.equal(model.floor.visible,true);
+ for(const x of [-2.8,0,2.8])assert.equal(walk(x,LONGHOUSE.depth/2),true);
  root.traverse(node=>{
   assert.notEqual(node.userData.collidable,true);
   assert.notEqual(node.userData.targetable,true);

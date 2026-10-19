@@ -124,6 +124,17 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
  timber.push([[-hw+.6,1.2,hd+.24],[-door/2-.54,1.2,hd+.24],.16]);
  timber.push([[door/2+.54,1.2,hd+.24],[hw-.6,1.2,hd+.24],.16]);
  beams(accents,'hearth-house-lashed-timber',timber,M.darkWood);
+ // Stitching echoes the hand-lashed canvas of the surrounding tents.
+ // Lightweight instanced geometry and no gameplay hitboxes.
+ const lacing=[];
+ for(const sign of [-1,1])for(const z of [-7.85,-4.12,-.35,3.42,7.19]){
+  for(const y of [1.25,2.8,4.35,5.9,7.45]){
+   const x=sign*(hw+.105);
+   lacing.push([[x,y,z-.23],[x,y+.18,z+.23],.026]);
+   lacing.push([[x,y+.18,z-.23],[x,y,z+.23],.026]);
+  }
+ }
+ beams(accents,'hearth-house-hide-lacings',lacing,M.lightWood);
  // Warm and turquoise woven talismans on either side of the entrance.
  for(const s of [-1,1]){
   const bx=s*(door/2+1.35),front=hd+.48;
@@ -141,6 +152,17 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
  glyph.rotation.z=Math.PI/4;
  const bead=new THREE.Mesh(new THREE.IcosahedronGeometry(.19,0),M.gold);
  bead.position.z=.24;emblem.add(bead);
+ // Bone carvings flank the gateway, strictly outside the original opening.
+ const carvings=[];
+ for(const sign of [-1,1]){
+  const x=sign*(door/2+.68),z=hd+.73;
+  for(let i=0;i<3;i++){
+   const y=2.6+i*1.22;
+   carvings.push([[x-.31,y,z],[x,y+.42,z],.046]);
+   carvings.push([[x,y+.42,z],[x+.31,y,z],.046]);
+  }
+ }
+ beams(accents,'hearth-house-entrance-carvings',carvings,M.bone);
 
  const roof=new THREE.Group();roof.name='hearth-house-exterior-roof';root.add(roof);
  const roofPlanes=[],slope=Math.atan2(LONGHOUSE.roofRise,hw);
@@ -169,6 +191,43 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
   if(patches.instanceColor)patches.instanceColor.needsUpdate=true;
   panel.add(patches);
  }
+ // A raised hide canopy makes the elder's entry recognizable at a distance.
+ // It belongs to the hideable roof, not the solid walls or interior.
+ const porch=new THREE.Group();
+ porch.name='hearth-house-ceremonial-porch';roof.add(porch);
+ const porchRise=1.26,porchHalfWidth=4.62;
+ const canopySlope=Math.atan2(porchRise,porchHalfWidth);
+ const canopyLength=Math.hypot(porchHalfWidth,porchRise)+.18;
+ for(const sign of [-1,1]){
+  const panel=createBox(porch,M.hide,sign*porchHalfWidth/2,
+   h+.10,hd+1.45,canopyLength,.20,3.15);
+  panel.rotation.z=-sign*canopySlope;
+  panel.name='hearth-house-porch-hide-roof';
+  const border=createBox(panel,M.red,sign*(canopyLength/2-.27),.135,1.34,.38,.055,2.65);
+  border.name='hearth-house-awning-red-edging';
+ }
+ const porchTimber=[
+  [[-porchHalfWidth,h-1.1,hd+.35],[-porchHalfWidth,h-.06,hd+.35],.19],
+  [[porchHalfWidth,h-1.1,hd+.35],[porchHalfWidth,h-.06,hd+.35],.19],
+  [[0,h+porchRise+.26,hd-.20],[0,h+porchRise+.26,hd+3.08],.19]
+ ];
+ for(const z of [hd+.20,hd+2.91]){
+  for(const sign of [-1,1])porchTimber.push([
+   [0,h+porchRise+.2,z],[sign*(porchHalfWidth+.1),h-.38,z],.18]);
+ }
+ beams(porch,'hearth-house-porch-rafters',porchTimber,M.wood);
+ const pennantShape=new THREE.Shape();
+ pennantShape.moveTo(-.42,.6);pennantShape.lineTo(.42,.6);
+ pennantShape.lineTo(.32,-.61);pennantShape.lineTo(0,-.36);
+ pennantShape.lineTo(-.32,-.61);pennantShape.closePath();
+ for(const sign of [-1,1]){
+  const pennant=new THREE.Mesh(new THREE.ShapeGeometry(pennantShape),
+   sign<0?M.red:M.teal);
+  pennant.name='hearth-house-porch-pennant';
+  pennant.position.set(sign*4.42,h-.73,hd+3.045);
+  porch.add(pennant);
+  createBox(porch,M.bone,sign*4.42,h-.16,hd+3.08,.95,.10,.08);
+ }
  // Rounded timber ridgeline, paired rafters, and two original bone finials
  // create a distinctive silhouette visible over the surrounding tents.
  createBox(roof,M.darkWood,0,h+LONGHOUSE.roofRise+.19,0,.66,.46,roofDepth+.15);
@@ -188,6 +247,17 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
   const gable=new THREE.Mesh(new THREE.ShapeGeometry(gableShape),gableMat);
   gable.name='hearth-house-hide-gable';gable.position.z=z;roof.add(gable);
  }
+ // Timber gable ribs visually connect the house to the camp's carved totems.
+ const gableBeams=[];
+ for(const z of [-hd-.13,hd+.13]){
+  for(const sign of [-1,1]){
+   gableBeams.push([[0,h+LONGHOUSE.roofRise-.08,z],
+    [sign*(hw-.46),h+.09,z],.15]);
+   gableBeams.push([[sign*3.12,h+.17,z],
+    [sign*3.12,h+LONGHOUSE.roofRise*(1-3.12/hw)-.12,z],.09]);
+  }
+ }
+ beams(roof,'hearth-house-gable-timber',gableBeams,M.darkWood);
  const finials=[];
  for(const z of [-hd-.35,hd+.35]){
   for(const s of [-1,1]){
