@@ -1,6 +1,7 @@
 import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=4';
+import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=2';
@@ -104,6 +105,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   return safe;
  };
  const state=preview?initial():authenticatedProfile?serverInitial():restore(),runtime=createAbilityRuntime();
+ let chiefRewardSelection=null,chiefRewardSubmitting=false,chiefRewardRenderSnapshot=null;
  let serverBagSlots=Array.isArray(authenticatedProfile?.inventory)?
   authenticatedProfile.inventory.map(row=>row?{...row}:null):Array(12).fill(null);
  // The UI compacts occupied cells, but mutations must keep real server slots.
@@ -338,6 +340,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    draw();return;
   }
   if(!event.ok){
+   if(event.kind==='banditChiefTurnIn'){
+    chiefRewardSubmitting=false;
+    chiefRewardRenderSnapshot=null;
+    if(!modal.hidden&&modal.dataset.kind==='banditQuest')renderModal();
+   }
    if(['gatherStart','gatherFinish','banditWeaponStart','banditWeaponFinish'].includes(event.kind))
     stopServerGatherCast();
    if(event.kind==='lootTake'&&!modal.hidden&&modal.dataset.kind==='loot'){
@@ -358,6 +365,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     bandit_weapons_already_collected:'Все три кинжала собраны. Вернись к следопыту.',
     bandit_weapons_quest_not_ready:'Нужно собрать три кинжала.',
     bandit_chief_quest_locked:'Заверши предыдущие задания и достигни 4-го уровня.',
+    invalid_quest_reward_choice:'Сначала выбери топор или щит.',
+    bandit_chief_quest_already_paid:'Награда за главаря уже получена.',
     untrusted_interaction_context:'Сейчас взаимодействовать нельзя',
     not_enough_gold:'Недостаточно монет',inventory_full:'Рюкзак заполнен',
     item_not_owned:'Предмет не найден в рюкзаке',item_not_sellable:'Предмет нельзя продать',
@@ -403,6 +412,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    equip:'Предмет экипирован',unequip:'Предмет снят',
    usePotion:'Зелье использовано и сохранено'
   };
+  if(event.kind==='banditChiefTurnIn'){
+   chiefRewardSubmitting=false;
+   chiefRewardSelection=null;
+   chiefRewardRenderSnapshot=null;
+  }
   if(labels[event.kind])msg(labels[event.kind],2.2);
   if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','spells','banditQuest'].includes(modal.dataset.kind))
    renderModal();
@@ -443,6 +457,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(progress.quests?.banditChief)state.banditChiefQuest={...progress.quests.banditChief};
   state.banditWeaponsQuest=progress.quests?.banditWeapons?{...progress.quests.banditWeapons}:
    {stage:progress.quests?.banditChief?.stage>0?2:0};
+  if(source==='welcome'){chiefRewardSubmitting=false;chiefRewardRenderSnapshot=null;}
   if(source==='welcome'||source==='usePotion'){
    state.hp=progress.health;
    if(source==='welcome')state.resource=progress.resource;
@@ -1028,6 +1043,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!modal.hidden&&modal.dataset.kind==='chest'&&kind!=='chest')closeWindow();
   if(kind==='chest'){clearChestRetry();chestSheet.reset();}
   if(kind==='character')selectedEquipmentSlot=null;
+  if(kind==='banditQuest'&&(modal.hidden||modal.dataset.kind!=='banditQuest')){
+   chiefRewardSelection=null;chiefRewardSubmitting=false;chiefRewardRenderSnapshot=null;
+  }
   if(kind==='bag'&&(modal.hidden||modal.dataset.kind!=='bag')){
    selectedBagSlot=-1;selectedBagItemId=null;bagRenderSnapshot=null;
   }
@@ -1350,6 +1368,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(bagRenderSnapshot===snapshot&&body.querySelector('.inventory-grid'))return;
    bagRenderSnapshot=snapshot;
   }
+  if(kind==='banditQuest'&&authenticatedProfile&&state.banditChiefQuest?.stage===2){
+   const snapshot=JSON.stringify([state.banditQuest,state.banditWeaponsQuest,state.banditChiefQuest,
+    state.level,chiefRewardSelection,chiefRewardSubmitting]);
+   if(chiefRewardRenderSnapshot===snapshot&&body.querySelector('.ngw-quest-rewards'))return;
+   chiefRewardRenderSnapshot=snapshot;
+  }
   // Save the scroll offset before clearing DOM. On iOS the old contents
   // may be removed by a server refresh while the player is comparing gear.
   const previousBagScroll=kind==='bag'?body.scrollTop:0;
@@ -1451,13 +1475,20 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    else if(state.banditChiefQuest.stage===1)
     line('Главарь Пыльной тропы','Победи главаря разбойников у отдельной стоянки в конце тропы.');
    else if(state.banditChiefQuest.stage===2){
-    line('Главарь Пыльной тропы','Главарь повержен! Получи 180 опыта, 35 монет и выбери ОДНУ зелёную награду 5-го уровня.');
-    for(const id of ['trailbreakerAxe','trailwardenShield']){
-     const item=ITEM_CATALOG[id];
-     const statLine=id==='trailbreakerAxe'?'Урон 6–11 · Сила +1':'Броня 65 · Блок 2 · Выносливость +1';
-     line(item.name+' · ур. 5',statLine+' · Необычный предмет',
-      [['Выбрать награду',()=>sendAccountAction('banditChiefTurnIn',{rewardItemId:id})]]);
-    }
+    renderChiefRewardChoice({
+     document,body,items:ITEM_CATALOG,selectedId:chiefRewardSelection,
+     pending:chiefRewardSubmitting,
+     onSelect:id=>{
+      chiefRewardSelection=id;
+      chiefRewardRenderSnapshot=JSON.stringify([state.banditQuest,state.banditWeaponsQuest,state.banditChiefQuest,
+       state.level,chiefRewardSelection,chiefRewardSubmitting]);
+     },
+     onSubmit:id=>{
+      const sent=sendAccountAction('banditChiefTurnIn',{rewardItemId:id});
+      if(sent)chiefRewardSubmitting=true;
+      return sent;
+     }
+    });
    }
    else line('Тропа снова безопасна','Главарь повержен. Благодарю за службу.');
    return;

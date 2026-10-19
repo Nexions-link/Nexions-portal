@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Топор следопыта">
+<defs>
+<radialGradient id="bg" cx=".38" cy=".3" r=".85"><stop stop-color="#415944"/><stop offset=".62" stop-color="#182f28"/><stop offset="1" stop-color="#101c1b"/></radialGradient>
+<linearGradient id="iron" x1="0" y1="0" x2=".85" y2="1"><stop stop-color="#f8efcc"/><stop offset=".24" stop-color="#8cb7b0"/><stop offset=".55" stop-color="#536b68"/><stop offset=".83" stop-color="#b3d1c1"/><stop offset="1" stop-color="#3a464a"/></linearGradient>
+<linearGradient id="wood" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#412819"/><stop offset=".4" stop-color="#a47c46"/><stop offset=".7" stop-color="#5f3c22"/><stop offset="1" stop-color="#291910"/></linearGradient>
+<filter id="shadow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="4"/></filter>
+</defs>
+<rect width="160" height="160" rx="19" fill="url(#bg)"/>
+<path d="M15 130 Q64 110 139 29" fill="none" stroke="#91c8a05e" stroke-width="22" filter="url(#shadow)"/>
+<circle cx="80" cy="80" r="63" fill="none" stroke="#b6a16c" stroke-width="1" stroke-dasharray="3 7" opacity=".45"/>
+<g transform="rotate(-38 81 82)">
+<rect x="75" y="27" width="13" height="124" rx="5" fill="url(#wood)" stroke="#32231a" stroke-width="2"/>
+<path d="M75 39 H88 M75 50 H88 M75 111 H88 M75 121 H88" stroke="#d3ad71" stroke-width="3" opacity=".8"/>
+<rect x="73" y="21" width="17" height="26" rx="3" fill="#bba66f" stroke="#503b28" stroke-width="3"/>
+<path d="M75 23 C47 12 29 20 17 46 Q37 48 45 70 Q53 88 75 78 L75 23Z" fill="url(#iron)" stroke="#b2a77f" stroke-width="3"/>
+<path d="M86 23 C113 12 128 25 140 47 Q115 46 112 73 Q101 85 86 78 Z" fill="#60736d" stroke="#aeaf8e" stroke-width="3"/>
+<path d="M18 46 Q40 45 47 68 Q53 76 73 75" fill="none" stroke="#e1eee1" stroke-width="4" opacity=".9"/>
+<path d="M88 36 C108 32 118 38 129 45" fill="none" stroke="#e8d9a9" stroke-width="2.5" opacity=".7"/>
+<circle cx="81" cy="47" r="7" fill="#425e48" stroke="#ddc788" stroke-width="3"/>
+<path d="M81 41 V53 M75 47 H87" stroke="#e6dbad" stroke-width="1.5"/>
+</g>
+<path d="M15 15h22 M15 15v22 M145 145h-22 M145 145v-22" fill="none" stroke="#dfc780" stroke-width="3" opacity=".7"/>
+</svg>

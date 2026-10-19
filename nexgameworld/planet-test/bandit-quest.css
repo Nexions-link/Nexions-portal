@@ -10,3 +10,32 @@
  #banditQuestTracker.ngw-secondary-quest{padding:4px 5px;font-size:10px;margin-top:4px}
  #banditQuestText{font-size:9px}
 }
+/* Chief quest: original artwork, one explicit item selection and one payout action. */
+#modal.world-sheet[data-kind="banditQuest"] #panel{max-height:min(72dvh,660px);}
+#modal.world-sheet[data-kind="banditQuest"] #mbody{overscroll-behavior:contain;}
+#mbody .ngw-quest-rewards{font:12px/1.4 system-ui,sans-serif;color:#42301b;min-width:0;}
+#mbody .ngw-quest-reward-intro{font:12px/1.5 system-ui,sans-serif;margin:0 0 11px;color:#5d4325;}
+#mbody .ngw-quest-reward-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 9px;}
+#mbody .ngw-quest-reward-heading strong{font:700 16px/1.2 Georgia,serif;color:#433016;}
+#mbody .ngw-quest-reward-heading span{font:700 10px system-ui,sans-serif;color:#7a6036;white-space:nowrap;}
+#mbody .ngw-quest-reward-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+#mbody .ngw-quest-reward-card{position:relative;display:flex;align-items:center;flex-direction:column;gap:4px;min-width:0;min-height:202px;padding:9px 6px 12px;border:2px solid #86734c;border-radius:9px;background:linear-gradient(145deg,#393d31,#222a25 78%);color:#e8ddb9;box-shadow:inset 0 0 0 1px #d9bd7240,0 2px 6px #3f2f2045;touch-action:manipulation;text-align:center;transition:border-color .12s,box-shadow .12s,background .12s;}
+#mbody .ngw-quest-reward-card.is-selected{border-color:#89dd85;background:linear-gradient(145deg,#344e37,#1e302a 78%);box-shadow:0 0 0 2px #2a623c,0 0 16px #4fc46c76,inset 0 0 0 1px #bfe3a15c;}
+#mbody .ngw-quest-reward-card:focus-visible{outline:3px solid #edda97;outline-offset:2px;}
+#mbody .ngw-quest-reward-card:disabled{opacity:.8;cursor:wait;}
+#mbody .ngw-reward-art{display:grid;place-items:center;width:74px;height:74px;border:1px solid #a18a4c;border-radius:9px;background:radial-gradient(#38533e,#172d23);overflow:hidden;box-shadow:0 2px 9px #0008;flex:none;}
+#mbody .ngw-reward-art img{display:block;width:100%;height:100%;object-fit:contain;}
+#mbody .ngw-reward-check{position:absolute;right:7px;top:7px;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:#63bd62;border:2px solid #d2ffd0;color:#17371f;font:900 15px system-ui;opacity:0;transform:scale(.65);transition:.12s;}
+#mbody .is-selected .ngw-reward-check{opacity:1;transform:scale(1);}
+#mbody .ngw-reward-quality{font:700 9px/1.3 system-ui,sans-serif;letter-spacing:.6px;color:#91d888;}
+#mbody .ngw-reward-name{font:700 12px/1.15 Georgia,serif;color:#9cde91;min-height:28px;display:flex;align-items:center;justify-content:center;}
+#mbody .ngw-reward-type{font:10px/1.25 system-ui,sans-serif;color:#d6c69f;}
+#mbody .ngw-reward-stats{font:700 10px/1.25 system-ui,sans-serif;color:#f2e6c7;}
+#mbody .ngw-reward-bonus{font:700 11px/1.25 system-ui,sans-serif;color:#a8e5a1;}
+#mbody .ngw-quest-reward-footer{position:sticky;bottom:0;z-index:2;margin-top:10px;padding:10px 0 3px;background:linear-gradient(180deg,#ccb17aee,#d8bd88 25%,#d8bd88 100%);border-top:1px solid #8f713e;}
+#mbody .ngw-quest-reward-fixed{text-align:center;font:700 12px system-ui,sans-serif;color:#4c381d;margin:0 0 8px;}
+#mbody .ngw-quest-reward-submit{display:block;width:100%;min-height:46px;padding:10px;border:2px ridge #cfa861;border-radius:6px;background:linear-gradient(#5d6e3e,#303f26);box-shadow:0 2px 7px #271e1544;color:#fff3d4;font:700 14px Georgia,serif;touch-action:manipulation;}
+#mbody .ngw-quest-reward-submit:disabled{background:linear-gradient(#998b70,#837762);color:#e5d5b2;border-color:#b3a17d;opacity:.85;cursor:not-allowed;}
+#mbody .ngw-quest-reward-help{display:block;text-align:center;min-height:13px;margin-top:5px;font:10px/1.3 system-ui,sans-serif;color:#735a34;}
+@media(max-width:360px){#mbody .ngw-quest-reward-grid{gap:6px;}#mbody .ngw-quest-reward-card{padding:7px 4px;min-height:195px;}#mbody .ngw-reward-art{width:62px;height:62px;}#mbody .ngw-reward-name{font-size:11px;}}
+@media(prefers-reduced-motion:reduce){#mbody .ngw-quest-reward-card,#mbody .ngw-reward-check{transition:none;}}
