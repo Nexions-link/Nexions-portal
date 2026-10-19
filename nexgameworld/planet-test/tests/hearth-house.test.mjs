@@ -97,9 +97,9 @@ test('every active browser geometry consumer uses the current shared module URL'
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   const imports=[...source.matchAll(/hearth-house\.js\?v=([^'"\s]+)/g)];
   assert.ok(imports.length>0,name);
-  assert.ok(imports.every(row=>row[1]==='9'),name+' requests a stale geometry module');
+  assert.ok(imports.every(row=>row[1]==='10'),name+' requests a stale geometry module');
  }
- for(const [name,dependency,version] of [['planet.js','start-zone.js','38'],['planet.js','offline-rpg.js','104'],['offline-rpg.js','gather-world.js','21'],['offline-rpg.js','camp-actions.js','20']]){
+ for(const [name,dependency,version] of [['planet.js','start-zone.js','39'],['planet.js','offline-rpg.js','105'],['offline-rpg.js','gather-world.js','22'],['offline-rpg.js','camp-actions.js','21']]){
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   assert.ok(source.includes(dependency+'?v='+version),name+' must invalidate its geometry dependency');
  }
@@ -298,4 +298,60 @@ test('chest transfer keeps route, camera clearance and elder room props accessib
  assert.ok(Math.hypot(hearth.position.x-cx,hearth.position.z-cz)>6);
  assert.equal(house.roof.visible,true);
  assert.equal(root.children.length,3);
+});
+
+test('rear wall chest zone and approach contain no decorative furnishings',()=>{
+ const root=new THREE.Group();
+ const model=buildHearthHouse(THREE,{root,villageVisuals:{addRoof(){}}});
+ const interior=model.interior;
+ const props=interior.getObjectByName('hearth-house-side-furnishings');
+ assert.ok(props?.isGroup,'new props are registered in non-fading interior');
+ assert.equal(props.parent,interior);
+ const reserved={minX:-3.1,maxX:3.1,minZ:-10.0,maxZ:-5.2};
+ const rectIntersects=box=>box.min.x<reserved.maxX&&box.max.x>reserved.minX&&
+  box.min.z<reserved.maxZ&&box.max.z>reserved.minZ;
+ const bbox=new THREE.Box3();
+ for(const child of props.children){
+  bbox.setFromObject(child);
+  assert.equal(rectIntersects(bbox),false,
+   child.name+' must never cover the shared chest or its clear approach');
+ }
+ const resting=props.children.filter(x=>x.name==='hearth-house-side-resting-place');
+ assert.equal(resting.length,2);
+ assert.equal(props.getObjectByName('hearth-house-carving-station')?.isGroup,true);
+ assert.equal(props.getObjectByName('hearth-house-side-storage-shelf')?.isGroup,true);
+ assert.equal(props.getObjectByName('hearth-house-side-clay-jars')?.count,6);
+ assert.equal(props.getObjectByName('hearth-house-side-leather-hangers').isInstancedMesh,true);
+ const banners=interior.getObjectByName('hearth-house-interior-hide-banners');
+ for(let i=0;i<4;i++){
+  const matrix=new THREE.Matrix4();banners.getMatrixAt(i,matrix);
+  const pos=new THREE.Vector3(),rot=new THREE.Quaternion(),scale=new THREE.Vector3();
+  matrix.decompose(pos,rot,scale);
+  assert.ok(Math.abs(pos.x)-scale.x/2>reserved.maxX,
+   'rear decorative tapestry must not appear behind the chest');
+ }
+ const charms=interior.getObjectByName('hearth-house-interior-bone-charms');
+ for(let i=0;i<charms.count;i++){
+  const matrix=new THREE.Matrix4();charms.getMatrixAt(i,matrix);
+  const pos=new THREE.Vector3(),rot=new THREE.Quaternion(),scale=new THREE.Vector3();
+  matrix.decompose(pos,rot,scale);
+  if(pos.z<reserved.maxZ)
+   assert.ok(Math.abs(pos.x)>reserved.maxX,'no ceiling talisman above chest');
+ }
+ // Scene composition, physical collision and opening interaction unchanged.
+ assert.equal(root.children.length,3);
+ assert.equal(model.floor.children.length,16);
+ assert.equal(model.walls.children.filter(x=>x.isMesh).length,6);
+ for(const z of [10.8,7,3,0,-3,-5,-6.65])
+  assert.equal(walk(0,z),true,'the chest approach is walkable at z='+z);
+ assert.equal(walk(LONGHOUSE.chestLocalX,LONGHOUSE.chestLocalZ),false);
+ const origin=model.interior.getObjectByName('hearth-house-elder-seat');
+ assert.ok(Math.abs(origin.position.x)>reserved.maxX);
+ let drawMeshes=0,dynamicLights=0;
+ interior.traverse(x=>{
+  if(x.isMesh){drawMeshes++;assert.notEqual(x.userData.collidable,true);}
+  if(x.isLight)dynamicLights++;
+ });
+ assert.equal(dynamicLights,0);
+ assert.ok(drawMeshes<55,'protect iPhone render budget');
 });

@@ -1,7 +1,7 @@
 // Planet Test PT 0.5.1: keep friendly proximity interaction and combat targeting
 // independent, mirroring the behaviour of the stable NexGame.
 import {TARGET_ACQUISITION_RADIUS} from '../target-selection.js?v=0.3.7.1';
-import {HOUSE_CHEST} from './hearth-house.js?v=9';
+import {HOUSE_CHEST} from './hearth-house.js?v=10';
 // Last legal melee blow is 3.45m + 0.35m network tolerance.
 export const CORPSE_LOOT_RANGE=4.5;
 export const INTERACTION_RANGE=Object.freeze({gather:2.8,banditWeapon:2.8,chest:HOUSE_CHEST.range-.5,mentor:4.7,vendor:4.7,herbalist:4.7,banditQuest:4.7,corpse:CORPSE_LOOT_RANGE});

@@ -503,10 +503,10 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
  const woven=[new THREE.Color('#944a35'),new THREE.Color('#46776f'),
   new THREE.Color('#b89a6e')];
  const bannerSlots=[
-  [-6.15,5.18,-hd+.56,1.18,3.35,.085],
-  [-2.35,5.18,-hd+.56,.92,3.35,.085],
-  [2.28,5.18,-hd+.56,.92,3.35,.085],
-  [6.25,5.18,-hd+.56,1.18,3.35,.085],
+  [-7.20,5.18,-hd+.56,1.18,3.35,.085],
+  [-4.85,5.18,-hd+.56,.92,3.35,.085],
+  [4.85,5.18,-hd+.56,.92,3.35,.085],
+  [7.20,5.18,-hd+.56,1.18,3.35,.085],
   [-hw+.67,5.3,-4.4,.085,3.05,1.18],
   [-hw+.67,5.3,3.7,.085,3.05,1.18],
   [hw-.67,5.3,-4.4,.085,3.05,1.18],
@@ -586,11 +586,75 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
  }
  // Hand-braided ceiling charms are safely above the player's reach.
  const interiorCharms=[];
- for(const z of [-7.65,5.9])for(const x of [-3.15,0,3.15]){
+ // Do not suspend talismans above the chest, where its lid needs room.
+ for(const z of [-7.65,5.9])for(const x of
+  (z<0?[-4.7,4.7]:[-3.15,0,3.15])){
   interiorCharms.push([[x,7.60,z],[x,6.70,z],.049]);
   interiorCharms.push([[x-.21,6.70,z],[x,6.35,z],.051]);
   interiorCharms.push([[x,6.35,z],[x+.21,6.70,z],.051]);
  }
  beams(interior,'hearth-house-interior-bone-charms',interiorCharms,M.bone);
+ // Dedicated chest-free zone at the rear of the house:
+ // x = [-3.1,3.1], z = [-10.0,-5.2]. The chest, its opening lid, the
+ // camera and the character approach all need this area free of furnishings.
+ // Everything below is intentionally anchored near side walls instead.
+ const sideFurnishings=new THREE.Group();
+ sideFurnishings.name='hearth-house-side-furnishings';
+ interior.add(sideFurnishings);
+ // A pair of hide sleeping places sit along the side walls, away from the
+ // door-to-chest axis. Small pillows use the existing hide materials.
+ for(const sign of [-1,1]){
+  const resting=new THREE.Group();
+  resting.name='hearth-house-side-resting-place';
+  resting.position.set(sign*6.38,0,6.15);sideFurnishings.add(resting);
+  createBox(resting,M.darkWood,0,.28,0,2.82,.22,3.35);
+  createBox(resting,sign<0?M.red:M.teal,0,.425,0,2.65,.12,3.12);
+  createBox(resting,M.hide,0,.56,.99,2.20,.23,.64);
+  const woodFrame=[];
+  for(const s of [-1,1])woodFrame.push([[s*1.32,.20,-1.55],
+   [s*1.32,.20,1.55],.085]);
+  beams(resting,'hearth-house-sleeping-frame',woodFrame,M.lightWood);
+ }
+ // Carving station and clay storage: physically decorative and not
+ // interactive, so they cannot intercept taps or block character movement.
+ const craft=new THREE.Group();craft.name='hearth-house-carving-station';
+ craft.position.set(7.30,0,-1.65);sideFurnishings.add(craft);
+ createBox(craft,M.darkWood,0,.88,0,2.24,.19,2.72);
+ for(const z of [-1.01,1.01]){
+  for(const x of [-.87,.87])
+   createBox(craft,M.wood,x,.43,z,.18,.78,.19);
+ }
+ createBox(craft,M.bone,0,1.08,-.48,1.50,.09,.26);
+ createBox(craft,M.hide,0,1.04,.43,1.43,.075,.91);
+ const storage=new THREE.Group();storage.name='hearth-house-side-storage-shelf';
+ storage.position.set(-7.85,0,-.10);sideFurnishings.add(storage);
+ for(const y of [1.28,2.20,3.12]){
+  createBox(storage,M.wood,0,y,0,.99,.16,2.65);
+ }
+ for(const z of [-1.09,1.09])
+  createBox(storage,M.darkWood,0,1.85,z,.22,3.2,.21);
+ // Baked clay jars in a single instanced call beside the side stations.
+ // In particular, no jar is placed along the central rear wall.
+ const jarLocations=[
+  [-7.10,.40,1.42,.37],[-7.50,.35,-2.36,.30],
+  [-7.25,.37,3.30,.33],[7.20,.40,1.75,.36],
+  [7.45,.36,-3.65,.31],[7.42,.36,3.50,.31]
+ ];
+ const jars=new THREE.InstancedMesh(
+  new THREE.CylinderGeometry(.72,.46,1,9),material('#896348'),jarLocations.length);
+ jars.name='hearth-house-side-clay-jars';
+ jarLocations.forEach(([x,y,z,r],i)=>{
+  dummy.position.set(x,y,z);dummy.rotation.set(0,i*.4,0);
+  dummy.scale.set(r,.72+(i%3)*.12,r);
+  dummy.updateMatrix();jars.setMatrixAt(i,dummy.matrix);
+ });
+ jars.instanceMatrix.needsUpdate=true;sideFurnishings.add(jars);
+ // Decorative hanging leather ornaments are limited to the side walls.
+ const hangingStrips=[];
+ for(const sign of [-1,1])for(const z of [-3.3,1.2,4.1]){
+  hangingStrips.push([[sign*(hw-.74),6.1,z],
+   [sign*(hw-.74),4.95,z],.072]);
+ }
+ beams(sideFurnishings,'hearth-house-side-leather-hangers',hangingStrips,M.bone);
  return {roof,roofPlanes,walls,floor,accents,interior};
 }
