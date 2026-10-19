@@ -4,7 +4,8 @@ export const QUALITY_VISUALS=Object.freeze({
  poor:Object.freeze({rank:0,color:'#a4a7ac',marker:0xadb0b5,glow:0,materialTint:0x747981}),
  common:Object.freeze({rank:1,color:'#efe6d5',marker:0xf0d8a9,glow:0,materialTint:0xffffff}),
  uncommon:Object.freeze({rank:2,color:'#72df81',marker:0x69db81,glow:.08,materialTint:0x65b87a}),
- rare:Object.freeze({rank:3,color:'#79bcff',marker:0x73bcff,glow:.17,materialTint:0x5fa5e5})
+ rare:Object.freeze({rank:3,color:'#79bcff',marker:0x73bcff,glow:.17,materialTint:0x5fa5e5}),
+ epic:Object.freeze({rank:4,color:'#b88cff',marker:0xb88cff,glow:.21,materialTint:0x9862d8})
 });
 export function itemRarity(rarity){
  return Object.prototype.hasOwnProperty.call(QUALITY_VISUALS,rarity)?rarity:'common';

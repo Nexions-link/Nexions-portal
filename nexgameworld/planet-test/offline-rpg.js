@@ -163,7 +163,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const desired=[];
   if(weaponKind&&rightHand){
    const data={axe:['tauren-axe-v0.1.glb',AXE_TUNER_DEFAULTS,'axe'],sword:['plains-sword-v0.1.glb',SWORD_TUNER_DEFAULTS,'sword'],dagger:['steppe-dagger-v0.1.glb',DAGGER_TUNER_DEFAULTS,'dagger']}[weaponKind];
-   if(data)desired.push(['weapon','../assets/weapons/'+data[0],data[1],data[2],rightHand]);
+   if(weaponDef?.modelPath)desired.push(['weapon',weaponDef.modelPath,AXE_TUNER_DEFAULTS,'axe',rightHand]);
+    else if(data)desired.push(['weapon','../assets/weapons/'+data[0],data[1],data[2],rightHand]);
   }
   if(shieldKind&&leftHand){
    const name=shieldKind==='kite'?'nexgame_kite_shield_quality.glb':'nexgame_round_shield_poor.glb';
@@ -173,7 +174,19 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    try{
     const gltf=await loader.loadAsync(url);
     if(request!==visualRequest)return;
-    const mesh=gltf.scene;mesh.name='gear-'+(slot==='shield'?'shield':kind);
+    const unique=slot==='weapon'&&weaponDef?.adminOnly;
+    // Only runtime scene transforms are changed; the original GLB stays untouched.
+    const mesh=unique?new THREE.Group():gltf.scene;
+    if(unique){
+     const asset=gltf.scene,bbox=new THREE.Box3().setFromObject(asset);
+     const dim=bbox.getSize(new THREE.Vector3());
+     const scale=1.95/Math.max(0.001,dim.x,dim.y,dim.z);
+     const center=bbox.getCenter(new THREE.Vector3());
+     asset.scale.multiplyScalar(scale);
+     asset.position.sub(center.multiplyScalar(scale));
+     mesh.add(asset);
+    }
+    mesh.name='gear-'+(slot==='shield'?'shield':kind);
     const def=slot==='weapon'?weaponDef:shieldDef;
     const grip=applyEquipmentTransform(mesh,hand,{slot,kind,tuning,sourceId:def?.sourceId});
     hand.add(mesh);modelSlots[slot]=mesh;
