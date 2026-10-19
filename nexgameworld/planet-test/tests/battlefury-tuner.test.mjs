@@ -2,10 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {harness,descendants} from './harness.mjs';
+import {readFileSync} from 'node:fs';
 import {AXE_TUNER_DEFAULTS} from '../../axe-tuner.js';
 import {BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_GROUPS,BATTLEFURY_TUNER_STORAGE_KEY,
  normalizeBattlefuryTuning,readBattlefuryTuning,applyBattlefuryPose} from '../battlefury-tuner.js';
 
+test('the client invalidates old cached equipment and scene modules on deployment',()=>{
+ const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+ assert.ok(read('../offline-rpg.js').includes('character-sheet.js?v=5'));
+ assert.ok(read('../planet.js').includes('offline-rpg.js?v=109'));
+ assert.ok(read('../index.html').includes('planet.js?v=132'));
+ assert.ok(read('../index.html').includes('character-sheet.css?v=4'));
+});
 test('the exclusive tuner offers nine pose axes plus independent uniform scale',()=>{
  assert.equal(BATTLEFURY_TUNER_GROUPS.flatMap(group=>group.fields).length,10);
  assert.deepEqual({...BATTLEFURY_TUNER_DEFAULTS},{...AXE_TUNER_DEFAULTS,scale:1});
@@ -32,12 +40,14 @@ test('the character inspector exposes one tuner only for equipped Battlefury',()
  const h=harness({save:{equipment:{weapon:{id:'adminBattlefury'}}}});
  const body=h.get('mbody');
  h.get('character').click();
+ const visible=descendants(body).find(e=>e.className==='character-battlefury-tune');
+ assert.ok(visible,'visible entry is displayed before selecting any equipment');
+ assert.equal(visible.textContent,'⚒ Настроить «Боевой гнев»');
  const weapon=descendants(body).find(e=>e.dataset.slot==='weapon');
  assert.ok(weapon);
  weapon.click();
- const tune=descendants(body).find(e=>e.className==='character-detail-tune');
- assert.ok(tune);
- tune.click();
+ assert.ok(descendants(body).find(e=>e.className==='character-detail-tune'));
+ visible.click();
  assert.equal(h.get('modal').dataset.kind,'battlefuryTuner');
  const current=descendants(body).filter(e=>e.dataset.axis);
  assert.equal(current.length,10);
@@ -58,4 +68,5 @@ test('the character inspector exposes one tuner only for equipped Battlefury',()
  h.get('character').click();
  descendants(body).find(e=>e.dataset.slot==='weapon').click();
  assert.equal(descendants(body).some(e=>e.className==='character-detail-tune'),false);
+ assert.equal(descendants(body).some(e=>e.className==='character-battlefury-tune'),false);
 });

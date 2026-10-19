@@ -1,6 +1,6 @@
 import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
-import {renderCharacterSheet} from './character-sheet.js?v=4';
+import {renderCharacterSheet} from './character-sheet.js?v=5';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
 import {questWaypoint,questDirection,preferredQuestId} from './starter-quest-guidance.js?v=1';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
