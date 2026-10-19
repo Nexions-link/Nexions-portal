@@ -1,5 +1,5 @@
 name: Sync NexGameWorld to nexions.ru
-# Promote the verified three-stage bandit quest release Alpha 0.6.42.7.
+# Promote verified Alpha 0.6.42.8 dagger gathering cast bar and kneeling animation.
 # Mirror NexGameWorld 0.6.42.6: western outpost, separated enemies and chief trail.
 
 on:
