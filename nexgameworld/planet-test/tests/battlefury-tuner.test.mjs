@@ -11,7 +11,9 @@ test('the client invalidates old cached equipment and scene modules on deploymen
  const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
  assert.ok(read('../offline-rpg.js').includes('character-sheet.js?v=5'));
  assert.ok(read('../planet.js').includes('offline-rpg.js?v=110'));
- assert.ok(read('../index.html').includes('planet.js?v=133'));
+ const gameImport=read('../index.html').match(/import\('\.\/planet\.js\?v=(\d+)'\)/);
+ assert.ok(gameImport,'game HTML must version the main spherical module');
+ assert.ok(Number(gameImport[1])>=134,'deploy must invalidate the previous scene module');
  assert.ok(read('../index.html').includes('character-sheet.css?v=4'));
 });
 test('the exclusive tuner offers nine pose axes plus independent uniform scale',()=>{
