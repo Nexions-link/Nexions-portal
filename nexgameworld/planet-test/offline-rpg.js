@@ -2292,7 +2292,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     mob.lootMarker.material.opacity=.86+.13*Math.pow(Math.sin(clock*2.6),2);
    }
    if(mob.contactShadow)mob.contactShadow.visible=mob.root.visible;
-   if(mob.banditVisual&&!mob.corpse&&!isOnline())banditAnimation(mob,dt,0);
+   // Exactly one pose evaluation per living mob: the movement branch below
+   // provides its actual travel distance to birdAnimation/banditAnimation.
    if(mob.nameTag){
     mob.nameTag.visible=mob.root.visible&&!mob.corpse;
     // Match the WoW-style relative-difficulty tint with target level.
