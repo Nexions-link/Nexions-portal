@@ -47,6 +47,8 @@
 /* The exact original HUD sizing and styling is sourced from ../style.css. */
 #viewport{position:fixed;inset:0;z-index:0;touch-action:none;outline:none}
 #viewport canvas{display:block;width:100%;height:100%;touch-action:none}
+.desktop-control-hint{display:none}
+@media (hover:hover) and (pointer:fine){.desktop-control-hint{display:inline}}
 #labLegacy,#labSettingsSources{display:none!important}
  /* Respect hidden even if a shared stylesheet sets display on the panel. */
  #modal #cameraControl[hidden],#modal #graphicsControl[hidden]{display:none!important}
@@ -303,7 +305,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.43.7" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.43.8" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -342,7 +344,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <div id="actionsBar" role="toolbar" aria-label="Панель из восьми настраиваемых ячеек"></div>
 <div id="xpWrap"><div id="xpFill"></div><span id="xpText">Опыт 0 / 100</span></div>
 
-<div id="help">1–8 — способности · Вращение планеты — свайп · Книга — умения · Цель — выбрать</div>
+<div id="help">1–8 — способности · Вращение планеты — свайп · Книга — умения · Цель — выбрать<span class="desktop-control-hint"> · ПК: WASD/стрелки — движение, мышь — камера, Tab — цель, E — действие, I — сумка, C — персонаж</span></div>
 <div id="build"><span id="fpsCounter" hidden aria-label="Частота кадров">FPS —</span><span id="onlineStatus" aria-live="polite">Локальный режим · 1 игрок</span><span>NexGameWorld · Alpha</span></div>
 <div id="combatError" role="status" aria-live="polite"></div><div id="toast" role="status"></div>
 
@@ -390,7 +392,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=119').catch(error=>{
+  import('./planet.js?v=120').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

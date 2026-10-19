@@ -6,6 +6,7 @@ import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
+import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=97';
 import {createSphericalPresence} from './sphere-online.js?v=10';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
@@ -471,22 +472,27 @@ try {
   const releaseStick=()=>joystick.release();
   document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseStick()});
 
-  const keys = new Set();
+  // Desktop-only keypresses feed the existing camera-relative joystick path.
+  // Touch listeners, stick state and iPhone gestures remain unchanged.
+  const keyboard=createKeyboardMovement(window,document,{isGameActive:()=> $('modal')?.hidden!==false});
   window.addEventListener('keydown', e => {
-    const k = e.key.toLowerCase();
-    if (['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) {e.preventDefault(); keys.add(k);}
-    if(/^[1-8]$/.test(k)&&!e.repeat&&document.querySelector('#modal[hidden]')){
+    if(isEditableTarget(e.target)||isEditableTarget(document.activeElement)||
+       e.altKey||e.ctrlKey||e.metaKey)return;
+    const k=String(e.key||'').toLowerCase();
+    if(/^[1-8]$/.test(k)&&!e.repeat&&$('modal')?.hidden){
       e.preventDefault();rpg.handleSlotKey(k);
     }
   });
-  window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
-  window.addEventListener('blur', () => {keys.clear(); releaseStick();});
+  window.addEventListener('blur', releaseStick);
 
   const touches = new Map();
   let followCooldown=0;
   let lastPinch = 0;
   canvas.addEventListener('pointerdown', e => {
     e.preventDefault();
+    // Return focus from chat/UI to the 3D game on a desktop mouse click.
+    // Never force focus on touch screens (iPhone/Safari).
+    if(e.pointerType==='mouse'){canvas.tabIndex=0;canvas.focus({preventScroll:true})}
     canvas.setPointerCapture(e.pointerId);
     touches.set(e.pointerId, {x:e.clientX,y:e.clientY});
     lastPinch = 0;
@@ -727,8 +733,9 @@ try {
     }else{fpsSeconds=0;fpsFrames=0;}
     if (introClock > 7) $('instruction').style.opacity = '0';
 
-    let horizontal = joystick.x + Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
-    let forward = -joystick.y + Number(keys.has('w') || keys.has('arrowup')) - Number(keys.has('s') || keys.has('arrowdown'));
+    const desktop=keyboard.read();
+    let horizontal = joystick.x + desktop.x;
+    let forward = -joystick.y - desktop.y;
     // The same deadzone, analog strength and camera-relative stick used by NexGame.
     // The spherical tangent basis maps flat X -> East and flat Z -> -North.
     const input=screenMoveVector(horizontal, -forward, state.cameraHeading-Math.PI/2);
