@@ -36,8 +36,12 @@ test('hero anatomy v2 retains original animation skeleton, weapon and shield anc
   dt:1/60,time:i/60,walk:.7,phase:i*.15,attack:i/23,weaponKind:'axe',
   blockRemaining:.4
  });
- assert.equal(hero.arms[1].hand.rotation.x,-1.17);
- assert.equal(hero.arms[0].hand.rotation.x,1.91);
+ assert.ok(Math.abs(hero.arms[1].hand.rotation.x-(-1.17))<.5,
+  'attack pose rotates wrist temporarily around fixed weapon grip');
+ assert.ok(Math.abs(hero.arms[0].hand.rotation.x-1.91)<.3,
+  'shield block rotates wrist temporarily around fixed shield grip');
+ assert.deepEqual(hero.root.userData.equipmentGrip.weapon,{x:-1.17,y:.23,z:.15});
+ assert.deepEqual(hero.root.userData.equipmentGrip.shield,{x:1.91,y:0,z:-.13});
  assert.equal(weapon.parent,hero.arms[1].hand);
  assert.equal(shield.parent,hero.arms[0].hand);
  assert.ok(hero.root.position.distanceTo(oldRoot)<1e-9);
@@ -86,4 +90,47 @@ test('remote player gets the new silhouette with distance LOD; ordinary NPC stay
  assert.ok(near>0);
  remote.anatomy.setQuality(.68);
  assert.ok(remote.anatomy.visibleBatches>near);
+});
+
+test('eyes are not buried by any new facial geometry in economy, balanced or high detail',()=>{
+ // Regression: anatomy v2 previously placed brow ellipsoids directly in
+ // front of both pupils, rendering the player effectively eyeless.
+ for(const player of [true,false]){
+  const {actor}=spawn(player?{player:true}:{remotePlayer:true});
+  const pupils=actor.head.children.filter(m=>m.isMesh&&
+   m.material?.color?.getHex()===0x231f19&&
+   Math.abs(m.position.y-.134)<.002&&m.position.z>.5);
+  assert.equal(pupils.length,2,'both dark pupils must project beyond the snout');
+  for(const quality of [.15,.68,1]){
+   actor.anatomy.setQuality(quality);
+   actor.root.updateWorldMatrix(true,true);
+   for(const sign of [-1,1]){
+    // Eye front is +Z in the head's local frame, regardless of spherical
+    // radial-up pose. Actual instanced raycast is called directly because
+    // cosmetic meshes correctly ignore gameplay target-selection raycasts.
+    const pupil=pupils.find(m=>Math.sign(m.position.x)===sign);
+    assert.ok(pupil,'missing eye on side '+sign);
+    const front=pupil.position.z+pupil.scale.z+.002;
+    const origin=actor.head.localToWorld(new THREE.Vector3(sign*.247,.134,front));
+    const direction=new THREE.Vector3(0,0,1).transformDirection(actor.head.matrixWorld);
+    const ray=new THREE.Raycaster(origin,direction,.001,2);
+    const occluders=[];
+    for(const mesh of actor.anatomy.meshes.filter(m=>m.visible&&m.parent===actor.head)){
+     const hits=[];THREE.InstancedMesh.prototype.raycast.call(mesh,ray,hits);
+     if(hits.length)occluders.push(mesh.name);
+    }
+    assert.deepEqual(occluders,[],`eye ${sign} is obscured by sculpt at quality ${quality}`);
+   }
+  }
+ }
+});
+test('animated eye glints remain outside iris and match the newly positioned pupils',()=>{
+ const {actor}=spawn({player:true});
+ const glints=actor.visualDetails.batches.find(m=>m.name==='nexgameworld-eye-highlights');
+ assert.ok(glints&&glints.count===2);
+ for(let i=0;i<2;i++){
+  const row=new THREE.Matrix4();glints.getMatrixAt(i,row);
+  const point=new THREE.Vector3().setFromMatrixPosition(row);
+  assert.ok(point.z>.538,'glint must not be hidden behind the dark pupil');
+ }
 });

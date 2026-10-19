@@ -48,14 +48,15 @@ export function createTaurenAnatomy(THREE,actor,{fur=0x836144,remote=false}={}){
   parent.add(item);parts.push({item,quality});meshes.push(item);
   return item;
  }
- // Brow ridge, fuller cheeks and mandible replace the toy-like spherical
- // silhouette without moving the eyes, horns, nose ring or head joint.
+ // The previous sculpt placed both brow contour ellipsoids DIRECTLY IN FRONT
+ // of the iris (z≈.55 versus pupil z≈.47), hiding both eyes. Keep all new brow
+ // mass above the eye line; do not shift the rig, horns or equipment anchors.
  add(head,'cranial-contours',sphere,skin,[
   row([0,.34,.24],[.38,.24,.22]),
   row([-.38,-.17,.34],[.185,.27,.24],-.12),
   row([.38,-.17,.34],[.185,.27,.24],.12),
-  row([-.26,.12,.42],[.16,.10,.13],.13),
-  row([.26,.12,.42],[.16,.10,.13],-.13)
+  row([-.27,.315,.32],[.175,.075,.10],.13),
+  row([.27,.315,.32],[.175,.075,.10],-.13)
  ]);
  add(head,'long-muzzle',sphere,muzzle,[
   row([0,-.50,.55],[.355,.18,.33]),

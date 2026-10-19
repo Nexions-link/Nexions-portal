@@ -38,6 +38,11 @@ test('updated scene invalidates cached grip and character sheet',()=>{
  const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
  assert.match(read('../offline-rpg.js'),/battlefury-tuner\.js\?v=2/);
  assert.match(read('../offline-rpg.js'),/character-sheet\.js\?v=6/);
- assert.match(read('../planet.js'),/offline-rpg\.js\?v=112/);
- assert.match(read('../index.html'),/planet\.js\?v=136/);
+ const planet=read('../planet.js'),html=read('../index.html');
+ const gameModule=planet.match(/offline-rpg\.js\?v=(\d+)/);
+ const entrypoint=html.match(/planet\.js\?v=(\d+)/);
+ assert.ok(gameModule&&Number(gameModule[1])>=112,
+  'latest game must invalidate cached equipment modules');
+ assert.ok(entrypoint&&Number(entrypoint[1])>=136,
+  'launch page must invalidate cached scene imports');
 });

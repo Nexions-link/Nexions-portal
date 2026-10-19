@@ -1,8 +1,8 @@
 import {createLandscapeMap} from '../landscape.js?v=0.3.7.0';
 import {createSphericalMeadow} from './sphere-meadow.js?v=2';
 import {createVillageVisuals} from './village-visuals.js?v=2';
-import {createTaurenVisualDetails} from './tauren-visual-details.js?v=3';
-import {createTaurenAnatomy} from './tauren-anatomy.js?v=1';
+import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';
+import {createTaurenAnatomy} from './tauren-anatomy.js?v=2';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
 import {canWalkCamp} from './sphere-physics.js?v=14';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=10';
@@ -451,9 +451,12 @@ function makeTauren({fur=0x836144,cloth=M.red,weapon=false,scale=1}={}){
   const ear=group(head,s*.49,.27,-.12);ear.rotation.z=s*.18;
   ell(ear,pelt,s*.23,0,0,.37,.14,.17);ell(ear,T.muzzle,s*.25,.02,.117,.24,.074,.022);
   ell(head,T.mane,s*.25,.16,.388,.178,.103,.049).rotation.z=s*.18;
-  ell(head,T.ivory,s*.251,.135,.424,.087,.032,.028);
-  ell(head,T.eye,s*.25,.134,.446,.041,.036,.016);ell(head,M.black,s*.247,.134,.459,.016,.03,.01);
-  const brow=ell(head,pelt,s*.27,.22,.42,.232,.086,.114);brow.rotation.z=s*.23;
+  // Readable eye socket, iris and pupil sit above the face surface. All three
+  // must stay in FRONT of the surrounding skull/anatomy v2 at iPhone scale.
+  ell(head,T.ivory,s*.251,.135,.475,.105,.047,.022);
+  ell(head,T.eye,s*.25,.134,.501,.059,.047,.021);
+  ell(head,M.black,s*.247,.134,.523,.025,.034,.013);
+  const brow=ell(head,pelt,s*.27,.256,.418,.222,.073,.099);brow.rotation.z=s*.23;
   ell(head,M.black,s*.245,-.095,1.06,.092,.046,.024).rotation.z=-s*.27;
   taurenHorn(head,s);
   // Cheek locks fall into two bead-bound braids, animated independently below.

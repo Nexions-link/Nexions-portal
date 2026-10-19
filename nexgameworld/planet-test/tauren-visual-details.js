@@ -47,7 +47,8 @@ export function createTaurenVisualDetails(THREE,actor){
  // Two tiny reflected highlights on the eyes preserve facial readability.
  const glints=batch(head,'eye-highlights',new THREE.SphereGeometry(1,6,5),
   new THREE.MeshBasicMaterial({color:0xfff0c9}),[-1,1].map(sign=>({
-   position:[sign*.242,.146,.475],scale:[.014,.013,.009]})));
+   // glints must sit above the restored dark pupils (front ≈.536).
+   position:[sign*.242,.147,.541],scale:[.015,.014,.009]})));
  // Warm, varied fur locks accent the hump without changing its silhouette or rig.
  const furRows=[];
  for(let row=0;row<5;row++)for(let col=-4;col<=4;col++){

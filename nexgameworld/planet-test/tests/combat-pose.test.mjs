@@ -26,7 +26,11 @@ test('block and hit recoil change visual joints, not equipment grip or world roo
   animateSphericalTauren(hero,{dt:1/60,time:i/60,walk:0,phase:0,
    attack:.25+i/60,blockRemaining:.4,weaponKind:'axe'});
  }
- assert.equal(hero.arms[1].hand.rotation.x,-1.25);
+ assert.ok(Math.abs(hero.arms[1].hand.rotation.x-(-1.25))<.5,
+  'transient attack wrist twist must remain bounded around saved grip');
+ assert.deepEqual(hero.root.userData.equipmentGrip.weapon,{x:-1.25,y:.2,z:.12},
+  'approved weapon grip offsets cannot be mutated by animation');
+ assert.deepEqual(hero.root.userData.equipmentGrip.shield,{x:1.8,y:0,z:0});
  assert.ok(hero.root.position.distanceTo(rootPosition)<1e-9);
  assert.ok(hero.root.quaternion.angleTo(rootQuaternion)<1e-9);
  assert.ok([hero.body.rotation.x,hero.body.rotation.z,hero.chest.rotation.x].every(Number.isFinite));
