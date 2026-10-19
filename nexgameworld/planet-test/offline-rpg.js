@@ -2,6 +2,7 @@ import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=4';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
+import {questWaypoint,questDirection,preferredQuestId} from './starter-quest-guidance.js?v=1';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=2';
@@ -98,6 +99,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   safe.equipment=row.equipment||{};
   safe.quest=row.quests?.mentor?.step||0;
   safe.gatherStage=row.quests?.gather?.stage||0;
+  safe.gatherAvailable=safe.gatherStage>=1&&safe.gatherStage<=3&&
+   row.quests?.gather?.accepted===false;
    safe.banditQuest=row.quests?.bandit||{stage:0,kills:0};
   safe.banditChiefQuest=row.quests?.banditChief||{stage:0};
   safe.banditWeaponsQuest=row.quests?.banditWeapons||{stage:row.quests?.banditChief?.stage>0?2:0};
@@ -193,6 +196,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   return swinging||preparingStomp||mobs.some(m=>m.root.visible&&m.hp>0&&!m.corpse&&m.aggro);
  }
  let journalTab='current',merchantTab='buy',selectedEquipmentSlot=null;
+ let trackedQuestId=null,journalRenderSnapshot=null;
  let selectedBagSlot=-1,selectedBagItemId=null,bagRenderSnapshot=null;
  const group=new THREE.Group();scene.add(group);
  // The mesh is bent vertex-by-vertex onto the actual spherical terrain:
@@ -1265,6 +1269,17 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   $('qtitle').textContent=lines[0];
   $('mainQuestTracker').hidden=stage===12;
   $('quest-progress').textContent=stage===12?'Цепочка · 5 / 5 ✓':'Цепочка · '+mentorChainNumber(stage)+' / 5';
+  const navigation=$('trackedQuestHint');
+  if(navigation){
+   const location=player();
+   if(trackedQuestId&&!questWaypoint(trackedQuestId,state,state.inventory,location))trackedQuestId=null;
+   const questId=trackedQuestId||preferredQuestId(state,state.inventory);
+   const waypoint=questId?questWaypoint(questId,state,state.inventory,location):null;
+   const route=questDirection(waypoint,location);
+   navigation.hidden=!authenticatedProfile||!route;
+   if(route)$('trackedQuestText').textContent=route.description;
+   navigation.classList.toggle('is-pinned',!!trackedQuestId);
+  }
   const guidance=$('questGuidance');
   guidance.hidden=stage!==7&&stage!==10;
   if(stage===7)guidance.textContent='Разведка: найди каменную развилку (12, 37).';
@@ -1374,9 +1389,17 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(chiefRewardRenderSnapshot===snapshot&&body.querySelector('.ngw-quest-rewards'))return;
    chiefRewardRenderSnapshot=snapshot;
   }
+  if(kind==='quests'){
+   const snapshot=JSON.stringify([journalTab,trackedQuestId,state.quest,state.kills,state.level,
+    state.gatherStage,state.gatherAvailable,state.banditQuest,state.banditWeaponsQuest,
+    state.banditChiefQuest,state.inventory]);
+   if(journalRenderSnapshot===snapshot&&body.querySelector('.planet-journal-tabs'))return;
+   journalRenderSnapshot=snapshot;
+  }
   // Save the scroll offset before clearing DOM. On iOS the old contents
   // may be removed by a server refresh while the player is comparing gear.
   const previousBagScroll=kind==='bag'?body.scrollTop:0;
+  const previousJournalScroll=kind==='quests'?body.scrollTop:0;
   const characterReuse=kind==='character'?{
    viewport:body.querySelector('.character-preview-viewport'),
    gesture:body.querySelector('.character-rotate')}:null;
@@ -1700,7 +1723,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     button.textContent=label;button.addEventListener('click',()=>{journalTab=tab;renderModal();});tabs.append(button);
    }
    body.append(tabs);
-   const entries=mentorJournalRows(state).map(item=>({...item,npc:'Наставник Каменный Рог'}));
+   const entries=mentorJournalRows(state).map(item=>({...item,routeId:'mentor',npc:'Наставник Каменный Рог'}));
    if(authenticatedProfile){
     const q=state.banditQuest||{stage:0,kills:0};
     entries.push({id:'bandit-trail',
@@ -1730,18 +1753,38 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     const quest=GATHER_QUESTS[i],stage=state.gatherStage;
     const status=stage>i?'completed':stage===i?(state.gatherAvailable?'available':'current'):i===1&&stage===0?'available':null;
     if(!status)continue;
-    const count=status==='completed'?quest.count:state.inventory.filter(entry=>entry.id===quest.item).reduce((sum,entry)=>sum+entry.qty,0);
+    const count=status==='completed'?quest.count:state.inventory.filter(entry=>entry?.id===quest.item).reduce((sum,entry)=>sum+entry.qty,0);
     entries.push({id:'gather-'+i,status,title:quest.title,
      objective:'Собрать '+quest.count+' шт.: '+(ITEM_CATALOG[quest.item]?.name||quest.item),
      progress:status==='completed'?'Сдано травнице':status==='available'?'Доступно у травницы':'Собрано '+count+' / '+quest.count,
      reward:quest.gold+' монет · '+quest.xp+' опыта',npc:'Травница Тихая Заря'});
    }
    const visible=entries.filter(entry=>entry.status===journalTab);
-   if(journalTab==='available'&&state.level<BANDIT_QUEST_MIN_LEVEL)
+   let hasHint=false;
+   if(journalTab==='available'&&state.level<BANDIT_QUEST_MIN_LEVEL){
     line('Разбойники Пыльной тропы · ур. 3','Откроется на 3-м уровне у Следопыта Медной Стрелы.');
-   for(const entry of visible)line((entry.status==='completed'?'✓ ':entry.status==='available'?'! ':'• ')+entry.title,
-    entry.objective+' · '+entry.progress+(entry.reward?' · '+entry.reward:'')+' · '+entry.npc);
-   if(!visible.length)line('Пока пусто','В этом разделе заданий пока нет.');
+    hasHint=true;
+   }
+   if(journalTab==='available'&&entries.some(entry=>entry.status==='locked'&&entry.id==='bandit-chief')){
+    line('Главарь Пыльной тропы · ур. 4','Для финального задания требуется 4-й уровень и сдача трёх кинжалов.');
+    hasHint=true;
+   }
+   for(const entry of visible){
+    const routeId=entry.routeId||entry.id;
+    const waypoint=entry.status!=='completed'?
+     questWaypoint(routeId,state,state.inventory,player()):null;
+    const actions=waypoint?[[(trackedQuestId===routeId?'✓ Отслеживается':'Отслеживать'),
+      ()=>{
+       trackedQuestId=trackedQuestId===routeId?null:routeId;
+       journalRenderSnapshot=null;
+       draw(false);renderModal();
+      }]]:[];
+    line((entry.status==='completed'?'✓ ':entry.status==='available'?'! ':'• ')+entry.title,
+     entry.objective+' · '+entry.progress+(entry.reward?' · '+entry.reward:'')+
+     ' · '+entry.npc+(waypoint?' · Цель: '+waypoint.title:''),actions);
+   }
+   if(!visible.length&&!hasHint)line('Пока пусто','В этом разделе заданий пока нет.');
+   body.scrollTop=previousJournalScroll;
   }else if(kind==='merchant'){
    line('Борун Крепкая Ладонь','Твои монеты: '+pretty(state.gold));
    const tabs=document.createElement('div');tabs.className='planet-journal-tabs';

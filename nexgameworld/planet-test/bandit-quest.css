@@ -39,3 +39,21 @@
 #mbody .ngw-quest-reward-help{display:block;text-align:center;min-height:13px;margin-top:5px;font:10px/1.3 system-ui,sans-serif;color:#735a34;}
 @media(max-width:360px){#mbody .ngw-quest-reward-grid{gap:6px;}#mbody .ngw-quest-reward-card{padding:7px 4px;min-height:195px;}#mbody .ngw-reward-art{width:62px;height:62px;}#mbody .ngw-reward-name{font-size:11px;}}
 @media(prefers-reduced-motion:reduce){#mbody .ngw-quest-reward-card,#mbody .ngw-reward-check{transition:none;}}
+
+/* Compact quest direction below the regular trackers; does not block movement. */
+#quest .ngw-route-hint{display:flex;align-items:flex-start;gap:7px;margin-top:7px;
+ padding:6px 8px;border:1px solid #9b894e88;border-left:2px solid #8dbb8f;
+ border-radius:4px;background:#18251de5;color:#e5e4bd;
+ font:600 10px/1.45 system-ui,sans-serif;letter-spacing:0;text-shadow:0 1px 2px #09140e;
+ box-shadow:0 2px 7px #0004;pointer-events:none;}
+#quest .ngw-route-hint[hidden]{display:none!important}
+#quest .ngw-route-hint.is-pinned{border-color:#c4a967;border-left-color:#ead28e;color:#f9e2ad}
+#quest .ngw-route-hint .ngw-route-marker{font:700 16px/1 Georgia,serif;color:#9dcd96;flex:none}
+#quest .ngw-route-hint.is-pinned .ngw-route-marker{color:#f3d38c}
+#modal.world-sheet #mbody .rpgRow button{flex:none;max-width:132px;min-height:37px;
+ font-size:11px;line-height:1.2;white-space:normal}
+#modal.world-sheet[data-kind="quests"] #panel{max-height:min(72dvh,630px)}
+@media(max-width:760px){
+ #quest .ngw-route-hint{font-size:10px;line-height:1.35;padding:5px 6px;gap:5px}
+ #modal.world-sheet #mbody .rpgRow button{max-width:115px;font-size:10px}
+}
