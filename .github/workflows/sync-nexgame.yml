@@ -1,4 +1,5 @@
 name: Sync NexGameWorld to nexions.ru
+# Release gate 2026-10-19: verify public Nexions.ru after each mirror update.
 # Sync 0.6.43.6: starter quest journal tracking, waypoints, NPC hand-in guidance.
 # Publish 0.6.42.12: prevent iOS Safari bag scroll jumps on HUD updates.
 # Mirror Alpha 0.6.42.11: persistent inventory equipment comparison.
@@ -17,7 +18,7 @@ on:
   workflow_dispatch:
   schedule:
     # GitHub scheduled workflows can run a little later than the stated time.
-    - cron: '*/5 * * * *'
+    - cron: '2-57/5 * * * *'
 
 permissions:
   contents: write
@@ -30,6 +31,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 18
     steps:
       - name: Checkout Nexions portal
         uses: actions/checkout@v4
@@ -210,6 +212,42 @@ jobs:
         run: |
           # Bot commits cannot themselves trigger the branch-based Pages build.
           # This explicit build request refreshes the custom-domain site.
-          if ! gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"; then
-            echo "::warning::Game mirror committed, but Pages rebuild could not be requested. A normal push to the portal repository will publish it."
-          fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"
+
+      - name: Confirm Nexions.ru serves the just-mirrored game before sync is marked successful
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          const required=JSON.parse(readFileSync('nexgameworld/planet-test/version.json','utf8')).version;
+          const expectedSha=readFileSync('nexgameworld/upstream-commit.txt','utf8').trim();
+          const root='https://nexions.ru/nexgameworld/';
+          const paths=['upstream-commit.txt','planet-test/version.json',
+            'planet-test/index.html','planet-test/planet.js','planet-test/hearth-house.js'];
+          let last;
+          for(let attempt=1;attempt<=28;attempt++){
+            try {
+              const result=await Promise.all(paths.map(async path=>{
+                const target=new URL(path,root);
+                target.searchParams.set('syncCheck',Date.now().toString()+'-'+Math.random());
+                const response=await fetch(target,{cache:'no-store',
+                  signal:AbortSignal.timeout(22000)});
+                if(!response.ok)throw Error(path+' HTTP '+response.status);
+                return response.text();
+              }));
+              if(result[0].trim()!==expectedSha)throw Error('Mirror commit behind '+result[0].trim().slice(0,10)+' != '+expectedSha.slice(0,10));
+              const liveVersion=JSON.parse(result[1]).version;
+              if(liveVersion!==required)throw Error('Public version '+liveVersion+' != '+required);
+              if(!result[2].includes('data-build="'+required+'"'))throw Error('Public game HTML is not '+required);
+              if(!result[3].includes("from './start-zone.js?v="))throw Error('Public planet.js missing');
+              if(!result[4].includes('export function buildHearthHouse'))throw Error('Public house model missing');
+              console.log('Nexions.ru mirror published:',required,expectedSha.slice(0,12));
+              process.exit(0);
+            }catch(error){
+              last=error;
+              console.warn('Public sync check '+attempt+'/28:',error.message);
+              if(attempt<28)await new Promise(resolve=>setTimeout(resolve,12000));
+            }
+          }
+          throw Error('Nexions.ru mirror NOT READY: '+last?.message);
+          JS
