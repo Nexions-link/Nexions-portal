@@ -5,7 +5,7 @@ import {createTaurenVisualDetails} from './tauren-visual-details.js?v=3';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
 import {canWalkCamp} from './sphere-physics.js?v=14';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=10';
-import {createRoofTransparency,createSurfaceTransparency} from './roof-transparency.js?v=2';
+import {createRoofTransparency,createSurfaceTransparency} from './roof-transparency.js?v=3';
 import {createHouseRat} from './house-rat.js?v=9';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
 import {createBanditCampVisuals} from './bandit-camp-visuals.js?v=3';
@@ -127,6 +127,8 @@ export function createStartZone(three,scene,getRadius,heightAt){
   indoorOpacity:.20,fadeSpeed:9,
   shouldFade:mesh=>!permanentOutdoorDetails.has(mesh.name)
  });
+ // The roof, wall planks and exterior timber all share one fade clock.
+ let envelopeFade=0;
  const houseRat=createHouseRat(THREE,houseAnchor);
  longhouseRoofs.push(...longhouse.roofPlanes);
  shadowCasters.push(...longhouse.roofPlanes);
@@ -362,8 +364,12 @@ export function createStartZone(three,scene,getRadius,heightAt){
  function updateInteriorView(x,z,dt=1/60){
   const inside=insideHouse(x,z);
   // Roof and walls fade together; floor, actors, sun and shadows stay unchanged.
-  roofTransparency.update(inside,dt);
-  wallTransparency.update(inside,dt);
+  const target=inside?1:0;
+  const delta=Math.max(0,Math.min(.25,Number(dt)||0));
+  envelopeFade+=(target-envelopeFade)*(1-Math.exp(-9*delta));
+  if(Math.abs(target-envelopeFade)<.001)envelopeFade=target;
+  roofTransparency.setProgress(envelopeFade);
+  wallTransparency.setProgress(envelopeFade);
  }
  return {rebuild,updateInteriorView,setGraphics,meadow,
   animate(t){houseRat.animate(t);banditCampVisuals.animate(t);

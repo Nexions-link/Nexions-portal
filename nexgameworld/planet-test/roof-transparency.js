@@ -36,6 +36,12 @@ export function createSurfaceTransparency(group,{
   }
  }
  return {
+  setProgress(progress){
+   const t=Math.max(0,Math.min(1,Number(progress)||0));
+   const next=1-(1-targetAlpha)*t;
+   if(Math.abs(opacity-next)<1e-8)return opacity;
+   opacity=next;apply();return opacity;
+  },
   update(inside,dt=1/60){
    const target=inside?targetAlpha:1;
    if(opacity===target)return opacity;

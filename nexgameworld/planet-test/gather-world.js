@@ -1,7 +1,7 @@
 // Test-only spherical copies of the main NexGame gathering resources.
 // Quest locations and timings mirror game.js (main), but all objects remain
 // in this independent offline scene and do not write to the production save.
-import {lakeRadius} from './start-zone.js?v=39';
+import {lakeRadius} from './start-zone.js?v=40';
 import {RESOURCE_VISUAL_COLORS,resourceProximityCue} from './gather-visibility.js?v=1';
 import {LONGHOUSE,HOUSE_CHEST} from './hearth-house.js?v=10';
 import {createChestMotion} from '../bestiary/chest-preview-motion.js?v=1';

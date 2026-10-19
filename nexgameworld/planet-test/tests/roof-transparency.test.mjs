@@ -46,7 +46,7 @@ test('game calls opacity animation every frame, never changes house shadows on e
  const planet=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
  const body=start.split('function updateInteriorView(')[1]?.split('return {rebuild,')[0];
  assert.ok(body);
- assert.match(body,/roofTransparency.update\(inside,dt\)/);
+ assert.match(body,/roofTransparency.setProgress\(envelopeFade\)/);
  assert.doesNotMatch(body,/roof.visible|castShadow|setInterior\(/);
  assert.match(start,/caster.castShadow=shadowsEnabled;/);
  assert.match(planet,/startZone.updateInteriorView\(cameraPlayerLocal.x,cameraPlayerLocal.z,dt\)/);
@@ -109,10 +109,30 @@ test('live code applies wall fade without switching sunlight, shadows or PC cont
  const planet=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
  const updater=start.split('function updateInteriorView(')[1]?.split('return {rebuild,')[0];
  assert.ok(updater);
- assert.ok(updater.includes('roofTransparency.update(inside,dt)'));
- assert.ok(updater.includes('wallTransparency.update(inside,dt)'));
+ assert.ok(updater.includes('roofTransparency.setProgress(envelopeFade)'));
+ assert.ok(updater.includes('Math.exp(-9*delta)'));
+ assert.doesNotMatch(updater,/roofTransparency.update\(inside,dt\)|wallTransparency.update\(inside,dt\)/);
+ assert.ok(updater.includes('wallTransparency.setProgress(envelopeFade)'));
  assert.doesNotMatch(updater,/castShadow|roof.visible|walls.visible|setInterior/);
  assert.ok(start.includes('caster.castShadow=shadowsEnabled;'));
  assert.ok(planet.includes('keyboard-movement.js?v=1'));
  assert.ok(planet.includes('updateInteriorView(cameraPlayerLocal.x,cameraPlayerLocal.z,dt)'));
+});
+
+test('roof, walls and exterior timber transition on one synchronized fade progress',()=>{
+ const root=new THREE.Group(),house=buildHearthHouse(THREE,{root,villageVisuals:{addRoof(){}}});
+ const roof=createRoofTransparency(house.roof,{indoorOpacity:.12});
+ const walls=createSurfaceTransparency(house.walls,{indoorOpacity:.20});
+ const wall=house.walls.children.find(x=>x.isMesh);
+ const timber=house.accents.getObjectByName('hearth-house-side-wing');
+ assert.ok(timber?.isMesh);
+ for(const progress of [0,.2,.5,.8,1,.6,.3,0]){
+  roof.setProgress(progress);walls.setProgress(progress);
+  assert.ok(Math.abs(roof.opacity-(1-.88*progress))<1e-8);
+  assert.ok(Math.abs(walls.opacity-(1-.8*progress))<1e-8);
+  assert.equal(timber.material.opacity,wall.material.opacity);
+ }
+ assert.equal(wall.material.transparent,false);
+ assert.equal(timber.material.transparent,false);
+ assert.equal(house.roof.visible,true);
 });
