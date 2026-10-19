@@ -62,10 +62,10 @@ test('house graph contains only floor, walls and roof, no props',()=>{
  assert.deepEqual(root.children.map(child=>child.name),[
   'hearth-house-solid-floor','hearth-house-solid-walls','hearth-house-exterior-roof'
  ]);
- assert.equal(model.walls.children.length,6);
+ assert.equal(model.walls.children.filter(mesh=>mesh.isMesh).length,6);
  assert.equal(roofPlanes.length,2);
  assert.ok(roofPlanes.every(mesh=>model.roof.getObjectById(mesh.id)===mesh));
- assert.ok(model.walls.children.every(mesh=>!mesh.material.transparent));
+ assert.ok(model.walls.children.filter(mesh=>mesh.isMesh).every(mesh=>!mesh.material.transparent));
  model.roof.visible=false;
  assert.equal(model.walls.visible,true);
  assert.equal(model.floor.visible,true);
@@ -92,10 +92,40 @@ test('every active browser geometry consumer uses the current shared module URL'
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   const imports=[...source.matchAll(/hearth-house\.js\?v=([^'"\s]+)/g)];
   assert.ok(imports.length>0,name);
-  assert.ok(imports.every(row=>row[1]==='3'),name+' requests a stale geometry module');
+  assert.ok(imports.every(row=>row[1]==='4'),name+' requests a stale geometry module');
  }
- for(const [name,dependency,version] of [['planet.js','start-zone.js','30'],['planet.js','offline-rpg.js','96'],['offline-rpg.js','gather-world.js','13'],['offline-rpg.js','camp-actions.js','12']]){
+ for(const [name,dependency,version] of [['planet.js','start-zone.js','31'],['planet.js','offline-rpg.js','97'],['offline-rpg.js','gather-world.js','14'],['offline-rpg.js','camp-actions.js','13']]){
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   assert.ok(source.includes(dependency+'?v='+version),name+' must invalidate its geometry dependency');
  }
+});
+
+test('tribal exterior adds lightweight art without colliders or blocking the doorway',()=>{
+ const root=new THREE.Group();
+ const model=buildHearthHouse(THREE,{root,villageVisuals:{addRoof(){}}});
+ assert.deepEqual(root.children.map(child=>child.name),[
+  'hearth-house-solid-floor','hearth-house-solid-walls','hearth-house-exterior-roof'
+ ]);
+ const details=model.walls.getObjectByName('hearth-house-tribal-exterior');
+ assert.ok(details);
+ assert.equal(details.getObjectByName('hearth-house-hide-wall-panels').isInstancedMesh,true);
+ assert.equal(details.getObjectByName('hearth-house-lashed-timber').isInstancedMesh,true);
+ assert.equal(details.getObjectByName('hearth-house-entrance-emblem').isGroup,true);
+ assert.equal(model.roof.getObjectByName('hearth-house-bone-finials').isInstancedMesh,true);
+ assert.ok(model.roofPlanes.every(panel=>panel.getObjectByName('hearth-house-roof-hide-patches').isInstancedMesh));
+ assert.equal(model.floor.children.length,16);
+ const front=model.walls.children.filter(mesh=>mesh.isMesh&&
+  Math.abs(mesh.position.z-(LONGHOUSE.depth/2-LONGHOUSE.wallThickness/2))<1e-6);
+ assert.equal(front.length,3);
+ assert.ok(front.filter(mesh=>mesh.position.x!==0).every(mesh=>
+  Math.abs(Math.abs(mesh.position.x)-mesh.geometry.parameters.width/2-LONGHOUSE.doorWidth/2)<1e-6
+ ));
+ // The roof alone can disappear indoors; the decoration has no gameplay hitboxes.
+ model.roof.visible=false;
+ assert.equal(model.walls.visible,true);
+ assert.equal(model.floor.visible,true);
+ root.traverse(node=>{
+  assert.notEqual(node.userData.collidable,true);
+  assert.notEqual(node.userData.targetable,true);
+ });
 });

@@ -13,8 +13,11 @@ export async function auditProduction({
  timeoutMs=55000
 }={}){
  if(typeof fetchImpl!=='function')throw Error('fetch is required');
+ let requestSerial=0;
  const get=async (origin,path,format='json')=>{
-  const endpoint=url(origin,path);
+  const endpointUrl=new URL(url(origin,path));
+  endpointUrl.searchParams.set('ngw_audit',String(Date.now())+'-'+(++requestSerial));
+  const endpoint=endpointUrl.href;
   // A scheduled read should bypass edge caches without changing canonical URLs.
   const response=await fetchImpl(endpoint,{
    cache:'no-store',signal:AbortSignal.timeout(timeoutMs),
@@ -23,10 +26,14 @@ export async function auditProduction({
   if(!response.ok)throw Error(new URL(endpoint).pathname+' HTTP '+response.status);
   return format==='json'?response.json():response.text();
  };
- const [health,ready,manifest,upstream]=await Promise.all([
+ const [health,ready,manifest,upstream,clientHtml,launcherHtml,gameCode,houseCode]=await Promise.all([
   get(worldOrigin,'/health'),get(worldOrigin,'/ready'),
   get(siteOrigin,'/nexgameworld/planet-test/version.json'),
-  get(siteOrigin,'/nexgameworld/upstream-commit.txt','text')
+  get(siteOrigin,'/nexgameworld/upstream-commit.txt','text'),
+  get(siteOrigin,'/nexgameworld/planet-test/index.html','text'),
+  get(siteOrigin,'/nexgameworld/','text'),
+  get(siteOrigin,'/nexgameworld/planet-test/planet.js','text'),
+  get(siteOrigin,'/nexgameworld/planet-test/hearth-house.js','text')
  ]);
  const latest=String(manifest?.version||''),build=String(health?.build||'');
  const publishedSha=String(upstream).trim().toLowerCase();
@@ -40,6 +47,15 @@ export async function auditProduction({
  if(health?.guestWorldEnabled!==false)throw Error('Guest world must remain disabled');
  if(!VERSION.test(latest)||!VERSION.test(build)||latest!==build||ready?.build!==build)
   throw Error('Live game manifest and Render server build do not match');
+ const declared=[...clientHtml.matchAll(/\bdata-build="([^"]+)"/g)].map(match=>match[1]);
+ if(declared.length!==1||declared[0]!==latest)
+  throw Error('Live playable HTML and game version.json do not match: '+declared.join(',')+'/'+latest);
+ if(!/import\(['"]\.\/planet\.js\?v=\d+['"]\)/.test(clientHtml))
+  throw Error('Live game HTML does not load a versioned main module');
+ if(!launcherHtml.includes("const local='./planet-test/'")||!launcherHtml.includes('account-play'))
+  throw Error('Live Nexions.ru launcher is not the same-domain authenticated game');
+ if(!gameCode.includes("from './start-zone.js?v=")||!houseCode.includes('export function buildHearthHouse'))
+  throw Error('Live Nexions.ru is missing required spherical game modules');
  if(!SHA.test(publishedSha))throw Error('The website upstream-commit.txt is invalid');
  if(expectedSha){
   if(!SHA.test(expectedSha))throw Error('Invalid expected source SHA');

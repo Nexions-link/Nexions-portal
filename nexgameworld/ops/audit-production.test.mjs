@@ -12,7 +12,11 @@ function mock({build='0.6.41.4',manifestVersion='0.6.41.4',
   guestWorldEnabled:guest,worldMetrics:{progressSaveFailures:failures}},
  '/ready':{ready,build},
  '/nexgameworld/planet-test/version.json':{version:manifestVersion},
- '/nexgameworld/upstream-commit.txt':sha+'\n'
+ '/nexgameworld/upstream-commit.txt':sha+'\n',
+ '/nexgameworld/planet-test/index.html':'<aside data-build="'+manifestVersion+'"></aside><script>import(\'./planet.js?v=120\')</script>',
+ '/nexgameworld/':'<script>const local=\'./planet-test/\';const mode=\'account-play\';</script>',
+ '/nexgameworld/planet-test/planet.js':"import {a} from './start-zone.js?v=31'",
+ '/nexgameworld/planet-test/hearth-house.js':'export function buildHearthHouse(){}'
  };
  return async href=>{
   const pathname=new URL(href).pathname;
@@ -51,4 +55,21 @@ test('retry recovers a transient failure and never sends credentials',async()=>{
  const r=await auditWithRetry({fetchImpl:wrapped,expectedSha:SHA},
   {attempts:2,delayMs:0,sleep:async()=>{}});
  assert.equal(r.version,'0.6.41.4');
+});
+
+test('reject live HTML, launcher and core modules that are stale or incomplete',async()=>{
+ const original=mock();
+ const corrupt=(path,content)=>async href=>{
+  if(new URL(href).pathname===path)return {ok:true,status:200,text:async()=>content,json:async()=>content};
+  return original(href);
+ };
+ await assert.rejects(()=>auditProduction({fetchImpl:corrupt(
+  '/nexgameworld/planet-test/index.html','<aside data-build="0.6.40.1"></aside>'
+ ),expectedSha:SHA}),/HTML and game version/);
+ await assert.rejects(()=>auditProduction({fetchImpl:corrupt(
+  '/nexgameworld/','<html>unrelated site</html>'
+ ),expectedSha:SHA}),/same-domain authenticated game/);
+ await assert.rejects(()=>auditProduction({fetchImpl:corrupt(
+  '/nexgameworld/planet-test/hearth-house.js',''
+ ),expectedSha:SHA}),/missing required spherical game modules/);
 });
