@@ -1,5 +1,6 @@
 name: Sync NexGameWorld to nexions.ru
 # Release gate 2026-10-19: verify public Nexions.ru after each mirror update.
+# Publish Alpha 0.6.43.15: shared chest centered opposite elder's doorway, gameplay verified.
 # Re-publish Alpha 0.6.43.14 from corrected source and re-deployed Render service.
 # Publish Alpha 0.6.43.14: elder lodge ceremonial interior, beams, wall drapes and decorative hearth.
 # Publish Alpha 0.6.43.13: interior fade for house walls and roof, without lighting changes.
