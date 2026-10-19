@@ -2,6 +2,7 @@ name: Sync NexGameWorld to nexions.ru
 # Release gate 2026-10-19: verify public Nexions.ru after each mirror update.
 # Explicit resync request: upstream NexGameWorld Alpha 0.6.43.19; verified client CI repaired.
 # Mirror original admin-battlefury.glb asset (git blob da58bc0), not present in previous site deploy. No Atlas catalog modifications.
+# Sync Alpha 0.6.43.20: local-only Battlefury pose and scale tuner; Atlas catalog remains untouched.
 # Publish Alpha 0.6.43.17: synchronized wall, timber and roof transparency.
 # Publish Alpha 0.6.43.16: side-wall elder lodge interior with reserved clear shared chest zone.
 # Publish Alpha 0.6.43.15: shared chest centered opposite elder's doorway, gameplay verified.
