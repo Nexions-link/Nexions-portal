@@ -7,7 +7,7 @@ const finite=(v,fallback=0)=>Number.isFinite(v)?v:fallback;
 const angleDelta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 export function advanceCreatureSecondary(state,dt,{
  kind='longstrider',yaw=0,walking=false,speed=0,attacking=false,
- attackRemaining=0,hitWeight=0
+ attackRemaining=0,hitWeight=0,strikePrepare=0,strikeImpact=0,strikeRecover=0
 }={}){
  if(!state)return {pitch:0,roll:0,raise:0,forward:0};
  const delta=clamp(finite(dt),0,.12);
@@ -30,19 +30,24 @@ export function advanceCreatureSecondary(state,dt,{
  const calm=(1-state.motion)*(1-state.attack);
  const breath=Math.sin(state.time*(kind==='raider'?2.0:1.6))*.5+.5;
  const recoil=clamp(finite(hitWeight),0,1);
+ // A small visual action accent makes server-confirmed impact readable while
+ // authored GLB clips still drive limbs. All values are visual-only weights.
+ const prepare=clamp(finite(strikePrepare),0,1);
+ const strike=clamp(finite(strikeImpact),0,1);
+ const recover=clamp(finite(strikeRecover),0,1);
  // Avoid competing with the authored attack and Hurt clips. For each race,
  // the pivots slightly offset posture/weight transfer rather than retiming feet.
  if(kind==='raider')return {
-  pitch:clamp(-.035*state.motion-.030*state.attack+.012*calm*breath,-.09,.035),
+  pitch:clamp(-.035*state.motion-.030*state.attack+.012*calm*breath-.020*prepare-.038*strike+.012*recover,-.12,.045),
   roll:clamp(-.060*state.turn+.012*calm*Math.sin(state.time*.85),-.085,.085),
-  raise:clamp(.013*calm*breath-.012*state.motion, -.025,.02),
-  forward:clamp(.025*state.attack-.022*recoil,-.035,.04)
+  raise:clamp(.013*calm*breath-.012*state.motion+.012*strike,-.025,.035),
+  forward:clamp(.025*state.attack-.022*recoil+.014*prepare+.040*strike-.020*recover,-.05,.09)
  };
  return {
-  pitch:clamp(-.028*state.motion-.017*state.attack+.010*calm*breath,-.06,.03),
+  pitch:clamp(-.028*state.motion-.017*state.attack+.010*calm*breath-.015*prepare-.039*strike+.012*recover,-.10,.045),
   roll:clamp(-.043*state.turn+.008*calm*Math.sin(state.time*.75),-.065,.065),
-  raise:clamp(.013*calm*breath-.011*state.motion,-.02,.02),
-  forward:clamp(.018*state.attack-.018*recoil,-.028,.032)
+  raise:clamp(.013*calm*breath-.011*state.motion+.010*strike,-.025,.03),
+  forward:clamp(.018*state.attack-.018*recoil+.012*prepare+.046*strike-.020*recover,-.045,.09)
  };
 }
 export function applyCreatureSecondary(pivot,pose){

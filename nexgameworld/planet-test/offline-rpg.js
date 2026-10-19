@@ -45,7 +45,8 @@ import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceCreatureGait} from './creature-gait.js?v=1';
 import {advanceMobImpact,mobVisualMode} from './mob-impact.js?v=1';
-import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=2';
+import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=3';
+import {advanceCreatureStrike,resetCreatureStrike} from './creature-strike.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
@@ -596,7 +597,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!isOnline())return;
   // End the visual windup on the server-confirmed hit, not on client guesswork.
   const attacker=mobs.find(m=>m.id===event?.mobId);
-  if(attacker)attacker.attackWindup=0;
+  if(attacker){
+   attacker.attackWindup=0;
+   if(!Number.isInteger(event.life)||event.life===attacker.life)
+    attacker.visualStrikeHitSequence=(attacker.visualStrikeHitSequence||0)+1;
+  }
   if(Number.isFinite(event.hp))state.hp=Math.max(0,event.hp);
   if(event.blocked){blockRemaining=.65;hero.root.userData.blockRecoil=.65;combatVfx.trigger({root:hero.root},'block');}
   state.resource=changeResource(state.resource,5,'warrior');lastCombatAt=clock;draw(false);
@@ -610,6 +615,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const seconds=Number.isFinite(event.windupMs)?
    Math.min(1,Math.max(.1,event.windupMs/1000)):.45;
   mob.attackWindup=Math.max(mob.attackWindup||0,seconds+.12);
+  mob.visualStrikeCue=(mob.visualStrikeCue||0)+1;
+  mob.visualStrikeWindupSeconds=seconds;
   if(mob.birdVisual)mob.birdVisual.attackRemaining=Math.max(
    mob.birdVisual.attackRemaining||0,seconds+.12);
  }
@@ -902,7 +909,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const actions=Object.fromEntries(asset.animations.map(clip=>[clip.name,mixer.clipAction(clip)]));
   mob.banditGltf={container,rig,motionPivot,secondary:{},mixer,actions,mode:null,action:null,walkBlend:0,walkGrace:0,
    gait:{},wasWindup:false,attackRemaining:0,
-   impact:{seen:mob.visualHitSequence||0,wasHit:false}};
+   impact:{seen:mob.visualHitSequence||0,wasHit:false},
+   strike:{cueSeen:mob.visualStrikeCue||0,hitSeen:mob.visualStrikeHitSequence||0,phase:'idle'}};
   mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:container,getRadius,heightAt,mixer});
   banditAnimation(mob,0,0);
  }
@@ -910,12 +918,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   // Death poses freeze the mixer; reset cosmetic state for a new life.
   // Preserve server position, aggro, inventory, combat and equipment.
   mob.visualHitSequence=0;
+  mob.visualStrikeCue=0;mob.visualStrikeHitSequence=0;mob.visualStrikeWindupSeconds=.4;
   mob.hit=0;
   if(mob.banditGltf){
    const gltf=mob.banditGltf;
    gltf.mixer.stopAllAction();
    gltf.mode=null;gltf.action=null;gltf.wasWindup=false;gltf.attackRemaining=0;
    gltf.impact={seen:0,wasHit:false};gltf.gait={};
+   resetCreatureStrike(gltf.strike);
    gltf.container.rotation.set(0,0,0);
    gltf.container.position.set(0,0,0);
    resetCreatureSecondary(gltf.secondary,gltf.motionPivot);
@@ -923,6 +933,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(mob.birdVisual){
    const bird=mob.birdVisual;
    bird.impact={seen:0,wasHit:false};
+   resetCreatureStrike(bird.strike);
    bird.impactPivot?.rotation.set(0,0,0);
    bird.impactPivot?.position.set(0,0,0);
    bird.gait={};
@@ -958,6 +969,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   gltf.container.rotation.x=-.085*impact.weight;
   gltf.container.rotation.z=.075*impact.weight*impact.side;
   gltf.container.position.z=-.09*impact.weight;
+  const strike=advanceCreatureStrike(gltf.strike,delta,{
+   cueSequence:mob.visualStrikeCue||0,hitSequence:mob.visualStrikeHitSequence||0,
+   windupRemaining:mob.attackWindup,windupDuration:mob.visualStrikeWindupSeconds||.4
+  });
   const mode=mobVisualMode({hit:impact.active&&!!gltf.actions.Hurt,
    attack:attacking,walking:gait.walking});
   // A second hit during Hurt restarts its clip instead of freezing on its last frame.
@@ -986,7 +1001,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const stance=advanceCreatureSecondary(gltf.secondary,delta,{
    kind:'raider',yaw:isOnline()?mob.renderYaw??mob.yaw:mob.yaw,
    walking:gait.walking,speed:Math.min(1,gltf.gait.rate||0),
-   attacking,attackRemaining:gltf.attackRemaining,hitWeight:impact.weight
+   attacking,attackRemaining:gltf.attackRemaining,hitWeight:impact.weight,
+   strikePrepare:strike.prepare,strikeImpact:strike.impact,strikeRecover:strike.recover
   });
   applyCreatureSecondary(gltf.motionPivot,stance);
  }
@@ -1023,7 +1039,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const mixer=new THREE.AnimationMixer(bird);
   const actions=Object.fromEntries(PLAINSTRIDER_REQUIRED_CLIPS.map(k=>[k,mixer.clipAction(asset.animations.find(a=>a.name===k))]));
   mob.birdVisual={container,bird,impactPivot,motionPivot,secondary:{},spherical:true,mixer,actions,mode:null,walkGrace:0,attackRemaining:0,
-   lastAttackCd:mob.attackCd,impact:{seen:mob.visualHitSequence||0,wasHit:false}};
+   lastAttackCd:mob.attackCd,impact:{seen:mob.visualHitSequence||0,wasHit:false},
+   strike:{cueSeen:mob.visualStrikeCue||0,hitSeen:mob.visualStrikeHitSequence||0,phase:'idle'}};
   mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:container,getRadius,heightAt,mixer});
   advancePlainstriderVisual(THREE,mob,1/60,0,false);
  }
@@ -1048,11 +1065,16 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    bird.impactPivot.position.z=-.09*impact.weight;
    // Living wildlife has breathing and natural lean on turns; the authored
    // Walk/Peck GLB remains untouched and controls both legs.
+   const strike=advanceCreatureStrike(bird.strike,dt,{
+    cueSequence:mob.visualStrikeCue||0,hitSequence:mob.visualStrikeHitSequence||0,
+    windupRemaining:mob.attackWindup,windupDuration:mob.visualStrikeWindupSeconds||.4
+   });
    const stance=advanceCreatureSecondary(bird.secondary,dt,{
     kind:'longstrider',yaw:isOnline()?mob.renderYaw??mob.yaw:mob.yaw,
     walking:gait.walking,speed:Math.min(1,bird.gait?.rate||0),
     attacking:bird.mode==='Peck',attackRemaining:bird.attackRemaining,
-    hitWeight:impact.weight
+    hitWeight:impact.weight,
+    strikePrepare:strike.prepare,strikeImpact:strike.impact,strikeRecover:strike.recover
    });
    applyCreatureSecondary(bird.motionPivot,stance);
   }
@@ -2433,7 +2455,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(mob.stun>0||!mob.aggro||state.hp<=0||!close){
     mob.attackWindup=0;
    }else if(mob.attackCd<=0){
-    if(mob.attackWindup<=0)mob.attackWindup=mob.boss?.45:.4;
+    if(mob.attackWindup<=0){
+     mob.attackWindup=mob.boss?.45:.4;
+     mob.visualStrikeCue=(mob.visualStrikeCue||0)+1;
+     mob.visualStrikeWindupSeconds=mob.attackWindup;
+    }
     else{
      mob.attackWindup=Math.max(0,mob.attackWindup-dt);
      // An attack cannot land until the bird is visibly facing the player.
@@ -2453,6 +2479,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
        msg('Блок щитом · отражено '+result.absorbed+' урона',1.1);
       }
       mob.attackCd=mob.boss?1.8:2.1;
+      mob.visualStrikeHitSequence=(mob.visualStrikeHitSequence||0)+1;
       state.resource=changeResource(state.resource,WARRIOR_RAGE_ON_HURT,'warrior');
       if(state.hp<=0){
        // End the ENTIRE encounter before moving the hero back to the fire.
