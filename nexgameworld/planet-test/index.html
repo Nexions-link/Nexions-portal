@@ -82,7 +82,28 @@
 #mbody #tools .tool[aria-pressed="true"]{background:#c9a66f;color:#301d10}
 #actionsBar .ability .planetAbilityIcon{display:block;text-align:center;font-size:28px;line-height:42px;margin-top:4px}
 #actionsBar .ability .planetAbilityName{display:block;font:9px/1.2 system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 2px}
-#actionsBar .ability.is-active{border-color:#edce86;box-shadow:0 0 10px #e8c67c8c}
+#actionsBar .ability.is-active{border-color:#f5d17c;box-shadow:0 0 12px #f6c868ba,inset 0 0 10px #e8a34f63;background-color:#58401e}
+#actionsBar .ability.is-unavailable{filter:grayscale(1);opacity:.52}
+#actionsBar .ability .planetItemQuantity{position:absolute;right:2px;bottom:16px;z-index:7;
+ border-radius:5px;padding:0 4px;min-width:14px;background:#1e2521eb;color:#fff2cf;
+ font:700 13px/17px system-ui,-apple-system,sans-serif;text-align:center;
+ box-shadow:0 1px 3px #090d0b;text-shadow:0 1px 2px #080d0a;pointer-events:none}
+#actionsBar .ability .planetItemQuantity[hidden]{display:none}
+#mbody .ngw-item-equipped{font:12px/1.4 system-ui,sans-serif;color:#5e4829;margin:7px 0}
+#mbody .ngw-item-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 9px;
+ padding:7px 9px;background:#e2ca94b8;border:1px solid #a58a57;margin:8px 0}
+#mbody .ngw-item-stat{font:12px/1.4 system-ui,sans-serif;color:#483a29}
+#mbody .ngw-gear-compare{margin:9px 0;padding:10px;background:#d3bb8b;
+ border:1px solid #987c48;border-radius:5px;font:12px/1.5 system-ui,sans-serif;color:#352d20}
+#mbody .ngw-gear-compare>strong{display:block;margin-bottom:7px;font-size:13px}
+#mbody .ngw-compare-row{display:flex;justify-content:space-between;gap:8px;padding:2px 0;
+ border-top:1px solid #ad936c70}
+#mbody .ngw-compare-row span:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+#mbody .ngw-compare-row.better span:last-child{color:#216c38}
+#mbody .ngw-compare-row.worse span:last-child{color:#9e3126}
+#mbody .ngw-compare-row.same span:last-child{color:#574a38}
+#mbody .ngw-compare-level{margin-top:8px;color:#9e3126;font-weight:700}
+
 #actionsBar .ability.is-cooldown{filter:grayscale(.75);opacity:.75}
 #actionsBar .ability.is-empty{opacity:.65}
 #actionsBar .ability{position:relative;overflow:hidden}
@@ -281,7 +302,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.42.9" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.42.10" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -368,7 +389,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=108').catch(error=>{
+  import('./planet.js?v=109').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

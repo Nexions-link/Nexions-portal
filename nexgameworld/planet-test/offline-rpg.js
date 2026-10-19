@@ -3,7 +3,8 @@ import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=4';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
-import {HOTBAR_ART,HOTBAR_SHORT} from './native-hotbar-art.js?v=1';
+import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=2';
+import {compareEquipment,itemStatRows} from './equipment-comparison.js?v=1';
 import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.3.5.18';
 import {getAbilityDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
@@ -1152,6 +1153,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    hasConsumable:itemCount('healingPotion')>0,needsHealing:state.hp<stats().maxHp};
  }
  function castAction(id){
+  if(id==='healingPotion'&&itemCount('healingPotion')===0){msg('Лечебных настоев нет в рюкзаке');return false;}
   if(authenticatedProfile&&id==='healingPotion')return sendAccountAction('usePotion');
   if(authenticatedProfile&&!isOnline()){
    msg('Связь с сервером отсутствует. Боевые действия приостановлены.');
@@ -1274,14 +1276,17 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const button=document.createElement('button');button.type='button';button.dataset.slot=String(i);
    button.className='ability';button.title=entry?.id||'Назначить умение';
    const key=document.createElement('kbd');key.textContent=String(i+1);
-   const icon=document.createElement('span');icon.className='planetAbilityIcon';if(entry&&HOTBAR_ART[entry.id])icon.innerHTML=HOTBAR_ART[entry.id];else icon.textContent='＋';
+   const icon=document.createElement('span');icon.className='planetAbilityIcon';if(entry&&HOTBAR_ART[entry.id])icon.innerHTML=entry.id==='autoAttack'&&autoplay?HOTBAR_AUTO_ACTIVE:HOTBAR_ART[entry.id];else icon.textContent='＋';
    const caption=document.createElement('span');caption.className='planetAbilityName';
    const entryDef=entry?actionDefinition(entry,'warrior',state.level):null;
    caption.textContent=entry?HOTBAR_SHORT[entry.id]||entryDef?.name||'Умение':'Пусто';
    const cooldownShade=document.createElement('span');cooldownShade.className='planetCooldownShade';
    const gcdShade=document.createElement('span');gcdShade.className='planetGcdShade';
    const cooldownText=document.createElement('span');cooldownText.className='planetCooldownText';
-   button.append(key,icon,caption,cooldownShade,gcdShade,cooldownText);
+   const quantity=document.createElement('span');quantity.className='planetItemQuantity';
+   quantity.hidden=entry?.id!=='healingPotion';
+   quantity.textContent=entry?.id==='healingPotion'?String(itemCount('healingPotion')):'';
+   button.append(key,icon,caption,cooldownShade,gcdShade,cooldownText,quantity);
    button.classList.toggle('is-empty',!entry);
    if(entry?.id==='autoAttack'&&autoplay)button.classList.add('is-active');
    const ability=entry?getAbilityDefinition(entry.id==='healingPotion'?'healingPotion':entry.id):null;
@@ -1303,7 +1308,22 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(cd)cd.textContent=remain>0?remain>=10?String(Math.ceil(remain)):remain.toFixed(1):'';
    if(gcd)gcd.style.transform='scaleY('+(def?.gcd?clamp(runtime.gcd/1.5,0,1):0)+')';
    button.classList.toggle('is-cooldown',remain>0);
-   button.classList.toggle('is-active',entry?.id==='autoAttack'&&autoplay);
+   const autoActive=entry?.id==='autoAttack'&&autoplay;
+   button.classList.toggle('is-active',autoActive);
+   if(entry?.id==='autoAttack'){
+    const art=button.querySelector('.planetAbilityIcon');
+    if(art&&button.dataset.autoActive!==String(autoActive)){
+     art.innerHTML=autoActive?HOTBAR_AUTO_ACTIVE:HOTBAR_ART.autoAttack;
+     button.dataset.autoActive=String(autoActive);
+    }
+    button.setAttribute('aria-pressed',String(autoActive));
+    button.title=autoActive?'Автоатака включена':'Автоатака выключена';
+   }
+   const isPotion=entry?.id==='healingPotion',count=isPotion?itemCount('healingPotion'):0;
+   const quantity=button.querySelector('.planetItemQuantity');
+   if(quantity){quantity.hidden=!isPotion;quantity.textContent=isPotion?String(count):'';}
+   button.classList.toggle('is-unavailable',isPotion&&count===0);
+   if(isPotion){button.setAttribute('aria-disabled',String(count===0));button.title=count>0?'Лечебных настоев: '+count:'Лечебных настоев нет';}
   }
  }
  function renderModal(){
@@ -1515,7 +1535,52 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
           const name=document.createElement('strong');name.textContent=def?.name||'Лечебный настой';
      if(def)name.style.color=QUALITY_VISUALS[itemRarity(def.rarity)].color;
           const description=document.createElement('p');description.textContent=def?.description||'Восстанавливает здоровье';
-          detail.append(name,description);
+          detail.append(name);
+          if(def?.slot){
+           const comparison=compareEquipment(item.id,state.level,state.equipment);
+           const equipped=document.createElement('div');
+           equipped.className='ngw-item-equipped';
+           equipped.textContent='Сравнение с '+(comparison.current?.name||'пустой ячейкой')+
+            ' · '+(LABEL[comparison.slot]||comparison.slot);
+           detail.append(equipped);
+           const stats=document.createElement('div');stats.className='ngw-item-stats';
+           for(const stat of itemStatRows(item.id)){
+            const row=document.createElement('div');row.className='ngw-item-stat';
+            row.textContent=stat.label+': '+stat.value;
+            stats.append(row);
+           }
+           if(stats.children.length)detail.append(stats);
+           const box=document.createElement('div');
+           box.className='ngw-gear-compare '+comparison.overall;
+           const headline=document.createElement('strong');
+           headline.textContent=comparison.overall==='better'?'Улучшение характеристик':
+            comparison.overall==='worse'?'Характеристики ухудшатся':
+            comparison.overall==='mixed'?'Есть улучшения и ухудшения':
+            'Характеристики не изменятся';
+           box.append(headline);
+           if(comparison.meaningful.length){
+            for(const stat of comparison.meaningful){
+             const row=document.createElement('div');row.className='ngw-compare-row '+stat.trend;
+             const label=document.createElement('span');label.textContent=stat.label;
+             const values=document.createElement('span');
+             const sign=stat.trend==='better'?'▲ ':stat.trend==='worse'?'▼ ':'';
+             values.textContent=sign+stat.deltaText+' ('+
+              Number(stat.before.toFixed(2)).toLocaleString('ru-RU')+' → '+
+              Number(stat.after.toFixed(2)).toLocaleString('ru-RU')+')';
+             row.append(label,values);box.append(row);
+            }
+           }else{
+            const note=document.createElement('p');note.textContent='Бонусы и итоговые характеристики не изменятся.';
+            box.append(note);
+           }
+           if(!comparison.requirementsMet){
+            const levelNote=document.createElement('div');levelNote.className='ngw-compare-level';
+            levelNote.textContent='Требуется уровень '+def.requiredLevel;
+            box.append(levelNote);
+           }
+           detail.append(box);
+          }
+          detail.append(description);
           const commands=[...(def?.slot?[['Надеть',()=>equip(item.id)]]:[]),
             ...(authenticatedProfile?[]:[['🗑 Удалить',()=>{takeItem(item.id,1);draw();}]])];
           for(const [label,action] of commands){

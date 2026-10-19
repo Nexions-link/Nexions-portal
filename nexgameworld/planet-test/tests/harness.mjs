@@ -23,7 +23,9 @@ class Element {
  addEventListener(type,fn){(this.events[type]??=[]).push(fn)}
  click(){for(const fn of this.events.click||[])fn({target:this})}
  setAttribute(k,v){this.attributes[k]=String(v)}
+ get innerHTML(){return this._innerHTML??''}
  set innerHTML(value){
+  this._innerHTML=String(value);
   // This adapter only needs literal empty HTML elements emitted by dialog rows.
   this.children=[];
   for(const match of String(value).matchAll(/<([a-z][a-z0-9]*)><\/\1>/gi))

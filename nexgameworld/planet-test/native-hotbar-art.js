@@ -6,3 +6,7 @@ export const HOTBAR_ART={
  healingPotion:'<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M19 6L29 6L29 16Q42 27 36 38Q24 44 12 38Q6 27 19 16Z" fill="#742d28" stroke="#d5b976" stroke-width="2"/><path d="M15 26L33 26L34 36Q24 41 14 36Z" fill="#bf5344"/><path d="M18 7L30 7" stroke="#a5834d" stroke-width="6"/></svg>'
 };
 export const HOTBAR_SHORT={autoAttack:'Авто',thunderStomp:'Поступь',heavyStrike:'Рубящий',healingPotion:'Настой'};
+
+// Active mode visibly differs from the unsheathed idle sword: crossed glowing
+// blades and warm backdrop communicate that auto-attack is engaged.
+export const HOTBAR_AUTO_ACTIVE='<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#5b3419" stroke="#e8b954" stroke-width="1.5"/><path d="M10 10L38 38M38 10L10 38" stroke="#6c4223" stroke-width="7" stroke-linecap="round"/><path d="M8 8L34 34M40 8L14 34" stroke="#e8e0c5" stroke-width="4" stroke-linecap="round"/><path d="M6 5L15 7L9 16Z M42 5L33 7L39 16Z" fill="#fff1bf"/><path d="M12 28L20 36M28 36L36 28" fill="none" stroke="#ffc458" stroke-width="4"/><path d="M24 3L27 11M24 45L27 37" stroke="#ffdf83" stroke-width="2"/></svg>';
