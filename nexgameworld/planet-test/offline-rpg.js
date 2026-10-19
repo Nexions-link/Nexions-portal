@@ -11,7 +11,7 @@ import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.j
 import {getAbilityDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
-import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.3.7.0';
+import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.6.43.32';
 import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
 import {BATTLEFURY_ITEM_ID,BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_FIELDS,BATTLEFURY_TUNER_GROUPS,readBattlefuryTuning,saveBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=2';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
@@ -45,6 +45,7 @@ import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceCreatureGait} from './creature-gait.js?v=1';
 import {advanceMobImpact,mobVisualMode} from './mob-impact.js?v=1';
+import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=2';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
@@ -892,12 +893,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(mob.banditGltf){mob.banditGltf.mixer.stopAllAction();mob.banditGltf.container.removeFromParent();}
   const rig=asset.scene.clone(true);
   const container=new THREE.Group();container.name='dust-trail-raider-v0.3';
-  container.add(rig);mob.root.add(container);mob.fallbackVisual.visible=false;
+  const motionPivot=new THREE.Group();motionPivot.name='raider-secondary-motion';
+  motionPivot.add(rig);container.add(motionPivot);
+  mob.root.add(container);mob.fallbackVisual.visible=false;
   if(mob.boss)container.scale.setScalar(BANDIT_BOSS_SCALE);
   rig.traverse(part=>{if(part.isMesh){part.castShadow=true;part.receiveShadow=false;}});
   const mixer=new THREE.AnimationMixer(rig);
   const actions=Object.fromEntries(asset.animations.map(clip=>[clip.name,mixer.clipAction(clip)]));
-  mob.banditGltf={container,rig,mixer,actions,mode:null,action:null,walkBlend:0,walkGrace:0,
+  mob.banditGltf={container,rig,motionPivot,secondary:{},mixer,actions,mode:null,action:null,walkBlend:0,walkGrace:0,
    gait:{},wasWindup:false,attackRemaining:0,
    impact:{seen:mob.visualHitSequence||0,wasHit:false}};
   mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:container,getRadius,heightAt,mixer});
@@ -915,6 +918,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    gltf.impact={seen:0,wasHit:false};gltf.gait={};
    gltf.container.rotation.set(0,0,0);
    gltf.container.position.set(0,0,0);
+   resetCreatureSecondary(gltf.secondary,gltf.motionPivot);
   }
   if(mob.birdVisual){
    const bird=mob.birdVisual;
@@ -922,6 +926,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    bird.impactPivot?.rotation.set(0,0,0);
    bird.impactPivot?.position.set(0,0,0);
    bird.gait={};
+   bird.attackRemaining=0;bird.lastAttackCd=mob.attackCd||0;bird.walkGrace=0;
+   resetCreatureSecondary(bird.secondary,bird.motionPivot);
   }
  }
  function banditAnimation(mob,dt,moved=0){
@@ -955,7 +961,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const mode=mobVisualMode({hit:impact.active&&!!gltf.actions.Hurt,
    attack:attacking,walking:gait.walking});
   // A second hit during Hurt restarts its clip instead of freezing on its last frame.
-  if(mode!==gltf.mode||(impact.started&&mode==='Hurt')){
+  if(mode!==gltf.mode||(mode==='Hurt'&&shouldReplayCreatureHurt(gltf.action,impact.started))){
    const fade=mode==='Attack'?.085:mode==='Hurt'?.10:.22;
    const nextAction=gltf.actions[mode]||gltf.actions.Idle;
    const replay=gltf.action===nextAction;
@@ -974,7 +980,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    gltf.mode=mode;
   }
   if(mode==='Walk')gltf.action?.setEffectiveTimeScale?.(gait.clipRate);
+  // Base animation first, then restrained weight transfer and turn inertia
+  // on a parent pivot (no accumulated bone rotations or root movement).
   gltf.mixer.update(delta);
+  const stance=advanceCreatureSecondary(gltf.secondary,delta,{
+   kind:'raider',yaw:isOnline()?mob.renderYaw??mob.yaw:mob.yaw,
+   walking:gait.walking,speed:Math.min(1,gltf.gait.rate||0),
+   attacking,attackRemaining:gltf.attackRemaining,hitWeight:impact.weight
+  });
+  applyCreatureSecondary(gltf.motionPivot,stance);
  }
  // Use the exact approved longstrider model and clips when the shared GLB loads.
  // Procedural fallback remains available if the CDN or asset fails.
@@ -1002,12 +1016,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const container=new THREE.Group();container.name='dolgonog-original-v0.1';
   container.scale.setScalar(PLAINSTRIDER_VISUAL_SCALE);
   const impactPivot=new THREE.Group();impactPivot.name='dolgonog-hit-response';
-  impactPivot.add(bird);container.add(impactPivot);
+  const motionPivot=new THREE.Group();motionPivot.name='dolgonog-secondary-motion';
+  impactPivot.add(bird);motionPivot.add(impactPivot);container.add(motionPivot);
   mob.root.add(container);mob.fallbackVisual.visible=false;
   bird.traverse(obj=>{if(obj.isMesh){obj.castShadow=/^(Body|Head|Neck|Wing)/.test(obj.name);obj.receiveShadow=false;}});
   const mixer=new THREE.AnimationMixer(bird);
   const actions=Object.fromEntries(PLAINSTRIDER_REQUIRED_CLIPS.map(k=>[k,mixer.clipAction(asset.animations.find(a=>a.name===k))]));
-  mob.birdVisual={container,bird,impactPivot,mixer,actions,mode:null,walkGrace:0,attackRemaining:0,
+  mob.birdVisual={container,bird,impactPivot,motionPivot,secondary:{},spherical:true,mixer,actions,mode:null,walkGrace:0,attackRemaining:0,
    lastAttackCd:mob.attackCd,impact:{seen:mob.visualHitSequence||0,wasHit:false}};
   mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:container,getRadius,heightAt,mixer});
   advancePlainstriderVisual(THREE,mob,1/60,0,false);
@@ -1031,6 +1046,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    bird.impactPivot.rotation.z=.087*impact.weight*impact.side;
    bird.impactPivot.position.y=.04*impact.weight;
    bird.impactPivot.position.z=-.09*impact.weight;
+   // Living wildlife has breathing and natural lean on turns; the authored
+   // Walk/Peck GLB remains untouched and controls both legs.
+   const stance=advanceCreatureSecondary(bird.secondary,dt,{
+    kind:'longstrider',yaw:isOnline()?mob.renderYaw??mob.yaw:mob.yaw,
+    walking:gait.walking,speed:Math.min(1,bird.gait?.rate||0),
+    attacking:bird.mode==='Peck',attackRemaining:bird.attackRemaining,
+    hitWeight:impact.weight
+   });
+   applyCreatureSecondary(bird.motionPivot,stance);
   }
  }
  function player(){return toLocal(playerNormal(),getRadius());}
