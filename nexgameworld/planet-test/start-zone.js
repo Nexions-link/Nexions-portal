@@ -3,6 +3,7 @@ import {createSphericalMeadow} from './sphere-meadow.js?v=2';
 import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';
 import {createTaurenAnatomy} from './tauren-anatomy.js?v=3';
+import {getTaurenSurfaceMaps} from './tauren-fur-textures.js?v=1';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
 import {canWalkCamp} from './sphere-physics.js?v=14';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=10';
@@ -80,7 +81,6 @@ export function createStartZone(three,scene,getRadius,heightAt){
  const UP=new THREE.Vector3(0,1,0);
  let textureSeed=531;
  const rand=()=>((textureSeed=(Math.imul(textureSeed,1664525)+1013904223)>>>0)/4294967296);
- function texture(draw,size=128){const c=document.createElement('canvas');c.width=c.height=size;draw(c.getContext('2d'),size);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
  const hideTexture=texture((c,s)=>{c.fillStyle='#dbc39a';c.fillRect(0,0,s,s);for(let i=0;i<900;i++){c.fillStyle=rand()>.5?'#fff0ca18':'#53392313';c.fillRect(rand()*s,rand()*s,rand()*12,1)}c.strokeStyle='#6d3d2b';c.lineWidth=9;c.beginPath();for(let x=0;x<=s;x+=16){c.lineTo(x,40+(x%32?13:-13))}c.stroke();c.fillStyle='#ac5938';c.fillRect(0,54,s,12);c.fillStyle='#346c66';c.fillRect(0,74,s,6);c.fillStyle='#795034';c.fillRect(0,s-7,s,7)});
  hideTexture.wrapS=THREE.RepeatWrapping;
  hideTexture.repeat.set(3,1);
@@ -384,7 +384,6 @@ export function createStartZone(three,scene,getRadius,heightAt){
 // with networking, equipment and inventory intentionally not copied.
 export function createTauren(THREE,scene,{fur=0x836144,clothColor=null,player=false,remotePlayer=false}={}){
  const TAU=Math.PI*2;
- let seed=531;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
  const material=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,...extra});
  function texture(draw,size=128){const c=document.createElement('canvas');c.width=c.height=size;draw(c.getContext('2d'),size);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
  const M={red:material(0x9a4931),teal:material(0x427b70),gold:material(0xd7ae5e),bone:material(0xe5d5aa),black:material(0x231f19),wood:material(0x5b3d24)};
@@ -394,15 +393,8 @@ export function createTauren(THREE,scene,{fur=0x836144,clothColor=null,player=fa
  const ell=(p,m,x,y,z,sx,sy,sz,cast=true)=>mesh(p,G.sphere,m,x,y,z,sx,sy,sz,cast);
  const box=(p,m,x,y,z,sx,sy,sz,cast=true)=>mesh(p,G.box,m,x,y,z,sx,sy,sz,cast);
  function rod(p,m,a,b,r=.08,r2=r,segments=7){const av=new THREE.Vector3(...a),bv=new THREE.Vector3(...b),d=bv.clone().sub(av);const obj=mesh(p,new THREE.CylinderGeometry(r2,r,d.length(),segments),m,...av.clone().add(bv).multiplyScalar(.5).toArray());obj.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return obj}
-const taurenFurMap=texture((c,s)=>{
- const g=c.createLinearGradient(0,0,0,s);g.addColorStop(0,'#97816a');g.addColorStop(.32,'#e0c49b');g.addColorStop(.7,'#d0ad7d');g.addColorStop(1,'#8e7154');c.fillStyle=g;c.fillRect(0,0,s,s);
- for(let i=0;i<1050;i++){const x=((i*73)%257)/257*s,y=((i*139)%263)/263*s;c.strokeStyle=i%3?'#3c28151c':'#fff0c621';c.lineWidth=.8;c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x-2,y+3,x+(i%3)-1,y+6+(i%7));c.stroke()}
-},256);
-const hornMap=texture((c,s)=>{
- const g=c.createLinearGradient(0,s,0,0);g.addColorStop(0,'#6c5036');g.addColorStop(.2,'#bfa780');g.addColorStop(.4,'#f2dfb5');g.addColorStop(.72,'#dfcaa0');g.addColorStop(.9,'#786046');g.addColorStop(1,'#352b23');c.fillStyle=g;c.fillRect(0,0,s,s);
- for(let i=0;i<25;i++){c.fillStyle='#47301c12';c.fillRect(0,i*s/25,s,1)}
-});
-const taurenMaterials={mane:material(0x36261d,{map:taurenFurMap}),muzzle:material(0xc5a47b,{map:taurenFurMap}),nose:material(0x503b30),hoof:material(0x382e25),horn:material(0xffffff,{map:hornMap}),eye:material(0xc4944e),hide:material(0x68442c,{map:taurenFurMap}),trim:material(0x9a7450),ivory:material(0xc7b28a)};
+const {pelt:taurenFurMap,muzzle:taurenMuzzleMap,horn:hornMap}=getTaurenSurfaceMaps(THREE);
+const taurenMaterials={mane:material(0x36261d,{map:taurenFurMap}),muzzle:material(0xc5a47b,{map:taurenMuzzleMap}),nose:material(0x503b30),hoof:material(0x382e25),horn:material(0xffffff,{map:hornMap}),eye:material(0xc4944e),hide:material(0x68442c,{map:taurenFurMap}),trim:material(0x9a7450),ivory:material(0xc7b28a)};
 // Ring profiles form continuous tapered muscle volumes, instead of stacked balls.
 function taurenForm(parent,mat,rings,segments=14,power=1){
  const positions=[],uv=[],indices=[];
