@@ -42,6 +42,39 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
   mesh.position.set(x,y,z);mesh.receiveShadow=true;
   parent.add(mesh);return mesh;
  };
+ // Small deterministic material maps, built in memory without downloads.
+ // A single 64x64 atlas per surface type avoids extra requests on iPhone.
+ function createGrain(kind){
+  const size=64,data=new Uint8Array(size*size*4);
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+   const h0=(Math.imul(x+17,73856093)^Math.imul(y+23,19349663)^
+    (kind==='wood'?83492791:24793403))>>>0;
+   const noise=((h0^(h0>>>13))%27)-13;
+   const streak=kind==='wood'
+    ?Math.sin(x*.58+Math.sin(y*.10+x*.11)*.8)*11+
+     Math.sin(x*1.87+y*.025)*4
+    :Math.sin(x*.35+y*.2)*4+((x+y*3)%9===0?-12:0);
+   const brightness=Math.max(150,Math.min(255,
+    Math.round((kind==='wood'?221:229)+noise*.75+streak)));
+   const offset=(y*size+x)*4;
+   data[offset]=brightness;data[offset+1]=brightness;
+   data[offset+2]=brightness;data[offset+3]=255;
+  }
+  const texture=new THREE.DataTexture(data,size,size,THREE.RGBAFormat);
+  texture.name='hearth-house-'+kind+'-grain';
+  texture.wrapS=THREE.RepeatWrapping;texture.wrapT=THREE.RepeatWrapping;
+  texture.repeat.set(2,2);
+  texture.magFilter=THREE.LinearFilter;
+  texture.minFilter=THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps=true;
+  texture.colorSpace=THREE.SRGBColorSpace;
+  texture.needsUpdate=true;
+  return texture;
+ }
+ const timberGrain=createGrain('wood'),hideGrain=createGrain('hide');
+ for(const mat of [M.darkWood,M.wood,M.lightWood,M.plank,M.floor])
+  mat.map=timberGrain;
+ for(const mat of [M.wall,M.hide,M.roof])mat.map=hideGrain;
  const UP=new THREE.Vector3(0,1,0);
  // Many timber members use a single instanced draw call per material.
  function beams(parent,name,members,mat){
@@ -244,6 +277,46 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
  const threshold=createBox(accents,M.plank,0,.155,hd+.43,
   door-.34,.145,.53);
  threshold.name='hearth-house-entry-threshold';
+ // Weathered flat stepping stones lead to the entrance. They intentionally do
+ // not participate in physics and sit below the player's feet.
+ const steps=new THREE.InstancedMesh(
+  new THREE.CylinderGeometry(1,1,1,7),M.foundation,5);
+ steps.name='hearth-house-forecourt-stepping-stones';
+ for(let i=0;i<5;i++){
+  dummy.position.set(Math.sin(i*1.8)*.4,.085,hd+1.12+i*.89);
+  dummy.rotation.set(0,i*.31,0);
+  dummy.scale.set(.82+(i%2)*.14,.045,.55+(i%3)*.065);
+  dummy.updateMatrix();steps.setMatrixAt(i,dummy.matrix);
+ }
+ steps.instanceMatrix.needsUpdate=true;accents.add(steps);
+ // Symbolic wall torches: emissive meshes provide a warm focal point
+ // without expensive dynamic lights, particles or frame-time animation.
+ const emberMat=material('#e2a451',{
+  emissive:new THREE.Color('#ef7138'),emissiveIntensity:.75,
+  roughness:1
+ });
+ for(const sign of [-1,1]){
+  const x=sign*6.95,z=hd+.84;
+  const socket=new THREE.Mesh(new THREE.CylinderGeometry(.30,.42,.64,8),
+   M.darkWood);
+  socket.name='hearth-house-entrance-sconce';
+  socket.rotation.z=sign*.24;
+  socket.position.set(x,4.35,z);accents.add(socket);
+  const ember=new THREE.Mesh(new THREE.IcosahedronGeometry(.32,1),emberMat);
+  ember.name='hearth-house-sconce-ember';
+  ember.position.set(x,4.78,z+.08);accents.add(ember);
+ }
+ // Curved bone pendants hang from the existing ceremonial poles outside the
+ // walking corridor; a shared instanced draw call is sufficient.
+ const charms=[];
+ for(const sign of [-1,1]){
+  const x=sign*7.55,z=hd+1.55;
+  for(let i=0;i<4;i++){
+   const offset=(i-1.5)*.31;
+   charms.push([[x+offset,2.15,z],[x+offset,1.63-(i%2)*.14,z],.048]);
+  }
+ }
+ beams(accents,'hearth-house-bone-wind-charms',charms,M.bone);
 
  const roof=new THREE.Group();roof.name='hearth-house-exterior-roof';root.add(roof);
  const roofPlanes=[],slope=Math.atan2(LONGHOUSE.roofRise,hw);
@@ -349,6 +422,41 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
     [sign*(hw+.55),h-.57,z+.86],.11]);
  }
  beams(roof,'hearth-house-eave-details',fringes,M.lightWood);
+ // The rough, uneven hide apron softens the geometric lower roof edge.
+ // All aprons disappear automatically together with the exterior roof.
+ const roofAprons=new THREE.InstancedMesh(
+  new THREE.BoxGeometry(1,1,1),M.hide,24);
+ roofAprons.name='hearth-house-roof-hide-apron';
+ const apronColors=['#a98564','#bba17a','#cdb18a'].map(x=>new THREE.Color(x));
+ let ai=0;
+ for(const sign of [-1,1])for(let i=0;i<12;i++){
+  const z=-hd+.60+i*(LONGHOUSE.depth-1.2)/12;
+  dummy.position.set(sign*(hw+.48),h-.37-(i%3)*.095,z);
+  dummy.rotation.set(0,0,sign*.11);
+  dummy.scale.set(.115,.55+(i%4)*.12,1.43);
+  dummy.updateMatrix();roofAprons.setMatrixAt(ai,dummy.matrix);
+  roofAprons.setColorAt(ai,apronColors[(i+(sign+1)/2)%3]);ai++;
+ }
+ roofAprons.instanceMatrix.needsUpdate=true;
+ if(roofAprons.instanceColor)roofAprons.instanceColor.needsUpdate=true;
+ roof.add(roofAprons);
+ // Colorful narrow ribbons mark the fore edge of the awning rather than
+ // extending the collision envelope or changing the old roof planes.
+ const ribbonBatch=new THREE.InstancedMesh(
+  new THREE.BoxGeometry(1,1,1),
+  material('#ffffff',{side:THREE.DoubleSide}),18);
+ ribbonBatch.name='hearth-house-awning-woven-fringe';
+ const ribbons=['#a45139','#b78e5a','#477b74'].map(x=>new THREE.Color(x));
+ for(let i=0;i<18;i++){
+  dummy.position.set(-4.13+i*.486,h-.64+(i%3)*.065,hd+3.05);
+  dummy.rotation.set(0,0,Math.sin(i*1.4)*.045);
+  dummy.scale.set(.28,.64+(i%4)*.095,.065);dummy.updateMatrix();
+  ribbonBatch.setMatrixAt(i,dummy.matrix);
+  ribbonBatch.setColorAt(i,ribbons[i%3]);
+ }
+ ribbonBatch.instanceMatrix.needsUpdate=true;
+ if(ribbonBatch.instanceColor)ribbonBatch.instanceColor.needsUpdate=true;
+ porch.add(ribbonBatch);
  const finials=[];
  for(const z of [-hd-.35,hd+.35]){
   for(const s of [-1,1]){

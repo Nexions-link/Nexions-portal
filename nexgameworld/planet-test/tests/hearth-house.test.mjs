@@ -92,9 +92,9 @@ test('every active browser geometry consumer uses the current shared module URL'
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   const imports=[...source.matchAll(/hearth-house\.js\?v=([^'"\s]+)/g)];
   assert.ok(imports.length>0,name);
-  assert.ok(imports.every(row=>row[1]==='6'),name+' requests a stale geometry module');
+  assert.ok(imports.every(row=>row[1]==='7'),name+' requests a stale geometry module');
  }
- for(const [name,dependency,version] of [['planet.js','start-zone.js','33'],['planet.js','offline-rpg.js','99'],['offline-rpg.js','gather-world.js','16'],['offline-rpg.js','camp-actions.js','15']]){
+ for(const [name,dependency,version] of [['planet.js','start-zone.js','34'],['planet.js','offline-rpg.js','100'],['offline-rpg.js','gather-world.js','17'],['offline-rpg.js','camp-actions.js','16']]){
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   assert.ok(source.includes(dependency+'?v='+version),name+' must invalidate its geometry dependency');
  }
@@ -185,6 +185,40 @@ test('elder architectural facades frame the doorway and retain the original walk
  model.roof.visible=false;
  assert.equal(model.floor.visible,true);
  assert.equal(model.walls.visible,true);
+ root.traverse(node=>{
+  assert.notEqual(node.userData.collidable,true);
+  assert.notEqual(node.userData.targetable,true);
+ });
+});
+
+test('textured elder lodge keeps procedural materials lightweight and platform independent',()=>{
+ const root=new THREE.Group();
+ const model=buildHearthHouse(THREE,{root,villageVisuals:{addRoof(){}}});
+ const wall=model.walls.children.find(node=>node.isMesh);
+ const timber=model.accents.getObjectByName('hearth-house-lashed-timber');
+ assert.equal(wall.material.map.isDataTexture,true);
+ assert.equal(timber.material.map.isDataTexture,true);
+ assert.notEqual(wall.material.map,timber.material.map);
+ assert.equal(wall.material.map.image.width,64);
+ assert.equal(timber.material.map.image.height,64);
+ const tex=timber.material.map.image.data;
+ assert.ok(new Set([tex[0],tex[4],tex[8],tex[64]]).size>1);
+ assert.equal(model.accents.getObjectByName('hearth-house-forecourt-stepping-stones').count,5);
+ assert.equal(model.accents.getObjectByName('hearth-house-bone-wind-charms').count,8);
+ assert.equal(model.accents.children.filter(x=>x.name==='hearth-house-entrance-sconce').length,2);
+ assert.equal(model.accents.children.filter(x=>x.name==='hearth-house-sconce-ember').length,2);
+ assert.equal(model.roof.getObjectByName('hearth-house-roof-hide-apron').count,24);
+ assert.equal(model.roof.getObjectByName('hearth-house-ceremonial-porch')
+  .getObjectByName('hearth-house-awning-woven-fringe').count,18);
+ assert.equal(model.walls.children.filter(node=>node.isMesh).length,6);
+ assert.equal(root.children.length,3);
+ for(const x of [-2.8,0,2.8]){
+  assert.equal(walk(x,LONGHOUSE.depth/2),true);
+  assert.equal(walk(x,LONGHOUSE.depth/2+1),true);
+ }
+ model.roof.visible=false;
+ assert.equal(model.walls.visible,true);
+ assert.equal(model.floor.visible,true);
  root.traverse(node=>{
   assert.notEqual(node.userData.collidable,true);
   assert.notEqual(node.userData.targetable,true);
