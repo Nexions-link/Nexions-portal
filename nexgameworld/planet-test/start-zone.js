@@ -5,6 +5,7 @@ import {createTaurenVisualDetails} from './tauren-visual-details.js?v=3';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
 import {canWalkCamp} from './sphere-physics.js?v=11';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=7';
+import {createRoofTransparency} from './roof-transparency.js?v=1';
 import {createHouseRat} from './house-rat.js?v=6';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
 import {createBanditCampVisuals} from './bandit-camp-visuals.js?v=3';
@@ -109,6 +110,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
  // Rebuilt longhouse: matching opaque physics and exterior roof layers.
  const houseAnchor=anchor(LONGHOUSE.x,LONGHOUSE.z,LONGHOUSE.yaw);
  const longhouse=buildHearthHouse(THREE,{root:houseAnchor,villageVisuals});
+ const roofTransparency=createRoofTransparency(longhouse.roof,{indoorOpacity:.12,fadeSpeed:9});
  const houseRat=createHouseRat(THREE,houseAnchor);
  longhouseRoofs.push(...longhouse.roofPlanes);
  shadowCasters.push(...longhouse.roofPlanes);
@@ -327,7 +329,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
   updateSurface(shore);updateSurface(water);updateSurface(shimmerGeometry);refreshAnchors();updateBrush();rebuildReeds();meadow.rebuild();rebuildStones();villageVisuals.rebuild();
  }
  rebuild();
- let roofFaded=false,shadowsEnabled=false,shimmerStrength=.30;
+ let shadowsEnabled=false,shimmerStrength=.30;
  function setGraphics(preset={}){
   meadow.applyDensity(preset);
   villageVisuals.applyQuality(preset.detail);
@@ -337,18 +339,14 @@ export function createStartZone(three,scene,getRadius,heightAt){
   shimmer.visible=shimmerStrength>0;
   if(Number.isInteger(preset.waterColor))waterTint.setHex(preset.waterColor);
   shadowsEnabled=!!preset.shadows;
-  for(const caster of shadowCasters)caster.castShadow=shadowsEnabled&&(!roofFaded||!longhouseRoofs.includes(caster));
+  // Shadows are independent of whether the roof is translucent.
+  for(const caster of shadowCasters)caster.castShadow=shadowsEnabled;
   patch.receiveShadow=shadowsEnabled;
  }
- function updateInteriorView(x,z){
+ function updateInteriorView(x,z,dt=1/60){
   const inside=insideHouse(x,z);
-  if(inside!==roofFaded){
-   roofFaded=inside;
-   // An entire solid roof is hidden indoors; no translucent wall sorting.
-   longhouse.roof.visible=!inside;
-   villageVisuals.setInterior(inside);
-   for(const roof of longhouseRoofs)roof.castShadow=shadowsEnabled&&!inside;
-  }
+  // Visual roof fade does not change roof geometry, sun or shadow casters.
+  roofTransparency.update(inside,dt);
  }
  return {rebuild,updateInteriorView,setGraphics,meadow,
   animate(t){houseRat.animate(t);banditCampVisuals.animate(t);
