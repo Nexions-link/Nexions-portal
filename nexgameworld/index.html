@@ -26,7 +26,7 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
 #loading div{max-width:350px}
 #loading strong{font-size:clamp(23px,7vw,40px);font-weight:400;letter-spacing:.035em}
 #loading p{font:13px/1.6 system-ui,sans-serif;color:#bdbaae}
-#notice{position:absolute;inset:auto 12px calc(12px + env(safe-area-inset-bottom,0px));z-index:2;max-width:340px;margin:auto;padding:8px 11px;background:#151f23dc;border:1px solid #74674c;border-radius:5px;color:#e1d2b6;font:11px/1.5 system-ui,sans-serif;pointer-events:none}
+#notice{position:absolute;inset:auto 12px calc(12px + env(safe-area-inset-bottom,0px));z-index:2;max-width:340px;margin:auto;padding:8px 11px;background:#151f23dc;border:1px solid #74674c;border-radius:5px;color:#e1d2b6;font:11px/1.5 system-ui,sans-serif;pointer-events:auto}
 #notice[hidden]{display:none!important}
 #noticeReload{margin:6px 0 0;display:block;background:#806138;border:1px solid #e1bf80;border-radius:4px;color:#fff6df;padding:7px 12px;font:600 12px system-ui,sans-serif;cursor:pointer;touch-action:manipulation}
 #noticeReload[hidden]{display:none!important}
@@ -83,7 +83,8 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
  // No third-party iframe for the normal route: the fully mirrored game is
  // served from nexions.ru and saves under this domain on iOS Safari.
  // Read both the same-domain mirror and the current upstream release.
- // During the few minutes before sync completes, launch the newest published build.
+ // While Pages deployment catches up, allow the latest safe same-origin build.
+ // Never reveal account credentials to another host.
  function parseVersion(data){
   // Patch releases use four parts (e.g. 0.6.34.1); older builds use three.
   return data?.project==='NexGameWorld'&&/^[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/.test(data?.version||'')?
@@ -147,7 +148,7 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
      notice.hidden=false;
      if(noticeText)noticeText.textContent='Новая версия Alpha '+localVersion+' готова. Обновите игру, когда будет удобно.';
      if(noticeReload)noticeReload.hidden=false;
-     if(retryTimer!==null&&!accountPlay){clearTimeout(retryTimer);retryTimer=null;}
+     if(retryTimer!==null){clearTimeout(retryTimer);retryTimer=null;}
      return;
     }
     if(newest&&isNewer(newest,localVersion)){
@@ -181,7 +182,8 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
     scheduleRetry();
     return;
    }
-   if(retryTimer!==null){clearTimeout(retryTimer);retryTimer=null;}
+   // Keep the background availability check only while local Pages lags.
+   if(retryTimer!==null&&(!accountPlay||!newest||!isNewer(newest,localVersion))){clearTimeout(retryTimer);retryTimer=null;}
    const target=new URL(url,location.href);
    target.searchParams.set('v',version);
    // Safari can cache an iframe document even when its version query was
