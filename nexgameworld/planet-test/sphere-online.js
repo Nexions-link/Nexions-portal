@@ -1,4 +1,5 @@
 import {consumeAnimationTime} from './animation-budget.js?v=1';
+import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
 // NexGameWorld Stage 1: spherical WebSocket presence and visual-only remote avatars.
 // Combat, quests, loot and the player's local saves remain untouched.
 const WORLD_URL='wss://nexgame-world.onrender.com/ws/nexgameworld';
@@ -49,15 +50,81 @@ function disposeActor(root){
  root.parent?.remove(root);
 }
 export function createSphericalPresence({
- THREE,scene,createAvatar,animateAvatar,getPosition,getCharacter,getRadius,heightAt,onStatus,
+ THREE,scene,createAvatar,animateAvatar,getPosition,getCharacter,getBattlefuryPose,getRadius,heightAt,onStatus,
  onPlayers,onMobs,onVitals,onCombat,onKillCredit,onMobAttack,onMobTelegraph,onRespawn,
  onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
  onChestState,onChestStatus,onChestResult,onCombatRejected,onDisconnect,
  onVerifiedProgress,onAuthRejected,onEconomyResult,onPositionCorrection,
- auth=null,url=WORLD_URL
+ auth=null,url=WORLD_URL,loadBattlefuryScene=null
 }){
  let socket=null,closed=false,selfId=null,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null,lastCorrection=0,onlineCount=1;
  const peers=new Map(),visuals=new Map();
+ let weaponLoaderPromise=null;
+ const fetchWeaponScene=loadBattlefuryScene||(async()=>{
+  if(!weaponLoaderPromise)weaponLoaderPromise=import(
+   'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js'
+  ).then(({GLTFLoader})=>new GLTFLoader());
+  const loader=await weaponLoaderPromise;
+  const gltf=await loader.loadAsync('../assets/weapons/admin-battlefury.glb');
+  return gltf.scene;
+ });
+ function clearWeapon(visual){
+  const mesh=visual.weaponMesh;
+  if(mesh)disposeActor(mesh);
+  visual.weaponMesh=null;visual.weaponKey=null;
+  visual.actor.root.userData.weaponKind='none';
+  visual.actor.root.userData.equipmentGrip={};
+ }
+ function syncBattlefury(visual,peer){
+  const appearance=peer.battlefury;
+  if(appearance?.itemId!==BATTLEFURY_ITEM_ID||!appearance.pose){
+   if(visual.weaponMesh||visual.weaponKey)clearWeapon(visual);
+   return;
+  }
+  // The server has certified ownership. The pose is cosmetic and clamped again
+  // before it ever reaches the Three.js scene or remote wrist animation.
+  const pose=normalizeBattlefuryTuning(appearance.pose);
+  const key=JSON.stringify(pose);
+  if(visual.weaponMesh){
+   if(visual.weaponKey!==key){
+    const grip=applyBattlefuryPose(visual.weaponMesh,visual.actor.arms[1]?.hand,pose);
+    visual.actor.root.userData.equipmentGrip.weapon=grip;
+    visual.weaponKey=key;
+   }
+   return;
+  }
+  if(visual.weaponLoading||visual.weaponFailed)return;
+  const hand=visual.actor.arms[1]?.hand;
+  if(!hand)return;
+  visual.weaponLoading=true;
+  void (async()=>{
+   try{
+    const asset=await fetchWeaponScene();
+    if(visuals.get(peer.id)!==visual||peers.get(peer.id)?.battlefury?.itemId!==BATTLEFURY_ITEM_ID)return;
+    // Match the owner's GLB normalization, while retaining the full geometry.
+    const group=new THREE.Group(),bbox=new THREE.Box3().setFromObject(asset);
+    const dim=bbox.getSize(new THREE.Vector3());
+    const scale=1.95/Math.max(.001,dim.x,dim.y,dim.z);
+    const center=bbox.getCenter(new THREE.Vector3());
+    asset.scale.multiplyScalar(scale);
+    asset.position.sub(center.multiplyScalar(scale));
+    group.add(asset);
+    group.name='gear-axe';
+    hand.add(group);
+    visual.weaponMesh=group;
+    visual.actor.root.userData.weaponKind='axe';
+    const latest=peers.get(peer.id);
+    const latestPose=normalizeBattlefuryTuning(latest.battlefury.pose);
+    visual.weaponKey=JSON.stringify(latestPose);
+    visual.actor.root.userData.equipmentGrip??={};
+    visual.actor.root.userData.equipmentGrip.weapon=applyBattlefuryPose(group,hand,latestPose);
+   }catch(err){
+    visual.weaponFailed=true;
+    console.warn('Remote Battlefury model unavailable',err);
+   }finally{visual.weaponLoading=false}
+  })();
+ }
+
  const east=new THREE.Vector3(),north=new THREE.Vector3(),fwd=new THREE.Vector3(),
   right=new THREE.Vector3(),matrix=new THREE.Matrix4();
  const stopPeers=()=>{for(const peer of visuals.values())disposeActor(peer.actor.root);
@@ -116,7 +183,9 @@ export function createSphericalPresence({
    sendLoop=setInterval(()=>{
     if(ws.readyState!==WebSocket.OPEN||(auth&&!selfId))return;
     const p=position();if(p){
-     send({type:'move',...p,...(auth?{}:getCharacter?.())});
+     const visualPose=auth?getBattlefuryPose?.():null;
+     send({type:'move',...p,...(auth?{}:getCharacter?.()),
+      ...(auth&&visualPose?{battlefuryPose:visualPose}:{})});
      // Same socket preserves ordering: proximity checks see the latest movement.
      if(pendingChestOpen){send(pendingChestOpen);pendingChestOpen=null;}
     }
@@ -216,6 +285,7 @@ export function createSphericalPresence({
     visual={actor,normal:new THREE.Vector3(...peer.normal),targetNormal:new THREE.Vector3(),heading:peer.heading,phase:0};
     visuals.set(peer.id,visual);
    }
+   syncBattlefury(visual,peer);
    const factor=1-Math.exp(-Math.min(.1,Math.max(0,dt))*12);
    visual.targetNormal.set(...peer.normal);
    visual.normal.lerp(visual.targetNormal,factor).normalize();

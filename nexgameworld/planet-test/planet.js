@@ -7,8 +7,8 @@ import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=109';
-import {createSphericalPresence} from './sphere-online.js?v=11';
+import {createOfflineRpg} from './offline-rpg.js?v=110';
+import {createSphericalPresence} from './sphere-online.js?v=12';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=5';
 import {sampleSphericalFooting} from './foot-placement.js?v=1';
@@ -375,6 +375,7 @@ try {
     animateAvatar:animateSphericalTauren,
     getPosition:()=>({normal:state.normal.toArray(),heading:state.heading,radius:R,moving:presenceMoving}),
     getCharacter:()=>accountMode?{}:rpg.networkCharacter(),
+    getBattlefuryPose:()=>rpg.getBattlefuryPose(),
     auth:accountLaunch,url:accountMode?AUTH_WORLD_URL:undefined,
     getRadius:()=>R,heightAt,
     onPlayers:rows=>rpg.onOnlinePlayers(rows),
