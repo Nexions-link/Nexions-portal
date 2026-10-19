@@ -8,7 +8,9 @@ export const BANDIT_CAMP=Object.freeze({
 });
 export const BANDIT_PATROLS=Object.freeze([
  Object.freeze({id:'bandit-0',points:Object.freeze([[-50,-17],[-51,-23],[-47,-18]].map(Object.freeze))}),
- Object.freeze({id:'bandit-1',points:Object.freeze([[-73,-18],[-76,-21],[-72,-24]].map(Object.freeze))})
+ Object.freeze({id:'bandit-1',points:Object.freeze([[-73,-18],[-76,-21],[-72,-24]].map(Object.freeze))}),
+ // Third sentry patrols the eastern approach; the chief keeps his own clearing.
+ Object.freeze({id:'bandit-2',points:Object.freeze([[-55,15],[-52,12],[-57,10],[-59,15]].map(Object.freeze))})
 ]);
 // The boss has its own clearing and stays still until engaged. The approach
 // branches away from the main camp and keeps every guard outside aggro range.

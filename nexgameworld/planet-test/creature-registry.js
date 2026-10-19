@@ -20,7 +20,7 @@ export const CREATURE_SPAWNS=Object.freeze([
  ...BANDIT_SPAWNS.map(([x,z],i)=>Object.freeze({
   id:'bandit-'+i,index:DOLGONOG_SPAWNS.length+i,x,z,
   family:'bandit',name:i===BANDIT_BOSS_INDEX?'Главарь Пыльной тропы':'Разбойник Пыльной тропы',
-  level:i===BANDIT_BOSS_INDEX?5:i===2?3:2,boss:i===BANDIT_BOSS_INDEX,type:CREATURE_TYPE_HUMANOID
+  level:i===BANDIT_BOSS_INDEX?5:i===2?4:3,boss:i===BANDIT_BOSS_INDEX,type:CREATURE_TYPE_HUMANOID
  }))
 ]);
 const BY_ID=new Map(CREATURE_SPAWNS.map(m=>[m.id,m]));

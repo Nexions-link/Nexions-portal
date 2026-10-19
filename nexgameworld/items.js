@@ -29,6 +29,8 @@ export const ITEM_CATALOG={
  rustyHatchet:gear(1416,'Ржавый топорик','weapon',{icon:'🪓',weaponKind:'axe',damageMin:4,damageMax:8,speed:2.1,requiredLevel:4,buy:48,sell:9}),
  batteredBuckler:gear(2210,'Потрёпанный кулачный щит','shield',{icon:'🛡',armor:12,block:1,buy:10,sell:2}),
  bentShield:gear(2211,'Погнутый большой щит','shield',{icon:'🛡',armor:32,block:1,buy:24,sell:4}),
+ trailbreakerAxe:gear(null,'Топор следопыта','weapon',{icon:'🪓',rarity:'uncommon',quality:'Необычный',weaponKind:'axe',damageMin:6,damageMax:11,speed:2.1,strength:1,requiredLevel:5,sell:22,description:'Награда за победу над главарём Пыльной тропы. Усиливает ближний бой.'}),
+ trailwardenShield:gear(null,'Щит стража тропы','shield',{icon:'🛡️',rarity:'uncommon',quality:'Необычный',armor:65,block:2,stamina:1,requiredLevel:5,sell:22,description:'Награда за победу над главарём Пыльной тропы. Помогает выдерживать удары.'}),
  warriorTunic:gear(2965,'Мундир воина','chest',{icon:'👕',rarity:'uncommon',quality:'Необычный',armor:115,strength:2,requiredLevel:6,sell:30,description:'Кольчужный мундир. Сила увеличивает мощь атак воина.'}),
  warriorPants:gear(2966,'Штаны воина','legs',{icon:'👖',rarity:'uncommon',quality:'Необычный',armor:94,stamina:1,requiredLevel:5,sell:25,description:'Кольчужные поножи. Выносливость увеличивает запас здоровья.'}),
  scalpingStrength:gear(4561,'Томагавк силы','weapon',{icon:'🪓',rarity:'uncommon',quality:'Необычный',weaponKind:'axe',damageMin:7,damageMax:14,speed:1.8,strength:1,requiredLevel:6,sell:40,description:'Одноручный томагавк со свойством «силы».'}),

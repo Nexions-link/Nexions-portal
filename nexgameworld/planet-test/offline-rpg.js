@@ -5,7 +5,7 @@ import {renderCharacterSheet} from './character-sheet.js?v=4';
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=2';
 import {compareEquipment,itemStatRows} from './equipment-comparison.js?v=1';
-import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.3.5.18';
+import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.6.43.2';
 import {getAbilityDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
@@ -45,7 +45,7 @@ import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
 import {rollCreatureLoot} from './loot-tables.js?v=1';
 import {creatureByIndex,BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_KILLS,BANDIT_QUEST_MIN_LEVEL,BANDIT_BOSS_SCALE} from './creature-registry.js?v=5';
-import {createBanditVisual} from './bandit-visual.js?v=1';
+import {createBanditVisual} from './bandit-visual.js?v=2';
 import {rollCreatureCoins} from './creature-types.js?v=1';
 import {creatureTypeForMob,CREATURE_TYPE_LABELS,CORPSE_COIN_ID,isValidCorpseCoins} from './creature-types.js?v=1';
 import {DOLGONOG_SPAWNS,mobLevelForIndex,mobBaseExperience,monsterKillExperience,monsterDifficulty,MONSTER_LEVEL_COLORS,monsterMaxHealth,monsterAttackDamage} from './mob-levels.js?v=1';
@@ -783,7 +783,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   rig.traverse(part=>{if(part.isMesh){part.castShadow=true;part.receiveShadow=false;}});
   const mixer=new THREE.AnimationMixer(rig);
   const actions=Object.fromEntries(asset.animations.map(clip=>[clip.name,mixer.clipAction(clip)]));
-  mob.banditGltf={container,rig,mixer,actions,mode:null,action:null};
+  mob.banditGltf={container,rig,mixer,actions,mode:null,action:null,walkBlend:0,walkGrace:0};
   mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:container,getRadius,heightAt,mixer});
   banditAnimation(mob,0,0);
  }
@@ -791,12 +791,20 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const gltf=mob.banditGltf;
   if(!gltf)return mob.banditVisual?.animate(clock,moved,mob.attackWindup>0?1:0);
   if(mob.corpse)return;
-  const mode=mob.hit>0?'Hurt':mob.attackWindup>0?'Attack':moved>.01?'Walk':'Idle';
+  const delta=Math.min(Math.max(0,dt),.12);
+  // Ignore tiny pathfinding jitters: retain the walk for a brief grace period.
+  gltf.walkBlend+=((moved>.015?1:0)-gltf.walkBlend)*(1-Math.exp(-delta*9));
+  gltf.walkGrace=moved>.015?.16:Math.max(0,gltf.walkGrace-delta);
+  const walking=gltf.walkGrace>0||gltf.walkBlend>.32;
+  const mode=mob.hit>0?'Hurt':mob.attackWindup>0?'Attack':walking?'Walk':'Idle';
   if(mode!==gltf.mode){
-   if(gltf.action)gltf.action.fadeOut(.12);
-   gltf.action=gltf.actions[mode];gltf.action.reset().fadeIn(.12).play();gltf.mode=mode;
+   const fade=mode==='Attack'?.085:mode==='Hurt'?.10:.22;
+   if(gltf.action)gltf.action.fadeOut(fade);
+   gltf.action=gltf.actions[mode];
+   gltf.action.reset().fadeIn(fade).play();
+   gltf.mode=mode;
   }
-  gltf.mixer.update(Math.min(Math.max(0,dt),.12));
+  gltf.mixer.update(delta);
  }
  // Use the exact approved longstrider model and clips when the shared GLB loads.
  // Procedural fallback remains available if the CDN or asset fails.
@@ -1342,6 +1350,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(bagRenderSnapshot===snapshot&&body.querySelector('.inventory-grid'))return;
    bagRenderSnapshot=snapshot;
   }
+  // Save the scroll offset before clearing DOM. On iOS the old contents
+  // may be removed by a server refresh while the player is comparing gear.
+  const previousBagScroll=kind==='bag'?body.scrollTop:0;
   const characterReuse=kind==='character'?{
    viewport:body.querySelector('.character-preview-viewport'),
    gesture:body.querySelector('.character-rotate')}:null;
@@ -1439,9 +1450,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      [['Принять задание',()=>sendAccountAction('banditChiefAccept')]]);
    else if(state.banditChiefQuest.stage===1)
     line('Главарь Пыльной тропы','Победи главаря разбойников у отдельной стоянки в конце тропы.');
-   else if(state.banditChiefQuest.stage===2)
-    line('Главарь Пыльной тропы','Главарь повержен. Награда: 180 опыта и 35 монет.',
-     [['Сдать задание',()=>sendAccountAction('banditChiefTurnIn')]]);
+   else if(state.banditChiefQuest.stage===2){
+    line('Главарь Пыльной тропы','Главарь повержен! Получи 180 опыта, 35 монет и выбери ОДНУ зелёную награду 5-го уровня.');
+    for(const id of ['trailbreakerAxe','trailwardenShield']){
+     const item=ITEM_CATALOG[id];
+     const statLine=id==='trailbreakerAxe'?'Урон 6–11 · Сила +1':'Броня 65 · Блок 2 · Выносливость +1';
+     line(item.name+' · ур. 5',statLine+' · Необычный предмет',
+      [['Выбрать награду',()=>sendAccountAction('banditChiefTurnIn',{rewardItemId:id})]]);
+    }
+   }
    else line('Тропа снова безопасна','Главарь повержен. Благодарю за службу.');
    return;
   }
@@ -1530,7 +1547,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }else if(kind==='bag'){
     // Periodic HUD and server inventory updates rebuild this panel. Keep the
     // inspected item selected, and preserve scroll position across redraws.
-    const bagScroll=body.scrollTop;
+    const bagScroll=previousBagScroll;
     const summary=document.createElement('div');summary.className='inventory-summary';
     summary.textContent='Ячейки '+state.inventory.length+' / 12 · Монеты '+pretty(state.gold)+' · Настои '+itemCount('healingPotion');
     const grid=document.createElement('div');grid.className='inventory-grid';
@@ -1617,6 +1634,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      grid.children[selectedBagSlot]?.click();
     else{selectedBagSlot=-1;selectedBagItemId=null;}
     body.scrollTop=bagScroll;
+    // Safari may perform scroll anchoring during the next layout pass.
+    // Restore only if this is still the same open bag, not after a user closes it.
+    if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>{
+      if(!modal.hidden&&modal.dataset.kind==='bag'&&Math.abs(body.scrollTop-bagScroll)>1)
+       body.scrollTop=bagScroll;
+    });
   }else if(kind==='character'){
     renderCharacterSheet({
      document,body,profile:authenticatedProfile,state,stats:stats(),items:ITEM_CATALOG,

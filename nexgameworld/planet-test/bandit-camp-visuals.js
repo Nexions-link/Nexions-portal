@@ -27,6 +27,29 @@ export function createBanditCampVisuals(THREE,{anchor,shadowCasters=[]}){
   add(new THREE.CylinderGeometry(.11,.16,2.2,6),wood,x,1.1,z);
   add(new THREE.ConeGeometry(.22,.5,6),wood,x,2.4,z);
  }
+ // Supply corner and spear rack add readable landmarks without collisions.
+ const crateWood=new THREE.MeshStandardMaterial({color:0x735235,roughness:.95});
+ const iron=new THREE.MeshStandardMaterial({color:0x655b51,metalness:.25,roughness:.8});
+ for(const [x,z,scale] of [[4.9,-5.6,1],[6.15,-5.9,.85],[5.5,-5.65,.65]]){
+  const box=add(new THREE.BoxGeometry(1.05,.85,1.0),crateWood,x,.43*scale,z);
+  box.scale.setScalar(scale);shadowCasters.push(box);
+ }
+ for(const [x,z] of [[-6.4,4.8],[-4.7,4.7]]){
+  const roll=add(new THREE.CylinderGeometry(.31,.31,1.55,9),leather,x,.31,z);
+  roll.rotation.z=Math.PI/2;
+ }
+ const rack=new THREE.Group();rack.position.set(-5.5,0,-5.4);root.add(rack);
+ for(const x of [-1,1]){
+  const post=add(new THREE.CylinderGeometry(.075,.11,2,6),wood,x,1,0,rack);
+  shadowCasters.push(post);
+ }
+ add(new THREE.BoxGeometry(2.15,.12,.16),wood,0,1.75,0,rack);
+ add(new THREE.BoxGeometry(2.15,.12,.16),wood,0,.55,0,rack);
+ for(const x of [-.65,0,.65]){
+  const spear=add(new THREE.CylinderGeometry(.035,.045,1.6,6),wood,x,1,.15,rack);
+  spear.rotation.z=x*.15;
+  add(new THREE.ConeGeometry(.12,.34,5),iron,x,1.95,.15,rack);
+ }
  // A compact cooking fire, intentionally away from the mob spawn points.
  for(let i=0;i<7;i++){
   const a=i*Math.PI*2/7;

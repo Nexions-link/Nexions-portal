@@ -7,7 +7,7 @@ import {canWalkCamp} from './sphere-physics.js?v=6';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=3';
 import {createHouseRat} from './house-rat.js?v=2';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
-import {createBanditCampVisuals} from './bandit-camp-visuals.js?v=2';
+import {createBanditCampVisuals} from './bandit-camp-visuals.js?v=3';
 import {BANDIT_CAMP,BANDIT_CHIEF_PATH} from './bandit-camp-data.js?v=2';
 
 // Spherical NexGame starting zone prototype.
