@@ -1,5 +1,5 @@
 name: Verify live NexGameWorld on nexions.ru
-# Confirm Alpha 0.6.42.7 published through nexions.ru and Render.
+# Confirm Alpha 0.6.42.8 with the dagger gather bar is live on Nexions.ru and Render.
 on:
   push:
     branches: [main]
