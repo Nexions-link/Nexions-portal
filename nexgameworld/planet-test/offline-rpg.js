@@ -191,6 +191,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   return swinging||preparingStomp||mobs.some(m=>m.root.visible&&m.hp>0&&!m.corpse&&m.aggro);
  }
  let journalTab='current',merchantTab='buy',selectedEquipmentSlot=null;
+ let selectedBagSlot=-1,selectedBagItemId=null;
  const group=new THREE.Group();scene.add(group);
  // The mesh is bent vertex-by-vertex onto the actual spherical terrain:
  // no texture intersection/z-fighting and a saturated red outline.
@@ -1019,6 +1020,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!modal.hidden&&modal.dataset.kind==='chest'&&kind!=='chest')closeWindow();
   if(kind==='chest'){clearChestRetry();chestSheet.reset();}
   if(kind==='character')selectedEquipmentSlot=null;
+  if(kind==='bag'&&(modal.hidden||modal.dataset.kind!=='bag')){
+   selectedBagSlot=-1;selectedBagItemId=null;
+  }
   if(kind!=='gatherLoot')camp.cancel();
   modal.hidden=false;modal.dataset.kind=kind;
   if(kind==='chest'&&!isOnline()&&!authenticatedProfile){gathering.setChestOpen(true);chestLabel.visible=false;}
@@ -1039,6 +1043,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(isOnline())multiplayer.closeChest();
   }
   modal.hidden=true;pendingLoot=null;
+  selectedBagSlot=-1;selectedBagItemId=null;
  }
  let resetProgressView=null;
  function onResetProgress(fn){resetProgressView=typeof fn==='function'?fn:null;}
@@ -1514,6 +1519,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     body.lastElementChild?.querySelector('button')?.classList.add('reset-progress-action');
    }
   }else if(kind==='bag'){
+    // Periodic HUD and server inventory updates rebuild this panel. Keep the
+    // inspected item selected, and preserve scroll position across redraws.
+    const bagScroll=body.scrollTop;
     const summary=document.createElement('div');summary.className='inventory-summary';
     summary.textContent='Ячейки '+state.inventory.length+' / 12 · Монеты '+pretty(state.gold)+' · Настои '+itemCount('healingPotion');
     const grid=document.createElement('div');grid.className='inventory-grid';
@@ -1531,6 +1539,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
         const qty=document.createElement('span');qty.className='slot-count';qty.textContent=item.qty>1?item.qty:'';
         cell.append(icon,qty);
         cell.addEventListener('click',()=>{
+          selectedBagSlot=i;selectedBagItemId=item.id;
           detail.replaceChildren();
           const name=document.createElement('strong');name.textContent=def?.name||'Лечебный настой';
      if(def)name.style.color=QUALITY_VISUALS[itemRarity(def.rarity)].color;
@@ -1594,6 +1603,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
       grid.append(cell);
     }
     body.append(summary,grid,detail);
+    const selected=state.inventory[selectedBagSlot];
+    if(selected&&selected.id===selectedBagItemId)
+     grid.children[selectedBagSlot]?.click();
+    else{selectedBagSlot=-1;selectedBagItemId=null;}
+    body.scrollTop=bagScroll;
   }else if(kind==='character'){
     renderCharacterSheet({
      document,body,profile:authenticatedProfile,state,stats:stats(),items:ITEM_CATALOG,

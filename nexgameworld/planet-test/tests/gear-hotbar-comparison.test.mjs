@@ -40,6 +40,36 @@ test('bag detail lists item values, equipped comparison and outcome',()=>{
   x.textContent===''));
  assert.ok(d.some(x=>x.className.includes('ngw-item-stat')));
 });
+test('bag comparison survives periodic HUD rerenders and server progress without collapsing',()=>{
+ const h=harness({save:{level:4,inventory:[{id:'feebleSword',qty:1}],
+  equipment:{weapon:{id:'wornAxe'}}}});
+ h.get('bag').click();
+ const bag=()=>h.get('mbody');
+ const first=()=>descendants(bag()).find(x=>x.className?.includes('inventory-slot')&&x.className.includes('occupied'));
+ first().click();
+ const compare=()=>descendants(bag()).filter(x=>x.className?.includes('ngw-gear-compare'));
+ assert.equal(compare().length,1);
+ bag().scrollTop=165;
+ for(let i=0;i<20;i++){
+  h.rpg.update(.2);
+  h.rpg.draw();
+  assert.equal(compare().length,1,'comparison must not vanish at refresh '+i);
+  assert.equal(first().className.includes('active'),true);
+  assert.equal(bag().scrollTop,165);
+ }
+});
+test('bag selection follows item until removed, then clears safely',()=>{
+ const h=harness({save:{level:4,inventory:[{id:'feebleSword',qty:1}],
+  equipment:{weapon:{id:'wornAxe'}}}});
+ h.get('bag').click();
+ const bag=()=>h.get('mbody');
+ descendants(bag()).find(x=>x.className?.includes('inventory-slot')&&x.className.includes('occupied')).click();
+ assert.ok(descendants(bag()).some(x=>x.className?.includes('ngw-gear-compare')));
+ h.rpg.state.inventory.splice(0,1);
+ h.rpg.draw();
+ assert.equal(descendants(bag()).some(x=>x.className?.includes('ngw-gear-compare')),false);
+ assert.ok(descendants(bag()).some(x=>x.className==='inventory-detail'&&x.textContent.includes('Нажми')));
+});
 test('autoattack icon changes with active state and reverts when toggled off',()=>{
  const h=harness({x:-9,z:-26,save:{level:4}});
  h.rpg.draw();
