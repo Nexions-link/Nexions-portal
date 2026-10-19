@@ -1,0 +1,24 @@
+/* Only the Battlefury inspector. All other equipment and its poses are untouched. */
+#modal:has(#panel.battlefury-modal){background:#080d0dd6;padding:calc(env(safe-area-inset-top,0px) + 7px) 7px calc(env(safe-area-inset-bottom,0px) + 7px)}
+#panel.battlefury-modal{display:flex;flex-direction:column;width:min(550px,100%);max-height:calc(100dvh - 14px);overflow:hidden;border:3px ridge #9975bf;border-radius:10px;background:linear-gradient(155deg,#292831,#191e20);color:#eadcf4;padding:13px}
+#panel.battlefury-modal #mbody{flex:1;min-height:0;max-height:none;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 3px 8px}
+#panel.battlefury-modal h2{color:#d9b7ff;margin:0 36px 8px 0;font:normal 22px/1.2 Georgia,serif}
+#panel.battlefury-modal .ornament{color:#9b79bc;margin:0 0 6px}
+.battlefury-tuner{display:flex;flex-direction:column;gap:10px;font:12px/1.4 system-ui,sans-serif}
+.battlefury-tuner-description{color:#d5c6dd;margin:0}
+.battlefury-tuner-stage{position:relative;min-height:168px;height:clamp(170px,29dvh,240px);border:1px solid #9371ad;border-radius:7px;background:radial-gradient(ellipse at center,#4e4359 0%,#25262e 55%,#171b1e 100%);overflow:hidden}
+.battlefury-tuner-stage .character-preview-viewport{position:absolute;inset:0}
+.battlefury-tuner-stage .character-rotate{position:absolute;inset:0;touch-action:none;cursor:grab}
+.battlefury-tuner-stage .character-rotate-hint{bottom:8px;background:#10131ab8;padding:5px}
+.battlefury-tuner-group{border:1px solid #6e577d;border-radius:7px;padding:9px 10px;background:#24242bbb}
+.battlefury-tuner-group h3{margin:0 0 7px;color:#e1c3fb;font:700 12px/1.3 system-ui,sans-serif}
+.battlefury-tuner-field{display:grid;grid-template-columns:90px minmax(0,1fr) 59px;align-items:center;gap:7px;min-height:40px}
+.battlefury-tuner-field label{color:#e9dced;font:11px/1.3 system-ui,sans-serif}
+.battlefury-tuner-field input{width:100%;min-width:0;accent-color:#c28bed;min-height:36px;touch-action:pan-y}
+.battlefury-tuner-value{text-align:right;color:#f2d9ff;font-variant-numeric:tabular-nums;font-size:11px}
+.battlefury-tuner-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.battlefury-tuner-actions button,.character-detail-tune{min-height:42px;border:1px solid #9d78bc;border-radius:5px;background:linear-gradient(#51415f,#312b3c);color:#f2ddff;font:bold 12px system-ui,sans-serif;touch-action:manipulation}
+.character-item-detail .character-detail-tune{width:100%;margin:4px 0}
+.battlefury-tuner-footnote{margin:0;color:#aea2b9;font:10px/1.45 system-ui,sans-serif}
+@media(max-width:380px){.battlefury-tuner-field{grid-template-columns:72px minmax(0,1fr) 52px;gap:4px}}
+@media(max-height:650px){.battlefury-tuner-stage{height:130px;min-height:130px}}

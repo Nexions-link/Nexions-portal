@@ -13,6 +13,7 @@ import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,a
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
 import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.3.7.0';
 import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
+import {BATTLEFURY_ITEM_ID,BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_FIELDS,BATTLEFURY_TUNER_GROUPS,readBattlefuryTuning,saveBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';
@@ -138,6 +139,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
 
  const rightHand=hero.arms[1]?.hand,leftHand=hero.arms[0]?.hand;
  const modelSlots={weapon:null,shield:null};
+ let battlefuryTuning=readBattlefuryTuning(localStorage);
+ function tuneBattlefury(values){
+  battlefuryTuning=saveBattlefuryTuning(localStorage,values);
+  if(state.equipment.weapon?.id!==BATTLEFURY_ITEM_ID||!modelSlots.weapon||!rightHand)return;
+  const grip=applyBattlefuryPose(modelSlots.weapon,rightHand,battlefuryTuning);
+  hero.root.userData.equipmentGrip.weapon=grip;
+  characterPreview.refresh();
+ }
  const characterPreview=createCharacterPreview({THREE,heroRoot:hero.root});
  hero.root.userData.equipmentGrip={weapon:equipmentGrip('weapon'),shield:equipmentGrip('shield')};
  hero.root.userData.weaponKind='none';
@@ -163,7 +172,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const desired=[];
   if(weaponKind&&rightHand){
    const data={axe:['tauren-axe-v0.1.glb',AXE_TUNER_DEFAULTS,'axe'],sword:['plains-sword-v0.1.glb',SWORD_TUNER_DEFAULTS,'sword'],dagger:['steppe-dagger-v0.1.glb',DAGGER_TUNER_DEFAULTS,'dagger']}[weaponKind];
-   if(weaponDef?.modelPath)desired.push(['weapon',weaponDef.modelPath,AXE_TUNER_DEFAULTS,'axe',rightHand]);
+   if(weaponDef?.modelPath)desired.push(['weapon',weaponDef.modelPath,battlefuryTuning,'axe',rightHand]);
     else if(data)desired.push(['weapon','../assets/weapons/'+data[0],data[1],data[2],rightHand]);
   }
   if(shieldKind&&leftHand){
@@ -188,7 +197,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     }
     mesh.name='gear-'+(slot==='shield'?'shield':kind);
     const def=slot==='weapon'?weaponDef:shieldDef;
-    const grip=applyEquipmentTransform(mesh,hand,{slot,kind,tuning,sourceId:def?.sourceId});
+    const grip=unique?applyBattlefuryPose(mesh,hand,battlefuryTuning):
+     applyEquipmentTransform(mesh,hand,{slot,kind,tuning,sourceId:def?.sourceId});
     hand.add(mesh);modelSlots[slot]=mesh;
     hero.root.userData.equipmentGrip[slot]=grip;
     if(slot==='weapon')applyWeaponQuality(THREE,hero.root,kind,weaponDef?.rarity);
@@ -1461,6 +1471,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   // children are destroyed, even if scrollTop is restored synchronously.
   // Skip all DOM replacement when actual bag and equipment data are unchanged.
   // A checkpoint, combat HUD redraw or server ping must not scroll the sheet.
+  if(kind==='battlefuryTuner'&&body.querySelector('.battlefury-tuner'))return;
   if(kind==='bag'){
    const snapshot=JSON.stringify([state.inventory,state.equipment,state.level,state.gold]);
    if(bagRenderSnapshot===snapshot&&body.querySelector('.inventory-grid'))return;
@@ -1487,18 +1498,19 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    viewport:body.querySelector('.character-preview-viewport'),
    gesture:body.querySelector('.character-rotate')}:null;
   const characterScroll=kind==='character'?body.scrollTop:0;
-  if(kind!=='character')characterPreview.release();
+  if(kind!=='character'&&kind!=='battlefuryTuner')characterPreview.release();
   modal.classList.toggle('world-sheet',['chest','bag','loot','gatherLoot','merchant','mentor','herbalist','banditQuest','quests','spells'].includes(kind));
   $('panel').classList.toggle('chest-sheet',kind==='chest');
   $('panel').classList.toggle('character-modal',kind==='character');
   $('panel').classList.toggle('inventory-modal',kind==='bag');
+  $('panel').classList.toggle('battlefury-modal',kind==='battlefuryTuner');
   $('msub').textContent=isOnline()?'NEXGAMEWORLD · ОБЩИЙ МИР':'NEXGAMEWORLD · ЛОКАЛЬНЫЙ РЕЖИМ';
   // Only the pause/settings menu may expose camera and graphics controls.
   // Dialogs, loot, backpack, quests and merchant must never inherit these.
   $('cameraControl').hidden=kind!=='menu';
   $('graphicsControl').hidden=kind!=='menu';
   title.textContent=({bag:'Рюкзак',character:'Персонаж',quests:'Журнал заданий',
-   merchant:'Торговец',spells:'Книга способностей',loot:'Обыск тела',menu:'Меню',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',party:'Группа и чат'})[kind]||'NexGameWorld';
+   merchant:'Торговец',spells:'Книга способностей',loot:'Обыск тела',menu:'Меню',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
   body.replaceChildren();
   const line=(label,caption,actions=[])=>{
    const row=document.createElement('div');row.className='rpgRow';
@@ -1507,6 +1519,60 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    row.append(name);for(const [caption,fn] of actions){const b=document.createElement('button');b.type='button';b.textContent=caption;b.addEventListener('click',fn);row.append(b);}
    body.append(row);
   };
+  if(kind==='battlefuryTuner'){
+   if(state.equipment.weapon?.id!==BATTLEFURY_ITEM_ID){
+    line('Топор не экипирован','Надень «Боевой гнев», чтобы настроить его модель.');return;
+   }
+   const editor=document.createElement('section');editor.className='battlefury-tuner';
+   const intro=document.createElement('p');intro.className='battlefury-tuner-description';
+   intro.textContent='Поворачивай персонажа и настраивай положение, кисть и размер топора в 3D-просмотре.';
+   editor.append(intro);
+   const stage=document.createElement('div');stage.className='battlefury-tuner-stage';
+   const viewport=document.createElement('div');viewport.className='character-preview-viewport';
+   const gesture=document.createElement('div');gesture.className='character-rotate';
+   const hint=document.createElement('span');hint.className='character-rotate-hint';
+   hint.textContent='Проведи пальцем, чтобы повернуть персонажа';
+   gesture.append(hint);stage.append(viewport,gesture);editor.append(stage);
+   const inputs=new Map();
+   for(const group of BATTLEFURY_TUNER_GROUPS){
+    const section=document.createElement('section');section.className='battlefury-tuner-group';
+    const heading=document.createElement('h3');heading.textContent=group.title;section.append(heading);
+    for(const key of group.fields){
+     const spec=BATTLEFURY_TUNER_FIELDS[key];
+     const row=document.createElement('div');row.className='battlefury-tuner-field';
+     const label=document.createElement('label');label.textContent=spec.label;
+     const input=document.createElement('input');input.type='range';
+     input.min=String(spec.min);input.max=String(spec.max);input.step=String(spec.step);
+     input.id='battlefury-'+key;label.htmlFor=input.id;
+     input.value=String(battlefuryTuning[key]);input.dataset.axis=key;
+     const out=document.createElement('output');out.className='battlefury-tuner-value';
+     const show=()=>{out.textContent=key==='scale'?Math.round(battlefuryTuning[key]*100)+'%':
+      String(battlefuryTuning[key])+spec.unit};
+     show();row.append(label,input,out);
+     input.setAttribute('aria-label',group.title+' · '+spec.label);
+     input.addEventListener('input',()=>{
+      tuneBattlefury({...battlefuryTuning,[key]:Number(input.value)});
+      show();
+     });
+     inputs.set(key,{input,show});section.append(row);
+    }
+    editor.append(section);
+   }
+   const actions=document.createElement('div');actions.className='battlefury-tuner-actions';
+   const reset=document.createElement('button');reset.type='button';reset.textContent='Сбросить настройки';
+   reset.addEventListener('click',()=>{
+    tuneBattlefury(BATTLEFURY_TUNER_DEFAULTS);
+    for(const [key,entry] of inputs){entry.input.value=String(battlefuryTuning[key]);entry.show();}
+   });
+   const back=document.createElement('button');back.type='button';back.textContent='К персонажу';
+   back.addEventListener('click',()=>openWindow('character'));
+   actions.append(reset,back);editor.append(actions);
+   const note=document.createElement('p');note.className='battlefury-tuner-footnote';
+   note.textContent='Настройки сохраняются только в этом браузере и влияют исключительно на «Боевой гнев». Исходный GLB и характеристики не изменяются.';
+   editor.append(note);body.append(editor);
+   characterPreview.mount(viewport,gesture);
+   return;
+  }
   if(kind==='party'){
    if(!isOnline()){line('Нет подключения','Группы и чат доступны при подключении к общему миру.');return;}
    line('Группа',partyState.groupId?'Участников: '+partyState.members.length+' / 5':'Вы пока не в группе',
@@ -1797,6 +1863,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      reuse:characterReuse,selectedSlot:selectedEquipmentSlot,
      onSelectSlot:slot=>{selectedEquipmentSlot=slot},
      onOpenBag:()=>openWindow('bag'),
+     onTuneWeapon:()=>openWindow('battlefuryTuner'),
      onUnequip:(slot,def)=>{
       if(!def)return msg('Пустой слот. Надеть предмет можно из рюкзака.');
       if(authenticatedProfile){

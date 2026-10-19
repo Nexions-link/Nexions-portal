@@ -50,7 +50,7 @@ export function createEmptyEquipmentSilhouette(document,slot){
 }
 export function renderCharacterSheet({
  document,body,profile,state,stats,items,labels,qualities,xpRequired,pretty,
- onUnequip,onOpenBag,preview,reuse=null,selectedSlot=null,onSelectSlot=()=>{}
+ onUnequip,onOpenBag,onTuneWeapon=()=>{},preview,reuse=null,selectedSlot=null,onSelectSlot=()=>{}
 }){
  const sheet=document.createElement('section');sheet.className='character-sheet';
  const hero=document.createElement('header');hero.className='character-identity';
@@ -94,6 +94,11 @@ export function renderCharacterSheet({
    if(def.description){
     const desc=document.createElement('p');desc.className='character-detail-description';
     desc.textContent=def.description;detail.append(desc);
+   }
+   if(slot==='weapon'&&def.adminOnly&&def.modelPath){
+    const tune=document.createElement('button');tune.type='button';
+    tune.className='character-detail-tune';tune.textContent='Настроить положение и размер';
+    tune.addEventListener('click',onTuneWeapon);detail.append(tune);
    }
    const remove=document.createElement('button');remove.type='button';remove.className='character-detail-remove';
    remove.textContent='Снять в рюкзак';
