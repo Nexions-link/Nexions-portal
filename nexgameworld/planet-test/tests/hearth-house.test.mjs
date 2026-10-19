@@ -92,9 +92,9 @@ test('every active browser geometry consumer uses the current shared module URL'
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   const imports=[...source.matchAll(/hearth-house\.js\?v=([^'"\s]+)/g)];
   assert.ok(imports.length>0,name);
-  assert.ok(imports.every(row=>row[1]==='7'),name+' requests a stale geometry module');
+  assert.ok(imports.every(row=>row[1]==='8'),name+' requests a stale geometry module');
  }
- for(const [name,dependency,version] of [['planet.js','start-zone.js','36'],['planet.js','offline-rpg.js','102'],['offline-rpg.js','gather-world.js','19'],['offline-rpg.js','camp-actions.js','18']]){
+ for(const [name,dependency,version] of [['planet.js','start-zone.js','37'],['planet.js','offline-rpg.js','103'],['offline-rpg.js','gather-world.js','20'],['offline-rpg.js','camp-actions.js','19']]){
   const source=readFileSync(new URL('../'+name,import.meta.url),'utf8');
   assert.ok(source.includes(dependency+'?v='+version),name+' must invalidate its geometry dependency');
  }
@@ -223,4 +223,55 @@ test('textured elder lodge keeps procedural materials lightweight and platform i
   assert.notEqual(node.userData.collidable,true);
   assert.notEqual(node.userData.targetable,true);
  });
+});
+
+test("elder's interior is permanent solid-looking decor, not part of fading roof or walls",()=>{
+ const root=new THREE.Group();
+ const model=buildHearthHouse(THREE,{root,villageVisuals:{addRoof(){}}});
+ assert.deepEqual(root.children.map(x=>x.name),[
+  'hearth-house-solid-floor','hearth-house-solid-walls','hearth-house-exterior-roof'
+ ]);
+ assert.equal(model.floor.children.length,16);
+ assert.equal(model.walls.children.filter(x=>x.isMesh).length,6);
+ const interior=model.interior;
+ assert.ok(interior?.isGroup);
+ assert.equal(interior.name,'hearth-house-elder-interior');
+ assert.equal(interior.parent,model.floor.children[0]);
+ const beams=interior.getObjectByName('hearth-house-interior-timber');
+ assert.equal(beams.isInstancedMesh,true);
+ assert.ok(beams.count>=20);
+ const banners=interior.getObjectByName('hearth-house-interior-hide-banners');
+ assert.equal(banners.count,8);
+ const seat=interior.getObjectByName('hearth-house-elder-seat');
+ assert.equal(seat?.isGroup,true);
+ assert.ok(seat.position.x<0);
+ assert.ok(Math.hypot(seat.position.x-LONGHOUSE.chestLocalX,
+  seat.position.z-LONGHOUSE.chestLocalZ)>8);
+ assert.equal(seat.getObjectByName('hearth-house-elder-symbol').isMesh,true);
+ const hearth=interior.getObjectByName('hearth-house-decorative-hearth');
+ assert.equal(hearth?.isGroup,true);
+ assert.equal(hearth.getObjectByName('hearth-house-hearth-stones').count,12);
+ assert.equal(hearth.getObjectByName('hearth-house-hearth-logs').isInstancedMesh,true);
+ assert.equal(hearth.getObjectByName('hearth-house-hearth-glow').material.isMeshBasicMaterial,true);
+ assert.equal(interior.children.filter(x=>x.name==='hearth-house-interior-sconce').length,2);
+ assert.equal(interior.children.filter(x=>x.name==='hearth-house-interior-ember').length,2);
+ assert.equal(interior.getObjectByName('hearth-house-interior-bone-charms').isInstancedMesh,true);
+ let lights=0,decorMeshes=0;
+ interior.traverse(node=>{
+  if(node.isLight)lights++;
+  if(node.isMesh){
+   decorMeshes++;
+   assert.notEqual(node.userData.collidable,true);
+   assert.notEqual(node.userData.targetable,true);
+   assert.equal(node.castShadow,false);
+  }
+ });
+ assert.equal(lights,0,'interior decor cannot change global lights at the threshold');
+ assert.ok(decorMeshes<55,'mobile-friendly decorative draw-call budget');
+ model.roof.visible=false;
+ assert.equal(interior.visible,true);
+ for(const [x,z] of [[0,0],[0,7],[0,-5],[7,-7],[-7,6]]){
+  assert.equal(walk(x,z),true,'unchanged corridor/collision at '+x+','+z);
+ }
+ assert.equal(walk(LONGHOUSE.chestLocalX,LONGHOUSE.chestLocalZ),false);
 });

@@ -470,6 +470,127 @@ export function buildHearthHouse(THREE,{root,villageVisuals}){
   }
  }
  beams(roof,'hearth-house-bone-finials',finials,M.bone);
- // Roof group hides fully indoors; nothing has been placed in the walkable room.
- return {roof,roofPlanes,walls,floor,accents};
+ // The interior is anchored to the solid foundation rather than the fading
+ // walls or roof. Everything is decorative: there are no new hitboxes,
+ // interaction targets, NPCs, dynamic lights or animation timers.
+ // Keep the original three root groups and the existing floor child count.
+ const interior=new THREE.Group();interior.name='hearth-house-elder-interior';
+ floor.children[0].add(interior);
+ interior.position.y=-floor.children[0].position.y;
+ const carvedBeams=[];
+ for(const z of [-7.65,-1.4,5.9]){
+  carvedBeams.push([[-hw+.73,7.68,z],[hw-.73,7.68,z],.26]);
+  for(const s of [-1,1]){
+   carvedBeams.push([[s*(hw-.90),7.68,z],
+    [s*(hw-2.55),8.62,z],.17]);
+   carvedBeams.push([[s*(hw-2.55),8.62,z],
+    [s*(hw-4.18),7.68,z],.115]);
+  }
+ }
+ for(const s of [-1,1]){
+  for(const z of [-7.15,3.7]){
+   carvedBeams.push([[s*(hw-.93),.26,z],[s*(hw-.93),7.72,z],.20]);
+  }
+  carvedBeams.push([[s*8.05,7.76,-hd+.82],[s*8.05,7.76,hd-.92],.13]);
+ }
+ beams(interior,'hearth-house-interior-timber',carvedBeams,M.darkWood);
+ // Stretched leather banners stay close to walls, with the floor and central
+ // walkway clear. Their deep red and teal echo the exterior village palette.
+ const hangings=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),
+  material('#ffffff',{side:THREE.DoubleSide}),8);
+ hangings.name='hearth-house-interior-hide-banners';
+ hangings.receiveShadow=false;
+ const woven=[new THREE.Color('#944a35'),new THREE.Color('#46776f'),
+  new THREE.Color('#b89a6e')];
+ const bannerSlots=[
+  [-6.15,5.18,-hd+.56,1.18,3.35,.085],
+  [-2.35,5.18,-hd+.56,.92,3.35,.085],
+  [2.28,5.18,-hd+.56,.92,3.35,.085],
+  [6.25,5.18,-hd+.56,1.18,3.35,.085],
+  [-hw+.67,5.3,-4.4,.085,3.05,1.18],
+  [-hw+.67,5.3,3.7,.085,3.05,1.18],
+  [hw-.67,5.3,-4.4,.085,3.05,1.18],
+  [hw-.67,5.3,3.7,.085,3.05,1.18]
+ ];
+ bannerSlots.forEach(([x,y,z,sx,sy,sz],i)=>{
+  dummy.position.set(x,y,z);dummy.rotation.set(0,0,0);
+  dummy.scale.set(sx,sy,sz);dummy.updateMatrix();
+  hangings.setMatrixAt(i,dummy.matrix);
+  hangings.setColorAt(i,woven[(i+Math.floor(i/4))%3]);
+ });
+ hangings.instanceMatrix.needsUpdate=true;
+ if(hangings.instanceColor)hangings.instanceColor.needsUpdate=true;
+ interior.add(hangings);
+ // A ceremonial elder's resting place along the left rear wall,
+ // well away from the shared chest on the opposite side.
+ const elderSeat=new THREE.Group();elderSeat.name='hearth-house-elder-seat';
+ elderSeat.position.set(-5.75,0,-8.16);interior.add(elderSeat);
+ createBox(elderSeat,M.darkWood,0,.43,0,4.15,.62,1.48);
+ createBox(elderSeat,M.red,0,.78,.04,3.57,.13,1.16);
+ createBox(elderSeat,M.wood,0,1.66,-.66,4.23,2.02,.32);
+ createBox(elderSeat,M.hide,0,1.77,-.44,3.58,1.29,.09);
+ const seatTrim=[];
+ for(const sign of [-1,1]){
+  seatTrim.push([[sign*1.91,.20,-.69],[sign*1.91,2.81,-.69],.19]);
+  seatTrim.push([[sign*1.91,2.81,-.69],[sign*1.39,3.21,-.69],.12]);
+ }
+ seatTrim.push([[-2.0,2.72,-.65],[2.0,2.72,-.65],.13]);
+ beams(elderSeat,'hearth-house-seat-bone-trim',seatTrim,M.bone);
+ const seatMark=new THREE.Mesh(new THREE.TorusGeometry(.42,.095,6,12),M.gold);
+ seatMark.name='hearth-house-elder-symbol';seatMark.position.set(0,2.10,-.39);
+ elderSeat.add(seatMark);
+ // Low, nonblocking hearth: a floor-level stone border and warm embers.
+ // No dynamic point lights: crossing the entrance cannot change illumination.
+ const hearth=new THREE.Group();hearth.name='hearth-house-decorative-hearth';
+ hearth.position.set(-.65,0,-1.35);interior.add(hearth);
+ const hearthRing=new THREE.InstancedMesh(
+  new THREE.DodecahedronGeometry(1,0),M.foundation,12);
+ hearthRing.name='hearth-house-hearth-stones';
+ for(let i=0;i<12;i++){
+  const angle=Math.PI*2*i/12;
+  dummy.position.set(Math.cos(angle)*1.07,.248,Math.sin(angle)*1.07);
+  dummy.rotation.set(0,angle,0);
+  dummy.scale.set(.34,.145,.27);dummy.updateMatrix();
+  hearthRing.setMatrixAt(i,dummy.matrix);
+ }
+ hearthRing.instanceMatrix.needsUpdate=true;hearth.add(hearthRing);
+ const cinders=new THREE.Mesh(new THREE.CylinderGeometry(.79,.81,.055,20),
+  material('#452e26'));
+ cinders.name='hearth-house-hearth-ash';
+ cinders.position.y=.235;hearth.add(cinders);
+ const embers=new THREE.Mesh(new THREE.CircleGeometry(.68,16),
+  new THREE.MeshBasicMaterial({color:'#d78344',side:THREE.DoubleSide,
+   transparent:true,opacity:.84,depthWrite:false}));
+ embers.name='hearth-house-hearth-glow';
+ embers.rotation.x=-Math.PI/2;embers.position.y=.271;hearth.add(embers);
+ const charcoal=[];
+ for(let i=0;i<5;i++){
+  const a=i*Math.PI*2/5;
+  charcoal.push([[Math.cos(a)*.26,.30,Math.sin(a)*.26],
+   [Math.cos(a+.9)*.42,.36,Math.sin(a+.9)*.42],.115]);
+ }
+ beams(hearth,'hearth-house-hearth-logs',charcoal,M.darkWood);
+ // Wall-mounted amber braziers visually illuminate the corners via emissive
+ // surfaces only, without adding GPU lights or altering the shadow map.
+ const candleMat=material('#e8a563',{
+  emissive:new THREE.Color('#f09a42'),emissiveIntensity:1.1
+ });
+ for(const sign of [-1,1]){
+  const x=sign*(hw-.73),z=-2.65;
+  const fixture=new THREE.Mesh(new THREE.CylinderGeometry(.42,.30,.26,8),M.bone);
+  fixture.name='hearth-house-interior-sconce';
+  fixture.position.set(x,4.82,z);interior.add(fixture);
+  const glow=new THREE.Mesh(new THREE.IcosahedronGeometry(.30,1),candleMat);
+  glow.name='hearth-house-interior-ember';
+  glow.position.set(x,5.19,z);interior.add(glow);
+ }
+ // Hand-braided ceiling charms are safely above the player's reach.
+ const interiorCharms=[];
+ for(const z of [-7.65,5.9])for(const x of [-3.15,0,3.15]){
+  interiorCharms.push([[x,7.60,z],[x,6.70,z],.049]);
+  interiorCharms.push([[x-.21,6.70,z],[x,6.35,z],.051]);
+  interiorCharms.push([[x,6.35,z],[x+.21,6.70,z],.051]);
+ }
+ beams(interior,'hearth-house-interior-bone-charms',interiorCharms,M.bone);
+ return {roof,roofPlanes,walls,floor,accents,interior};
 }
