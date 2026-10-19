@@ -238,6 +238,21 @@ export function createSphericalPresence({
     animateAvatar(visual.actor,{dt:animationDt,time,walk:peer.moving?1:0,phase:visual.phase});
   }
  }
+ function pickPlayer(raycaster,maxDistance=100){
+  // Ray-test only live, visible remote avatars; never use an NPC/combat target.
+  const roots=[...visuals.values()].map(visual=>visual.actor.root);
+  if(!roots.length)return null;
+  const hit=raycaster.intersectObjects(roots,true).find(hit=>hit.distance<=maxDistance);
+  if(!hit)return null;
+  for(const [id,visual] of visuals){
+   let node=hit.object;
+   while(node){
+    if(node===visual.actor.root)return {peer:peers.get(id)||null,distance:hit.distance};
+    node=node.parent;
+   }
+  }
+  return null;
+ }
  function close(){
   closed=true;clearTimeout(retry);clearInterval(sendLoop);
   if(socket)socket.close();
@@ -249,7 +264,7 @@ export function createSphericalPresence({
   if(!selfId||socket?.readyState!==WebSocket.OPEN)return false;
   socket.send(JSON.stringify(data));return true;
  };
- return {tick,close,
+ return {tick,close,pickPlayer,
   sendAttack:(abilityId,mobId=null)=>send({type:'attack',abilityId,mobId}),
   sendHeal:()=>send({type:'heal'}),
   rename:name=>send({type:'rename',name}),
@@ -266,6 +281,7 @@ export function createSphericalPresence({
   economy:(kind,params={})=>auth&&send({type:'economyAction',kind,...params}),
   closeChest:()=>{pendingChestOpen=null;return send({type:'chestClose'});},
   get players(){return [...peers.values()]},
+  get selfId(){return selfId},
   get connected(){return socket?.readyState===WebSocket.OPEN&&!!selfId}
  };
 }
