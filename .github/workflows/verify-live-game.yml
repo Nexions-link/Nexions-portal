@@ -1,59 +1,47 @@
 name: Verify live NexGameWorld on nexions.ru
-# Audit Alpha 0.6.43.6: live server, mirrored journal wayfinding and planet release.
-# Audit Alpha 0.6.42.12 iOS Safari inventory scroll fix.
-# Confirm Alpha 0.6.42.11 inventory comparison stays open after refresh.
-# Audit 0.6.42.10 live site and Render after inventory and hotbar release.
-# Validate Alpha 0.6.42.9 loot inspection fix across portal and Render.
-# Confirm Alpha 0.6.42.8 with the dagger gather bar is live on Nexions.ru and Render.
+# A green mirror commit alone is not a green public release.
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/verify-live-game.yml']
+  workflow_run:
+    workflows: ['pages build and deployment']
+    types: [completed]
   workflow_dispatch:
+  schedule:
+    - cron: '17 */3 * * *'
 permissions:
   contents: read
+concurrency:
+  group: ngw-portal-live-audit
+  cancel-in-progress: true
 jobs:
   live-release:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Compare public game, upstream and Render server
+      - name: Test production release check
+        run: node --test nexgameworld/ops/audit-production.test.mjs
+      - name: Verify NexGameWorld source main, published game HTML, assets, Render, and mirror SHA
         shell: bash
         run: |
-          node --input-type=module <<'JS'
-          const targets={
-           site:'https://nexions.ru/nexgameworld/planet-test/version.json',
-           upstream:'https://raw.githubusercontent.com/Nexions-link/Nexgame/main/planet-test/version.json',
-           server:'https://nexgame-world.onrender.com/health',
-           ready:'https://nexgame-world.onrender.com/ready'
-          };
-          async function get(url){
-           const endpoint=new URL(url);
-           endpoint.searchParams.set('audit',Date.now().toString());
-           const res=await fetch(endpoint,{cache:'no-store',signal:AbortSignal.timeout(55000)});
-           if(!res.ok)throw Error(endpoint.pathname+' HTTP '+res.status);
-           return res.json();
+          set -euo pipefail
+          source_sha="$(git ls-remote https://github.com/Nexions-link/Nexgame.git refs/heads/main | cut -f1)"
+          test "${#source_sha}" -eq 40
+          EXPECTED_SOURCE_SHA="$source_sha" node --input-type=module <<'JS'
+          import {auditWithRetry} from './nexgameworld/ops/audit-production.mjs';
+          try{
+            const result=await auditWithRetry({
+              expectedSha:process.env.EXPECTED_SOURCE_SHA,
+              timeoutMs:55000
+            },{attempts:20,delayMs:20000});
+            console.log('PUBLIC RELEASE VERIFIED:',JSON.stringify(result));
+          }catch(error){
+            console.error('Nexions.ru release incomplete:',error.message);
+            process.exitCode=1;
           }
-          let last;
-          for(let attempt=1;attempt<=5;attempt++){
-           try{
-            const [site,upstream,server,ready]=await Promise.all(
-             Object.values(targets).map(get));
-            if(site.version!==upstream.version)throw Error('Nexions.ru is behind source '+site.version+'/'+upstream.version);
-            if(server.build!==site.version||ready.build!==site.version)
-             throw Error('Render is behind the game '+server.build+'/'+site.version+' (uptime '+server.uptimeSeconds+'s, ready '+ready.ready+', mobs '+server.mobs+')');
-            if(!server.ok||!ready.ready)throw Error('Online game backend is not ready');
-            console.log('Live NexGameWorld release verified: '+site.version+
-             ', online mobs: '+server.mobs);
-            process.exit(0);
-           }catch(error){
-            last=error;console.warn('Attempt '+attempt+'/5: '+error.message);
-            if(attempt<5)await new Promise(resolve=>setTimeout(resolve,20000));
-           }
-          }
-          console.error('Live release audit failed:',last?.message);
-          process.exit(1);
           JS
