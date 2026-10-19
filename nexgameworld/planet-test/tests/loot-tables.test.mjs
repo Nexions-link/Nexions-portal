@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ITEM_CATALOG} from '../../items.js';
-import {CREATURE_LOOT_TABLES,rollCreatureLoot,getCreatureLootRows,validateCreatureLootTables} from '../loot-tables.js';
+import {CREATURE_LOOT_TABLES,CREATURE_GEAR_POOLS,creatureGearPool,rollCreatureLoot,getCreatureLootRows,validateCreatureLootTables} from '../loot-tables.js';
 test('every table references real items and valid odds',()=>{
  assert.deepEqual(validateCreatureLootTables(),[]);
  for(const creature of Object.keys(CREATURE_LOOT_TABLES))
@@ -24,14 +24,16 @@ test('Atlas summed equipment chances match game chances',()=>{
   const gear=getCreatureLootRows(creature).filter(r=>r.group==='equipment');
   const sum=gear.reduce((s,row)=>s+row.chance,0);
   assert.ok(Math.abs(sum-table.equipment.poor-table.equipment.uncommon)<1e-10);
-  assert.equal(gear.find(r=>r.id==='scalpingStrength').chance,gear.find(r=>r.id==='scalpingStamina').chance);
+  const strength=gear.find(r=>r.id==='scalpingStrength');
+  const stamina=gear.find(r=>r.id==='scalpingStamina');
+  assert.equal(strength?.chance,stamina?.chance);
  }
 });
 test('a material roll and an equipment roll can both succeed independently',()=>{
  const seq=[.8,.1,.9,.9,.005,.1];
  const result=rollCreatureLoot('dolgonog',()=>seq.shift());
  assert.ok(result.some(row=>row.id==='beak'));
- assert.ok(result.some(row=>row.id==='warriorTunic'));
+ assert.ok(result.some(row=>row.id==='meadowguardBracers'));
  assert.ok(!result.some(row=>row.id==='feather'));
 });
 test('a boar in the atlas is not a boar in the playable game',()=>{
@@ -43,4 +45,27 @@ test('a malformed table is rejected',()=>{
  assert.ok(validateCreatureLootTables({bad:{
   materials:[{id:'unknown',chance:2,min:4,max:1}],equipment:{poor:.8,uncommon:.3}
  }}).length>=3);
+});
+
+test('starter enemies drop appropriate family-specific gear instead of veteran level-6 items',()=>{
+ const available={dolgonog:2,bandit:4,stormbeak:4};
+ for(const [family,maxLevel] of Object.entries(available)){
+  const pools=CREATURE_GEAR_POOLS[family];
+  assert.ok(pools);
+  for(const grade of ['poor','uncommon']){
+   assert.ok(creatureGearPool(family,grade).length);
+   for(const id of pools[grade]){
+    const item=ITEM_CATALOG[id];
+    assert.ok(item,id);
+    assert.ok(item.requiredLevel<=maxLevel,family+' drops too-high-level '+id);
+    assert.equal(item.rarity==='uncommon',grade==='uncommon',id+' rarity mismatch');
+   }
+  }
+ }
+ assert.deepEqual(creatureGearPool('dolgonog','uncommon'),['meadowguardBracers']);
+ assert.deepEqual(creatureGearPool('bandit','uncommon'),['dusttrailVest']);
+ const loot=rollCreatureLoot('bandit',()=>0);
+ assert.ok(loot.some(row=>row.id==='dusttrailVest'));
+ assert.ok(!getCreatureLootRows('dolgonog').some(row=>row.id==='warriorTunic'));
+ assert.ok(!getCreatureLootRows('bandit').some(row=>row.id==='infantryBear'));
 });

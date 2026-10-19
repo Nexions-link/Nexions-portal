@@ -31,6 +31,8 @@ export const ITEM_CATALOG={
  bentShield:gear(2211,'Погнутый большой щит','shield',{icon:'🛡',armor:32,block:1,buy:24,sell:4}),
  trailbreakerAxe:gear(null,'Топор следопыта','weapon',{icon:'🪓',rarity:'uncommon',quality:'Необычный',weaponKind:'axe',damageMin:6,damageMax:11,speed:2.1,strength:1,requiredLevel:5,sell:22,description:'Награда за победу над главарём Пыльной тропы. Усиливает ближний бой.'}),
  trailwardenShield:gear(null,'Щит стража тропы','shield',{icon:'🛡️',rarity:'uncommon',quality:'Необычный',armor:65,block:2,stamina:1,requiredLevel:5,sell:22,description:'Награда за победу над главарём Пыльной тропы. Помогает выдерживать удары.'}),
+ meadowguardBracers:gear(null,'Наручи хранителя лугов','wrists',{icon:'▥',rarity:'uncommon',quality:'Необычный',armor:32,stamina:1,requiredLevel:2,sell:12,description:'Редкая находка на равнинах Нараче. Укрепляет защиту и здоровье начинающего воина.'}),
+ dusttrailVest:gear(null,'Кожаный жилет Пыльной тропы','chest',{icon:'👕',rarity:'uncommon',quality:'Необычный',armor:82,strength:1,requiredLevel:4,sell:19,description:'Добыча из лагеря разбойников. Лёгкая броня для опытного путешественника.'}),
  warriorTunic:gear(2965,'Мундир воина','chest',{icon:'👕',rarity:'uncommon',quality:'Необычный',armor:115,strength:2,requiredLevel:6,sell:30,description:'Кольчужный мундир. Сила увеличивает мощь атак воина.'}),
  warriorPants:gear(2966,'Штаны воина','legs',{icon:'👖',rarity:'uncommon',quality:'Необычный',armor:94,stamina:1,requiredLevel:5,sell:25,description:'Кольчужные поножи. Выносливость увеличивает запас здоровья.'}),
  scalpingStrength:gear(4561,'Томагавк силы','weapon',{icon:'🪓',rarity:'uncommon',quality:'Необычный',weaponKind:'axe',damageMin:7,damageMax:14,speed:1.8,strength:1,requiredLevel:6,sell:40,description:'Одноручный томагавк со свойством «силы».'}),
@@ -41,7 +43,7 @@ export const MERCHANT_STOCK=['batteredBuckler','bentShield','chainVest','chainPa
 export const GEAR_LOOT={
  poor:['chainVest','chainPants','chainBoots','chainGloves','chainBelt','chainBracers','raggedVest','raggedPants','letterOpener','feebleSword','rustyHatchet','batteredBuckler','bentShield'],
  // One row per base item; weapon suffix is rolled afterwards, so it does not double its weight.
- uncommon:['warriorTunic','warriorPants','scalpingStrength','infantryBear']
+ uncommon:['meadowguardBracers','dusttrailVest','warriorTunic','warriorPants','scalpingStrength','infantryBear']
 };
 export const LOOT_CHANCES={normal:{poor:.06,uncommon:.01},boss:{poor:.18,uncommon:.06}};
 export function rollEquipmentLoot(boss=false,rng=Math.random){

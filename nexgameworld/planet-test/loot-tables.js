@@ -32,6 +32,27 @@ export const CREATURE_LOOT_TABLES=Object.freeze({
   equipment:{poor:.18,uncommon:.06}
  }
 });
+// Starter-zone gear is separated by enemy family. A level-1 longstrider
+// cannot drop veteran (level 5-6) equipment, while bandits grant real
+// intermediate upgrades before the guaranteed green chief-quest reward.
+export const CREATURE_GEAR_POOLS=Object.freeze({
+ dolgonog:Object.freeze({
+  poor:Object.freeze(['chainVest','chainPants','chainBoots','chainGloves','chainBelt',
+   'chainBracers','raggedVest','raggedPants','batteredBuckler','letterOpener']),
+  uncommon:Object.freeze(['meadowguardBracers'])
+ }),
+ bandit:Object.freeze({
+  poor:Object.freeze(['chainVest','chainPants','chainBoots','chainGloves','chainBelt',
+   'chainBracers','letterOpener','feebleSword','rustyHatchet','batteredBuckler','bentShield']),
+  uncommon:Object.freeze(['dusttrailVest'])
+ }),
+ stormbeak:Object.freeze({
+  poor:Object.freeze(['chainVest','chainPants','chainBoots','chainGloves','chainBelt',
+   'chainBracers','raggedVest','raggedPants','letterOpener','feebleSword','batteredBuckler','bentShield']),
+  uncommon:Object.freeze(['meadowguardBracers','dusttrailVest'])
+ })
+});
+export const creatureGearPool=(family,grade)=>CREATURE_GEAR_POOLS[family]?.[grade]||GEAR_LOOT[grade];
 // Boar is presently Atlas-only; do not invent a drop table until it joins the game.
 const unitRoll=rng=>{
  const n=Number(rng());
@@ -52,7 +73,7 @@ export function rollCreatureLoot(creatureId,rng=Math.random){
  const grade=roll<table.equipment.uncommon?'uncommon':
   roll<table.equipment.uncommon+table.equipment.poor?'poor':null;
  if(grade){
-  const pool=GEAR_LOOT[grade];
+  const pool=creatureGearPool(creatureId,grade);
   let id=pool[Math.floor(unitRoll(rng)*pool.length)];
   if(id==='scalpingStrength'&&unitRoll(rng)<.5)id='scalpingStamina';
   result.push({id,qty:1});
@@ -65,7 +86,7 @@ export function getCreatureLootRows(creatureId){
  if(!table)return [];
  const rows=table.materials.map(row=>({...row,group:'materials'}));
  for(const grade of ['poor','uncommon']){
-  const pool=GEAR_LOOT[grade],chance=table.equipment[grade]/pool.length;
+  const pool=creatureGearPool(creatureId,grade),chance=table.equipment[grade]/pool.length;
   for(const id of pool){
    if(id==='scalpingStrength'){
     rows.push({id:'scalpingStrength',chance:chance/2,min:1,max:1,group:'equipment'});
@@ -93,7 +114,15 @@ export function validateCreatureLootTables(tables=CREATURE_LOOT_TABLES){
    const chance=table.equipment?.[grade];
    if(!Number.isFinite(chance)||chance<0||chance>1)errors.push(creatureId+': invalid equipment chance '+grade);
    else total+=chance;
-   for(const id of GEAR_LOOT[grade])if(!ITEM_CATALOG[id])errors.push(creatureId+': unknown gear '+id);
+   const pool=creatureGearPool(creatureId,grade);
+   if(!Array.isArray(pool)||!pool.length)errors.push(creatureId+': missing gear pool '+grade);
+   const unique=new Set();
+   for(const id of pool||[]){
+    if(!ITEM_CATALOG[id]||(grade==='uncommon'&&ITEM_CATALOG[id].rarity!=='uncommon'))
+     errors.push(creatureId+': invalid gear '+id);
+    if(unique.has(id))errors.push(creatureId+': duplicate gear '+id);
+    unique.add(id);
+   }
   }
   if(total>1+1e-10)errors.push(creatureId+': equipment odds exceed 100%');
  }
