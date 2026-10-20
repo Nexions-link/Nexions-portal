@@ -440,6 +440,8 @@ try {
   rpg.setMultiplayer(onlinePresence);
   window.addEventListener('pagehide',()=>onlinePresence?.close());
   let prevHeading = 0;
+  // Initialize before restoring orbital view or entering landing-page preview.
+  let cameraSnap = true,windowOffset=0,chestCameraOffset=null;
   const cameraGoal = new THREE.Vector3();
   const cameraProbe=createCameraProbe(THREE);
   const cameraRadial=new THREE.Vector3(),cameraCandidate=new THREE.Vector3();
@@ -727,7 +729,6 @@ try {
     c.restore();
   }
 
-  let cameraSnap = true,windowOffset=0,chestCameraOffset=null;
   const windowFocus=new THREE.Vector3();let hasWindowFocus=false;
   const clock = new THREE.Clock();
   let elapsed = 0, uiClock = 0, introClock = 0;

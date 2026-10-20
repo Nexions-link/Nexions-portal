@@ -30,10 +30,10 @@ test('shared chest locks movement, preserves camera settings, and closes lid whe
  const h=harness({x:OFFLINE_CHEST.x,z:OFFLINE_CHEST.z});let opened=0,closed=0;
  h.rpg.setMultiplayer({connected:true,openChest(){opened++},closeChest(){closed++}});
  h.rpg.interact();assert.equal(h.get('modal').dataset.kind,'chest');assert.equal(opened,1);
- assert.equal(h.rpg.movementLocked,true);assert.equal(h.rpg.getWindowView()?.focus,null);
+ assert.equal(h.rpg.movementLocked,true);assert.ok(h.rpg.getWindowView()?.focus==null,'ordinary windows do not shift camera');
  h.rpg.onChestState({slots:Array(18).fill(null),revision:1,inventory:Array(12).fill(null)});
  assert.ok(h.rpg.getWindowView()?.focus);
- h.get('bag').click();assert.equal(closed,1);assert.equal(h.rpg.getWindowView()?.focus,null);
+ h.get('bag').click();assert.equal(closed,1);assert.ok(h.rpg.getWindowView()?.focus==null,'ordinary windows do not shift camera');
  h.get('modalClose').click();assert.equal(h.rpg.getWindowView(),null);assert.equal(h.rpg.movementLocked,false);
 });
 test('rejected chest open closes the loading sheet and releases movement with a readable message',()=>{
