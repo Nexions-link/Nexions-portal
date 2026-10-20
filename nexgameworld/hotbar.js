@@ -1,7 +1,7 @@
 // NexGame · Alpha 0.3.5.3
 // Hotbar data is independent of Three.js and touch/desktop rendering.
 // New classes and usable items can extend these registries without changing the UI.
-import {getClassAbilities,getAbilityDefinition} from './skills.js?v=0.3.5.3';
+import {getClassAbilities,getAbilityDefinition} from './skills.js?v=0.6.43.53';
 
 export const HOTBAR_SLOT_COUNT=8;
 export const DEFAULT_HOTBAR=Object.freeze([

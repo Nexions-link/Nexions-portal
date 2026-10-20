@@ -8,8 +8,8 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=127';
-import {createSphericalPresence} from './sphere-online.js?v=14';
+import {createOfflineRpg} from './offline-rpg.js?v=128';
+import {createSphericalPresence} from './sphere-online.js?v=15';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=10';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
@@ -389,7 +389,7 @@ try {
    authenticatedProfile:accountProfile});
   combatQualitySink=rpg.setVisualQuality;
   combatQualitySink(isPortalPreview?.15:GRAPHICS_PRESETS[qualityName].detail);
-  let presenceMoving=false;
+  let presenceMoving=false,chargeMotion=null;
   const onlinePresence=isPortalPreview?null:createSphericalPresence({
     THREE,scene,
     createAvatar:options=>createTauren(THREE,scene,options),
@@ -405,7 +405,14 @@ try {
     onCombat:(msg,selfId)=>rpg.onCombatEvent(msg,selfId),
     onKillCredit:msg=>rpg.onKillCredit(msg),
     onVerifiedProgress:(progress,source)=>rpg.applyServerProgress(progress,source),
+    onChargeAccepted:message=>{
+      if(!rpg.onChargeAccepted(message)||!Array.isArray(message.normal)||
+         message.normal.length!==3||!message.normal.every(Number.isFinite))return;
+      chargeMotion={from:state.normal.clone(),to:new THREE.Vector3(...message.normal).normalize(),
+       heading:message.heading,duration:Math.max(.1,Math.min(1,Number(message.durationMs||550)/1000)),elapsed:0};
+    },
     onPositionCorrection:correction=>{
+      if(chargeMotion)return;
       if(!Array.isArray(correction?.normal)||correction.normal.length!==3||
          !correction.normal.every(Number.isFinite))return;
       const oldLon=Math.atan2(state.normal.x,state.normal.z);
@@ -427,7 +434,7 @@ try {
     onChestState:msg=>rpg.onChestState(msg),
     onChestStatus:msg=>rpg.onChestStatus(msg),
     onChestResult:msg=>rpg.onChestResult(msg),
-    onCombatRejected:msg=>rpg.onPartyNotice({message:msg.reason||'Удар отклонён сервером'}),
+    onCombatRejected:msg=>rpg.onChargeRejected(msg),
     onDisconnect:()=>rpg.onPartyState({groupId:null,leaderId:null,members:[]}),
     onStatus:(value,count)=>{
       const element=$('onlineStatus');if(!element)return;
@@ -751,15 +758,26 @@ try {
     // The same deadzone, analog strength and camera-relative stick used by NexGame.
     // The spherical tangent basis maps flat X -> East and flat Z -> -North.
     const input=screenMoveVector(horizontal, -forward, state.cameraHeading-Math.PI/2);
-    if(input.strength>.11)rpg.cancelAutoApproach();
+    if(input.strength>.11&&!chargeMotion)rpg.cancelAutoApproach();
     const previousHeading=state.heading;
     let travelled=0;
-    let power=state.orbit||rpg.movementLocked?0:input.strength;
+    let power=state.orbit||rpg.movementLocked||chargeMotion?0:input.strength;
     // Preserve manual camera-relative controls, but when idle allow the same
     // short-range auto-approach to a combat target as in the original NexGame.
-    const approach=power<.11&&!state.orbit?rpg.getApproachTarget():null;
+    const approach=power<.11&&!state.orbit&&!chargeMotion?rpg.getApproachTarget():null;
     if(approach)power=1;
-    if (power > 0) {
+    if(chargeMotion){
+      chargeMotion.elapsed+=dt;
+      const t=clamp(chargeMotion.elapsed/chargeMotion.duration,0,1);
+      const eased=t*t*(3-2*t);
+      const oldLon=Math.atan2(state.normal.x,state.normal.z);
+      state.normal.lerpVectors(chargeMotion.from,chargeMotion.to,eased).normalize();
+      state.lonUnwrapped+=angleDelta(Math.atan2(state.normal.x,state.normal.z),oldLon);
+      if(Number.isFinite(chargeMotion.heading))
+       state.heading=angleDelta(chargeMotion.heading,0);
+      travelled=chargeMotion.from.angleTo(chargeMotion.to)*R*Math.min(1,dt/chargeMotion.duration);
+      if(t>=1){state.normal.copy(chargeMotion.to);chargeMotion=null;}
+    }else if (power > 0) {
       tangentBasis(state.normal);
       if(approach){
         const desired=localToNormalAt(approach.x,approach.z,R);

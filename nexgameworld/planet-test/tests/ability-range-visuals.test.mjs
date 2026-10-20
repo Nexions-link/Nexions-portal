@@ -60,3 +60,10 @@ test('free abilities, potions, missing definitions and invalid amounts never req
  assert.equal(getAbilityResourceIndicator({resourceCost:0},{resource:NaN}).insufficient,false);
  assert.equal(getAbilityResourceIndicator(getAbilityDefinition('heavyStrike'),{resource:NaN}).insufficient,true);
 });
+
+test('charge is green through 30 metres and unavailable beyond',()=>{
+ assert.equal(status('charge',{targetDistance:29.9}),false);
+ assert.equal(status('charge',{targetDistance:30}),false);
+ assert.equal(status('charge',{targetDistance:30.01}),true);
+ assert.equal(status('charge',{targetDistance:Infinity}),true);
+});

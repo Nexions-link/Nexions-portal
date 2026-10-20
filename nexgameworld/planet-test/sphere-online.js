@@ -54,7 +54,7 @@ export function createSphericalPresence({
  THREE,scene,createAvatar,animateAvatar,getPosition,getCharacter,getBattlefuryPose,getRadius,heightAt,onStatus,
  onPlayers,onMobs,onVitals,onCombat,onKillCredit,onMobAttack,onMobTelegraph,onRespawn,
  onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
- onChestState,onChestStatus,onChestResult,onCombatRejected,onDisconnect,
+ onChestState,onChestStatus,onChestResult,onCombatRejected,onChargeAccepted,onDisconnect,
  onVerifiedProgress,onAuthRejected,onEconomyResult,onPositionCorrection,
  auth=null,url=WORLD_URL,loadBattlefuryScene=null
 }){
@@ -234,6 +234,7 @@ export function createSphericalPresence({
    else if(m.type==='mobTelegraph')onMobTelegraph?.(m);
    else if(m.type==='respawnAccepted')onRespawn?.(m);
    else if(m.type==='combatRejected')onCombatRejected?.(m);
+   else if(m.type==='chargeAccepted')onChargeAccepted?.(m);
    else if(m.type==='playerVitals')onVitals?.(m);
    else if(m.type==='partyState')onPartyState?.(m);
    else if(m.type==='partyInvite')onPartyInvite?.(m);
@@ -357,6 +358,7 @@ export function createSphericalPresence({
  };
  return {tick,close,pickPlayer,
   sendAttack:(abilityId,mobId=null)=>send({type:'attack',abilityId,mobId}),
+  sendCharge:mobId=>send({type:'charge',mobId}),
   sendHeal:()=>send({type:'heal'}),
   rename:name=>send({type:'rename',name}),
   invite:targetId=>send({type:'partyInvite',targetId}),

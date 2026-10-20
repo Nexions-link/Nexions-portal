@@ -5,12 +5,12 @@ import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
 import {questWaypoint,questDirection,preferredQuestId} from './starter-quest-guidance.js?v=1';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
-import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=2';
+import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=3';
 import {getAbilityRangeIndicator,getAbilityResourceIndicator} from './ability-range-visuals.js?v=2';
 import {compareEquipment,itemStatRows,formatBagEquipmentChanges} from './equipment-comparison.js?v=2';
 import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.6.43.5';
-import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
-import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
+import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.6.43.53';
+import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.6.43.53';
 import {attachAbilityDrag} from './ability-drag-drop.js?v=1';
 import {goToCharacterSelection} from './character-navigation.js?v=1';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
@@ -70,7 +70,7 @@ const xpRequired=level=>100+(level-1)*50;
 const pretty=num=>Number(num).toLocaleString('ru-RU',{maximumFractionDigits:1});
 const LABEL=EQUIPMENT_LABELS;
 const EQUIP_SLOTS=['weapon','shield','head','chest','legs','hands','waist','wrists','feet'];
-const ICON={autoAttack:'⚔️',thunderStomp:'💥',heavyStrike:'🪓',healingPotion:'🧪'};
+const ICON={charge:'➤',autoAttack:'⚔️',thunderStomp:'💥',heavyStrike:'🪓',healingPotion:'🧪'};
 const initial=()=>({level:1,xp:0,gold:30,resource:0,hp:null,inventory:[{id:'wornAxe',qty:1},{id:'healingPotion',qty:3}],equipment:{},kills:0,quest:0,gatherStage:0,gatherAvailable:false,chestInventory:[],buyback:[],hotbar:DEFAULT_HOTBAR});
 function restore(){
  try {
@@ -216,7 +216,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
 
  let target=null,autoplay=false,swing=0,clock=0,messageUntil=0,pendingLoot=null,pendingLootTake=null,gatherCast=null,
-  blockRemaining=0,approach=null;
+  blockRemaining=0,approach=null,chargeRequestedAt=0;
  const timeline=createCombatTimeline();
  let lastCombatAt=-100;
  function inCombat(){
@@ -561,6 +561,21 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','banditQuest'].includes(modal.dataset.kind))
    renderModal();
  }
+ function onChargeAccepted(event){
+  chargeRequestedAt=0;
+  const def=getAbilityDefinition('charge');
+  runtime.cooldowns.charge=def.cooldown;
+  runtime.gcd=Math.max(runtime.gcd,def.gcd);
+  if(event?.mobId===target?.id&&isLivingHostile(target)){
+   approach=null;autoplay=true;swing=0;
+  }
+  msg('Рывок!',.9);draw();
+  return true;
+ }
+ function onChargeRejected(event){
+  if(event?.abilityId==='charge')chargeRequestedAt=0;
+  onPartyNotice({message:event.reason||'Способность недоступна'});
+ }
  function onVitals(event){
   if(!isOnline())return;
   if(Number.isFinite(event.hp))state.hp=Math.max(0,Math.min(stats().maxHp,event.hp));
@@ -664,6 +679,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    mob.birdVisual.attackRemaining||0,Math.min(1.05,Math.max(.8,seconds+.12)));
  }
  function onNetworkRespawn(event){
+  chargeRequestedAt=0;
   state.hp=Number(event.hp)||stats().maxHp;state.resource=0;
   autoplay=false;approach=null;timeline.clear();target=null;
   for(const mob of mobs)mob.aggro=false;
@@ -1459,6 +1475,17 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   if(!modal.hidden||camp.casting||pendingServerGather||state.hp<=0)return false;
   const def=getAbilityDefinition(id);if(!def)return false;
+  if(id==='charge'){
+   if(!isOnline()||target?.kind!=='mob'){
+    msg('Рывок доступен только в онлайн-бою с противником');return false;
+   }
+   if(chargeRequestedAt&&Date.now()-chargeRequestedAt<2500)return false;
+   const failure=abilityFailure(def,{...abilityContext(),facing:true});
+   if(failure){msg(failure);return false;}
+   if(!multiplayer.sendCharge(target.id)){msg('Рывок не отправлен на сервер');return false;}
+   chargeRequestedAt=Date.now();
+   return true;
+  }
   if(id==='autoAttack'){
    approach=null;
    if(autoplay){autoplay=false;draw();return true;}
@@ -2655,7 +2682,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  persist();draw();void updateEquipmentVisuals();
  return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
   setMultiplayer,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
-  onVitals,onCombatEvent,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobTelegraph,onNetworkRespawn,onMobSnapshot,
+  onVitals,onCombatEvent,onChargeAccepted,onChargeRejected,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobTelegraph,onNetworkRespawn,onMobSnapshot,
   // Only the active owner's cosmetic pose is sent; item entitlement remains on server.
   getBattlefuryPose:()=>authenticatedProfile&&state.equipment.weapon?.id===BATTLEFURY_ITEM_ID?
    {...battlefuryTuning}:null,
