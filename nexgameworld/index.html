@@ -117,6 +117,17 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
     readBuild(local),readBuild(fallback),readBuild(source)
    ]);
    const localVersion=onDomain.status==='fulfilled'?onDomain.value:null;
+   // Metadata can be ahead of the mirrored HTML; verify the actual client build.
+   let verifiedLocalVersion=null;
+   if(localVersion){
+    try{
+     const htmlResponse=await fetch(local+'index.html?verify='+Date.now(),{cache:'no-store'});
+     if(htmlResponse.ok){
+      const html=await htmlResponse.text();
+      if(html.includes('data-build="'+localVersion+'"'))verifiedLocalVersion=localVersion;
+     }
+    }catch{}
+   }
    const upstreamVersion=upstream.status==='fulfilled'?upstream.value:null;
    const sourceVersion=mainBranch.status==='fulfilled'?mainBranch.value:null;
    let newest=localVersion;
@@ -124,20 +135,20 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
     if(candidate&&(!newest||isNewer(candidate,newest)))newest=candidate;
    }
    const accountPlay=params.get('account-play')==='1';
-   let url=local,version=localVersion;
+   let url=local,version=verifiedLocalVersion;
    if(accountPlay){
     // Sessions are same-origin only; NEVER forward login tokens to upstream.
     // Do not launch an older account client while the scheduled mirror catches up.
-    if(!localVersion||isNewer('0.6.32',localVersion)||newest&&isNewer(newest,localVersion)){
+    if(!verifiedLocalVersion||isNewer('0.6.32',verifiedLocalVersion)||newest&&isNewer(newest,verifiedLocalVersion)){
      loading.hidden=false;
-     const waiting=newest&&localVersion&&isNewer(newest,localVersion);
+     const waiting=newest&&verifiedLocalVersion&&isNewer(newest,verifiedLocalVersion);
      loading.querySelector('p').textContent=waiting
-      ?'Доступна Alpha '+newest+'. Обновляем Nexions.ru (пока '+localVersion+'). Проверяем снова…'
+      ?'Доступна Alpha '+newest+'. Обновляем Nexions.ru (проверенный клиент '+(verifiedLocalVersion||'ещё не готов')+'). Проверяем снова…'
       :'Ожидаем актуальную версию игры на Nexions.ru. Повторная проверка автоматически…';
      scheduleRetry();
      return;
     }
-   }else if(!localVersion||(upstreamVersion&&isNewer(upstreamVersion,localVersion))){
+   }else if(!verifiedLocalVersion||(upstreamVersion&&isNewer(upstreamVersion,verifiedLocalVersion))){
     url=fallback;version=upstreamVersion;
     notice.hidden=false;
     if(!localVersion)console.warn('Local NexGameWorld mirror unavailable; using upstream');
