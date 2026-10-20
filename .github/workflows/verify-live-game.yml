@@ -3,7 +3,12 @@ name: Verify live NexGameWorld on nexions.ru
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/verify-live-game.yml']
+    paths:
+      - '.github/workflows/verify-live-game.yml'
+      - 'nexgameworld/index.html'
+      - 'nexgameworld/upstream-commit.txt'
+      - 'nexgameworld/planet-test/version.json'
+      - 'nexgameworld/ops/audit-production.mjs'
   workflow_run:
     workflows: ['pages build and deployment']
     types: [completed]
@@ -48,3 +53,20 @@ jobs:
             process.exitCode=1;
           }
           JS
+      - name: Confirm the SHA-aware launcher reached the public custom domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 16); do
+            if curl --fail --silent --show-error --location --retry 2 --max-time 20 \
+                 "https://nexions.ru/nexgameworld/?p01_audit=$(date +%s)-$attempt" \
+                | grep -q 'mirrorCommitOutdated'; then
+              echo "Production launcher includes the P0.1 exact-commit version gate."
+              exit 0
+            fi
+            echo "Waiting for the new launcher to be visible on nexions.ru (attempt $attempt/16)"
+            sleep 15
+          done
+          echo "::error::Nexions.ru is still serving an old launcher after Pages publication."
+          exit 1
+
