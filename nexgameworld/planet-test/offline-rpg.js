@@ -11,7 +11,7 @@ import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.j
 import {getAbilityDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
-import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.6.43.32';
+import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.6.43.34';
 import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
 import {BATTLEFURY_ITEM_ID,BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_FIELDS,BATTLEFURY_TUNER_GROUPS,readBattlefuryTuning,saveBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=2';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
@@ -43,9 +43,9 @@ import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=14';
 import {canWadeAtLocal} from './start-zone.js?v=45';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
-import {advanceCreatureGait} from './creature-gait.js?v=1';
+import {advanceCreatureGait} from './creature-gait.js?v=2';
 import {advanceMobImpact,mobVisualMode} from './mob-impact.js?v=1';
-import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=3';
+import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=4';
 import {advanceCreatureStrike,resetCreatureStrike} from './creature-strike.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
@@ -598,9 +598,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   // End the visual windup on the server-confirmed hit, not on client guesswork.
   const attacker=mobs.find(m=>m.id===event?.mobId);
   if(attacker){
+   // A late hit from the mob's previous life may still arrive after respawn.
+   // Never cancel the NEW life's windup or animate a phantom strike.
+   if(Number.isInteger(event.life)&&event.life!==attacker.life)return;
    attacker.attackWindup=0;
-   if(!Number.isInteger(event.life)||event.life===attacker.life)
-    attacker.visualStrikeHitSequence=(attacker.visualStrikeHitSequence||0)+1;
+   attacker.visualStrikeHitSequence=(attacker.visualStrikeHitSequence||0)+1;
   }
   if(Number.isFinite(event.hp))state.hp=Math.max(0,event.hp);
   if(event.blocked){blockRemaining=.65;hero.root.userData.blockRecoil=.65;combatVfx.trigger({root:hero.root},'block');}
@@ -618,7 +620,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   mob.visualStrikeCue=(mob.visualStrikeCue||0)+1;
   mob.visualStrikeWindupSeconds=seconds;
   if(mob.birdVisual)mob.birdVisual.attackRemaining=Math.max(
-   mob.birdVisual.attackRemaining||0,seconds+.12);
+   mob.birdVisual.attackRemaining||0,Math.min(1.05,Math.max(.8,seconds+.12)));
  }
  function onNetworkRespawn(event){
   state.hp=Number(event.hp)||stats().maxHp;state.resource=0;
@@ -949,7 +951,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   // Animate from the actual rendered movement; network pauses retain a brief
   // walk grace instead of repeatedly resetting the raider's feet.
   const gait=advanceCreatureGait(gltf.gait,delta,moved,{
-   nominalSpeed:2.05,holdSeconds:.22
+   nominalSpeed:2.05,holdSeconds:.22,strideLength:1.48
   });
   gltf.walkBlend=gltf.gait.rate;gltf.walkGrace=gltf.gait.hold;
   const windup=mob.attackWindup>0;
@@ -1002,7 +1004,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    kind:'raider',yaw:isOnline()?mob.renderYaw??mob.yaw:mob.yaw,
    walking:gait.walking,speed:Math.min(1,gltf.gait.rate||0),
    attacking,attackRemaining:gltf.attackRemaining,hitWeight:impact.weight,
-   strikePrepare:strike.prepare,strikeImpact:strike.impact,strikeRecover:strike.recover
+   strikePrepare:strike.prepare,strikeImpact:strike.impact,strikeRecover:strike.recover,
+   stridePhase:gait.stridePhase,stepWeight:gait.stepWeight
   });
   applyCreatureSecondary(gltf.motionPivot,stance);
  }
@@ -1051,7 +1054,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    advancePlainstriderVisual(THREE,mob,dt,moved,false);
    const bird=mob.birdVisual;
    const gait=advanceCreatureGait(bird.gait??(bird.gait={}),dt,moved,{
-    nominalSpeed:2.05,holdSeconds:.32
+    nominalSpeed:2.05,holdSeconds:.32,strideLength:1.72
    });
    if(bird.mode==='Walk')bird.actions.Walk?.setEffectiveTimeScale?.(gait.clipRate);
    // Approved longstrider v0.1 contains no Hurt clip: apply visual-only
@@ -1074,7 +1077,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     walking:gait.walking,speed:Math.min(1,bird.gait?.rate||0),
     attacking:bird.mode==='Peck',attackRemaining:bird.attackRemaining,
     hitWeight:impact.weight,
-    strikePrepare:strike.prepare,strikeImpact:strike.impact,strikeRecover:strike.recover
+    strikePrepare:strike.prepare,strikeImpact:strike.impact,strikeRecover:strike.recover,
+    stridePhase:gait.stridePhase,stepWeight:gait.stepWeight
    });
    applyCreatureSecondary(bird.motionPivot,stance);
   }
@@ -2459,6 +2463,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      mob.attackWindup=mob.boss?.45:.4;
      mob.visualStrikeCue=(mob.visualStrikeCue||0)+1;
      mob.visualStrikeWindupSeconds=mob.attackWindup;
+     if(mob.birdVisual)mob.birdVisual.attackRemaining=Math.max(
+      mob.birdVisual.attackRemaining||0,.8);
     }
     else{
      mob.attackWindup=Math.max(0,mob.attackWindup-dt);

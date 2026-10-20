@@ -83,7 +83,12 @@ export function advancePlainstriderVisual(THREE,enemy,dt,moved=0,dead=false){
  // Attack action starts on a NEW cooldown cycle and plays its full clip.
  // Avoid truncating a .8-second Peck halfway through the combat cooldown.
  const cd=enemy.attackCd||0,prior=visual.lastAttackCd;
- if(!dead&&cd>.7&&cd>prior+.32)visual.attackRemaining=.8;
+ // In spherical online/local gameplay a new telegraph, not a cooldown
+ // refill/reset/respawn, owns the attack. Cooldown-based Pecks on an ordinary
+ // reset looked like phantom attacks with no actual damage event.
+ // Keep the legacy adaptor for non-spherical preview users.
+ if(!visual.spherical&&!dead&&cd>.7&&cd>prior+.32)
+  visual.attackRemaining=.8;
  visual.lastAttackCd=cd;
  // Brief visible recoil of the actual GLB, independently of Walk/Peck clips.
  // This moves only the asset container, never the authoritative world entity.

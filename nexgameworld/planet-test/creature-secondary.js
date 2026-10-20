@@ -7,7 +7,8 @@ const finite=(v,fallback=0)=>Number.isFinite(v)?v:fallback;
 const angleDelta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 export function advanceCreatureSecondary(state,dt,{
  kind='longstrider',yaw=0,walking=false,speed=0,attacking=false,
- attackRemaining=0,hitWeight=0,strikePrepare=0,strikeImpact=0,strikeRecover=0
+ attackRemaining=0,hitWeight=0,strikePrepare=0,strikeImpact=0,strikeRecover=0,
+ stridePhase=0,stepWeight=0
 }={}){
  if(!state)return {pitch:0,roll:0,raise:0,forward:0};
  const delta=clamp(finite(dt),0,.12);
@@ -35,18 +36,23 @@ export function advanceCreatureSecondary(state,dt,{
  const prepare=clamp(finite(strikePrepare),0,1);
  const strike=clamp(finite(strikeImpact),0,1);
  const recover=clamp(finite(strikeRecover),0,1);
+ // A bounded, footfall-synchronous weight shift belongs on the visual pivot.
+ // The GLB owns the actual feet; these offsets are sub-centimetre at rest.
+ const stride=finite(stridePhase);
+ const step=clamp(finite(stepWeight),0,1)*clamp(finite(state.motion),0,1);
+ const footfall=Math.sin(stride*2),sideStep=Math.sin(stride);
  // Avoid competing with the authored attack and Hurt clips. For each race,
  // the pivots slightly offset posture/weight transfer rather than retiming feet.
  if(kind==='raider')return {
   pitch:clamp(-.035*state.motion-.030*state.attack+.012*calm*breath-.020*prepare-.038*strike+.012*recover,-.12,.045),
-  roll:clamp(-.060*state.turn+.012*calm*Math.sin(state.time*.85),-.085,.085),
-  raise:clamp(.013*calm*breath-.012*state.motion+.012*strike,-.025,.035),
+  roll:clamp(-.060*state.turn+.012*calm*Math.sin(state.time*.85)+.010*step*sideStep,-.085,.085),
+  raise:clamp(.013*calm*breath-.012*state.motion+.012*strike+.009*step*Math.abs(footfall),-.025,.035),
   forward:clamp(.025*state.attack-.022*recoil+.014*prepare+.040*strike-.020*recover,-.05,.09)
  };
  return {
   pitch:clamp(-.028*state.motion-.017*state.attack+.010*calm*breath-.015*prepare-.039*strike+.012*recover,-.10,.045),
-  roll:clamp(-.043*state.turn+.008*calm*Math.sin(state.time*.75),-.065,.065),
-  raise:clamp(.013*calm*breath-.011*state.motion+.010*strike,-.025,.03),
+  roll:clamp(-.043*state.turn+.008*calm*Math.sin(state.time*.75)+.013*step*sideStep,-.065,.065),
+  raise:clamp(.013*calm*breath-.011*state.motion+.010*strike+.010*step*Math.abs(footfall),-.025,.03),
   forward:clamp(.018*state.attack-.018*recoil+.012*prepare+.046*strike-.020*recover,-.045,.09)
  };
 }
