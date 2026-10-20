@@ -3,25 +3,24 @@
 import {weaponSwingProfile,daggerThrustPose} from '../weapon-visuals.js?v=0.3.7.1';
 import {shieldBlockPose} from '../shield-block.js?v=0.3.7.1';
 import {combatPose} from './combat-pose.js?v=1';
+import {advancePlayerMotion} from './player-motion.js?v=1';
 import {footStrideZ,hoofSwingLift,hoofToeFlex} from './foot-placement.js?v=2';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const ease=(a,b,t)=>{const x=clamp((t-a)/(b-a),0,1);return x*x*(3-2*x)};
 const smooth=x=>x*x*(3-2*x);
 export function animateSphericalTauren(actor,{
- dt=1/60,time=0,walk=0,phase=0,turn=0,gather=false,
+ dt=1/60,time=0,walk=0,phase=0,turn=0,gather=false,combat=false,
  attack=-1,stomp=-1,blockRemaining=0,weaponKind='none',terrainFeet=null
 }={}){
- const speed=clamp(walk,0,1),seconds=clamp(dt,0,.1),user=actor.root.userData;
- user.gatherBlend=clamp((user.gatherBlend||0)+((gather?1:0)-(user.gatherBlend||0))*(1-Math.exp(-seconds*13)),0,1);
- const previousWalk=user.walkBlend||0;
- user.walkBlend=clamp(previousWalk+(speed-previousWalk)*(1-Math.exp(-seconds*10)),0,1);
- const wantedTurn=clamp(Number.isFinite(turn)?turn:0,-1,1);
- user.turnBlend=clamp((user.turnBlend||0)+(wantedTurn-(user.turnBlend||0))*(1-Math.exp(-seconds*12)),-1,1);
- const w=user.walkBlend,pivot=user.turnBlend,bend=smooth(user.gatherBlend),
-  stride=Math.sin(phase),beat=Math.cos(phase*2);
- // Only a cosmetic anticipation/settle impulse. The root position and yaw are
- // always supplied by the authoritative movement system, never by this pose.
- const acceleration=seconds>0?clamp((w-previousWalk)/seconds,-1.8,1.8):0;
+ const seconds=clamp(Number.isFinite(dt)?dt:0,0,.1),user=actor.root.userData;
+ const motion=advancePlayerMotion(user,seconds,{
+  walk,turn,gather,combat,attack,blockRemaining
+ });
+ const w=motion.walk,pivot=motion.turn,bend=smooth(motion.gather),
+  guard=motion.guard,turnLag=motion.turnLag,turnFeet=motion.turnFeet,
+  acceleration=motion.inertia,stride=Math.sin(phase),beat=Math.cos(phase*2);
+ // All secondary motion stays on existing torso and limb joints.
+ // World-space heading, hitboxes and equipment grips remain authoritative.
  const breath=Math.sin(time*1.7),profile=weaponSwingProfile(weaponKind);
  // Cosmetic impulse generated only by an actual successful shield block.
  user.blockRecoil=Math.max(0,(user.blockRecoil||0)-seconds*2.8);
@@ -38,18 +37,18 @@ export function animateSphericalTauren(actor,{
  // Support-side weight shift, slight forward drive and turn banking remain in
  // the already animated torso; foot IK and all equipment attachment joints stay.
  actor.body.position.set(stride*.047*w+.013*pivot,
-  1.4+.012*breath*idle+.034*(1-beat)*w-.47*bend-.025*recoil,0);
- actor.body.rotation.set(.012*w+.012*acceleration+posture.brace,
-  .022*stride*w+.020*pivot-posture.anticipation*.045,
+  1.4+.012*breath*idle+.034*(1-beat)*w-.47*bend-.025*recoil-.012*guard,0);
+ actor.body.rotation.set(.012*w+.010*acceleration+posture.brace+.010*guard,
+  .022*stride*w+.020*pivot-.018*turnLag-posture.anticipation*.045,
   -.036*pivot-.024*stride*w+posture.impact*.027);
- actor.chest.rotation.set(.035*w+.20*bend+block.chestX+.019*acceleration+posture.brace*.6,
-  Math.sin(phase)*.065*w+block.chestY+.095*pivot,
+ actor.chest.rotation.set(.035*w+.20*bend+block.chestX+.013*acceleration+posture.brace*.6+.033*guard,
+  Math.sin(phase)*.065*w+block.chestY+.095*pivot+.065*turnLag-.022*guard,
   -stride*.025*w+.038*pivot+posture.impact*.035);
  actor.chest.scale.y=1+breath*.005;
- actor.neck.rotation.set(-.018*breath+.10*bend,-actor.chest.rotation.y*.65,stride*.015*w);
+ actor.neck.rotation.set(-.018*breath+.10*bend-.009*guard,-actor.chest.rotation.y*.65,stride*.015*w);
  // Head remains parented to the original neck joint, including both horns.
  actor.head.rotation.set(.024*Math.sin(time*.85)*idle-.035*stride*w+.060*bend,
-  .034*Math.sin(time*.57)*idle+.016*Math.sin(phase)*w+.065*pivot,
+  .034*Math.sin(time*.57)*idle+.016*Math.sin(phase)*w+.065*pivot+.025*turnLag,
   .012*Math.sin(time*.73)*idle+.018*pivot);
  actor.chest.rotation.z+=.018*Math.sin(time*1.1)*idle+.026*recoil;
  if(stabbing){
@@ -74,6 +73,11 @@ export function animateSphericalTauren(actor,{
   const leg=actor.legs[i];
   let z=footStrideZ(phase,i)*w;
   let lift=hoofSwingLift(phase,i)*.22*w*(1-bend);
+  // Heel shift during an on-the-spot turn; root stays planted, foot IK
+  // remains in the local radial-up frame.
+  const support=i===(pivot>=0?0:1);
+  lift+=turnFeet*(support?.010:.030);
+  z+=turnFeet*(support?-.018:.022);
   if(stomping&&i===1){lift+=.42*Math.sin(Math.min(stompPower/.48,1)*Math.PI);z+=.17*Math.sin(stompPower*Math.PI);}
   const sample=terrainFeet?.[i],foot=feet[i];
   for(const axis of ['height','pitch','roll']){
@@ -92,17 +96,19 @@ export function animateSphericalTauren(actor,{
   const planted=1-clamp(lift/.22,0,1)*.65;
   leg.foot.rotation.x=-leg.hip.rotation.x-knee+foot.pitch*planted
    +hoofToeFlex(phase,i)*w*(1-bend);
-  leg.foot.rotation.y=(i===0?-1:1)*.032*pivot*planted;
+  leg.foot.rotation.y=((i===0?-1:1)*.048*pivot+
+   .018*pivot*turnFeet)*planted;
   leg.foot.rotation.z=foot.roll*planted;
  }
  for(let i=0;i<2;i++){
   const arm=actor.arms[i],sign=i?1:-1;
   arm.shoulder.rotation.x=sign*stride*.31*w+sign*.045*pivot
-   -(i?profile.shoulderWindup*windup-profile.shoulderSwing*swing:0);
+   -(i?profile.shoulderWindup*windup-profile.shoulderSwing*swing:0)
+   -(i?.18:.105)*guard;
   arm.shoulder.rotation.z=-sign*(.12+.025*breath)+(i?profile.shoulderSlash*swing:0)
-   +(i?-.09:.055)*posture.stance;
+   +(i?-.09:.055)*posture.stance+(i?-.020:.022)*guard;
   arm.elbow.rotation.x=-.14-Math.abs(stride)*.11*w-(i?profile.elbowWindup*windup:0)
-   -(i?.14:.08)*posture.stance;
+   -(i?.14:.08)*posture.stance-(i?.11:.08)*guard;
   arm.shoulder.rotation.x-=bend*(i?.95:1.12);
   arm.elbow.rotation.x-=.45*bend;
   if(stomping)arm.shoulder.rotation.z-=sign*.17*Math.sin(stompPower*Math.PI);
