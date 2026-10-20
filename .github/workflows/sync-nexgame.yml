@@ -1,4 +1,5 @@
 name: Sync NexGameWorld to nexions.ru
+# Publish fully tested Alpha 0.6.43.38: resilient PostgreSQL pool and recovery.
 # Trigger mirror for tested Alpha 0.6.43.37: differentiated axe, sword and dagger combat motion.
 # Mirror requested for verified Alpha 0.6.43.36: player combat stance and natural turning.
 # Request immediate mirror for verified NGW Alpha 0.6.43.35: smooth creature animation transitions.
