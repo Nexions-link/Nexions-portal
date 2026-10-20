@@ -10,3 +10,14 @@ export function getAbilityRangeIndicator(def,{targetDistance=Infinity,nearestHos
  // Potions and non-offensive actions must never be greyed out by enemy distance.
  return {outOfRange:false,limit:null};
 }
+
+// Shared resource readiness for every current and future ability definition.
+// The same resourceCost field is validated by skills.js on activation.
+export function getAbilityResourceIndicator(def,{resource=0}={}){
+ const declared=Number(def?.resourceCost);
+ const required=Number.isFinite(declared)?Math.max(0,declared):0;
+ const actual=Number(resource);
+ const available=Number.isFinite(actual)?Math.max(0,actual):0;
+ // Match the tolerance used by abilityFailure to avoid visual/activation drift.
+ return {insufficient:required>0&&available+1e-7<required,required,available};
+}

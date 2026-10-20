@@ -108,9 +108,10 @@
 #mbody .ngw-compare-level{margin-top:8px;color:#9e3126;font-weight:700}
 
 #actionsBar .ability.is-cooldown{filter:grayscale(.75);opacity:.75}
-/* Distance availability is distinct from cooldowns and empty potion stacks. */
-#actionsBar .ability.is-out-of-range{filter:grayscale(.95) brightness(.64);opacity:.57;border-color:#595245;box-shadow:inset 0 0 7px #17140f;transition:filter .15s ease,opacity .15s ease}
-#actionsBar .ability:not(.is-out-of-range){transition:filter .15s ease,opacity .15s ease}
+/* Range and resource requirements share the muted state; cooldown and potion overlays stay independent. */
+#actionsBar .ability.is-out-of-range,
+#actionsBar .ability.is-resource-unavailable{filter:grayscale(.95) brightness(.64);opacity:.57;border-color:#595245;box-shadow:inset 0 0 7px #17140f;transition:filter .15s ease,opacity .15s ease}
+#actionsBar .ability:not(.is-out-of-range):not(.is-resource-unavailable){transition:filter .15s ease,opacity .15s ease}
 #actionsBar .ability.is-empty{opacity:.65}
 #actionsBar .ability{position:relative;overflow:hidden}
 #actionsBar .ability .planetCooldownShade{
@@ -319,7 +320,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.43.39" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.43.40" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -406,7 +407,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=151').catch(error=>{
+  import('./planet.js?v=152').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

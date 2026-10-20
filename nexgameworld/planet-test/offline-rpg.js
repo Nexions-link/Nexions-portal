@@ -6,10 +6,10 @@ import {questWaypoint,questDirection,preferredQuestId} from './starter-quest-gui
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=2';
-import {getAbilityRangeIndicator} from './ability-range-visuals.js?v=1';
+import {getAbilityRangeIndicator,getAbilityResourceIndicator} from './ability-range-visuals.js?v=2';
 import {compareEquipment,itemStatRows} from './equipment-comparison.js?v=1';
 import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.6.43.5';
-import {getAbilityDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
+import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
 import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,resetWalkingClip,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.6.43.35';
@@ -1567,7 +1567,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   });
   if(!modal.hidden)renderModal();
   }
-  // Refresh attack range from live character/mob positions every 200 ms without recreating buttons.
+  // Refresh attack range and resource readiness from live state every 200 ms without recreating buttons.
   const selectedHostile=isLivingHostile(target);
   const targetRange=selectedHostile?distance(target):Infinity;
   let areaRange=Infinity;
@@ -1589,6 +1589,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const rangeIndicator=getAbilityRangeIndicator(def,{targetDistance:targetRange,nearestHostileDistance:areaRange,approachRange:APPROACH_RANGE});
    button.classList.toggle('is-out-of-range',rangeIndicator.outOfRange);
    button.dataset.inRange=String(!rangeIndicator.outOfRange);
+   const resourceIndicator=getAbilityResourceIndicator(def,{resource:state.resource});
+   button.classList.toggle('is-resource-unavailable',resourceIndicator.insufficient);
+   button.dataset.hasResource=String(!resourceIndicator.insufficient);
    const autoActive=entry?.id==='autoAttack'&&autoplay;
    button.classList.toggle('is-active',autoActive);
    if(entry?.id==='autoAttack'){
@@ -1604,11 +1607,23 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const quantity=button.querySelector('.planetItemQuantity');
    if(quantity){quantity.hidden=!isPotion;quantity.textContent=isPotion?String(count):'';}
    button.classList.toggle('is-unavailable',isPotion&&count===0);
-   if(isPotion){button.setAttribute('aria-disabled',String(count===0));button.title=count>0?'Лечебных настоев: '+count:'Лечебных настоев нет';}
-   else if(def&&entry?.id!=='autoAttack')button.title=rangeIndicator.outOfRange?
-    (def.requiresTarget&&!selectedHostile?'Сначала выберите противника':def.name+': вне радиуса '+String(rangeIndicator.limit).replace('.',',')+' м'):def.name;
-   // Out-of-range buttons remain tappable: special strikes still trigger the existing <=20 m auto-approach.
-
+   // Keep physical buttons clickable for hotbar reassignment; failed casts are
+   // still rejected by abilityFailure, including on keyboard and mobile.
+   button.setAttribute('aria-disabled',String(resourceIndicator.insufficient||(isPotion&&count===0)));
+   if(isPotion)button.title=count>0?'Лечебных настоев: '+count:'Лечебных настоев нет';
+   else if(def&&entry?.id!=='autoAttack'){
+    const problems=[];
+    if(resourceIndicator.insufficient){
+     const resourceType=getClassDefinition(state.classId||'warrior').resource;
+     const resourceName=resourceType==='rage'?'ярости':resourceType==='mana'?'маны':'ресурса';
+     problems.push('Недостаточно '+resourceName+': '+pretty(resourceIndicator.available)+' / '+pretty(resourceIndicator.required));
+    }
+    if(rangeIndicator.outOfRange)problems.push(def.requiresTarget&&!selectedHostile?
+     'Сначала выберите противника':def.name+': вне радиуса '+String(rangeIndicator.limit).replace('.',',')+' м');
+    button.title=problems.length?problems.join(' · '):def.name;
+   }
+   // Out-of-range strikes may still trigger auto-approach inside 20 m;
+   // resource-starved casts are already refused by the shared combat validator.
   }
  }
  function renderModal(){
