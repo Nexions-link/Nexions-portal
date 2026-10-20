@@ -316,6 +316,56 @@ html.portal-preview body > :not(#viewport):not(#loading):not(#failure):not(scrip
 html.portal-preview #viewport,html.portal-preview #viewport canvas{position:fixed;inset:0;width:100%!important;height:100%!important;touch-action:none!important}
 html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </style>
+<style id="ngw-floating-bag-v1">
+/* Backpack is a non-blocking, draggable HUD sheet; other dialogs stay modal. */
+#modal:has(#panel.inventory-modal):not([hidden]){background:transparent!important;backdrop-filter:none!important;pointer-events:none!important;display:block!important}
+#modal #panel.inventory-modal{position:fixed!important;left:var(--bag-left,50%)!important;top:var(--bag-top,50%)!important;transform:translate(-50%,-50%)!important;width:min(290px,calc(100vw - 20px))!important;max-width:calc(100vw - 20px)!important;max-height:min(68dvh,480px)!important;margin:0!important;padding:12px!important;pointer-events:auto!important;overflow:auto!important;touch-action:pan-y}
+#panel.inventory-modal #mtitle{font-size:17px!important;margin:0 35px 7px 0!important;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#panel.inventory-modal #mtitle:active{cursor:grabbing}
+#panel.inventory-modal .eyebrow,#panel.inventory-modal .ornament,#panel.inventory-modal .panel-corner{display:none!important}
+#panel.inventory-modal #mbody{max-height:calc(min(68dvh,480px) - 54px)!important;overflow-y:auto!important}
+#panel.inventory-modal .inventory-summary{font-size:11px!important;padding:5px!important}
+#panel.inventory-modal .inventory-grid{gap:4px!important}
+#panel.inventory-modal .inventory-slot{min-width:0!important}
+</style>
+<script>
+(function(){
+ const key='ngw-bag-position-v1';
+ const ready=()=>{
+  const modal=document.getElementById('modal'),panel=document.getElementById('panel'),handle=document.getElementById('mtitle');
+  if(!modal||!panel||!handle)return;
+  let position=null;
+  try{position=JSON.parse(localStorage.getItem(key))}catch{}
+  const clamp=(x,y)=>{
+   const rect=panel.getBoundingClientRect(),w=rect.width||290,h=rect.height||300;
+   return {x:Math.max(w/2+8,Math.min(innerWidth-w/2-8,x)),y:Math.max(h/2+8,Math.min(innerHeight-h/2-8,y))};
+  };
+  const place=(x,y)=>{
+   const p=clamp(x,y);panel.style.setProperty('--bag-left',p.x+'px');panel.style.setProperty('--bag-top',p.y+'px');return p;
+  };
+  const refresh=()=>{
+   if(panel.classList.contains('inventory-modal')&&!modal.hidden){
+    modal.setAttribute('aria-modal','false');
+    requestAnimationFrame(()=>{if(panel.classList.contains('inventory-modal'))place(position?.x??innerWidth/2,position?.y??innerHeight/2)});
+   }else{modal.setAttribute('aria-modal','true');panel.style.removeProperty('--bag-left');panel.style.removeProperty('--bag-top')}
+  };
+  new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refresh).observe(modal,{attributes:true,attributeFilter:['hidden']});
+  let drag=null;
+  handle.addEventListener('pointerdown',e=>{
+   if(!panel.classList.contains('inventory-modal')||e.button>0)return;
+   const r=panel.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-(r.left+r.width/2),dy:e.clientY-(r.top+r.height/2)};
+   handle.setPointerCapture(e.pointerId);e.preventDefault();
+  });
+  handle.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;position=place(e.clientX-drag.dx,e.clientY-drag.dy)});
+  const finish=e=>{if(!drag||drag.id!==e.pointerId)return;drag=null;try{localStorage.setItem(key,JSON.stringify(position))}catch{}};
+  handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);
+  addEventListener('resize',()=>{if(panel.classList.contains('inventory-modal')&&!modal.hidden)position=place(position?.x??innerWidth/2,position?.y??innerHeight/2)});
+  refresh();
+ };
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
+})();
+</script>
 </head>
 <body>
 <main id="viewport" aria-label="Сферический мир NexGameWorld"></main>
