@@ -46,7 +46,7 @@ test('owner sends local cosmetic pose; other clients render and update exact rem
    radius:261,moving:false,
    battlefury:{itemId:'adminBattlefury',pose:{...BATTLEFURY_TUNER_DEFAULTS,scale:1.85}}};
   socket.onmessage({data:JSON.stringify({type:'welcome',protocol:2,world:'nexgameworld',
-   radius:261,id:'myself',players:[peer]})});
+   radius:261,id:'myself',authenticated:true,progress:{revision:1,level:1,positionNormal:[0,0,1],heading:0},players:[peer]})});
   loop();
   const transmitted=socket.sent.find(message=>message.type==='move');
   assert.ok(transmitted,'authenticated movement is sent');

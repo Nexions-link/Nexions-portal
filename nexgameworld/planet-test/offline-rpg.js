@@ -328,6 +328,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const receivedCredits=new Set();
  const isOnline=()=>!!multiplayer?.connected;
  function setMultiplayer(transport){multiplayer=transport||null;}
+ function onNetworkDisconnect(){
+  if(!authenticatedProfile)return;
+  autoplay=false;approach=null;chargeRequestedAt=0;timeline.clear();
+  pendingLootTake=null;chiefRewardSubmitting=false;chiefRewardRenderSnapshot=null;
+  stopServerGatherCast();clearChestRetry();
+  onlineChest=null;knownChestUsed=null;lastChestRevision=-1;
+  if(!modal.hidden&&modal.dataset.kind==='chest')closeWindow();
+  draw(false);
+ }
  function networkCharacter(){return {level:state.level,hp:state.hp,equipment:state.equipment};}
  function onOnlinePlayers(rows){
   const next=Array.isArray(rows)?rows:[];
@@ -1421,6 +1430,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   state.hotbar=normalizeHotbar(state.hotbar,'warrior',state.level);persist();
  }
  function harm(enemy,damage,skill='autoAttack'){
+  if(authenticatedProfile&&!isOnline())return;
   if(!isLivingHostile(enemy))return;
   lastCombatAt=clock;
   state.resource=changeResource(state.resource,rageForHit(skill),'warrior');
@@ -2406,7 +2416,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   paintChestLabel();
   blockRemaining=Math.max(0,blockRemaining-dt);
-  const impact=timeline.update(dt);
+  // Never convert unconfirmed online swings into local damage on disconnect.
+  if(authenticatedProfile&&!isOnline())timeline.clear();
+  const impact=authenticatedProfile&&!isOnline()?null:timeline.update(dt);
   if(impact?.skill==='thunderStomp'){
    stompEffect.trigger(playerNormal());
    if(isOnline())multiplayer.sendAttack('thunderStomp');
@@ -2458,7 +2470,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     const id=approach.abilityId;approach=null;castAction(id);
    }
   }
-  if(autoplay&&!approach&&modal.hidden&&!camp.casting&&swing<=0){
+  if(autoplay&&(!authenticatedProfile||isOnline())&&!approach&&modal.hidden&&!camp.casting&&swing<=0){
    if(hitEnemy(target))swing=stats().speed;
   }
   for(const mob of mobs){
@@ -2681,7 +2693,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  persist();draw();void updateEquipmentVisuals();
  return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
-  setMultiplayer,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
+  setMultiplayer,onNetworkDisconnect,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
   onVitals,onCombatEvent,onChargeAccepted,onChargeRejected,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobTelegraph,onNetworkRespawn,onMobSnapshot,
   // Only the active owner's cosmetic pose is sent; item entitlement remains on server.
   getBattlefuryPose:()=>authenticatedProfile&&state.equipment.weapon?.id===BATTLEFURY_ITEM_ID?

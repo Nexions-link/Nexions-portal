@@ -59,7 +59,7 @@ export function createSphericalPresence({
  onVerifiedProgress,onAuthRejected,onEconomyResult,onPositionCorrection,
  auth=null,url=WORLD_URL,loadBattlefuryScene=null
 }){
- let socket=null,closed=false,selfId=null,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null,lastCorrection=0,onlineCount=1;
+ let socket=null,closed=false,selfId=null,synced=false,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null,lastCorrection=0,onlineCount=1,reconnectAttempts=0,lastServerMessageAt=Date.now();
  const peers=new Map(),visuals=new Map(),chargeEvents=new Map();
  let weaponLoaderPromise=null;
  const fetchWeaponScene=loadBattlefuryScene||(async()=>{
@@ -168,12 +168,19 @@ export function createSphericalPresence({
   if(Number.isInteger(count)&&count>=1)onlineCount=count;
   status('online',onlineCount);
  }
+ function scheduleReconnect(){
+  if(closed||retry!==null)return;
+  const delay=Math.min(12000,1500*Math.pow(1.65,Math.min(reconnectAttempts++,5)));
+  retry=setTimeout(()=>{retry=null;connect()},delay);
+ }
  function connect(){
   if(closed||!url||typeof WebSocket==='undefined')return;
-  status('connecting');
+  if(socket&&(socket.readyState===WebSocket.CONNECTING||socket.readyState===WebSocket.OPEN))return;
+  status(reconnectAttempts?'reconnecting':'connecting');
   let ws;
-  try{ws=new WebSocket(url)}catch{status('offline');retry=setTimeout(connect,4000);return}
+  try{ws=new WebSocket(url)}catch{status('reconnecting');scheduleReconnect();return}
   socket=ws;
+  synced=false;selfId=null;lastServerMessageAt=Date.now();
   const send=data=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(data))};
   ws.onopen=()=>{
    const p=position();
@@ -183,7 +190,7 @@ export function createSphericalPresence({
     characterId:auth.characterId});
    else send({type:'join',name:'Странник',...p,...getCharacter?.()});
    sendLoop=setInterval(()=>{
-    if(ws.readyState!==WebSocket.OPEN||(auth&&!selfId))return;
+    if(ws.readyState!==WebSocket.OPEN||(auth&&!synced))return;
     const p=position();if(p){
      const visualPose=auth?getBattlefuryPose?.():null;
      send({type:'move',...p,...(auth?{}:getCharacter?.()),
@@ -194,20 +201,37 @@ export function createSphericalPresence({
    },100);
   };
   ws.onmessage=event=>{
+   if(socket!==ws)return;
+   lastServerMessageAt=Date.now();
    let m;try{m=JSON.parse(event.data)}catch{return}
    if(!m||typeof m!=='object')return;
    const p=position();
    if(!p)return;
    if(m.type==='welcome'){
     if(m.protocol!==PROTOCOL||m.world!=='nexgameworld'||m.radius!==p.radius){
-     status('incompatible');ws.close();return;
+     closed=true;status('incompatible');ws.close();return;
     }
-    selfId=m.id;
+    // A socket alone is NOT a synchronized player. Read trusted Neon progress
+    // before enabling combat, inventory, movement or other commands.
+    if(auth){
+     if(!m.authenticated||!m.progress||!Number.isInteger(m.progress.revision)){
+      ws.close(1008,'Trusted character progress required');return;
+     }
+     status('syncing');
+     try{
+      onVerifiedProgress?.(m.progress,'welcome');
+      if(validNormal(m.progress.positionNormal))
+       onPositionCorrection?.({normal:m.progress.positionNormal,
+        heading:m.progress.heading,reason:'resync'});
+     }catch{
+      ws.close(1011,'Could not apply server progress');return;
+     }
+    }
+    selfId=m.id;synced=true;reconnectAttempts=0;
     onSnapshot(Array.isArray(m.players)?m.players:[],m.onlineCount);
     if(Array.isArray(m.mobs))onMobs?.(m.mobs);
     onVitals?.(m);
-    if(auth&&m.authenticated&&m.progress)onVerifiedProgress?.(m.progress,'welcome');
-   }else if(m.type==='snapshot'&&m.protocol===PROTOCOL&&m.radius===p.radius){
+   }else if(m.type==='snapshot'&&synced&&m.protocol===PROTOCOL&&m.radius===p.radius){
     onSnapshot(m.players,m.onlineCount);
     if(Array.isArray(m.mobs))onMobs?.(m.mobs);
     const own=m.players?.find(player=>player.id===selfId);
@@ -255,17 +279,32 @@ export function createSphericalPresence({
   };
   ws.onclose=event=>{
    if(socket!==ws)return;
-   socket=null;selfId=null;joinedRadius=null;pendingChestOpen=null;
+   socket=null;selfId=null;synced=false;joinedRadius=null;pendingChestOpen=null;
    clearInterval(sendLoop);sendLoop=null;
    stopPeers();
    onPlayers?.([]);onMobs?.(null);onDisconnect?.();
+   if(closed)return;
    if(auth&&event.code===1008){
     closed=true;status('auth_required');
-    onAuthRejected?.('Не удалось авторизовать персонажа. Вернитесь на экран аккаунта.');
-   }else if(!closed){status('offline');retry=setTimeout(connect,4000)}
+    onAuthRejected?.('Сессия персонажа недействительна. Войдите в аккаунт заново.');
+   }else{status(auth?'reconnecting':'offline');scheduleReconnect()}
   };
   ws.onerror=()=>{if(ws.readyState<WebSocket.CLOSING)ws.close()};
  }
+ // iOS Safari can suspend timers; resync on return from background.
+ const wake=()=>{
+  if(closed)return;
+  if(socket?.readyState===WebSocket.OPEN&&auth&&
+    Date.now()-lastServerMessageAt>45000){
+   synced=false;selfId=null;status('reconnecting');
+   socket.close(1000,'Resync after background');
+  }else if(!socket){
+   clearTimeout(retry);retry=null;connect();
+  }
+ };
+ const visible=()=>{if(!globalThis.document?.hidden)wake()};
+ globalThis.document?.addEventListener?.('visibilitychange',visible);
+ globalThis.addEventListener?.('online',wake);
  function tick(dt,time){
   const own=position();
   if(!own)return;
@@ -384,14 +423,16 @@ export function createSphericalPresence({
   return null;
  }
  function close(){
-  closed=true;clearTimeout(retry);clearInterval(sendLoop);
+  closed=true;synced=false;selfId=null;clearTimeout(retry);clearInterval(sendLoop);
+  globalThis.document?.removeEventListener?.('visibilitychange',visible);
+  globalThis.removeEventListener?.('online',wake);
   if(socket)socket.close();
   socket=null;stopPeers();
  }
  if(url)connect();
  else status('offline');
  const send=data=>{
-  if(!selfId||socket?.readyState!==WebSocket.OPEN)return false;
+  if(!synced||!selfId||socket?.readyState!==WebSocket.OPEN)return false;
   socket.send(JSON.stringify(data));return true;
  };
  return {tick,close,pickPlayer,
@@ -405,7 +446,7 @@ export function createSphericalPresence({
   sendChat:(channel,text)=>send({type:'chatSend',channel,text}),
   requestChestStatus:()=>send({type:'chestStatus'}),
   openChest:inventory=>{
-   if(!selfId||socket?.readyState!==WebSocket.OPEN)return false;
+   if(!synced||!selfId||socket?.readyState!==WebSocket.OPEN)return false;
    pendingChestOpen={type:'chestOpen',...(auth?{}:{inventory})};return true;
   },
   moveChest:(action,slot,requestId)=>send({type:'chestMove',action,slot,requestId}),
@@ -413,6 +454,6 @@ export function createSphericalPresence({
   closeChest:()=>{pendingChestOpen=null;return send({type:'chestClose'});},
   get players(){return [...peers.values()]},
   get selfId(){return selfId},
-  get connected(){return socket?.readyState===WebSocket.OPEN&&!!selfId}
+  get connected(){return synced&&socket?.readyState===WebSocket.OPEN&&!!selfId}
  };
 }

@@ -8,8 +8,8 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=128';
-import {createSphericalPresence} from './sphere-online.js?v=16';
+import {createOfflineRpg} from './offline-rpg.js?v=129';
+import {createSphericalPresence} from './sphere-online.js?v=17';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=11';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
@@ -391,6 +391,7 @@ try {
   combatQualitySink=rpg.setVisualQuality;
   combatQualitySink(isPortalPreview?.15:GRAPHICS_PRESETS[qualityName].detail);
   let presenceMoving=false,chargeMotion=null,chargeRecovery=0;
+  const connectionBanner=$('connectionBanner');
   const onlinePresence=isPortalPreview?null:createSphericalPresence({
     THREE,scene,
     createAvatar:options=>createTauren(THREE,scene,options),
@@ -439,13 +440,31 @@ try {
     onChestStatus:msg=>rpg.onChestStatus(msg),
     onChestResult:msg=>rpg.onChestResult(msg),
     onCombatRejected:msg=>rpg.onChargeRejected(msg),
-    onDisconnect:()=>rpg.onPartyState({groupId:null,leaderId:null,members:[]}),
+    onDisconnect:()=>{
+      chargeMotion=null;chargeRecovery=0;presenceMoving=false;
+      rpg.onNetworkDisconnect();
+      rpg.onPartyState({groupId:null,leaderId:null,members:[]});
+    },
     onStatus:(value,count)=>{
-      const element=$('onlineStatus');if(!element)return;
-      element.textContent=value==='online'?'В мире: '+count+' игрок'+(count===1?'':count>=2&&count<=4?'а':'ов'):
+      const element=$('onlineStatus');
+      if(element)element.textContent=value==='online'?'В мире: '+count+' игрок'+(count===1?'':count>=2&&count<=4?'а':'ов'):
         value==='connecting'?'Подключение к миру…':
-        value==='incompatible'?'Сервер обновляется · локальный режим':
-        'Локальный режим · 1 игрок';
+        value==='syncing'?'Загружаем сохранение…':
+        value==='reconnecting'?'Переподключение…':
+        value==='auth_required'?'Требуется повторный вход':
+        value==='incompatible'?'Версия сервера не совпадает':'Нет связи с сервером';
+      if(!accountMode||!connectionBanner)return;
+      const notice={
+        connecting:'Подключаемся к игровому миру…',
+        reconnecting:'Связь потеряна. Переподключаемся; действия приостановлены.',
+        offline:'Сервер недоступен. Прогресс защищён; ждём подключения.',
+        syncing:'Соединение есть. Сверяем сохранение персонажа…',
+        auth_required:'Сессия истекла. Выбери персонажа повторно.',
+        incompatible:'Версия клиента и сервера не совпадает. Перезагрузи игру.'
+      };
+      connectionBanner.hidden=value==='online';
+      connectionBanner.textContent=notice[value]||notice.offline;
+      connectionBanner.dataset.status=value;
     }
   });
   rpg.setMultiplayer(onlinePresence);
@@ -765,10 +784,11 @@ try {
     if(input.strength>.11&&!chargeMotion)rpg.cancelAutoApproach();
     const previousHeading=state.heading;
     let travelled=0,chargePose=null;
-    let power=state.orbit||rpg.movementLocked||chargeMotion?0:input.strength;
+    const waitingForServer=accountMode&&!onlinePresence?.connected;
+    let power=state.orbit||rpg.movementLocked||chargeMotion||waitingForServer?0:input.strength;
     // Preserve manual camera-relative controls, but when idle allow the same
     // short-range auto-approach to a combat target as in the original NexGame.
-    const approach=power<.11&&!state.orbit&&!chargeMotion?rpg.getApproachTarget():null;
+    const approach=!waitingForServer&&power<.11&&!state.orbit&&!chargeMotion?rpg.getApproachTarget():null;
     if(approach)power=1;
     if(chargeMotion){
       const motion=chargeMotion;

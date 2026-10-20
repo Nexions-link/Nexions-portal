@@ -44,6 +44,22 @@
 <link rel="stylesheet" href="./target-hud.css?v=1">
 <link rel="stylesheet" href="./bandit-quest.css?v=3">
 <link rel="stylesheet" href="./xp-feedback.css?v=1">
+<style id="ngw-connection-guard">
+#connectionBanner[hidden]{display:none!important}
+#connectionBanner{
+ position:fixed;z-index:46;left:50%;top:calc(9px + env(safe-area-inset-top,0px));
+ transform:translateX(-50%);width:max-content;max-width:min(360px,calc(100vw - 24px));
+ box-sizing:border-box;padding:8px 12px;border:1px solid #bca477;border-radius:8px;
+ color:#f7e8c8;background:#292820f2;box-shadow:0 3px 14px #0008;
+ font:600 12px/1.4 system-ui,sans-serif;text-align:center;
+ pointer-events:none;overflow-wrap:anywhere
+}
+#connectionBanner[data-status="auth_required"],
+#connectionBanner[data-status="incompatible"]{border-color:#c47764}
+@media(max-width:480px){
+ #connectionBanner{font-size:11px;top:calc(7px + env(safe-area-inset-top,0px))}
+}
+</style>
 <style id="planet-native-adapter">
 /* The exact original HUD sizing and styling is sourced from ../style.css. */
 #viewport{position:fixed;inset:0;z-index:0;touch-action:none;outline:none}
@@ -555,7 +571,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.43.56" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.43.57" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -600,6 +616,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <div id="xpWrap"><div id="xpFill"></div><span id="xpText">Опыт 0 / 100</span></div>
 
 <div id="help">1–8 — способности · Вращение планеты — свайп · Книга — умения · Цель — выбрать<span class="desktop-control-hint"> · ПК: WASD/стрелки — движение, мышь — камера, Tab — цель, E — действие, I — сумка, C — персонаж</span></div>
+<aside id="connectionBanner" role="status" aria-live="polite" hidden></aside>
 <div id="build"><span id="fpsCounter" hidden aria-label="Частота кадров">FPS —</span><span id="onlineStatus" aria-live="polite">Локальный режим · 1 игрок</span><span>NexGameWorld · Alpha</span></div>
 <div id="combatError" role="status" aria-live="polite"></div><div id="toast" role="status"></div>
 
@@ -641,7 +658,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=163').catch(error=>{
+  import('./planet.js?v=164').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');
