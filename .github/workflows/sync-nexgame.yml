@@ -1,4 +1,5 @@
 name: Sync NexGameWorld to nexions.ru
+# Sync verified Alpha 0.6.43.40: show resource and range availability together.
 # Sync verified Alpha 0.6.43.39: dynamic attack-range hotbar cues without gameplay changes.
 # Publish fully tested Alpha 0.6.43.38: resilient PostgreSQL pool and recovery.
 # Trigger mirror for tested Alpha 0.6.43.37: differentiated axe, sword and dagger combat motion.
