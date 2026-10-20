@@ -38,14 +38,15 @@ test('storage access failures are handled without claiming a successful reset',(
  assert.equal(clearOfflineProgress(null),false);
 });
 
-test('settings require a confirmation and reset the camera to the camp before reload',()=>{
+test('legacy offline reset stays guarded internally, not exposed in the new menu',()=>{
  const rpg=source('./offline-rpg.js'),planet=source('./planet.js');
  assert.match(rpg,/if\(!window\.confirm\(/);
  assert.match(rpg,/if\(!clearOfflineProgress\(localStorage,\{preview\}\)\)/);
  assert.match(rpg,/if\(resetProgressView\)resetProgressView\(\)/);
  assert.match(rpg,/window\.location\.reload\(\)/);
- assert.match(rpg,/if\(!preview&&!authenticatedProfile\)\{/);
- assert.match(rpg,/\['Сбросить прогресс',resetProgress\]/);
+ assert.doesNotMatch(rpg,/\['Сбросить прогресс',resetProgress\]/);
+ assert.match(rpg,/if\(kind==='menu'\)\{/);
+ assert.match(rpg,/if\(kind==='settings'\)\{/);
  assert.match(planet,/rpg\.onResetProgress\(\(\)=>\{/);
  assert.match(planet,/state\.orbit=false;\s+doReset\(\);/);
  assert.match(planet,/state\.normal\.copy\(unitAt\(0, 0\)\)/);

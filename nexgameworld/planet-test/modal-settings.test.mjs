@@ -9,10 +9,10 @@ const read=path=>readFileSync(fileURLToPath(new URL(path,import.meta.url)),'utf8
 const rpg=read('./offline-rpg.js'),planet=read('./planet.js'),html=read('./index.html');
 
 test('camera and graphics settings are gated on the modal type',()=>{
- assert.match(rpg,/\$\('cameraControl'\)\.hidden=kind!=='menu'/);
- assert.match(rpg,/\$\('graphicsControl'\)\.hidden=kind!=='menu'/);
- assert.ok(rpg.indexOf("$('graphicsControl').hidden=kind!=='menu'") < rpg.indexOf("if(camp.render(kind,body,line))return"));
- assert.ok(rpg.indexOf("$('graphicsControl').hidden=kind!=='menu'") < rpg.indexOf("if(kind==='mentor')"));
+ assert.match(rpg,/\$\('cameraControl'\)\.hidden=kind!=='settings'/);
+ assert.match(rpg,/\$\('graphicsControl'\)\.hidden=kind!=='settings'/);
+ assert.ok(rpg.indexOf("$('graphicsControl').hidden=kind!=='settings'") < rpg.indexOf("if(camp.render(kind,body,line))return"));
+ assert.ok(rpg.indexOf("$('graphicsControl').hidden=kind!=='settings'") < rpg.indexOf("if(kind==='mentor')"));
 });
 
 test('graphics quality init never unhides its modal controls globally',()=>{
@@ -31,4 +31,7 @@ test('all real RPG dialogs use a kind distinct from pause menu',()=>{
   assert.notEqual(kind,'menu');
  }
  assert.match(rpg,/if\(kind==='menu'\)/);
+ assert.match(rpg,/else if\(kind==='settings'\)/);
+ assert.doesNotMatch(html,/id="orbitButton"|id="zoomButton"|id="resetButton"/);
+ assert.match(planet,/minimapToggle.addEventListener\('click', togglePlanetView\)/);
 });

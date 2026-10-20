@@ -8,7 +8,7 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=125';
+import {createOfflineRpg} from './offline-rpg.js?v=126';
 import {createSphericalPresence} from './sphere-online.js?v=14';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=10';
@@ -275,6 +275,15 @@ try {
   instances(cactusData, new THREE.CylinderGeometry(.33, .45, 2.5, 7), new THREE.MeshStandardMaterial({color: '#427761', roughness: 1}), 1.25, [1, 1, 1]);
   instances(flowerData, new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({color: '#ffffff', roughness: 1, flatShading: true}), .18, [.34, .32, .34], p => p.tint > .6 ? '#e7ca76' : '#acc485');
 
+  // Camera preferences belong to the device, never to the server's hero position.
+  const cameraStorageKey='nexgameworld-camera-preferences-v1';
+  const cameraSettings=(()=>{
+   try{
+    const row=JSON.parse(localStorage.getItem(cameraStorageKey)||'null');
+    return row&&Number.isFinite(row.zoom)&&row.zoom>=6&&row.zoom<=44&&
+     typeof row.follow==='boolean'?row:null;
+   }catch{return null;}
+  })();
   // Detailed native camp, lake and authentic procedural Tauren are isolated in start-zone.js.
   const startZone=createStartZone(THREE,scene,()=>R,heightAt);
   relocateInstances();
@@ -284,15 +293,23 @@ try {
     normal:accountProfile?new THREE.Vector3(...accountProfile.positionNormal):previousWorld?new THREE.Vector3(...previousWorld.normal):unitAt(0,0),
     lonUnwrapped:previousWorld?.lonUnwrapped??0,meters:previousWorld?.meters??0,
     heading:accountProfile?.heading??previousWorld?.heading??0,cameraHeading:previousWorld?.cameraHeading??0,
-    cameraPitch:previousWorld?.cameraPitch??.36,zoom:previousWorld?.zoom??13,
-    cameraFollow:previousWorld?.cameraFollow??false,
+    cameraPitch:previousWorld?.cameraPitch??.36,zoom:previousWorld?.zoom??cameraSettings?.zoom??13,
+    cameraFollow:previousWorld?.cameraFollow??cameraSettings?.follow??false,
     orbit:false,orbitAngle:previousWorld?.orbitAngle??.45,
     orbitElevation:previousWorld?.orbitElevation??.34,
     orbitDistance:previousWorld?.orbitDistance??3.22,legCycle:0
   };
   // A multi-turn heading from a previous save still represents the same pose.
   state.heading=angleDelta(state.heading,0);
-  const saveWorld=()=>isPortalPreview||accountMode?false:writePlanetView(localStorage,state,R);
+  const saveCameraSettings=()=>{
+   if(isPortalPreview)return;
+   try{localStorage.setItem(cameraStorageKey,JSON.stringify({zoom:state.zoom,follow:state.cameraFollow}))}catch{}
+  };
+  const saveWorld=()=>{
+   if(isPortalPreview)return false;
+   saveCameraSettings();
+   return accountMode?false:writePlanetView(localStorage,state,R);
+  };
   // Independent of existing save data and the multiplayer-disabled prototype.
   const graphicsStorageKey='nexgameworld-graphics-quality-v1';
   const fpsStorageKey='nexgameworld-show-fps-v1';
@@ -540,12 +557,9 @@ try {
     else {state.zoom = clamp(state.zoom + e.deltaY * .015, 6, 44); updateZoomLabel();}
     saveWorld();
   }, {passive:false});
-  const orbitButton = $('orbitButton');
   const minimapToggle = $('minimapFrame');
-  orbitButton.addEventListener('click', () => {
+  function togglePlanetView() {
     state.orbit = !state.orbit;
-    orbitButton.setAttribute('aria-pressed', String(state.orbit));
-    orbitButton.textContent = state.orbit ? '⤺ К персонажу' : 'Вся планета';
     stars.visible = state.orbit;
     atmosphere.visible = state.orbit;
     scene.background = state.orbit ? skyNight : skyDay;
@@ -558,14 +572,13 @@ try {
     updateCameraClipping();
     cameraSnap = true;
     saveWorld();
-  });
-  minimapToggle.addEventListener('click', () => orbitButton.click());
+  }
+  minimapToggle.addEventListener('click', togglePlanetView);
   minimapToggle.addEventListener('keydown', event => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
-    orbitButton.click();
+    togglePlanetView();
   });
-  const zoomButton = $('zoomButton');
   const cameraDistanceInput=$('cameraDistance'),cameraDistanceValue=$('cameraDistanceValue');
   const cameraFollowSwitch=$('cameraFollow');
   if(cameraFollowSwitch){
@@ -577,7 +590,6 @@ try {
    });
   }
   function updateZoomLabel(){
-    zoomButton.textContent='🔭 Камера: '+(state.zoom>19?'далеко':'близко');
     if(cameraDistanceInput)cameraDistanceInput.value=String(state.zoom);
     if(cameraDistanceValue)cameraDistanceValue.textContent=state.zoom.toFixed(1).replace('.',',')+' м';
   }
@@ -587,12 +599,6 @@ try {
     updateZoomLabel();saveWorld();
   });
   updateZoomLabel();
-  zoomButton.addEventListener('click', () => {
-    state.zoom = state.zoom > 19 ? 13 : 27;
-    updateZoomLabel();saveWorld();
-  });
-  $('resetButton').addEventListener('click', () => {doReset(); cameraSnap = true;});
-
   const footer = $('footer');
   function updateWorldMetrics() {
     const length = TAU * R;
@@ -614,7 +620,7 @@ try {
   // Atmosphere geometry is created at BASE_RADIUS, so scale it even when
   // a larger saved radius is restored without a resize event.
   atmosphere.scale.setScalar((R+12)/(BASE_RADIUS+12));
-  if(previousWorld?.orbit)orbitButton.click();
+  if(previousWorld?.orbit)togglePlanetView();
   if(isPortalPreview){
     state.orbitDistance=2.45;
     // Village centre: longhouse, four tents and campfire occupy roughly
@@ -624,7 +630,7 @@ try {
     const villageNormal=localToNormalAt(-8,2,R);
     state.orbitAngle=Math.atan2(villageNormal.x,villageNormal.z);
     state.orbitElevation=Math.asin(villageNormal.y);
-    orbitButton.click(); // Show the actual current planet in orbital view.
+    togglePlanetView(); // Show the actual current planet in orbital view.
     // The landing page overlays gesture capture and forwards deltas. Ignore
     // messages from other origins. Nothing here touches the game's saves.
     window.addEventListener('message',event=>{

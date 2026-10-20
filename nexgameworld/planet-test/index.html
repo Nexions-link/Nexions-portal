@@ -234,6 +234,31 @@
 .ngw-source-dragging{opacity:.55}
 @media(max-height:510px){#spellbookPopover{padding:5px}#spellbookPopover p{display:none}
  .ngw-spell-drag-entry{min-height:39px}.ngw-spell-drag-icon{height:29px}}
+/* The main menu has two clear destinations; camera and graphics live in Settings. */
+#panel.game-menu-modal{width:min(440px,100%);padding:27px 22px}
+#panel.game-menu-modal h2,#panel.settings-modal h2{margin-bottom:12px}
+#mbody .ngw-menu-actions{display:grid;gap:11px}
+#mbody .ngw-menu-action{position:relative;width:100%;min-height:77px;display:flex;
+ flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;
+ padding:13px 42px 13px 16px;touch-action:manipulation;border:2px solid #96774b;
+ border-radius:7px;background:linear-gradient(135deg,#64543bd9,#302f24ed);
+ color:#f5e3bd;box-shadow:0 4px 12px #0003;text-align:left}
+#mbody .ngw-menu-action:active{filter:brightness(1.2)}
+#mbody .ngw-menu-action strong{font:700 17px/1.2 Georgia,serif}
+#mbody .ngw-menu-action small{font:11px/1.35 system-ui,sans-serif;color:#e1d1ab}
+#mbody .ngw-menu-action>span{position:absolute;right:15px;font:29px Georgia,serif}
+#panel.settings-modal{width:min(510px,100%);max-height:min(92dvh,720px);
+ overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+ padding:21px 19px 20px}
+#panel.settings-modal #mbody{min-height:0;overflow:visible;max-height:none}
+#panel.settings-modal #cameraControl,#panel.settings-modal #graphicsControl{margin-top:9px;padding:12px}
+#mbody .ngw-settings-back{min-height:36px;padding:7px 12px;touch-action:manipulation;
+ border:1px solid #937143;border-radius:5px;background:#514332;color:#f4dbac;font:13px system-ui,sans-serif}
+#panel.settings-modal #cameraDistance{height:39px}
+@media(max-height:510px) and (min-width:600px){
+ #panel.settings-modal{max-height:95dvh;padding:11px 15px}
+ #panel.settings-modal #cameraControl,#panel.settings-modal #graphicsControl{padding:9px;margin-top:5px}
+}
 /* Planet Test native journal and spellbook micro-controls, iPhone first. */
 .planet-journal-tabs,.planet-hotbar-slot-picker{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 11px}
 .planet-journal-tabs .choice,.planet-hotbar-slot-picker .choice{
@@ -362,7 +387,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.43.45" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.43.46" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -441,20 +466,14 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <div id="stickBase" role="application" aria-label="Виртуальный джойстик"><div id="stickThumb"></div></div>
 <div id="footer">Радиус 261 м · окружность 1 640 м · офлайн-тест</div>
 </div>
-<div id="labSettingsSources" hidden>
-<nav id="tools" aria-label="Управление обзором">
-  <button id="orbitButton" type="button" class="tool" aria-pressed="false">🌍 Вся планета</button>
-  <button id="zoomButton" type="button" class="tool">🔭 Камера: близко</button>
-  <button id="resetButton" type="button" class="tool">↺ В начало</button>
-</nav>
-</div>
+
 <div id="loading">Загружаем NexGameWorld…</div>
 <div id="failure" role="alert"></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=157').catch(error=>{
+  import('./planet.js?v=158').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

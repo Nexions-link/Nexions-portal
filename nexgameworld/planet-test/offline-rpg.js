@@ -12,6 +12,7 @@ import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.j
 import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
 import {attachAbilityDrag} from './ability-drag-drop.js?v=1';
+import {goToCharacterSelection} from './character-navigation.js?v=1';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
 import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,resetWalkingClip,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.6.43.35';
 import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
@@ -713,8 +714,6 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    getViewerNormal:playerNormal,getRadius});
   const questMarkers=createQuestMarkerFactory(THREE,{document,camera});
  const nameEl=$('playerName'),objective=$('qtext');
- const originalControls=$('labSettingsSources');
- const settingsControls=[...originalControls.children];
  if(!hotbar||!modal||!toast||!nameEl||!$('playerFrame')||!$('minimap'))throw Error('Не загружен оригинальный интерфейс NexGame');
  const bind=(el,ev,fn)=>el.addEventListener(ev,fn);
  const stats=()=>deriveStats(state.level,state.equipment);
@@ -1712,12 +1711,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   $('panel').classList.toggle('inventory-modal',kind==='bag');
   $('panel').classList.toggle('battlefury-modal',kind==='battlefuryTuner');
   $('msub').textContent=isOnline()?'NEXGAMEWORLD · ОБЩИЙ МИР':'NEXGAMEWORLD · ЛОКАЛЬНЫЙ РЕЖИМ';
-  // Only the pause/settings menu may expose camera and graphics controls.
-  // Dialogs, loot, backpack, quests and merchant must never inherit these.
-  $('cameraControl').hidden=kind!=='menu';
-  $('graphicsControl').hidden=kind!=='menu';
+  // Settings controls are shown exclusively in the dedicated settings view.
+  // Never expose sliders inside the menu, NPC dialogues or any other modal.
+  $('cameraControl').hidden=kind!=='settings';
+  $('graphicsControl').hidden=kind!=='settings';
+  $('panel').classList.toggle('settings-modal',kind==='settings');
+  $('panel').classList.toggle('game-menu-modal',kind==='menu');
   title.textContent=({bag:'Рюкзак',character:'Персонаж',quests:'Журнал заданий',
-   merchant:'Торговец',loot:'Обыск тела',menu:'Меню',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
+   merchant:'Торговец',loot:'Обыск тела',menu:'Меню',settings:'Настройки',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
   body.replaceChildren();
   const line=(label,caption,actions=[])=>{
    const row=document.createElement('div');row.className='rpgRow';
@@ -1946,15 +1947,27 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    return;
   }
   if(kind==='menu'){
-   line('Сферический мир','Исследуй планету NexGameWorld, настраивай камеру и графику в меню.');
-   for(const item of settingsControls)body.append(item);
-   line('Сетевая игра',isOnline()?'Общий мир: мобы, бой, награды и группы синхронизируются через Render.':
-     authenticatedProfile?'Нет соединения: прогресс временно недоступен. Переподключение произойдёт автоматически.':
-     'Локальный тестовый режим: прогресс сохраняется только на устройстве.');
-   if(!preview&&!authenticatedProfile){
-    line('Тестирование заданий','Начать заново: уровень, все задания, вещи и сундук. Графика, масштаб и режим слежения камеры сохранятся.',[['Сбросить прогресс',resetProgress]]);
-    body.lastElementChild?.querySelector('button')?.classList.add('reset-progress-action');
-   }
+   const actions=document.createElement('div');actions.className='ngw-menu-actions';
+   const item=(label,description,onClick)=>{
+    const button=document.createElement('button');button.type='button';
+    button.className='ngw-menu-action';
+    const name=document.createElement('strong');name.textContent=label;
+    const hint=document.createElement('small');hint.textContent=description;
+    const arrow=document.createElement('span');arrow.textContent='›';arrow.setAttribute('aria-hidden','true');
+    button.append(name,hint,arrow);button.addEventListener('click',onClick);
+    actions.append(button);
+   };
+   item('Выбор персонажа','Вернуться к своим героям или создать нового',
+    ()=>goToCharacterSelection(globalThis.sessionStorage,globalThis.location));
+   item('Настройки','Камера, следование, графика и счётчик FPS',
+    ()=>openWindow('settings'));
+   body.append(actions);
+  }else if(kind==='settings'){
+   const back=document.createElement('button');back.type='button';
+   back.className='ngw-settings-back';
+   back.textContent='‹ К меню';
+   back.addEventListener('click',()=>openWindow('menu'));
+   body.append(back);
   }else if(kind==='bag'){
     // Periodic HUD and server inventory updates rebuild this panel. Keep the
     // inspected item selected, and preserve scroll position across redraws.
