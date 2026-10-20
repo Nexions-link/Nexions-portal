@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TARGET_POSITION_KEY,targetButtonBounds,clampTargetPoint,normalizeTargetPoint,restoreTargetPoint,installDraggableTargetButton} from '../target-button-drag.js';
+import {TARGET_POSITION_KEY,SPELLBOOK_POSITION_KEY,targetButtonBounds,clampTargetPoint,normalizeTargetPoint,restoreTargetPoint,installDraggableTargetButton,installDraggableHudButton} from '../target-button-drag.js';
+import {readFileSync} from 'node:fs';
 
 test('button stays within safe edges even on narrow portrait screens',()=>{
  const bounds=targetButtonBounds({width:390,height:844},{width:77,height:42},
@@ -21,9 +22,9 @@ test('malformed saved coordinates cannot hide target button offscreen',()=>{
  for(const val of [null,{}, {x:-1,y:0},{x:0,y:1.01},{x:Infinity,y:.5},{x:'foo',y:0}])
   assert.equal(restoreTargetPoint(val,b),null);
 });
-function sandbox(){
- const handlers=new Map(),timers=new Map(),storage=new Map(),windowEvents=new Map();
- let seq=0,rect={left:260,top:620,width:77,height:42},clicked=0;
+function sandbox({key=TARGET_POSITION_KEY,storage=new Map(),rect={left:260,top:620,width:77,height:42}}={}){
+ const handlers=new Map(),timers=new Map(),windowEvents=new Map();
+ let seq=0,clicked=0;
  const button={
   style:{left:'',top:'',right:'',bottom:''},dataset:{},capture:null,
   classList:{labels:new Set(),add(x){this.labels.add(x)},remove(x){this.labels.delete(x)},
@@ -49,7 +50,7 @@ function sandbox(){
  const schedule=(fn)=>{const id=++seq;timers.set(id,fn);return id};
  const unschedule=id=>timers.delete(id);
  const flush=()=>{const tasks=[...timers.values()];timers.clear();tasks.forEach(fn=>fn())};
- const api=installDraggableTargetButton(button,{window:win,document:doc,storage:store,safeInsets:{top:59,bottom:34},
+ const api=installDraggableHudButton(button,{window:win,document:doc,storage:store,storageKey:key,safeInsets:{top:59,bottom:34},
   schedule,unschedule});
  return {button,doc,store,storage,emit,flush,api,windowEvents,clicked:()=>clicked};
 }
@@ -88,4 +89,42 @@ test('early movement cancels hold; resize restores normalized position; reset go
  h.api.reset();
  assert.equal(h.storage.has(TARGET_POSITION_KEY),false);
  assert.equal(h.button.classList.contains('is-floating'),false);
+});
+
+// Both controls use the same pointer logic but must never share saved positions.
+test('target and spellbook drag independently, persist separately, and still accept normal taps',()=>{
+ const storage=new Map();
+ const target=sandbox({storage});
+ const book=sandbox({storage,key:SPELLBOOK_POSITION_KEY,rect:{left:329,top:620,width:46,height:42}});
+ target.emit('pointerdown');target.flush();
+ target.emit('pointermove',{clientX:120,clientY:340});
+ target.emit('pointerup',{clientX:120,clientY:340});
+ assert.ok(storage.has(TARGET_POSITION_KEY));
+ assert.equal(storage.has(SPELLBOOK_POSITION_KEY),false);
+ book.emit('pointerdown',{clientX:349,clientY:635});book.flush();
+ book.emit('pointermove',{clientX:80,clientY:260});
+ book.emit('pointerup',{clientX:80,clientY:260});
+ assert.equal(book.emit('click').prevented,true,'dragging the book must not open it');
+ assert.equal(book.clicked(),0);
+ assert.ok(storage.has(SPELLBOOK_POSITION_KEY));
+ assert.notEqual(storage.get(TARGET_POSITION_KEY),storage.get(SPELLBOOK_POSITION_KEY));
+ // A subsequent short press still opens the spellbook exactly once.
+ book.emit('pointerdown',{clientX:80,clientY:260});
+ book.emit('pointerup',{clientX:80,clientY:260});
+ book.emit('click');
+ assert.equal(book.clicked(),1);
+ book.api.reset();
+ assert.equal(storage.has(SPELLBOOK_POSITION_KEY),false);
+ assert.ok(storage.has(TARGET_POSITION_KEY),'resetting the book must not reset target');
+});
+
+test('spellbook button renders the symbol only and registers separate drag handling',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const planet=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
+ const markup=html.match(/<button[^>]*id="spellbookButton"[^>]*>(.*?)<\/button>/s);
+ assert.ok(markup,'spellbook button is present');
+ assert.match(markup[1],/📖/);
+ assert.doesNotMatch(markup[1],/Книга/);
+ assert.match(html,/#hotbarUtilities #spellbookButton.is-floating/);
+ assert.match(planet,/installDraggableHudButton\(document.getElementById\('spellbookButton'\),\{storageKey:SPELLBOOK_POSITION_KEY\}\)/);
 });

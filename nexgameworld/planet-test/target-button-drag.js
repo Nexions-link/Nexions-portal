@@ -1,6 +1,7 @@
 // Dragging an active combat control must never change targeting on a normal tap.
 // User preference is device-local, not bound to a character/server position.
 export const TARGET_POSITION_KEY='ngw-target-button-position-v1';
+export const SPELLBOOK_POSITION_KEY='ngw-spellbook-button-position-v1';
 const margin=8;
 const limit=(value,min,max)=>Math.min(max,Math.max(min,value));
 export function targetButtonBounds(viewport,button,insets={}){
@@ -37,8 +38,9 @@ function browserSafeInsets(document,win){
   bottom:parseFloat(css.paddingBottom)||0,left:parseFloat(css.paddingLeft)||0};
  probe.remove();return result;
 }
-export function installDraggableTargetButton(button,{
+export function installDraggableHudButton(button,{
  window:win=window,document=win.document,storage=win.localStorage,
+ storageKey=TARGET_POSITION_KEY,
  holdMs=430,schedule=(fn,delay)=>setTimeout(fn,delay),unschedule=id=>clearTimeout(id),
  safeInsets=null
 }={}){
@@ -50,7 +52,7 @@ export function installDraggableTargetButton(button,{
  const dimensions=()=>size||{width:button.getBoundingClientRect().width,height:button.getBoundingClientRect().height};
  const bounds=()=>targetButtonBounds(viewport(),dimensions(),insets);
  const stored=()=>{
-  try{return JSON.parse(storage?.getItem(TARGET_POSITION_KEY)||'null')}catch{return null}
+  try{return JSON.parse(storage?.getItem(storageKey)||'null')}catch{return null}
  };
  const apply=(point)=>{
   const pos=clampTargetPoint(point,bounds());
@@ -79,7 +81,7 @@ export function installDraggableTargetButton(button,{
     const location=normalizeTargetPoint({
      x:Number.isFinite(x)?x:rect.left,y:Number.isFinite(y)?y:rect.top
     },bounds());
-    try{storage?.setItem(TARGET_POSITION_KEY,JSON.stringify(location))}catch{}
+    try{storage?.setItem(storageKey,JSON.stringify(location))}catch{}
    }else restore();
   }
   button.dataset.targetDragging='false';
@@ -128,6 +130,9 @@ export function installDraggableTargetButton(button,{
  win.addEventListener('resize',onResize);
  win.addEventListener('orientationchange',onResize);
  restore();
- return {reset:()=>{try{storage?.removeItem(TARGET_POSITION_KEY)}catch{}restore()},
+ return {reset:()=>{try{storage?.removeItem(storageKey)}catch{}restore()},
   restore};
 }
+
+// Keep the original API for existing game integrations and target-button tests.
+export const installDraggableTargetButton=installDraggableHudButton;
