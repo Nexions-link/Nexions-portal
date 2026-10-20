@@ -75,6 +75,15 @@ jobs:
         run: |
           git clone --quiet --depth 1 --branch main https://github.com/Nexions-link/Nexgame.git "$RUNNER_TEMP/nexgame-source"
 
+      - name: Require working game tests before mirroring to the live site
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/nexgame-source"
+          npm install --no-audit --no-fund
+          npm run check
+          npm test
+
       - name: Mirror game assets under the same-domain route
         shell: bash
         run: |
@@ -266,7 +275,7 @@ jobs:
           if(!/^[0-9a-f]{40}$/.test(source))throw Error('Missing mirrored source commit');
           if(!html.includes('data-build="'+version+'"'))throw Error('Game HTML/version mismatch');
           const launcher=readFileSync('nexgameworld/index.html','utf8');
-          if(!launcher.includes('newest&&isNewer(newest,localVersion)'))
+          if(!launcher.includes('newest&&isNewer(newest,verifiedLocalVersion)'))
             throw Error('Strict production version gate was removed');
           console.log('Mirror staged for public deployment:',version,source);
           console.log('Public site remains gated until GitHub Pages and verify-live-game checks succeed.');

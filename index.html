@@ -110,11 +110,7 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
  'use strict';
  const frame=document.getElementById('planet');
  const versionLabel=document.getElementById('buildVersion');
- const versionSources=[
-   './nexgameworld/planet-test/version.json',
-   'https://nexions-link.github.io/Nexgame/planet-test/version.json',
-   'https://raw.githubusercontent.com/Nexions-link/Nexgame/main/planet-test/version.json'
- ];
+ const versionSources=['./nexgameworld/planet-test/version.json'];
  let versionChecking=false;
  function isNewerVersion(a,b){
    const left=a.split('.').map(Number),right=b.split('.').map(Number);
@@ -129,8 +125,8 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
    versionChecking=true;
    let newest=null;
    try{
-     // Display the newest valid release, not merely the first responding mirror.
-     // Mirrors can briefly lag behind Nexgame/main during GitHub Pages deployment.
+     // Show only a verified same-domain published build, never an ahead-of-site
+     // manifest from GitHub main or another CDN.
      await Promise.all(versionSources.map(async source=>{
        try{
          const url=source+(source.includes('?')?'&':'?')+'_='+Date.now();
@@ -138,10 +134,13 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
          if(!response.ok)return;
          const release=await response.json();
          if(release.project!=='NexGameWorld'||typeof release.version!=='string'||!/^\d+\.\d+\.\d+(?:\.\d+)?$/.test(release.version))return;
+         // A manifest without its matching HTML is not a published game.
+         const gameHtml=await fetch('./nexgameworld/planet-test/index.html?verify='+Date.now(),{cache:'no-store'});
+         if(!gameHtml.ok || !(await gameHtml.text()).includes('data-build="'+release.version+'"'))return;
          if(newest&&!isNewerVersion(release.version,newest))return;
          newest=release.version;
          versionLabel.textContent=newest;
-         versionLabel.title='Текущая опубликованная версия игры: '+newest;
+         versionLabel.title='Проверенная версия на nexions.ru: '+newest;
        }catch(err){console.warn('NexGameWorld version source unavailable:',source,err)}
      }));
      if(!newest)versionLabel.title='Не удалось получить номер версии игры';
@@ -158,13 +157,13 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
  window.addEventListener('pageshow',()=>void refreshGameVersion());
  window.setInterval(()=>{if(!document.hidden)void refreshGameVersion()},60000);
  const surface=document.getElementById('rotate');
- // Force a fresh game index; the game itself versions all changed modules.
- frame.src='https://nexions-link.github.io/Nexgame/planet-test/?portal-preview=1&fresh='+Date.now();
+ // Preview the verified same-domain game; do not mix CDN and nexions.ru builds.
+ frame.src='./nexgameworld/planet-test/?portal-preview=1&fresh='+Date.now();
  const points=new Map();
  let prevPinch=0;
  const send=(action,params={})=>{
    if(!frame.contentWindow)return;
-   frame.contentWindow.postMessage({type:'nexgameworld-globe',action,...params},'https://nexions-link.github.io');
+   frame.contentWindow.postMessage({type:'nexgameworld-globe',action,...params},location.origin);
  };
  const distance=()=>{const [a,b]=[...points.values()];return a&&b?Math.hypot(a.x-b.x,a.y-b.y):0};
  surface.addEventListener('pointerdown',event=>{
