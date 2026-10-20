@@ -236,6 +236,44 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  let multiplayer=null,partyState={groupId:null,leaderId:null,members:[]},onlinePlayers=[],onlineChest=null;
  let selectedAllyId=null;
  const chatHistory=[];
+ // Refresh the live party and nearby-player list without touching the chat input.
+ // iOS Safari closes its keyboard if the focused input is detached.
+ function paintPartyRoster(roster){
+  if(!roster)return;
+  const snapshot=JSON.stringify([partyState.groupId,partyState.leaderId,
+   partyState.members.map(member=>[member.id,member.name,member.level]),
+   onlinePlayers.map(peer=>[peer.id,peer.name,peer.level])]);
+  if(roster.dataset.snapshot===snapshot)return;
+  roster.dataset.snapshot=snapshot;
+  roster.replaceChildren();
+  const row=(label,caption,actions=[])=>{
+   const node=document.createElement('div');node.className='rpgRow';
+   const name=document.createElement('div');name.innerHTML='<strong></strong><small></small>';
+   name.querySelector('strong').textContent=label;
+   name.querySelector('small').textContent=caption;
+   node.append(name);
+   for(const [caption,fn] of actions){
+    const button=document.createElement('button');
+    button.type='button';button.textContent=caption;button.addEventListener('click',fn);
+    node.append(button);
+   }
+   roster.append(node);
+  };
+  row('Группа',partyState.groupId?'Участников: '+partyState.members.length+' / 5':'Вы пока не в группе',
+   partyState.groupId?[['Покинуть',()=>multiplayer.leaveParty()]]:[]);
+  for(const member of partyState.members)
+   row(member.name||'Игрок',(member.id===partyState.leaderId?'Лидер · ':'')+'Уровень '+(member.level||1),
+    onlinePlayers.some(peer=>peer.id===member.id)?[['Выбрать',()=>{selectAlly(member.id);closeWindow()}]]:[]);
+  if(!partyState.groupId||partyState.members.length<5){
+   row('Игроки в мире','Выбери игрока для приглашения.');
+   for(const peer of onlinePlayers)if(!partyState.members.some(member=>member.id===peer.id))
+    row(peer.name||'Странник','Уровень '+(peer.level||1),[
+     ['Выбрать',()=>{selectAlly(peer.id);closeWindow()}],
+     ['Пригласить',()=>multiplayer.invite(peer.id)]
+    ]);
+   if(!onlinePlayers.length)row('Никого рядом','Другие игроки в этом мире пока не обнаружены.');
+  }
+ }
  const rosterKey=rows=>JSON.stringify(rows.map(({id,name,level})=>[id,name,level]).sort((a,b)=>a[0].localeCompare(b[0])));
  function paintChatHistory(){
   const log=$('partyChatLog');
@@ -297,12 +335,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(lostSelection)selectedAllyId=null;
   paintAllyTarget();
   if(lostSelection)draw(false);
-  if(changed&&!modal.hidden&&modal.dataset.kind==='party')renderModal();
+  if(changed&&!modal.hidden&&modal.dataset.kind==='party')paintPartyRoster($('mbody').querySelector('.ngw-party-roster'));
  }
  function onPartyState(event){
   partyState=event||{groupId:null,leaderId:null,members:[]};
   paintAllyTarget();
-  if(!modal.hidden&&modal.dataset.kind==='party')renderModal();
+  if(!modal.hidden&&modal.dataset.kind==='party')paintPartyRoster($('mbody').querySelector('.ngw-party-roster'));
  }
  function onPartyInvite(event){
   if(isOnline())multiplayer.respondInvite(event.fromId,window.confirm((event.fromName||'Игрок')+' приглашает в группу. Принять?'));
@@ -1628,6 +1666,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function renderModal(){
   const kind=modal.dataset.kind,title=$('mtitle'),body=$('mbody');
+  // Keep the focused iPhone input mounted through HUD redraws and server/roster refreshes.
+  if(kind==='party'&&isOnline()&&body.querySelector('.ngw-chat-message')){
+   const roster=body.querySelector('.ngw-party-roster');
+   if(roster){paintPartyRoster(roster);return;}
+  }
   // iOS Safari scroll anchoring is disrupted whenever the inventory panel's
   // children are destroyed, even if scrollTop is restored synchronously.
   // Skip all DOM replacement when actual bag and equipment data are unchanged.
@@ -1736,26 +1779,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   if(kind==='party'){
    if(!isOnline()){line('Нет подключения','Группы и чат доступны при подключении к общему миру.');return;}
-   line('Группа',partyState.groupId?'Участников: '+partyState.members.length+' / 5':'Вы пока не в группе',
-    partyState.groupId?[['Покинуть',()=>multiplayer.leaveParty()]]:[]);
-   for(const member of partyState.members)
-    line(member.name||'Игрок',(member.id===partyState.leaderId?'Лидер · ':'')+'Уровень '+(member.level||1),
-     onlinePlayers.some(peer=>peer.id===member.id)?[['Выбрать',()=>{selectAlly(member.id);closeWindow()}]]:[]);
-   if(!partyState.groupId||partyState.members.length<5){
-    line('Игроки в мире','Выбери игрока для приглашения.');
-    for(const peer of onlinePlayers)if(!partyState.members.some(x=>x.id===peer.id))
-     line(peer.name||'Странник','Уровень '+(peer.level||1),[
-      ['Выбрать',()=>{selectAlly(peer.id);closeWindow()}],
-      ['Пригласить',()=>multiplayer.invite(peer.id)]
-     ]);
-    if(!onlinePlayers.length)line('Никого рядом','Другие игроки в этом мире пока не обнаружены.');
-
-   }
+   const roster=document.createElement('section');roster.className='ngw-party-roster';
+   body.append(roster);paintPartyRoster(roster);
    const log=document.createElement('div');
    log.id='partyChatLog';log.className='ngw-chat-log';log.setAttribute('role','log');
    log.setAttribute('aria-label','Последние сообщения чата');
    body.append(log);paintChatHistory();
    const message=document.createElement('input');message.type='text';message.maxLength=180;
+   message.className='ngw-chat-message';
    message.placeholder='Написать сообщение…';message.style.cssText='width:100%;margin:8px 0;padding:9px';
    body.append(message);
    const sendMessage=channel=>{
