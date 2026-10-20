@@ -1985,7 +1985,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
        cell.style.setProperty('--item-quality-color',QUALITY_VISUALS[itemRarity(def.rarity)].color);}
       cell.setAttribute('aria-label',item?(def?.name||'Лечебный настой'):'Пустая ячейка '+(i+1));
       if(item){
-        const icon=document.createElement('span');icon.className='slot-icon';icon.textContent=def?.icon||'🧪';
+        const icon=document.createElement('span');icon.className='slot-icon';icon.textContent=def?.icon||'🧪';if(item.id===BATTLEFURY_ITEM_ID)icon.classList.add('battlefury-icon');
         const qty=document.createElement('span');qty.className='slot-count';qty.textContent=item.qty>1?item.qty:'';
         cell.append(icon,qty);
         cell.addEventListener('click',()=>{
