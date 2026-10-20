@@ -6,6 +6,7 @@ import {questWaypoint,questDirection,preferredQuestId} from './starter-quest-gui
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=2';
+import {getAbilityRangeIndicator} from './ability-range-visuals.js?v=1';
 import {compareEquipment,itemStatRows} from './equipment-comparison.js?v=1';
 import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.6.43.5';
 import {getAbilityDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
@@ -1566,6 +1567,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   });
   if(!modal.hidden)renderModal();
   }
+  // Refresh attack range from live character/mob positions every 200 ms without recreating buttons.
+  const selectedHostile=isLivingHostile(target);
+  const targetRange=selectedHostile?distance(target):Infinity;
+  let areaRange=Infinity;
+  if(state.hotbar.some(entry=>getAbilityDefinition(entry?.id)?.kind==='area')){
+   for(const enemy of [...mobs,dummy])if(isLivingHostile(enemy))areaRange=Math.min(areaRange,distance(enemy));
+  }
   // Don't destroy pressed buttons during each 200ms HUD refresh.
   for(const [i,entry] of state.hotbar.entries()){
    const button=hotbar.children[i];if(!button)continue;
@@ -1578,6 +1586,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(cd)cd.textContent=remain>0?remain>=10?String(Math.ceil(remain)):remain.toFixed(1):'';
    if(gcd)gcd.style.transform='scaleY('+(def?.gcd?clamp(runtime.gcd/1.5,0,1):0)+')';
    button.classList.toggle('is-cooldown',remain>0);
+   const rangeIndicator=getAbilityRangeIndicator(def,{targetDistance:targetRange,nearestHostileDistance:areaRange,approachRange:APPROACH_RANGE});
+   button.classList.toggle('is-out-of-range',rangeIndicator.outOfRange);
+   button.dataset.inRange=String(!rangeIndicator.outOfRange);
    const autoActive=entry?.id==='autoAttack'&&autoplay;
    button.classList.toggle('is-active',autoActive);
    if(entry?.id==='autoAttack'){
@@ -1587,13 +1598,17 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      button.dataset.autoActive=String(autoActive);
     }
     button.setAttribute('aria-pressed',String(autoActive));
-    button.title=autoActive?'Автоатака включена':'Автоатака выключена';
+    button.title=rangeIndicator.outOfRange?(selectedHostile?'Автоатака: цель дальше 20 м':'Автоатака: выберите цель в радиусе 20 м'):(autoActive?'Автоатака включена':'Автоатака выключена');
    }
    const isPotion=entry?.id==='healingPotion',count=isPotion?itemCount('healingPotion'):0;
    const quantity=button.querySelector('.planetItemQuantity');
    if(quantity){quantity.hidden=!isPotion;quantity.textContent=isPotion?String(count):'';}
    button.classList.toggle('is-unavailable',isPotion&&count===0);
    if(isPotion){button.setAttribute('aria-disabled',String(count===0));button.title=count>0?'Лечебных настоев: '+count:'Лечебных настоев нет';}
+   else if(def&&entry?.id!=='autoAttack')button.title=rangeIndicator.outOfRange?
+    (def.requiresTarget&&!selectedHostile?'Сначала выберите противника':def.name+': вне радиуса '+String(rangeIndicator.limit).replace('.',',')+' м'):def.name;
+   // Out-of-range buttons remain tappable: special strikes still trigger the existing <=20 m auto-approach.
+
   }
  }
  function renderModal(){
