@@ -11,7 +11,8 @@ const SESSION_TOKEN='a'.repeat(43);
 const CHARACTER_ID='12345678-1234-4123-8123-123456789abc';
 
 async function attempt({local='0.6.34.1',upstream='0.6.34.1',source=upstream,
- accountPlay=true,portalPreview=false,token=SESSION_TOKEN,characterId=CHARACTER_ID}={}){
+ accountPlay=true,portalPreview=false,token=SESSION_TOKEN,characterId=CHARACTER_ID,
+ mirrorSha='a'.repeat(40),mainSha=mirrorSha,mainShaAvailable=true,htmlBuild=local}={}){
  const params=new URLSearchParams();
  if(accountPlay)params.set('account-play','1');
  if(portalPreview)params.set('portal-preview','1');
@@ -38,6 +39,12 @@ async function attempt({local='0.6.34.1',upstream='0.6.34.1',source=upstream,
   clearTimeout:()=>{},
   fetch:async url=>{
    const address=String(url);
+   if(address.startsWith('./upstream-commit.txt?'))
+    return mirrorSha?{ok:true,text:async()=>mirrorSha}:{ok:false};
+   if(address.startsWith('https://api.github.com/repos/Nexions-link/Nexgame/commits/main?'))
+    return mainShaAvailable?{ok:true,json:async()=>({sha:mainSha})}:{ok:false};
+   if(address.startsWith('./planet-test/index.html?verify='))
+    return htmlBuild?{ok:true,text:async()=>'<main data-build="'+htmlBuild+'"></main>'}:{ok:false};
    const isLocal=address.startsWith('./planet-test/');
    const isSource=address.startsWith('https://raw.githubusercontent.com/');
    const version=isLocal?local:isSource?source:upstream;
@@ -140,4 +147,29 @@ test('same-origin current 0.6.43.27 launches after mirror completes',async()=>{
  assert.equal(new URL(result.frame.src).origin,'https://nexions.ru');
  assert.equal(new URL(result.frame.src).searchParams.get('v'),'0.6.43.27');
  assert.equal(result.retries.length,0);
+});
+
+test('same-version hotfix does not launch an outdated mirrored commit',async()=>{
+ const result=await attempt({local:'0.6.43.54',upstream:'0.6.43.54',
+  source:'0.6.43.54',mirrorSha:'a'.repeat(40),mainSha:'b'.repeat(40)});
+ assert.equal(result.frame.src,null);
+ assert.equal(result.retries.length,1);
+ assert.match(result.loading.paragraph.textContent,/обновляем файлы/i);
+});
+test('matching upstream commit is visible in same-origin cache-busting URL',async()=>{
+ const result=await attempt({local:'0.6.43.54',upstream:'0.6.43.54',
+  mirrorSha:'d'.repeat(40),mainSha:'d'.repeat(40)});
+ const launched=new URL(result.frame.src);
+ assert.equal(launched.origin,'https://nexions.ru');
+ assert.equal(launched.searchParams.get('commit'),'d'.repeat(12));
+});
+test('a temporary GitHub API error keeps strict version checking available',async()=>{
+ const result=await attempt({local:'0.6.43.54',source:'0.6.43.54',mainShaAvailable:false});
+ assert.equal(new URL(result.frame.src).origin,'https://nexions.ru');
+ assert.equal(result.retries.length,0);
+});
+test('same-version manifest cannot disguise outdated playable HTML',async()=>{
+ const result=await attempt({local:'0.6.43.54',source:'0.6.43.54',htmlBuild:'0.6.43.53'});
+ assert.equal(result.frame.src,null);
+ assert.equal(result.retries.length,1);
 });

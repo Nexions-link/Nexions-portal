@@ -53,7 +53,18 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
  const fallback='https://nexions-link.github.io/Nexgame/planet-test/';
  // Nexgame/main is authoritative; GitHub Pages and nexions.ru are mirrors.
  const source='https://raw.githubusercontent.com/Nexions-link/Nexgame/main/planet-test/';
- let checking=false,retryTimer=null,loadedVersion=null,loadedUrl=null;
+ // A version number alone cannot detect a same-version hotfix; the mirror
+ // records the exact main commit it copied.
+ const mainCommitApi='https://api.github.com/repos/Nexions-link/Nexgame/commits/main';
+ const shaPattern=/^[a-f0-9]{40}$/;
+ async function readCommit(endpoint,json=false){
+  const response=await fetch(endpoint+(endpoint.includes('?')?'&':'?')+'check='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw Error('Release commit is unavailable');
+  const sha=json?(await response.json()).sha:(await response.text()).trim();
+  if(!shaPattern.test(sha))throw Error('Invalid release commit');
+  return sha;
+ }
+ let checking=false,retryTimer=null,loadedVersion=null,loadedUrl=null,loadedCommit=null;
  const params=new URLSearchParams(location.search);
  // The main game is now account-only. A bare /nexgameworld/ route or an old
  // anonymous bookmark must never silently start a local "Странник" character.
@@ -113,8 +124,9 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
   try{
    // Compare the same-domain mirror with BOTH upstream deployment and the
    // authoritative main-branch release. A scheduled mirror can lag by minutes.
-   const [onDomain,upstream,mainBranch]=await Promise.allSettled([
-    readBuild(local),readBuild(fallback),readBuild(source)
+   const [onDomain,upstream,mainBranch,mirrorRef,mainRef]=await Promise.allSettled([
+    readBuild(local),readBuild(fallback),readBuild(source),
+    readCommit('./upstream-commit.txt'),readCommit(mainCommitApi,true)
    ]);
    const localVersion=onDomain.status==='fulfilled'?onDomain.value:null;
    // Metadata can be ahead of the mirrored HTML; verify the actual client build.
@@ -134,17 +146,24 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
    for(const candidate of [upstreamVersion,sourceVersion]){
     if(candidate&&(!newest||isNewer(candidate,newest)))newest=candidate;
    }
+   const mirrorSha=mirrorRef.status==='fulfilled'?mirrorRef.value:null;
+   const currentMainSha=mainRef.status==='fulfilled'?mainRef.value:null;
+   // Fail closed on an OBSERVED SHA mismatch. GitHub API may be unreachable
+   // on some networks; numeric source-version verification remains a fallback.
+   const mirrorCommitOutdated=!!(mirrorSha&&currentMainSha&&mirrorSha!==currentMainSha);
    const accountPlay=params.get('account-play')==='1';
    let url=local,version=verifiedLocalVersion;
    if(accountPlay){
     // Sessions are same-origin only; NEVER forward login tokens to upstream.
     // Do not launch an older account client while the scheduled mirror catches up.
-    if(!verifiedLocalVersion||isNewer('0.6.32',verifiedLocalVersion)||newest&&isNewer(newest,verifiedLocalVersion)){
+    if(!verifiedLocalVersion||isNewer('0.6.32',verifiedLocalVersion)||newest&&isNewer(newest,verifiedLocalVersion)||mirrorCommitOutdated){
      loading.hidden=false;
      const waiting=newest&&verifiedLocalVersion&&isNewer(newest,verifiedLocalVersion);
      loading.querySelector('p').textContent=waiting
       ?'Доступна Alpha '+newest+'. Обновляем Nexions.ru (проверенный клиент '+(verifiedLocalVersion||'ещё не готов')+'). Проверяем снова…'
-      :'Ожидаем актуальную версию игры на Nexions.ru. Повторная проверка автоматически…';
+      :mirrorCommitOutdated
+       ?'Обновляем файлы NexGameWorld на Nexions.ru. Проверяем публикацию нового коммита…'
+       :'Ожидаем актуальную версию игры на Nexions.ru. Повторная проверка автоматически…';
      scheduleRetry();
      return;
     }
@@ -153,6 +172,14 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
     notice.hidden=false;
     if(!localVersion)console.warn('Local NexGameWorld mirror unavailable; using upstream');
     else console.info('NexGameWorld mirror updating: '+localVersion+' → '+upstreamVersion);
+   }
+   // Even when version numbers are equal, never launch a known stale
+   // same-origin mirror. Keep optional read-only preview fallback separate.
+   if(url===local&&mirrorCommitOutdated){
+    loading.hidden=false;
+    loading.querySelector('p').textContent='Сайт обновляет файлы игры. Проверяем снова…';
+    scheduleRetry();
+    return;
    }
    // A preview also must not silently call an older published client "latest".
    if(newest&&(!version||isNewer(newest,version))){
@@ -170,13 +197,14 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
    if(retryTimer!==null){clearTimeout(retryTimer);retryTimer=null;}
    const target=new URL(url,location.href);
    target.searchParams.set('v',version);
+   if(url===local&&mirrorSha)target.searchParams.set('commit',mirrorSha.slice(0,12));
    // Safari can cache an iframe document even when its version query was
    // unchanged. A new URL forces a fresh HTML navigation on each launch.
    target.searchParams.set('fresh',String(Date.now()));
    if(params.get('portal-preview')==='1')target.searchParams.set('portal-preview','1');
    if(accountPlay)target.searchParams.set('account-play','1');
-   if(loadedVersion===version&&loadedUrl===url&&frame.src)return;
-   loadedVersion=version;loadedUrl=url;
+   if(loadedVersion===version&&loadedUrl===url&&loadedCommit===mirrorSha&&frame.src)return;
+   loadedVersion=version;loadedUrl=url;loadedCommit=mirrorSha;
    loading.hidden=false;
    frame.addEventListener('load',()=>{loading.hidden=true;},{once:true});
    frame.src=target.href;
