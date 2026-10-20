@@ -1,5 +1,6 @@
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
+import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
 // NexGameWorld Stage 1: spherical WebSocket presence and visual-only remote avatars.
 // Combat, quests, loot and the player's local saves remain untouched.
@@ -59,7 +60,7 @@ export function createSphericalPresence({
  auth=null,url=WORLD_URL,loadBattlefuryScene=null
 }){
  let socket=null,closed=false,selfId=null,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null,lastCorrection=0,onlineCount=1;
- const peers=new Map(),visuals=new Map();
+ const peers=new Map(),visuals=new Map(),chargeEvents=new Map();
  let weaponLoaderPromise=null;
  const fetchWeaponScene=loadBattlefuryScene||(async()=>{
   if(!weaponLoaderPromise)weaponLoaderPromise=import(
@@ -129,7 +130,7 @@ export function createSphericalPresence({
  const east=new THREE.Vector3(),north=new THREE.Vector3(),fwd=new THREE.Vector3(),
   right=new THREE.Vector3(),matrix=new THREE.Matrix4();
  const stopPeers=()=>{for(const peer of visuals.values())disposeActor(peer.actor.root);
-  visuals.clear();peers.clear();};
+  visuals.clear();peers.clear();chargeEvents.clear();};
  const status=(value,count=null)=>{
   onStatus?.(value,count);
  };
@@ -222,12 +223,15 @@ export function createSphericalPresence({
     lastCorrection=Date.now();
     onPositionCorrection?.(m);
    }else if(m.type==='leave'&&typeof m.id==='string'){
-    peers.delete(m.id);
+    peers.delete(m.id);chargeEvents.delete(m.id);
     const visual=visuals.get(m.id);
     if(visual){disposeActor(visual.actor.root);visuals.delete(m.id)}
     onPlayers?.([...peers.values()]);
     onlineCount=Math.max(1,onlineCount-1);
     status('online',onlineCount);
+   }else if(m.type==='chargeVisual'&&typeof m.id==='string'&&m.id!==selfId&&
+     validNormal(m.normal)&&validNormal(m.fromNormal)){
+    chargeEvents.set(m.id,m);
    }else if(m.type==='combat')onCombat?.(m,selfId);
    else if(m.type==='killCredit')onKillCredit?.(m);
    else if(m.type==='mobAttack')onMobAttack?.(m);
@@ -285,7 +289,9 @@ export function createSphericalPresence({
     const color=colors[peer.id.charCodeAt(0)%colors.length];
     const actor=createAvatar({fur:color,player:false,remotePlayer:true});
     actor.root.add(nameSprite(THREE,peer.name));
-    visual={actor,normal:new THREE.Vector3(...peer.normal),targetNormal:new THREE.Vector3(),heading:peer.heading,phase:0};
+    const hint=chargeEvents.get(peer.id);
+    visual={actor,normal:new THREE.Vector3(...(hint?.fromNormal||peer.normal)),
+     targetNormal:new THREE.Vector3(),heading:peer.heading,phase:0,charge:null,recovery:0};
     visuals.set(peer.id,visual);
    }
    // Keep the face and main silhouette near the camera, but avoid the
@@ -301,15 +307,46 @@ export function createSphericalPresence({
    if(visual.actor.anatomy&&visual.actor.anatomy.quality!==modelDetail)
     visual.actor.anatomy.setQuality(modelDetail);
    syncBattlefury(visual,peer);
+   const nextCharge=chargeEvents.get(peer.id);
+   if(nextCharge){
+    const end=new THREE.Vector3(...nextCharge.normal);
+    visual.charge={from:visual.normal.clone(),to:end,
+     duration:Math.max(.1,Math.min(1,Number(nextCharge.durationMs||550)/1000)),
+     elapsed:0,fraction:0,distance:visual.normal.angleTo(end)*getRadius(),
+     finalHeading:nextCharge.heading};
+    chargeEvents.delete(peer.id);
+    visual.recovery=0;
+   }
    const factor=1-Math.exp(-Math.min(.1,Math.max(0,dt))*12);
    visual.targetNormal.set(...peer.normal);
    const oldAngle=Math.acos(clamp(visual.normal.dot(visual.targetNormal),-1,1));
    const previousHeading=visual.heading;
-   visual.normal.lerp(visual.targetNormal,factor).normalize();
-   const newAngle=Math.acos(clamp(visual.normal.dot(visual.targetNormal),-1,1));
-   // Travel from the rendered transform, bounded against teleport corrections.
-   const visualMetres=Math.min(Math.max(0,oldAngle-newAngle)*getRadius(),4.05*dt*2);
-   visual.heading+=angle(peer.heading,visual.heading)*factor;
+   let visualMetres,chargePose=null;
+   if(visual.charge){
+    const motion=visual.charge;
+    motion.elapsed+=dt;
+    const sample=sampleChargeMotion(motion.elapsed,motion.duration);
+    visual.normal.lerpVectors(motion.from,motion.to,sample.distanceFraction).normalize();
+    visualMetres=Math.min(Math.max(0,(sample.distanceFraction-motion.fraction)*motion.distance),dt*8.2);
+    motion.fraction=sample.distanceFraction;
+    const desired=chargeTravelHeading(visual.normal.toArray(),motion.to.toArray());
+    if(desired!==null)visual.heading=easeChargeHeading(visual.heading,desired,dt);
+    chargePose={drive:sample.drive,landing:sample.landing};
+    if(sample.finished){
+     visual.normal.copy(motion.to);
+     if(Number.isFinite(motion.finalHeading))visual.heading=motion.finalHeading;
+     visual.charge=null;visual.recovery=.15;
+    }
+   }else{
+    visual.normal.lerp(visual.targetNormal,factor).normalize();
+    const newAngle=Math.acos(clamp(visual.normal.dot(visual.targetNormal),-1,1));
+    visualMetres=Math.min(Math.max(0,oldAngle-newAngle)*getRadius(),4.05*dt*2);
+    visual.heading+=angle(peer.heading,visual.heading)*factor;
+   }
+   if(!visual.charge&&visual.recovery>0){
+    visual.recovery=Math.max(0,visual.recovery-dt);
+    if(!chargePose)chargePose={drive:0,landing:.52*visual.recovery/.15};
+   }
    const normal=visual.normal;
    const lon=Math.atan2(normal.x,normal.z);
    east.set(Math.cos(lon),0,-Math.sin(lon)).normalize();
@@ -321,13 +358,14 @@ export function createSphericalPresence({
    visual.actor.root.quaternion.setFromRotationMatrix(matrix);
    visual.actor.root.position.copy(normal).multiplyScalar(getRadius()+heightAt(normal)+.06);
    visual.phase=advanceStridePhase(visual.phase,visualMetres);
-   const poseWalk=Math.max(movementStrength(visualMetres,dt,4.05),peer.moving?.55:0);
+   const poseWalk=chargePose?Math.max(chargePose.drive,.2):
+    Math.max(movementStrength(visualMetres,dt,4.05),peer.moving?.55:0);
    const poseTurn=turnStrength(previousHeading,visual.heading,dt);
    // Always interpolate the remote actor transform; throttle only the bone
    // pose for distant avatars that cannot be the local combatant.
    const animationDt=consumeAnimationTime(visual,dt,distance);
    if(animationDt>0)
-    animateAvatar(visual.actor,{dt:animationDt,time,walk:poseWalk,turn:poseTurn,phase:visual.phase});
+    animateAvatar(visual.actor,{dt:animationDt,time,walk:poseWalk,turn:poseTurn,phase:visual.phase,charge:chargePose});
   }
  }
  function pickPlayer(raycaster,maxDistance=100){

@@ -11,7 +11,7 @@ const ease=(a,b,t)=>{const x=clamp((t-a)/(b-a),0,1);return x*x*(3-2*x)};
 const smooth=x=>x*x*(3-2*x);
 export function animateSphericalTauren(actor,{
  dt=1/60,time=0,walk=0,phase=0,turn=0,gather=false,combat=false,
- attack=-1,stomp=-1,blockRemaining=0,weaponKind='none',terrainFeet=null
+ attack=-1,stomp=-1,blockRemaining=0,weaponKind='none',terrainFeet=null,charge=null
 }={}){
  const seconds=clamp(Number.isFinite(dt)?dt:0,0,.1),user=actor.root.userData;
  const motion=advancePlayerMotion(user,seconds,{
@@ -27,6 +27,8 @@ export function animateSphericalTauren(actor,{
  user.blockRecoil=Math.max(0,(user.blockRecoil||0)-seconds*2.8);
  const recoil=Math.sin(user.blockRecoil*Math.PI)*user.blockRecoil;
  const idle=1-w;
+ const chargeDrive=clamp(Number.isFinite(charge?.drive)?charge.drive:0,0,1);
+ const chargeLanding=clamp(Number.isFinite(charge?.landing)?charge.landing:0,0,1);
  // Native weapon-specific phases. Progress 0..1 runs for precisely 0.8 s;
  // physical damage is triggered separately at progress 0.425.
  const playing=attack>=0&&attack<=1;
@@ -68,6 +70,14 @@ export function animateSphericalTauren(actor,{
  }
  actor.body.position.z-=.045*recoil;
  actor.body.position.z+=posture.lunge;
+ // The shoulder-first sprint loads into the front foot and compresses on
+ // landing. Apply only bone-local transforms, never the server-owned root.
+ actor.body.rotation.x+=.12*chargeDrive-.06*chargeLanding;
+ actor.chest.rotation.x+=.27*chargeDrive+.06*chargeLanding;
+ actor.neck.rotation.x-=.10*chargeDrive;
+ actor.head.rotation.x-=.08*chargeDrive;
+ actor.body.position.y-=.07*chargeDrive+.13*chargeLanding;
+ actor.body.position.z+=.13*chargeDrive-.05*chargeLanding;
  const stomping=stomp>=0,stompPower=clamp(stomp,0,1);
  if(stomping)actor.body.position.y-=.14*Math.sin(Math.min(stompPower/.55,1)*Math.PI);
  // Two-segment IK for each leg. Independent terrain samples are smoothed
@@ -79,6 +89,9 @@ export function animateSphericalTauren(actor,{
   const leg=actor.legs[i];
   let z=footStrideZ(phase,i)*w;
   let lift=hoofSwingLift(phase,i)*.22*w*(1-bend);
+  z+=footStrideZ(phase,i)*.12*chargeDrive;
+  lift+=hoofSwingLift(phase,i)*.11*chargeDrive*(1-chargeLanding);
+  if(chargeLanding>0){z+=(i===0?-.17:.12)*chargeLanding;lift*=1-.72*chargeLanding;}
   // Heel shift during an on-the-spot turn; root stays planted, foot IK
   // remains in the local radial-up frame.
   const support=i===(pivot>=0?0:1);
@@ -124,6 +137,9 @@ export function animateSphericalTauren(actor,{
    sign*Math.cos(phase)*detail.gaitElbow;
   arm.shoulder.rotation.x-=bend*(i?.95:1.12);
   arm.elbow.rotation.x-=.45*bend;
+  arm.shoulder.rotation.x+=sign*stride*.27*chargeDrive-(i?.23:.36)*chargeDrive;
+  arm.elbow.rotation.x-=.40*chargeDrive;
+  arm.shoulder.rotation.z+=sign*.045*chargeDrive;
   if(stomping)arm.shoulder.rotation.z-=sign*.17*Math.sin(stompPower*Math.PI);
   if(i===0){
    arm.shoulder.rotation.x+=block.shoulderX-.11*recoil;
@@ -144,11 +160,13 @@ export function animateSphericalTauren(actor,{
    arm.hand.rotation.set(grip.x+wrist,grip.y,grip.z,grip.order||'XYZ');
   }
  }
- if(actor.tail){actor.tail.rotation.x=.06+Math.sin(time*1.35)*.075+w*.08+.025*acceleration;
+ if(actor.tail){actor.tail.rotation.x=.06+Math.sin(time*1.35)*.075+w*.08+.025*acceleration+
+  .21*chargeDrive-.10*chargeLanding;
   actor.tail.rotation.y=.06*Math.sin(time*1.1)+.045*stride*w-.085*pivot+
    detail.tailYaw;}
  if(actor.braids)actor.braids.forEach((b,i)=>{
-  b.rotation.x=.045*Math.sin(time*1.7+i*.8)+.08*stride*w+.025*bend+.012*acceleration;
+  b.rotation.x=.045*Math.sin(time*1.7+i*.8)+.08*stride*w+.025*bend+.012*acceleration+
+   .11*chargeDrive;
   b.rotation.z=(i?-.018:.018)*Math.sin(time*1.23+i);
  });
  return {crouch:bend,block:block.power,attack:playing?swing:0,dagger:stabbing?.extend||0};

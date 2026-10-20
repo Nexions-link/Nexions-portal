@@ -9,10 +9,11 @@ import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from 
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=128';
-import {createSphericalPresence} from './sphere-online.js?v=15';
+import {createSphericalPresence} from './sphere-online.js?v=16';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
-import {animateSphericalTauren} from './tauren-animation.js?v=10';
+import {animateSphericalTauren} from './tauren-animation.js?v=11';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
+import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
 import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=45';
@@ -389,7 +390,7 @@ try {
    authenticatedProfile:accountProfile});
   combatQualitySink=rpg.setVisualQuality;
   combatQualitySink(isPortalPreview?.15:GRAPHICS_PRESETS[qualityName].detail);
-  let presenceMoving=false,chargeMotion=null;
+  let presenceMoving=false,chargeMotion=null,chargeRecovery=0;
   const onlinePresence=isPortalPreview?null:createSphericalPresence({
     THREE,scene,
     createAvatar:options=>createTauren(THREE,scene,options),
@@ -409,7 +410,10 @@ try {
       if(!rpg.onChargeAccepted(message)||!Array.isArray(message.normal)||
          message.normal.length!==3||!message.normal.every(Number.isFinite))return;
       chargeMotion={from:state.normal.clone(),to:new THREE.Vector3(...message.normal).normalize(),
-       heading:message.heading,duration:Math.max(.1,Math.min(1,Number(message.durationMs||550)/1000)),elapsed:0};
+       heading:message.heading,duration:Math.max(.1,Math.min(1,Number(message.durationMs||550)/1000)),
+       elapsed:0,previousFraction:0,distance:0};
+      chargeMotion.distance=chargeMotion.from.angleTo(chargeMotion.to)*R;
+      chargeRecovery=0;
     },
     onPositionCorrection:correction=>{
       if(chargeMotion)return;
@@ -760,23 +764,32 @@ try {
     const input=screenMoveVector(horizontal, -forward, state.cameraHeading-Math.PI/2);
     if(input.strength>.11&&!chargeMotion)rpg.cancelAutoApproach();
     const previousHeading=state.heading;
-    let travelled=0;
+    let travelled=0,chargePose=null;
     let power=state.orbit||rpg.movementLocked||chargeMotion?0:input.strength;
     // Preserve manual camera-relative controls, but when idle allow the same
     // short-range auto-approach to a combat target as in the original NexGame.
     const approach=power<.11&&!state.orbit&&!chargeMotion?rpg.getApproachTarget():null;
     if(approach)power=1;
     if(chargeMotion){
-      chargeMotion.elapsed+=dt;
-      const t=clamp(chargeMotion.elapsed/chargeMotion.duration,0,1);
-      const eased=t*t*(3-2*t);
+      const motion=chargeMotion;
+      motion.elapsed+=dt;
+      const frame=sampleChargeMotion(motion.elapsed,motion.duration);
+      travelled=Math.max(0,(frame.distanceFraction-motion.previousFraction)*motion.distance);
+      motion.previousFraction=frame.distanceFraction;
       const oldLon=Math.atan2(state.normal.x,state.normal.z);
-      state.normal.lerpVectors(chargeMotion.from,chargeMotion.to,eased).normalize();
+      // Follow the exact server-verified great circle, without a frame-one snap.
+      state.normal.lerpVectors(motion.from,motion.to,frame.distanceFraction).normalize();
       state.lonUnwrapped+=angleDelta(Math.atan2(state.normal.x,state.normal.z),oldLon);
-      if(Number.isFinite(chargeMotion.heading))
-       state.heading=angleDelta(chargeMotion.heading,0);
-      travelled=chargeMotion.from.angleTo(chargeMotion.to)*R*Math.min(1,dt/chargeMotion.duration);
-      if(t>=1){state.normal.copy(chargeMotion.to);chargeMotion=null;}
+      const desired=chargeTravelHeading(state.normal.toArray(),motion.to.toArray());
+      if(desired!==null)state.heading=easeChargeHeading(state.heading,desired,dt);
+      else if(Number.isFinite(motion.heading))
+       state.heading=easeChargeHeading(state.heading,motion.heading,dt);
+      chargePose={drive:frame.drive,landing:frame.landing};
+      if(frame.finished){
+       state.normal.copy(motion.to);
+       if(Number.isFinite(motion.heading))state.heading=angleDelta(motion.heading,0);
+       chargeMotion=null;chargeRecovery=.15;
+      }
     }else if (power > 0) {
       tangentBasis(state.normal);
       if(approach){
@@ -811,14 +824,21 @@ try {
       }
     }
     // Only real travel advances the gait; held movement at a wall does not.
-    state.legCycle=advanceStridePhase(state.legCycle,travelled);
-    const poseWalk=movementStrength(travelled,dt,WALK_SPEED);
+    // Charge distance can be 30 m in half a second: cap cosmetic hoof
+    // cadence to sprint speed rather than animating an impossible blur.
+    state.legCycle=advanceStridePhase(state.legCycle,
+     chargePose?Math.min(travelled,dt*8.2):travelled);
+    if(!chargeMotion&&chargeRecovery>0){
+      chargeRecovery=Math.max(0,chargeRecovery-dt);
+      if(!chargePose)chargePose={drive:0,landing:chargeRecovery/.15*.52};
+    }
+    const poseWalk=chargePose?Math.max(chargePose.drive,.2):movementStrength(travelled,dt,WALK_SPEED);
     const poseTurn=turnStrength(previousHeading,state.heading,dt);
     followCooldown=Math.max(0,followCooldown-dt);
     // Spherical analogue of native followCameraYaw: tangent heading is the
     // camera's view-forward, not the eye-backward yaw of the flat implementation.
     // Follow only after controls are released; never overwrite vertical pitch.
-    if(state.cameraFollow&&!state.orbit&&power<.11&&touches.size===0&&followCooldown<=0)
+    if(state.cameraFollow&&!state.orbit&&!chargePose&&power<.11&&touches.size===0&&followCooldown<=0)
      state.cameraHeading=turnTowardsAngle(state.cameraHeading,state.heading,dt,3.8);
     presenceMoving=poseWalk>.11;
     updateActor();
@@ -832,7 +852,8 @@ try {
       phase:state.legCycle,walk:hero.root.userData.walkBlend??poseWalk
     });
     animateSphericalTauren(hero,{
-      dt,time:elapsed,walk:poseWalk,turn:poseTurn,phase:state.legCycle,terrainFeet,...rpg.getAnimationState()
+      dt,time:elapsed,walk:poseWalk,turn:poseTurn,phase:state.legCycle,
+      terrainFeet,charge:chargePose,...rpg.getAnimationState()
     });
 
     const windowView=rpg.getWindowView();
