@@ -1705,7 +1705,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    gesture:body.querySelector('.character-rotate')}:null;
   const characterScroll=kind==='character'?body.scrollTop:0;
   if(kind!=='character'&&kind!=='battlefuryTuner')characterPreview.release();
-  modal.classList.toggle('world-sheet',['chest','bag','loot','gatherLoot','merchant','mentor','herbalist','banditQuest','quests'].includes(kind));
+  modal.classList.toggle('world-sheet',kind==='chest');
   $('panel').classList.toggle('chest-sheet',kind==='chest');
   $('panel').classList.toggle('character-modal',kind==='character');
   $('panel').classList.toggle('inventory-modal',kind==='bag');
@@ -2675,7 +2675,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   getBattlefuryPose:()=>authenticatedProfile&&state.equipment.weapon?.id===BATTLEFURY_ITEM_ID?
    {...battlefuryTuning}:null,
   get combatActive(){return !!inCombat()},
-  get movementLocked(){return !modal.hidden||timeline.stompProgress>=0||
+  get movementLocked(){return (!modal.hidden&&modal.dataset.kind!=='bag')||timeline.stompProgress>=0||
    ['casting','finishing'].includes(pendingServerGather?.phase)},
   getWindowView(){
    if(modal.hidden||!modal.className.split(' ').includes('world-sheet'))return null;
