@@ -192,6 +192,11 @@
  background:linear-gradient(#6a613b,#3b422b);color:#f5e2ae;
  font:700 12px/1.25 system-ui,sans-serif;touch-action:manipulation}
 #mbody .planet-loot-actions .planet-loot-leave{background:linear-gradient(#5a4937,#37332b)}
+/* The target button leaves the utility row only after a deliberate long-press drag.
+   Fixed coordinates stay inside the viewport, with the spellbook anchored. */
+#hotbarUtilities #targetNext.is-floating{position:fixed;right:auto;bottom:auto;z-index:12;touch-action:none}
+#hotbarUtilities #targetNext.is-dragging{cursor:grabbing;border-color:#f6d88b;
+ box-shadow:0 0 0 2px #e2bf70aa,0 0 16px #f2ce7288;filter:brightness(1.13)}
 /* Planet Test native journal and spellbook micro-controls, iPhone first. */
 .planet-journal-tabs,.planet-hotbar-slot-picker{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 11px}
 .planet-journal-tabs .choice,.planet-hotbar-slot-picker .choice{
@@ -320,7 +325,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.43.41" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.43.42" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -349,7 +354,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
  <div class="gather-cast-track"><div id="gatherCastFill"></div></div>
 </div>
 <div id="hotbarUtilities">
- <button type="button" class="quick-tool" id="targetNext" aria-label="Выбрать ближайшую или следующую цель в радиусе 40 метров"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke="#e9c479" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#f5e3ad" stroke-width="3"/><path d="M24 1V13M24 35V47M1 24H13M35 24H47" stroke="#dcb66f" stroke-width="2.8"/></svg><span>Цель</span></button>
+ <button type="button" class="quick-tool" id="targetNext" aria-label="Выбрать цель. Для перемещения удерживайте кнопку и перетащите" title="Нажатие — выбрать цель · Удержание — переместить"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke="#e9c479" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#f5e3ad" stroke-width="3"/><path d="M24 1V13M24 35V47M1 24H13M35 24H47" stroke="#dcb66f" stroke-width="2.8"/></svg><span>Цель</span></button>
  <button type="button" id="spellbookButton" class="quick-tool" aria-label="Открыть книгу заклинаний" title="Книга заклинаний (B)"><span class="quick-tool-emoji">📖</span><span>Книга</span></button>
 </div>
 <div id="hotbarAssign" hidden role="status" aria-live="polite">
@@ -407,7 +412,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=153').catch(error=>{
+  import('./planet.js?v=154').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

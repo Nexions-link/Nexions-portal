@@ -5,7 +5,8 @@ import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physic
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=1';
+import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
+import {installDraggableTargetButton} from './target-button-drag.js?v=1';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=123';
 import {createSphericalPresence} from './sphere-online.js?v=14';
@@ -21,6 +22,7 @@ initStartZoneMath(THREE);
 // Safari's double-tap protection applies only to the 3D surface.
 const planetViewport=document.getElementById('viewport');
 installTouchButtons(document);
+installDraggableTargetButton(document.getElementById('targetNext'));
 installSurfaceZoomGuard(document,planetViewport);
 planetViewport.addEventListener('selectstart',event=>event.preventDefault());
 planetViewport.addEventListener('contextmenu',event=>event.preventDefault());
