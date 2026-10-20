@@ -11,6 +11,7 @@ import {compareEquipment,itemStatRows} from './equipment-comparison.js?v=1';
 import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.6.43.5';
 import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
+import {attachAbilityDrag} from './ability-drag-drop.js?v=1';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
 import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,resetWalkingClip,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.6.43.35';
 import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
@@ -213,7 +214,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   characterPreview.refresh();
  }
 
- let target=null,autoplay=false,swing=0,clock=0,messageUntil=0,pendingLoot=null,pendingLootTake=null,chooseSlot=-1,gatherCast=null,
+ let target=null,autoplay=false,swing=0,clock=0,messageUntil=0,pendingLoot=null,pendingLootTake=null,gatherCast=null,
   blockRemaining=0,approach=null;
  const timeline=createCombatTimeline();
  let lastCombatAt=-100;
@@ -556,7 +557,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    chiefRewardRenderSnapshot=null;
   }
   if(labels[event.kind])msg(labels[event.kind],2.2);
-  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','spells','banditQuest'].includes(modal.dataset.kind))
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','banditQuest'].includes(modal.dataset.kind))
    renderModal();
  }
  function onVitals(event){
@@ -604,7 +605,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   state.hotbar=normalizeHotbar(progress.actionBar?.length?progress.actionBar:DEFAULT_HOTBAR,'warrior',state.level);
   void updateEquipmentVisuals();
   draw();
-  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','spells','banditQuest'].includes(modal.dataset.kind))renderModal();
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','banditQuest'].includes(modal.dataset.kind))renderModal();
   if(source==='mob'){
    // A saved revision can be rebroadcast during reconnect. Never animate it twice.
    if(Number.isInteger(progress.revision)&&progress.revision===lastMobXpRevision)return;
@@ -702,7 +703,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    updateLootMarker(mob);
   }
  }
- const hotbar=$('actionsBar'),modal=$('modal'),toast=$('toast');
+ const hotbar=$('actionsBar'),modal=$('modal'),toast=$('toast'),spellbook=$('spellbookPopover');
  const feedbackLayer=$('combatFeedback');
  if(!feedbackLayer)throw Error('Отсутствует слой чисел урона');
  const combatFeedback=createSphereCombatFeedback({THREE,document,camera,layer:feedbackLayer});
@@ -1305,6 +1306,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const chestSheet=createChestSheet({items:ITEM_CATALOG,qualityColors:QUALITY_VISUALS,
   move:(...args)=>isOnline()?multiplayer.moveChest(...args):false,notify:msg});
  function openWindow(kind){
+  closeSpellbook();
   if(!modal.hidden&&modal.dataset.kind==='chest'&&kind!=='chest')closeWindow();
   if(kind==='chest'){clearChestRetry();chestSheet.reset();}
   if(kind==='character')selectedEquipmentSlot=null;
@@ -1600,7 +1602,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(entry?.id==='autoAttack'&&autoplay)button.classList.add('is-active');
    const ability=entry?getAbilityDefinition(entry.id==='healingPotion'?'healingPotion':entry.id):null;
    if(ability?.cooldown&&runtime.cooldowns[ability.id]>0)button.classList.add('is-cooldown');
-   button.addEventListener('click',()=>{if(chooseSlot>=0){chooseSlot=i;openWindow('spells');}else useAbility(i)});
+   button.addEventListener('click',()=>{if(!spellbook.hidden)return;useAbility(i)});
+   if(!spellbook.hidden)attachClearDrag(button,i,entry);
    hotbar.append(button);
   });
   if(!modal.hidden)renderModal();
@@ -1703,7 +1706,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    gesture:body.querySelector('.character-rotate')}:null;
   const characterScroll=kind==='character'?body.scrollTop:0;
   if(kind!=='character'&&kind!=='battlefuryTuner')characterPreview.release();
-  modal.classList.toggle('world-sheet',['chest','bag','loot','gatherLoot','merchant','mentor','herbalist','banditQuest','quests','spells'].includes(kind));
+  modal.classList.toggle('world-sheet',['chest','bag','loot','gatherLoot','merchant','mentor','herbalist','banditQuest','quests'].includes(kind));
   $('panel').classList.toggle('chest-sheet',kind==='chest');
   $('panel').classList.toggle('character-modal',kind==='character');
   $('panel').classList.toggle('inventory-modal',kind==='bag');
@@ -1714,7 +1717,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   $('cameraControl').hidden=kind!=='menu';
   $('graphicsControl').hidden=kind!=='menu';
   title.textContent=({bag:'Рюкзак',character:'Персонаж',quests:'Журнал заданий',
-   merchant:'Торговец',spells:'Книга способностей',loot:'Обыск тела',menu:'Меню',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
+   merchant:'Торговец',loot:'Обыск тела',menu:'Меню',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
   body.replaceChildren();
   const line=(label,caption,actions=[])=>{
    const row=document.createElement('div');row.className='rpgRow';
@@ -2197,57 +2200,94 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
       }]]);
     });
    }
-  }else if(kind==='spells'){
-   const intro=document.createElement('p');intro.className='spellbook-intro';
-   intro.textContent='Выбери ячейку 1–8, затем способность или предмет. Занятую ячейку тоже можно заменить.';
-   body.append(intro);
-   const picker=document.createElement('div');picker.className='planet-hotbar-slot-picker';
-   for(let i=0;i<8;i++){
-    const button=document.createElement('button');button.type='button';
-    button.className='choice'+(chooseSlot===i?' is-selected':'');
-    button.textContent=String(i+1);button.title='Выбрать ячейку '+(i+1);
-    button.setAttribute('aria-pressed',String(chooseSlot===i));
-    button.addEventListener('click',()=>{chooseSlot=i;renderModal();});
-    picker.append(button);
-   }
-   body.append(picker);
-   const list=document.createElement('div');list.className='spellbook-list';
-   const abilities=availableHotbarActions('warrior',state.level);
-   for(const info of [...abilities.abilities,...abilities.items]){
-     const btn=document.createElement('button');btn.type='button';btn.className='spellbook-entry';
-     const icon=document.createElement('span');icon.className='spellbook-entry-icon';if(HOTBAR_ART[info.id])icon.innerHTML=HOTBAR_ART[info.id];else icon.textContent=ICON[info.id]||'✨';
-     const block=document.createElement('span');block.className='spellbook-entry-content';
-     const title=document.createElement('span');title.className='spellbook-entry-title';title.textContent=info.name;
-     const detail=document.createElement('span');detail.className='spellbook-entry-desc';detail.textContent=info.description;
-     const meta=document.createElement('span');meta.className='spellbook-entry-meta';
-     meta.textContent=info.kind==='item'?'Настоев: '+itemCount('healingPotion'):
-      (info.resourceCost?info.resourceCost+' ярости · ':'')+(info.cooldown?info.cooldown+' с восстановления':'Без перезарядки');
-     block.append(title,detail,meta);
-     const arrow=document.createElement('span');arrow.className='spellbook-entry-use';arrow.textContent='➜';
-     btn.append(icon,block,arrow);
-     btn.addEventListener('click',()=>{
-       const slot=chooseSlot>=0?chooseSlot:state.hotbar.findIndex(entry=>entry===null);
-       if(slot<0)return msg('Нажми нужную ячейку на панели');
-       if(authenticatedProfile){sendAccountAction('hotbarSet',{slot,entry:{kind:info.kind,id:info.id}});chooseSlot=-1;return;}
-       state.hotbar=assignHotbarSlot(state.hotbar,slot,{kind:info.kind,id:info.id},'warrior',state.level);
-       chooseSlot=-1;persist();draw();msg('Назначено в ячейку '+(slot+1));
-     });list.append(btn);
-   }
-   const clear=document.createElement('button');clear.type='button';
-   clear.className='spellbook-entry spellbook-remove';clear.textContent='✕ Очистить выбранную ячейку';
-   clear.addEventListener('click',()=>{
-     if(chooseSlot<0)return msg('Сначала выбери ячейку панели');
-     if(authenticatedProfile){sendAccountAction('hotbarSet',{slot:chooseSlot,entry:null});chooseSlot=-1;return;}
-     state.hotbar=assignHotbarSlot(state.hotbar,chooseSlot,null,'warrior',state.level);
-     chooseSlot=-1;persist();draw();
-   });list.append(clear);body.append(list);
+
   }
  }
+ // A non-modal popover anchored immediately above the actual action bar.
+ // It leaves all eight drop targets visible and usable on iPhone and PC.
+ function placeSpellbook(){
+  if(spellbook.hidden)return;
+  const rect=hotbar.getBoundingClientRect();
+  const vw=document.documentElement.clientWidth||globalThis.window?.innerWidth||844;
+  const vh=document.documentElement.clientHeight||globalThis.window?.innerHeight||390;
+  const width=Math.min(460,Math.max(220,vw-16));
+  const left=Math.max(8,Math.min(vw-width-8,rect.left+(rect.width-width)/2));
+  const height=Math.max(104,Math.min(360,rect.top-12));
+  spellbook.style.width=width+'px';
+  spellbook.style.left=left+'px';
+  spellbook.style.bottom=Math.max(0,vh-rect.top+8)+'px';
+  spellbook.style.maxHeight=height+'px';
+ }
+ function closeSpellbook(){
+  spellbook.hidden=true;
+  $('spellbookButton')?.setAttribute('aria-expanded','false');
+  hotbar.classList.remove('ngw-hotbar-editing');
+ }
+ function setHotbarEntry(slot,entry){
+  if(!Number.isInteger(slot)||slot<0||slot>=8)return;
+  if(authenticatedProfile){
+   if(!isOnline()){msg('Сервер недоступен — назначение не сохранено');return;}
+   if(!sendAccountAction('hotbarSet',{slot,entry}))return;
+   msg('Сохраняем ячейку '+(slot+1)+'…',1.2);
+   closeSpellbook();return;
+  }
+  state.hotbar=assignHotbarSlot(state.hotbar,slot,entry,'warrior',state.level);
+  persist();closeSpellbook();draw();
+  msg(entry?'Назначено в ячейку '+(slot+1):'Ячейка '+(slot+1)+' очищена');
+ }
+ function renderSpellbook(){
+  const list=$('spellbookAbilities');list.replaceChildren();
+  const abilities=availableHotbarActions('warrior',state.level);
+  for(const info of [...abilities.abilities,...abilities.items]){
+   const tile=document.createElement('button');tile.type='button';
+   tile.className='ngw-spell-drag-entry';tile.dataset.abilityId=info.id;
+   tile.setAttribute('aria-label',info.name+'. Удерживайте и перетащите на ячейку 1–8');
+   const icon=document.createElement('span');icon.className='ngw-spell-drag-icon';
+   if(HOTBAR_ART[info.id])icon.innerHTML=HOTBAR_ART[info.id];
+   else icon.textContent=ICON[info.id]||'✦';
+   const content=document.createElement('span');content.className='ngw-spell-drag-content';
+   const name=document.createElement('strong');name.textContent=info.name;
+   const detail=document.createElement('small');detail.textContent=
+    info.kind==='item'?'Предмет':info.resourceCost?info.resourceCost+' ярости':'Без затрат';
+   content.append(name,detail);tile.append(icon,content);
+   // A tap is informational only: no automatic assignment to a free slot.
+   tile.addEventListener('click',()=>msg('Удерживай способность и перетащи на ячейку 1–8'));
+   attachAbilityDrag(tile,{document,hotbar,entry:info,
+    onDrop:(slot,value)=>setHotbarEntry(slot,{kind:value.kind,id:value.id})});
+   list.append(tile);
+  }
+  placeSpellbook();
+ }
+ function toggleSpellbook(){
+  if(!modal.hidden)return;
+  if(!spellbook.hidden){closeSpellbook();return;}
+  spellbook.hidden=false;hotbar.classList.add('ngw-hotbar-editing');
+  $('spellbookButton').setAttribute('aria-expanded','true');
+  renderSpellbook();
+  // Attach trash drags after the book is opened; normal hotbar clicks stay inert.
+  draw();
+ }
+ bind($('spellbookClose'),'click',closeSpellbook);
+ // The book also includes a trash drop zone for removing an existing entry.
+ // Drag a hotbar action onto it to clear that slot without old selection menus.
+ function attachClearDrag(button,slot,entry){
+  if(!entry)return;
+  attachAbilityDrag(button,{document,hotbar,entry:{...entry,name:actionDefinition(entry,'warrior',state.level)?.name||entry.id},
+   trash:$('spellbookTrash'),onDrop:()=>{},onDiscard:()=>setHotbarEntry(slot,null)});
+ }
+ document.addEventListener('pointerdown',event=>{
+  if(spellbook.hidden||spellbook.contains(event.target)||hotbar.contains(event.target)||
+   $('spellbookButton').contains(event.target))return;
+  closeSpellbook();
+ },true);
+ globalThis.window?.addEventListener('resize',placeSpellbook);
+ globalThis.window?.addEventListener('orientationchange',placeSpellbook);
+
  const actions=[
   ['targetNext',()=>targetNearest(1)],['interact',interact],
   ['bag',()=>openWindow('bag')],['character',()=>openWindow('character')],
   ['journal',()=>openWindow('quests')],['questJournalOpen',()=>openWindow('quests')],
-  ['spellbookButton',()=>{chooseSlot=-1;openWindow('spells')}],
+  ['spellbookButton',toggleSpellbook],
   ['pause',()=>openWindow('menu')],
   ['partyOpen',()=>openWindow('party')],
   ['targetClear',()=>{targetEntity(null);autoplay=false;draw()}],
@@ -2256,13 +2296,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   ['dummyReset',()=>{dummy.trainingStats=createTrainingStats();draw();}]
  ];
  for(const [id,fn] of actions){const node=$(id);if(node)bind(node,'click',fn);}
- bind($('modalClose'),'click',()=>{chooseSlot=-1;closeWindow();});
+ bind($('modalClose'),'click',closeWindow);
  document.addEventListener('keydown',e=>{
   if(e.target?.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/i.test(e.target?.tagName||''))return;
   const key=e.key.toLowerCase();
-  if(key==='escape'&&!modal.hidden){closeWindow();e.preventDefault();}
+  if(key==='escape'&&!spellbook.hidden){closeSpellbook();e.preventDefault();return;}
+  if(key==='escape'&&!modal.hidden){closeWindow();e.preventDefault();return;}
   if(!modal.hidden)return;
-  const shortcut={i:'bag',c:'character',j:'quests',b:'spells'};
+  if(key==='b'&&!e.repeat){toggleSpellbook();e.preventDefault();return;}
+  const shortcut={i:'bag',c:'character',j:'quests'};
   if(shortcut[key]&&!e.repeat){openWindow(shortcut[key]);e.preventDefault();}
   if(key==='tab'){if(!e.repeat)targetNearest(e.shiftKey?-1:1);e.preventDefault();}
   if(key==='e'){interact();e.preventDefault();}

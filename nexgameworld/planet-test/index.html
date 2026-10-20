@@ -202,6 +202,38 @@
 /* The book is an icon-only, independently movable 44px touch control. */
 #hotbarUtilities #spellbookButton{width:46px;min-width:46px;padding:5px}
 #hotbarUtilities #spellbookButton .quick-tool-emoji{display:block;line-height:1}
+/* Compact floating spellbook: always above the eight visible hotbar slots. */
+#spellbookPopover[hidden]{display:none!important}
+#spellbookPopover{position:fixed;z-index:28;display:flex;flex-direction:column;
+ border:2px ridge #c2a66d;border-radius:9px;padding:9px;overflow:hidden;
+ background:linear-gradient(155deg,#303629f8,#161d18f8);box-shadow:0 7px 28px #000a;
+ color:#f3e2bd;touch-action:pan-y;box-sizing:border-box}
+#spellbookPopover .ngw-spellbook-header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none}
+#spellbookPopover .ngw-spellbook-header strong{font:700 15px Georgia,serif}
+#spellbookClose{border:1px solid #b88369;border-radius:5px;background:#71392d;color:#fff0d9;
+ min-width:30px;min-height:30px;font:22px/1 system-ui;touch-action:manipulation}
+#spellbookPopover p{margin:3px 0 7px;color:#d5c4a5;font:11px/1.35 system-ui;flex:none}
+#spellbookAbilities{min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ align-content:start;gap:5px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.ngw-spell-drag-entry{display:flex;align-items:center;gap:6px;min-width:0;min-height:49px;padding:5px 6px;
+ color:#f3dfb6;background:linear-gradient(#54523a,#2b3325);border:1px solid #95845a;border-radius:5px;
+ text-align:left;touch-action:none;user-select:none;-webkit-user-select:none}
+.ngw-spell-drag-icon{flex:none;display:grid;place-items:center;width:31px;height:33px;font-size:26px}
+.ngw-spell-drag-icon svg{display:block;width:30px;height:30px}
+.ngw-spell-drag-content{display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden}
+.ngw-spell-drag-content strong{font:700 11px/1.2 system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ngw-spell-drag-content small{color:#d3be88;font:10px/1.2 system-ui}
+#spellbookTrash{padding:7px 4px;margin-top:7px;text-align:center;border:1px dashed #b58f75;
+ border-radius:5px;color:#e7bc9f;background:#4d3028aa;font:10px/1.35 system-ui;flex:none}
+.ngw-ability-drag-ghost{position:fixed;z-index:90;pointer-events:none;transform:translate(-50%,-50%);
+ padding:11px 15px;border:2px solid #e1c177;border-radius:8px;background:#313b27f0;color:#fff0bb;
+ font:700 13px system-ui;white-space:nowrap;box-shadow:0 5px 25px #0009}
+#actionsBar.ngw-hotbar-editing .ability{outline:1px dashed #e8c47d;outline-offset:-4px}
+#actionsBar .ability.ngw-drop-target,#spellbookTrash.ngw-drop-target{outline:3px solid #e3cb85;
+ box-shadow:0 0 14px #eaca7299;filter:brightness(1.3);opacity:1}
+.ngw-source-dragging{opacity:.55}
+@media(max-height:510px){#spellbookPopover{padding:5px}#spellbookPopover p{display:none}
+ .ngw-spell-drag-entry{min-height:39px}.ngw-spell-drag-icon{height:29px}}
 /* Planet Test native journal and spellbook micro-controls, iPhone first. */
 .planet-journal-tabs,.planet-hotbar-slot-picker{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 11px}
 .planet-journal-tabs .choice,.planet-hotbar-slot-picker .choice{
@@ -330,7 +362,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.43.43" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.43.44" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -362,10 +394,15 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
  <button type="button" class="quick-tool" id="targetNext" aria-label="Выбрать цель. Для перемещения удерживайте кнопку и перетащите" title="Нажатие — выбрать цель · Удержание — переместить"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke="#e9c479" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#f5e3ad" stroke-width="3"/><path d="M24 1V13M24 35V47M1 24H13M35 24H47" stroke="#dcb66f" stroke-width="2.8"/></svg><span>Цель</span></button>
  <button type="button" id="spellbookButton" class="quick-tool" aria-label="Открыть книгу заклинаний. Для перемещения удерживайте и перетащите" title="Нажатие — книга заклинаний · Удержание — переместить (B)"><span class="quick-tool-emoji" aria-hidden="true">📖</span></button>
 </div>
-<div id="hotbarAssign" hidden role="status" aria-live="polite">
- <span id="hotbarAssignText">Выбери ячейку панели</span>
- <button type="button" id="hotbarCancel" aria-label="Отменить изменение панели">Отмена ×</button>
-</div>
+<section id="spellbookPopover" class="ngw-spellbook-popover" aria-label="Книга способностей" hidden>
+ <header class="ngw-spellbook-header">
+  <strong>Книга способностей</strong>
+  <button id="spellbookClose" type="button" aria-label="Закрыть книгу">×</button>
+ </header>
+ <p>Удерживай умение и перетащи на нужную ячейку панели.</p>
+ <div id="spellbookAbilities" class="ngw-spellbook-abilities"></div>
+ <div id="spellbookTrash" class="ngw-spellbook-trash">✕ Снять с панели: перетащи сюда значок из ячейки</div>
+</section>
 <div id="actionsBar" role="toolbar" aria-label="Панель из восьми настраиваемых ячеек"></div>
 <div id="xpWrap"><div id="xpFill"></div><span id="xpText">Опыт 0 / 100</span></div>
 
@@ -417,7 +454,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=155').catch(error=>{
+  import('./planet.js?v=156').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

@@ -3,7 +3,7 @@
 export function installTouchButtons(document,{now=()=>performance.now()}={}){
  const presses=new Map(),recent=[];
  const buttonAt=target=>target?.closest?.('button,[role="button"]');
- const enabled=button=>button&&!button.disabled&&button.dataset?.targetDragging!=='true'&&button.getAttribute?.('aria-disabled')!=='true';
+ const enabled=button=>button&&!button.disabled&&button.dataset?.targetDragging!=='true'&&button.dataset?.spellDragging!=='true'&&button.getAttribute?.('aria-disabled')!=='true';
  const prune=()=>{while(recent.length&&now()-recent[0].time>800)recent.shift()};
  document.addEventListener('pointerdown',event=>{
   if(event.pointerType!=='touch'){recent.length=0;return;}
