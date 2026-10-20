@@ -34,10 +34,20 @@ test('account hotbar is saved via server when dragging a book skill to slot 8, a
  await drop(h,entries[0],7);
  assert.equal(sent.at(-1).kind,'hotbarSet');assert.equal(sent.at(-1).slot,7);
  assert.equal(h.rpg.state.hotbar[7],null,'wait for persisted server response');
- assert.equal(h.get('spellbookPopover').hidden,true,'closing the book after drop');
+ assert.equal(h.get('spellbookPopover').hidden,false,'book stays open after the first assignment');
+ assert.equal(h.get('spellbookAbilities').children[0],entries[0],
+  'server-side assignment must keep the same spellbook drag source');
  const actionBar=[...h.rpg.state.hotbar];actionBar[7]=sent.at(-1).entry;
  const saved={...profile,actionBar};h.rpg.applyServerProgress(saved,'hotbarSet');
  assert.deepEqual(h.rpg.state.hotbar[7],actionBar[7]);
+ assert.equal(h.get('spellbookPopover').hidden,false,'server progress does not dismiss the book');
+ assert.equal(h.get('spellbookAbilities').children[0],entries[0],
+  'server redraw must not replace draggable book entries');
+ await drop(h,entries[0],6);
+ assert.equal(sent.at(-1).slot,6,'another assignment works without reopening the book');
+ assert.equal(h.get('spellbookPopover').hidden,false);
+ h.get('spellbookClose').click();
+ assert.equal(h.get('spellbookPopover').hidden,true,'close control dismisses the book');
  const fresh=harness({authenticatedProfile:saved});
  assert.deepEqual(fresh.rpg.state.hotbar,actionBar);
  const empty=harness({authenticatedProfile:{...profile,actionBar:Array(8).fill(null)}});
@@ -53,6 +63,27 @@ test('offline hero replaces a filled slot by dragging; no legacy picker remains'
  await drop(h,heavy,0);
  assert.notEqual(h.rpg.state.hotbar[0]?.id,before);
  assert.equal(h.rpg.state.hotbar[0]?.id,'heavyStrike');
- assert.equal(h.get('spellbookPopover').hidden,true);
+ assert.equal(h.get('spellbookPopover').hidden,false,'book stays open after replacing a skill');
+ assert.equal(h.get('spellbookAbilities').children.find(t=>t.dataset.abilityId==='heavyStrike'),heavy,
+  'the ability source remains mounted after assignment');
+ await drop(h,heavy,6);
+ assert.equal(h.rpg.state.hotbar[6]?.id,'heavyStrike','a second slot accepts a drop immediately');
+ assert.equal(h.get('spellbookPopover').hidden,false,'second assignment keeps the book open');
+ // The occupied slot can be dragged to the removal zone while the book is open.
+ const bar=h.get('actionsBar').children;
+ const equipped=bar[6];
+ const trash=h.get('spellbookTrash');
+ trash.getBoundingClientRect=()=>({left:350,top:60,right:550,bottom:120,width:200,height:60});
+ const pointer={pointerId:44,pointerType:'touch',clientX:272,clientY:300,
+  preventDefault(){},stopImmediatePropagation(){}};
+ for(const fn of equipped.events.pointerdown||[])fn(pointer);
+ await sleep(330);
+ const end={...pointer,clientX:410,clientY:90};
+ for(const fn of equipped.events.pointermove||[])fn(end);
+ for(const fn of equipped.events.pointerup||[])fn(end);
+ assert.equal(h.rpg.state.hotbar[6],null,'dropped slot is removed');
+ assert.equal(h.get('spellbookPopover').hidden,false,'book remains open after removal');
  assert.equal(h.get('hotbarAssign').children.length,0,'legacy slot picker not mounted');
+ h.get('spellbookButton').click();
+ assert.equal(h.get('spellbookPopover').hidden,true,'tapping the book icon toggles it closed');
 });

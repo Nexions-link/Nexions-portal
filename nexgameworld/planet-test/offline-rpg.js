@@ -2228,11 +2228,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(authenticatedProfile){
    if(!isOnline()){msg('Сервер недоступен — назначение не сохранено');return;}
    if(!sendAccountAction('hotbarSet',{slot,entry}))return;
+   // Keep the book and its existing drag sources mounted while the server
+   // persists the assignment; the server reply redraws only the hotbar.
    msg('Сохраняем ячейку '+(slot+1)+'…',1.2);
-   closeSpellbook();return;
+   return;
   }
   state.hotbar=assignHotbarSlot(state.hotbar,slot,entry,'warrior',state.level);
-  persist();closeSpellbook();draw();
+  // Refresh destination slots and their trash drag handlers, not the popover.
+  // Users can assign, replace and remove multiple actions without reopening it.
+  persist();draw();
   msg(entry?'Назначено в ячейку '+(slot+1):'Ячейка '+(slot+1)+' очищена');
  }
  function renderSpellbook(){
