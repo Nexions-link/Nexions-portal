@@ -1,4 +1,5 @@
 name: Sync NexGameWorld to nexions.ru
+# Request immediate mirror for verified NGW Alpha 0.6.43.35: smooth creature animation transitions.
 # Sync Alpha 0.6.43.23: ground-travel gait, turn poses, network locomotion and aligned Render build.
 # Release gate 2026-10-19: verify public Nexions.ru after each mirror update.
 # Sync Alpha 0.6.43.27: remodeled original Tauren anatomy v2, compatible mobile LOD; keep Atlas and old prototype untouched.
