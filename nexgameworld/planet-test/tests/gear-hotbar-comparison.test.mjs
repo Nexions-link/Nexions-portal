@@ -18,7 +18,7 @@ test('equipment replacement compares real totals including DPS, health and defen
  const downgrade=compareEquipment('raggedVest',4,{chest:{id:'chainVest'}});
  assert.equal(downgrade.overall,'worse');
  assert.equal(compareEquipment('banditCloth',4,gear),null);
- assert.ok(itemStatRows('letterOpener').some(row=>row.key==='damageMin'));
+ assert.ok(itemStatRows('letterOpener').some(row=>row.key==='dps'));
  assert.ok(itemStatRows('infantryBear').some(row=>row.key==='stamina'));
  assert.deepEqual(armor.after,deriveStats(4,{...gear,chest:{id:'chainVest'}}));
 });
@@ -28,17 +28,16 @@ test('level restrictions are shown separately from a potential upgrade',()=>{
  assert.ok(result.meaningful.length);
  assert.equal(compareEquipment('scalpingStrength',6,{weapon:{id:'wornAxe'}}).requirementsMet,true);
 });
-test('bag detail lists item values, equipped comparison and outcome',()=>{
+test('bag detail lists DPS and short signed replacement deltas',()=>{
  const h=harness({save:{level:4,inventory:[{id:'feebleSword',qty:1}],
    equipment:{weapon:{id:'wornAxe'}}}});
  h.get('bag').click();
  const cells=descendants(h.get('mbody')).filter(x=>x.className.includes('inventory-slot'));
  cells[0].click();
  const d=descendants(h.get('mbody'));
- assert.ok(d.some(x=>x.className==='ngw-item-equipped'&&x.textContent.includes('Поношенный топор')));
- assert.ok(d.some(x=>x.className.includes('ngw-compare-row')&&
-  x.textContent===''));
- assert.ok(d.some(x=>x.className.includes('ngw-item-stat')));
+ assert.ok(d.some(x=>x.className.includes('ngw-item-stat')&&x.textContent.startsWith('ДПС:')));
+ assert.ok(d.some(x=>x.className.includes('ngw-compare-row')&&/^[+−][0-9]+(?:,[0-9]+)? ДПС$/.test(x.textContent)));
+ assert.ok(!d.some(x=>x.className==='ngw-item-equipped'||/Урон от|Урон до|Скорость оружия|Сравнение с/.test(x.textContent)));
 });
 test('bag comparison survives periodic HUD rerenders and server progress without collapsing',()=>{
  const h=harness({save:{level:4,inventory:[{id:'feebleSword',qty:1}],

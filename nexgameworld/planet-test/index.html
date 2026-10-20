@@ -382,41 +382,103 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 #panel.inventory-modal .inventory-detail button.choice{
  min-height:32px!important;margin:5px 0 0!important;padding:5px 9px!important;font-size:12px!important;
 }
+/* Clear grab handle: the whole decorated title strip is draggable, never the contents. */
+#panel.inventory-modal #mtitle{
+ position:relative;box-sizing:border-box;display:flex!important;align-items:center;
+ flex:0 0 auto;width:calc(100% - 31px)!important;min-height:30px!important;
+ padding:5px 8px!important;margin:0 0 7px!important;
+ border:1px solid #9a7a47;border-radius:3px;
+ background:linear-gradient(180deg,#b69a62a6,#8b6a36a8);
+ color:#3f2b19;font:normal 14px/1.2 Georgia,serif!important;
+ cursor:grab;touch-action:none!important;
+ user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+}
+#panel.inventory-modal #mtitle::after{
+ content:"⋮⋮";margin-left:auto;letter-spacing:-2px;
+ font:bold 13px/1 system-ui,sans-serif;color:#614925;
+ opacity:.75;pointer-events:none;
+}
+#panel.inventory-modal #mtitle:active{cursor:grabbing}
+#panel.inventory-modal #modalClose{
+ position:absolute!important;top:9px!important;right:10px!important;left:auto!important;
+ float:none!important;display:grid!important;place-items:center;
+ box-sizing:border-box;width:27px!important;height:27px!important;
+ min-width:27px!important;max-width:27px!important;margin:0!important;padding:0!important;
+ border:1px solid #b29059!important;border-radius:4px!important;
+ background:linear-gradient(145deg,#7b4837,#442d27)!important;
+ color:#f5ddad!important;font:bold 19px/1 system-ui,sans-serif!important;
+ box-shadow:inset 0 1px 0 #c69a6b55,0 2px 5px #24160e66!important;
+ touch-action:manipulation!important;z-index:20!important;
+}
+#panel.inventory-modal #modalClose:active{background:#8c3e32!important}
 .slot-icon.battlefury-icon{display:inline-block!important;width:88%!important;height:88%!important;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22m%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%23fff0b0%22%2F%3E%3Cstop%20offset%3D%22.45%22%20stop-color%3D%22%23e7a846%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%237c321e%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cpath%20d%3D%22M19%2059%2043%2010%22%20stroke%3D%22%233d231b%22%20stroke-width%3D%2210%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M19%2059%2043%2010%22%20stroke%3D%22%23b98950%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M38%2014C25%205%2011%2013%205%2027c13-2%2021%206%2022%2017%209-8%2016-19%2011-30Z%22%20fill%3D%22url(%23m)%22%20stroke%3D%22%233b1b19%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M45%2010C54%208%2059%2017%2059%2026c-9-4-15%202-20%2011l-6-12Z%22%20fill%3D%22%23e9b65c%22%20stroke%3D%22%234a211b%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22m10%2026%2016%207M18%2015l15%209%22%20stroke%3D%22%23fff1b2%22%20stroke-width%3D%222%22%20opacity%3D%22.8%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat!important;font-size:0!important}
 </style>
 <script>
 (function(){
- const key='ngw-bag-position-v1';
+ const key='ngw-bag-position-v2';
  const ready=()=>{
   const modal=document.getElementById('modal'),panel=document.getElementById('panel'),handle=document.getElementById('mtitle');
   if(!modal||!panel||!handle)return;
   let position=null;
-  try{position=JSON.parse(localStorage.getItem(key))}catch{}
+  try{
+   const saved=JSON.parse(localStorage.getItem(key));
+   if(Number.isFinite(saved?.x)&&Number.isFinite(saved?.y))position=saved;
+  }catch{}
   const clamp=(x,y)=>{
-   const rect=panel.getBoundingClientRect(),w=rect.width||290,h=rect.height||300;
-   return {x:Math.max(w/2+8,Math.min(innerWidth-w/2-8,x)),y:Math.max(h/2+8,Math.min(innerHeight-h/2-8,y))};
+   const rect=panel.getBoundingClientRect(),w=rect.width||244,h=rect.height||300;
+   const pad=6,areaW=innerWidth,areaH=innerHeight;
+   const minX=w/2+pad,maxX=Math.max(minX,areaW-w/2-pad);
+   const minY=h/2+pad,maxY=Math.max(minY,areaH-h/2-pad);
+   return {x:Math.min(maxX,Math.max(minX,x)),y:Math.min(maxY,Math.max(minY,y))};
   };
   const place=(x,y)=>{
-   const p=clamp(x,y);panel.style.setProperty('--bag-left',p.x+'px');panel.style.setProperty('--bag-top',p.y+'px');return p;
+   const p=clamp(x,y);
+   panel.style.setProperty('--bag-left',p.x+'px');
+   panel.style.setProperty('--bag-top',p.y+'px');
+   return p;
   };
+  const active=()=>panel.classList.contains('inventory-modal')&&!modal.hidden;
   const refresh=()=>{
-   if(panel.classList.contains('inventory-modal')&&!modal.hidden){
+   if(active()){
     modal.setAttribute('aria-modal','false');
-    requestAnimationFrame(()=>{if(panel.classList.contains('inventory-modal'))place(position?.x??innerWidth/2,position?.y??innerHeight/2)});
-   }else{modal.setAttribute('aria-modal','true');panel.style.removeProperty('--bag-left');panel.style.removeProperty('--bag-top')}
+    requestAnimationFrame(()=>{
+     if(active())position=place(position?.x??innerWidth/2,position?.y??innerHeight/2);
+    });
+   }else{
+    drag=null;
+    modal.setAttribute('aria-modal','true');
+    panel.style.removeProperty('--bag-left');
+    panel.style.removeProperty('--bag-top');
+   }
   };
   new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
   new MutationObserver(refresh).observe(modal,{attributes:true,attributeFilter:['hidden']});
   let drag=null;
   handle.addEventListener('pointerdown',e=>{
-   if(!panel.classList.contains('inventory-modal')||e.button>0)return;
-   const r=panel.getBoundingClientRect();drag={id:e.pointerId,dx:e.clientX-(r.left+r.width/2),dy:e.clientY-(r.top+r.height/2)};
-   handle.setPointerCapture(e.pointerId);e.preventDefault();
+   if(!active()||e.button>0)return;
+   const rect=panel.getBoundingClientRect();
+   drag={
+    id:e.pointerId,startX:e.clientX,startY:e.clientY,
+    centerX:rect.left+rect.width/2,centerY:rect.top+rect.height/2
+   };
+   handle.setPointerCapture(e.pointerId);
+   e.preventDefault();
   });
-  handle.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;position=place(e.clientX-drag.dx,e.clientY-drag.dy)});
-  const finish=e=>{if(!drag||drag.id!==e.pointerId)return;drag=null;try{localStorage.setItem(key,JSON.stringify(position))}catch{}};
-  handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);
-  addEventListener('resize',()=>{if(panel.classList.contains('inventory-modal')&&!modal.hidden)position=place(position?.x??innerWidth/2,position?.y??innerHeight/2)});
+  handle.addEventListener('pointermove',e=>{
+   if(!drag||drag.id!==e.pointerId||!active())return;
+   position=place(drag.centerX+e.clientX-drag.startX,drag.centerY+e.clientY-drag.startY);
+   e.preventDefault();
+  });
+  const finish=e=>{
+   if(!drag||drag.id!==e.pointerId)return;
+   drag=null;
+   if(position)try{localStorage.setItem(key,JSON.stringify(position))}catch{}
+  };
+  handle.addEventListener('pointerup',finish);
+  handle.addEventListener('pointercancel',finish);
+  addEventListener('resize',()=>{
+   if(active())position=place(position?.x??innerWidth/2,position?.y??innerHeight/2);
+  });
   refresh();
  };
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
@@ -493,7 +555,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.43.51" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.43.52" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -579,7 +641,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=160').catch(error=>{
+  import('./planet.js?v=161').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

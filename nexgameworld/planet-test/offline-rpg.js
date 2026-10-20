@@ -7,7 +7,7 @@ import {questWaypoint,questDirection,preferredQuestId} from './starter-quest-gui
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=2';
 import {getAbilityRangeIndicator,getAbilityResourceIndicator} from './ability-range-visuals.js?v=2';
-import {compareEquipment,itemStatRows} from './equipment-comparison.js?v=1';
+import {compareEquipment,itemStatRows,formatBagEquipmentChanges} from './equipment-comparison.js?v=2';
 import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.6.43.5';
 import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
@@ -1990,18 +1990,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
         cell.append(icon,qty);
         cell.addEventListener('click',()=>{
           selectedBagSlot=i;selectedBagItemId=item.id;
-          detail.replaceChildren();
+          detail.replaceChildren();detail.scrollTop=0;
           const name=document.createElement('strong');name.textContent=def?.name||'Лечебный настой';
      if(def)name.style.color=QUALITY_VISUALS[itemRarity(def.rarity)].color;
           const description=document.createElement('p');description.textContent=def?.description||'Восстанавливает здоровье';
           detail.append(name);
           if(def?.slot){
            const comparison=compareEquipment(item.id,state.level,state.equipment);
-           const equipped=document.createElement('div');
-           equipped.className='ngw-item-equipped';
-           equipped.textContent='Сравнение с '+(comparison.current?.name||'пустой ячейкой')+
-            ' · '+(LABEL[comparison.slot]||comparison.slot);
-           detail.append(equipped);
            const stats=document.createElement('div');stats.className='ngw-item-stats';
            for(const stat of itemStatRows(item.id)){
             const row=document.createElement('div');row.className='ngw-item-stat';
@@ -2011,25 +2006,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
            if(stats.children.length)detail.append(stats);
            const box=document.createElement('div');
            box.className='ngw-gear-compare '+comparison.overall;
-           const headline=document.createElement('strong');
-           headline.textContent=comparison.overall==='better'?'Улучшение характеристик':
-            comparison.overall==='worse'?'Характеристики ухудшатся':
-            comparison.overall==='mixed'?'Есть улучшения и ухудшения':
-            'Характеристики не изменятся';
-           box.append(headline);
-           if(comparison.meaningful.length){
-            for(const stat of comparison.meaningful){
-             const row=document.createElement('div');row.className='ngw-compare-row '+stat.trend;
-             const label=document.createElement('span');label.textContent=stat.label;
-             const values=document.createElement('span');
-             const sign=stat.trend==='better'?'▲ ':stat.trend==='worse'?'▼ ':'';
-             values.textContent=sign+stat.deltaText+' ('+
-              Number(stat.before.toFixed(2)).toLocaleString('ru-RU')+' → '+
-              Number(stat.after.toFixed(2)).toLocaleString('ru-RU')+')';
-             row.append(label,values);box.append(row);
+           const changes=formatBagEquipmentChanges(comparison);
+           if(changes.length){
+            for(const change of changes){
+             const row=document.createElement('div');row.className='ngw-compare-row '+change.trend;
+             row.textContent=change.text;
+             box.append(row);
             }
            }else{
-            const note=document.createElement('p');note.textContent='Бонусы и итоговые характеристики не изменятся.';
+            const note=document.createElement('p');note.textContent='Без изменений';
             box.append(note);
            }
            if(!comparison.requirementsMet){

@@ -39,10 +39,33 @@ export function compareEquipment(itemId,level,equipment={},items=ITEM_CATALOG){
 }
 export function itemStatRows(itemId,items=ITEM_CATALOG){
  const item=items[itemId];if(!item)return [];
- return [
+ const rows=[
   ['armor','Броня'],['strength','Сила'],['stamina','Выносливость'],
-  ['damageMin','Урон от'],['damageMax','Урон до'],['speed','Скорость'],
   ['block','Блок']
  ].filter(([key])=>item[key]!==undefined)
-  .map(([key,label])=>({key,label,value:format(item[key],key==='speed'?2:0)}));
+  .map(([key,label])=>({key,label,value:format(item[key])}));
+ if(item.slot==='weapon'&&item.speed>0
+   &&Number.isFinite(item.damageMin)&&Number.isFinite(item.damageMax)){
+  rows.push({key:'dps',label:'ДПС',value:format((item.damageMin+item.damageMax)/(2*item.speed),2)});
+ }
+ return rows;
+}
+
+// Only the changes from equipping this item are shown in the compact bag.
+// Health from stamina and min/max weapon damage are deliberately omitted.
+export function formatBagEquipmentChanges(comparison){
+ if(!comparison)return [];
+ const suffix={
+  armor:'к броне',strength:'к силе',stamina:'к выносливости',
+  dps:'ДПС',blockChance:'п. п. к шансу блока',blockValue:'к силе блока'
+ };
+ return comparison.meaningful
+  .filter(stat=>Object.hasOwn(suffix,stat.key))
+  .map(stat=>{
+   const value=stat.key==='blockChance'?stat.delta*100:stat.delta;
+   const precision=stat.key==='dps'?2:stat.key==='blockChance'?1:0;
+   const amount=format(Math.abs(value),precision);
+   const sign=value>0?'+':'−';
+   return {key:stat.key,trend:stat.trend,text:sign+amount+' '+suffix[stat.key]};
+  });
 }

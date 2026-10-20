@@ -22,3 +22,12 @@ test('inventory remains floating, without modal screen resizing',()=>{
  assert.match(css,/#modal:has\(#panel\.inventory-modal\):not\(\[hidden\]\)/);
  assert.match(css,/#modal #panel\.inventory-modal\s*\{[^}]*position:fixed!important/s);
 });
+
+test('bag header owns drag area; close button is pinned inside the sheet',()=>{
+ assert.match(css,/#panel\.inventory-modal #mtitle\s*\{[^}]*width:calc\(100% - 31px\)!important/s);
+ assert.match(css,/#panel\.inventory-modal #mtitle::after\s*\{[^}]*content:"⋮⋮"/s);
+ assert.match(css,/#panel\.inventory-modal #modalClose\s*\{[^}]*position:absolute!important/s);
+ assert.match(css,/#panel\.inventory-modal #modalClose\s*\{[^}]*width:27px!important/s);
+ assert.match(html,/const key='ngw-bag-position-v2'/);
+ assert.match(html,/drag\.centerX\+e\.clientX-drag\.startX/);
+});
