@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
-import {advanceCreatureGait} from '../creature-gait.js?v=2';
-import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary} from '../creature-secondary.js?v=4';
+import {advanceCreatureGait} from '../creature-gait.js?v=3';
+import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary} from '../creature-secondary.js?v=5';
 import {advancePlainstriderVisual} from '../../plainstrider-model.js';
 
 test('real travel advances alternating footfall, stopping holds phase and fades weight',()=>{

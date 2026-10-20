@@ -32,3 +32,20 @@ test('lag, bad distances, and render stutters cannot create runaway animation',(
  assert.equal(advanceCreatureGait(state,0,1e6).clipRate,1);
  assert.deepEqual(advanceCreatureGait(null,.016,.04),{walking:false,clipRate:1,speed:0});
 });
+
+test('GLB playback decelerates through a network pause without fake steps',()=>{
+ const state={};let sample;
+ for(let i=0;i<50;i++)sample=advanceCreatureGait(state,1/60,2.05/60);
+ const movingRate=sample.playbackRate;
+ let paused;
+ for(let i=0;i<10;i++)paused=advanceCreatureGait(state,1/60,0);
+ assert.equal(paused.walking,true,'short packet gaps retain a smooth Walk fade');
+ assert.ok(paused.playbackRate<movingRate*.65,'feet ease to a stop while grace remains');
+ assert.ok(paused.playbackRate>=.14&&paused.playbackRate<=1.35);
+ const oldPhase=state.stridePhase;
+ const correction=advanceCreatureGait(state,1/60,42);
+ assert.equal(correction.stridePhase,oldPhase,'teleport does not advance footfalls');
+ assert.equal(correction.speed,0,'teleport cannot accelerate walking cadence');
+ const fresh=advanceCreatureGait({},1/60,42);
+ assert.equal(fresh.walking,false,'spawn correction does not start a phantom walk');
+});

@@ -8,8 +8,12 @@ export function advanceCreatureGait(state,dt,travelled,{
  if(!state||!Number.isFinite(dt)||dt<=0)
   return {walking:(state?.hold||0)>0,clipRate:1,speed:0};
  const seconds=clamp(dt,0,.12);
- const speed=Number.isFinite(travelled)&&travelled>0
-  ?clamp(travelled/Math.max(seconds,.016),0,nominalSpeed*1.8):0;
+ // A network snap is not a real stride. Ignore it for both footfall
+ // phase and locomotion state so the GLB does not run in place.
+ const distance=Number.isFinite(travelled)&&travelled>0?travelled:0;
+ const maxStep=nominalSpeed*1.85*seconds+.02;
+ const plausible=distance<=maxStep;
+ const speed=plausible?clamp(distance/Math.max(seconds,.016),0,nominalSpeed*1.8):0;
  const moving=speed>motionThreshold;
  state.hold=moving?holdSeconds:Math.max(0,(state.hold||0)-seconds);
  const wanted=clamp(speed/Math.max(.1,nominalSpeed),0,1.6);
@@ -18,9 +22,7 @@ export function advanceCreatureGait(state,dt,travelled,{
  state.rate=clamp(previous+(wanted-previous)*response,0,1.6);
  // Footfalls follow actual metres moved, not frame count or server cooldown.
  // A large correction/teleport must not cause dozens of instant strides.
- const distance=Number.isFinite(travelled)&&travelled>0?travelled:0;
- const maxStep=nominalSpeed*1.85*seconds+.02;
- const walkDistance=distance<=maxStep&&moving?distance:0;
+ const walkDistance=moving?distance:0;
  const previousWeight=Number.isFinite(state.stepWeight)?state.stepWeight:0;
  state.stepWeight=clamp(previousWeight+((moving?1:0)-previousWeight)*
   (1-Math.exp(-seconds*(moving?13:8))),0,1);
@@ -31,6 +33,9 @@ export function advanceCreatureGait(state,dt,travelled,{
  return {
   walking:state.hold>0||state.rate>.24,
   clipRate:clamp(.73+.39*state.rate,.73,1.35),
+  // Playback cadence eases to a near-freeze while the stop grace holds
+  // Walk, avoiding feet sliding on the ground before the Idle fade.
+  playbackRate:clamp((.73+.39*state.rate)*(.16+.84*state.stepWeight),.14,1.35),
   speed,
   stridePhase:state.stridePhase,
   stepWeight:state.stepWeight

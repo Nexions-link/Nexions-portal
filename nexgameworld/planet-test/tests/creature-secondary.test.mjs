@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from '../creature-secondary.js?v=2';
 import {advanceMobImpact} from '../mob-impact.js';
 import {advanceCreatureGait} from '../creature-gait.js';
-import {transitionPlainstriderAnimation,advancePlainstriderVisual} from '../../plainstrider-model.js';
+import {transitionPlainstriderAnimation,advancePlainstriderVisual,resetWalkingClip} from '../../plainstrider-model.js';
 
 test('raiders breathe and recover naturally without moving collision or world transforms',()=>{
  const s={},root=new THREE.Group(),pivot=new THREE.Group();root.add(pivot);
@@ -99,4 +99,29 @@ test('consecutive raider damage does not snap GLB hurt clip back to first frame'
  assert.equal(shouldReplayCreatureHurt(make(.64),false),false);
  assert.equal(shouldReplayCreatureHurt(null,true),false);
  assert.equal(shouldReplayCreatureHurt(make(0,0),true),true);
+});
+
+test('mob torso anticipates acceleration then settles without touching physics',()=>{
+ for(const kind of ['raider','longstrider']){
+  const state={};let settled;
+  for(let i=0;i<20;i++)advanceCreatureSecondary(state,1/60,{kind,walking:true,speed:1});
+  assert.ok(Math.abs(state.inertia)<1.5,'start impulse decays without abrupt snaps');
+  for(let i=0;i<70;i++)settled=advanceCreatureSecondary(state,1/60,{kind,walking:false,speed:0});
+  assert.ok(Math.abs(state.inertia)<.02,'settle impulse decays');
+  assert.ok(Object.values(settled).every(Number.isFinite));
+  assert.ok(Math.abs(settled.pitch)<.045);
+  resetCreatureSecondary(state);
+  assert.equal(state.inertia,0);
+ }
+});
+test('restarting a Walk clip resumes phase after a strike',()=>{
+ const make=()=>({time:.83,reset(){this.time=0;return this},getClip(){return {duration:1.2}}});
+ const walk=make();
+ resetWalkingClip(walk);
+ assert.ok(Math.abs(walk.time-.83)<1e-9);
+ walk.time=2.73;
+ resetWalkingClip(walk);
+ assert.ok(Math.abs(walk.time-.33)<1e-9,'resume time wraps within clip');
+ const first=make();first.time=0;resetWalkingClip(first);
+ assert.equal(first.time,0,'new walk begins from first frame');
 });

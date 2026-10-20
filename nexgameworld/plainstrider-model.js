@@ -21,6 +21,16 @@ export function plainstriderMotion({dead=false,attackCd=0,boss=false,moved=0,dt=
 }
 export const PLAINSTRIDER_WALK_GRACE=.32;
 export const PLAINSTRIDER_BLEND_TIME=.24;
+// Walk can be interrupted by a strike, hit or short idle pause. Preserve
+// its looping pose phase on re-entry rather than snapping both feet to frame 0.
+export function resetWalkingClip(action){
+ const duration=action?.getClip?.()?.duration;
+ const phase=Number.isFinite(action?.time)&&action.time>0&&
+  Number.isFinite(duration)&&duration>0?action.time%duration:0;
+ action.reset();
+ if(phase>0)action.time=phase;
+ return action;
+}
 export function transitionPlainstriderAnimation(THREE,visual,next){
  if(visual.mode===next)return false;
  const previous=visual.mode&&visual.actions[visual.mode];
@@ -30,7 +40,9 @@ export function transitionPlainstriderAnimation(THREE,visual,next){
   return true;
  }
  const action=visual.actions[next];
- action.reset().setEffectiveTimeScale(1).setEffectiveWeight(1);
+ if(next==='Walk')resetWalkingClip(action);
+ else action.reset();
+ action.setEffectiveTimeScale(1).setEffectiveWeight(1);
  if(next==='Peck'){
   action.setLoop(THREE.LoopOnce,1);
   action.clampWhenFinished=true;

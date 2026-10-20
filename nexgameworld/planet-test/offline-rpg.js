@@ -11,7 +11,7 @@ import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.j
 import {getAbilityDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.3.5';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.3.5.3';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
-import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.6.43.34';
+import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,resetWalkingClip,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.6.43.35';
 import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
 import {BATTLEFURY_ITEM_ID,BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_FIELDS,BATTLEFURY_TUNER_GROUPS,readBattlefuryTuning,saveBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=2';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
@@ -43,9 +43,9 @@ import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=14';
 import {canWadeAtLocal} from './start-zone.js?v=45';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
-import {advanceCreatureGait} from './creature-gait.js?v=2';
+import {advanceCreatureGait} from './creature-gait.js?v=3';
 import {advanceMobImpact,mobVisualMode} from './mob-impact.js?v=1';
-import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=4';
+import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=5';
 import {advanceCreatureStrike,resetCreatureStrike} from './creature-strike.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
@@ -991,12 +991,13 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     gltf.action.setLoop(THREE.LoopRepeat,Infinity);
     gltf.action.clampWhenFinished=false;
    }
-   gltf.action.reset();
+   if(mode==='Walk')resetWalkingClip(gltf.action);
+   else gltf.action.reset();
    if(!replay)gltf.action.fadeIn(fade);
    gltf.action.play();
    gltf.mode=mode;
   }
-  if(mode==='Walk')gltf.action?.setEffectiveTimeScale?.(gait.clipRate);
+  if(mode==='Walk')gltf.action?.setEffectiveTimeScale?.(gait.playbackRate);
   // Base animation first, then restrained weight transfer and turn inertia
   // on a parent pivot (no accumulated bone rotations or root movement).
   gltf.mixer.update(delta);
@@ -1056,7 +1057,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const gait=advanceCreatureGait(bird.gait??(bird.gait={}),dt,moved,{
     nominalSpeed:2.05,holdSeconds:.32,strideLength:1.72
    });
-   if(bird.mode==='Walk')bird.actions.Walk?.setEffectiveTimeScale?.(gait.clipRate);
+   if(bird.mode==='Walk')bird.actions.Walk?.setEffectiveTimeScale?.(gait.playbackRate);
    // Approved longstrider v0.1 contains no Hurt clip: apply visual-only
    // head/body flinch after the authored walk/peck pose has been evaluated.
    const impact=advanceMobImpact(bird.impact,dt,{

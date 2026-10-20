@@ -23,7 +23,12 @@ export function advanceCreatureSecondary(state,dt,{
  state.turn=finite(state.turn)+(targetTurn-finite(state.turn))*turning;
  const targetMove=walking?clamp(finite(speed),.12,1):0;
  const moving=1-Math.exp(-delta*8);
- state.motion=finite(state.motion)+(targetMove-finite(state.motion))*moving;
+ const previousMotion=finite(state.motion);
+ state.motion=previousMotion+(targetMove-previousMotion)*moving;
+ // Short, damped anticipation/settle impulse follows visual acceleration.
+ // It never alters the server-controlled transform.
+ const acceleration=delta>0?clamp((state.motion-previousMotion)/Math.max(delta,.016),-2,2):0;
+ state.inertia=finite(state.inertia)+(acceleration-finite(state.inertia))*(1-Math.exp(-delta*10));
  const targetAttack=attacking?1:0;
  const attackBlend=1-Math.exp(-delta*(targetAttack?15:9));
  state.attack=finite(state.attack)+(targetAttack-finite(state.attack))*attackBlend;
@@ -44,16 +49,16 @@ export function advanceCreatureSecondary(state,dt,{
  // Avoid competing with the authored attack and Hurt clips. For each race,
  // the pivots slightly offset posture/weight transfer rather than retiming feet.
  if(kind==='raider')return {
-  pitch:clamp(-.035*state.motion-.030*state.attack+.012*calm*breath-.020*prepare-.038*strike+.012*recover,-.12,.045),
+  pitch:clamp(-.035*state.motion-.030*state.attack-.010*state.inertia+.012*calm*breath-.020*prepare-.038*strike+.012*recover,-.12,.045),
   roll:clamp(-.060*state.turn+.012*calm*Math.sin(state.time*.85)+.010*step*sideStep,-.085,.085),
   raise:clamp(.013*calm*breath-.012*state.motion+.012*strike+.009*step*Math.abs(footfall),-.025,.035),
-  forward:clamp(.025*state.attack-.022*recoil+.014*prepare+.040*strike-.020*recover,-.05,.09)
+  forward:clamp(.025*state.attack-.022*recoil+.008*state.inertia+.014*prepare+.040*strike-.020*recover,-.05,.09)
  };
  return {
-  pitch:clamp(-.028*state.motion-.017*state.attack+.010*calm*breath-.015*prepare-.039*strike+.012*recover,-.10,.045),
+  pitch:clamp(-.028*state.motion-.017*state.attack-.008*state.inertia+.010*calm*breath-.015*prepare-.039*strike+.012*recover,-.10,.045),
   roll:clamp(-.043*state.turn+.008*calm*Math.sin(state.time*.75)+.013*step*sideStep,-.065,.065),
   raise:clamp(.013*calm*breath-.011*state.motion+.010*strike+.010*step*Math.abs(footfall),-.025,.03),
-  forward:clamp(.018*state.attack-.018*recoil+.012*prepare+.046*strike-.020*recover,-.045,.09)
+  forward:clamp(.018*state.attack-.018*recoil+.006*state.inertia+.012*prepare+.046*strike-.020*recover,-.045,.09)
  };
 }
 export function applyCreatureSecondary(pivot,pose){
@@ -64,7 +69,7 @@ export function applyCreatureSecondary(pivot,pose){
  pivot.position.z=pose.forward;
 }
 export function resetCreatureSecondary(state,pivot){
- if(state){state.turn=0;state.motion=0;state.attack=0;state.time=0;state.lastYaw=undefined;}
+ if(state){state.turn=0;state.motion=0;state.inertia=0;state.attack=0;state.time=0;state.lastYaw=undefined;}
  if(pivot){pivot.position.set(0,0,0);pivot.rotation.set(0,0,0);}
 }
 
