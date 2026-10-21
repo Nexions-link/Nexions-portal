@@ -56,16 +56,20 @@ export function advanceCreatureSecondary(state,dt,{
   forward:clamp(.025*state.attack-.022*recoil+.008*state.inertia+.018*prepare+.052*strike-.026*recover,-.06,.10)
  };
  return {
-  pitch:clamp(-.028*state.motion-.017*state.attack-.008*state.inertia+.010*calm*breath-.024*prepare-.050*strike+.018*recover+.016*recoil,-.12,.055),
-  roll:clamp(-.043*state.turn+.008*calm*Math.sin(state.time*.75)+.013*step*sideStep+.018*recoil*recoilSide,-.085,.085),
-  raise:clamp(.013*calm*breath-.011*state.motion+.013*strike-.007*prepare+.010*step*Math.abs(footfall),-.03,.035),
-  forward:clamp(.018*state.attack-.018*recoil+.006*state.inertia+.018*prepare+.056*strike-.026*recover,-.05,.10)
+  pitch:clamp(-.028*state.motion-.017*state.attack-.008*state.inertia+.010*calm*breath-.024*prepare-.050*strike+.018*recover+.016*recoil+.012*step*footfall,-.12,.06),
+  roll:clamp(-.060*state.turn+.008*calm*Math.sin(state.time*.75)+.023*step*sideStep+.018*recoil*recoilSide,-.10,.10),
+  raise:clamp(.013*calm*breath-.011*state.motion+.013*strike-.007*prepare+.017*step*Math.abs(footfall),-.03,.04),
+  forward:clamp(.018*state.attack-.018*recoil+.006*state.inertia+.018*prepare+.056*strike-.026*recover,-.05,.10),
+  lateral:clamp(.042*step*sideStep,-.05,.05),
+  yaw:clamp(-.034*step*sideStep-.018*state.turn,-.06,.06)
  };
 }
 export function applyCreatureSecondary(pivot,pose){
  if(!pivot)return;
  pivot.rotation.x=pose.pitch;
+ pivot.rotation.y=finite(pose.yaw);
  pivot.rotation.z=pose.roll;
+ pivot.position.x=finite(pose.lateral);
  pivot.position.y=pose.raise;
  pivot.position.z=pose.forward;
 }

@@ -48,8 +48,10 @@ import {canWadeAtLocal} from './start-zone.js?v=45';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceCreatureGait} from './creature-gait.js?v=3';
+import {longstriderWalkPhase,advanceLongstriderHead,createLongstriderHeadRig,clearLongstriderHeadPose,applyLongstriderHeadPose,resetLongstriderHeadRig} from './longstrider-motion.js?v=1';
+import {queueLongstriderSnapshot,sampleLongstriderSnapshot,resetLongstriderSnapshot} from './longstrider-interpolation.js?v=1';
 import {advanceMobImpact,mobVisualMode} from './mob-impact.js?v=1';
-import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=6';
+import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=7';
 import {advanceCreatureStrike,resetCreatureStrike} from './creature-strike.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
@@ -731,9 +733,18 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(!remote||(remote.id&&remote.id!==mob.id)||!['alive','corpse','hidden'].includes(remote.phase)||
     !Number.isFinite(remote.x)||!Number.isFinite(remote.z)||!Number.isFinite(remote.hp))continue;
    const wasCorpse=mob.corpse,wasHidden=!mob.root.visible,changedLife=mob.life!==remote.life;
+   // Online longstriders: keep previous/current server positions for a
+   // constant-speed visual segment; combat continues using mob.x/z.
+   if(mob.family!=='bandit'){
+    if(remote.phase==='alive'&&!wasCorpse&&!wasHidden&&!changedLife)
+     queueLongstriderSnapshot(mob,{x:remote.x,z:remote.z,
+      yaw:Number.isFinite(remote.yaw)?remote.yaw:0},clock);
+    else resetLongstriderSnapshot(mob);
+   }
    mob.x=remote.x;mob.z=remote.z;mob.yaw=Number.isFinite(remote.yaw)?remote.yaw:0;
    if(!Number.isFinite(mob.renderX)||wasHidden||wasCorpse||changedLife){
     mob.renderX=mob.x;mob.renderZ=mob.z;mob.renderYaw=mob.yaw;
+    if(mob.family!=='bandit')resetLongstriderSnapshot(mob);
    }
    mob.hp=remote.hp;mob.life=remote.life;mob.aggro=remote.aggro===true;mob.returning=false;
    if(remote.phase!=='alive'||changedLife){
@@ -744,6 +755,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    mob.corpse=remote.phase==='corpse';mob.dead=mob.corpse?6:0;
    mob.root.visible=remote.phase!=='hidden';
    if(mob.corpse&&!wasCorpse){
+    clearLongstriderHeadPose(mob.birdVisual?.headRig);
     mob.deathAnimation.begin(playerNormal());
     if(target===mob){target=null;autoplay=false;approach=null;timeline.clear();}
    }else if(remote.phase==='alive'&&(wasCorpse||wasHidden)){
@@ -1010,6 +1022,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   banditAnimation(mob,0,0);
  }
  function resetCreatureImpact(mob){
+   resetLongstriderSnapshot(mob);
   // Death poses freeze the mixer; reset cosmetic state for a new life.
   // Preserve server position, aggro, inventory, combat and equipment.
   mob.visualHitSequence=0;
@@ -1032,6 +1045,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    bird.impactPivot?.rotation.set(0,0,0);
    bird.impactPivot?.position.set(0,0,0);
    bird.gait={};
+   resetLongstriderHeadRig(bird.headRig);
    bird.attackRemaining=0;bird.lastAttackCd=mob.attackCd||0;bird.walkGrace=0;
    resetCreatureSecondary(bird.secondary,bird.motionPivot);
   }
@@ -1135,7 +1149,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   bird.traverse(obj=>{if(obj.isMesh){obj.castShadow=/^(Body|Head|Neck|Wing)/.test(obj.name);obj.receiveShadow=false;}});
   const mixer=new THREE.AnimationMixer(bird);
   const actions=Object.fromEntries(PLAINSTRIDER_REQUIRED_CLIPS.map(k=>[k,mixer.clipAction(asset.animations.find(a=>a.name===k))]));
-  mob.birdVisual={container,bird,impactPivot,motionPivot,secondary:{},spherical:true,mixer,actions,mode:null,walkGrace:0,attackRemaining:0,
+  mob.birdVisual={container,bird,impactPivot,motionPivot,secondary:{},headRig:createLongstriderHeadRig(bird),spherical:true,mixer,actions,mode:null,walkGrace:0,attackRemaining:0,
    lastAttackCd:mob.attackCd,impact:{seen:mob.visualHitSequence||0,wasHit:false},
    strike:{cueSeen:mob.visualStrikeCue||0,hitSeen:mob.visualStrikeHitSequence||0,phase:'idle'}};
   mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:container,getRadius,heightAt,mixer});
@@ -1145,12 +1159,19 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function birdAnimation(mob,dt,moved=0){
   if(mob.banditVisual){banditAnimation(mob,dt,moved);return;}
   if(mob.birdVisual&&!mob.corpse){
-   advancePlainstriderVisual(THREE,mob,dt,moved,false);
    const bird=mob.birdVisual;
+   clearLongstriderHeadPose(bird.headRig);
+   advancePlainstriderVisual(THREE,mob,dt,moved,false);
    const gait=advanceCreatureGait(bird.gait??(bird.gait={}),dt,moved,{
     nominalSpeed:2.05,holdSeconds:.32,strideLength:1.72
    });
    if(bird.mode==='Walk')bird.actions.Walk?.setEffectiveTimeScale?.(gait.playbackRate);
+   // Native GLB Walk clip controls the footfall phase, independent of 5Hz packets.
+   const phase=longstriderWalkPhase(bird.actions.Walk,gait.stridePhase);
+   applyLongstriderHeadPose(bird.headRig,advanceLongstriderHead(bird.headRig.motion,dt,{
+    phase,stepWeight:gait.stepWeight,motion:bird.gait?.rate||0,
+    turn:bird.secondary.turn,attacking:bird.mode==='Peck'
+   }));
    // Approved longstrider v0.1 contains no Hurt clip: apply visual-only
    // head/body flinch after the authored walk/peck pose has been evaluated.
    const impact=advanceMobImpact(bird.impact,dt,{
@@ -1172,7 +1193,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     attacking:bird.mode==='Peck',attackRemaining:bird.attackRemaining,
     hitWeight:impact.weight,hitSide:impact.side,
     strikePrepare:strike.prepare,strikeImpact:strike.impact,strikeRecover:strike.recover,
-    stridePhase:gait.stridePhase,stepWeight:gait.stepWeight
+    stridePhase:phase,stepWeight:gait.stepWeight
    });
    applyCreatureSecondary(bird.motionPivot,stance);
   }
@@ -2540,11 +2561,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      // Smooth authoritative 100ms server snapshots without altering hit detection.
      const bx=mob.renderX??mob.x,bz=mob.renderZ??mob.z;
      const delta=Math.hypot(mob.x-bx,mob.z-bz);
-     const t=delta>7?1:1-Math.exp(-Math.min(.1,Math.max(0,dt))*15);
-     mob.renderX=bx+(mob.x-bx)*t;mob.renderZ=bz+(mob.z-bz)*t;
-     const priorYaw=mob.renderYaw??mob.yaw;
-     const turn=Math.atan2(Math.sin(mob.yaw-priorYaw),Math.cos(mob.yaw-priorYaw));
-     mob.renderYaw=priorYaw+turn*t;
+     const interpolated=mob.family!=='bandit'&&sampleLongstriderSnapshot(mob,dt);
+     if(!interpolated){
+      const t=delta>7?1:1-Math.exp(-Math.min(.1,Math.max(0,dt))*15);
+      mob.renderX=bx+(mob.x-bx)*t;mob.renderZ=bz+(mob.z-bz)*t;
+      const priorYaw=mob.renderYaw??mob.yaw;
+      const turn=Math.atan2(Math.sin(mob.yaw-priorYaw),Math.cos(mob.yaw-priorYaw));
+      mob.renderYaw=priorYaw+turn*t;
+     }
      setModelAt(mob,mob.renderX,mob.renderZ,mob.renderYaw);
      // Render the server-authoritative movement and turn on EVERY frame.
      // Only far-away, noncombat GLB pose updates may run at 15/30 Hz.
