@@ -40,6 +40,7 @@ import {beginPlayerHitReaction,resetPlayerHitReaction} from './player-hit-reacti
 import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=3';
 import {createCombatTimeline,MELEE_RANGE,APPROACH_RANGE,rageForHit,rollMeleeDamage} from './combat-timeline.js?v=2';
 import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
+import {createEquipmentVisualSwitcher} from './equipment-visual-switcher.js?v=1';
 import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v=1';
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
 import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
@@ -162,60 +163,92 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  hero.root.userData.weaponKind='none';
  const modelLoader=import('https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js')
   .then(({GLTFLoader})=>new GLTFLoader()).catch(()=>null);
- let visualRequest=0;
- async function updateEquipmentVisuals(){
-  const request=++visualRequest;
+ // Keep the decoded GLB in memory: progress checkpoints must never trigger
+ // another network fetch (or remove visible gear from the player's hand).
+ const cachedEquipmentGltf=new Map();
+ async function loadEquipmentGltf(url){
+  const loader=await modelLoader;
+  if(!loader)throw Error('GLTFLoader unavailable');
+  let loading=cachedEquipmentGltf.get(url);
+  if(!loading){
+   loading=loader.loadAsync(url);
+   cachedEquipmentGltf.set(url,loading);
+   loading.catch(()=>{if(cachedEquipmentGltf.get(url)===loading)cachedEquipmentGltf.delete(url);});
+  }
+  return loading;
+ }
+ const equipmentVisuals=createEquipmentVisualSwitcher({
+  load:spec=>loadEquipmentGltf(spec.url),
+  clear:(slot)=>{
+   modelSlots[slot]?.removeFromParent();
+   modelSlots[slot]=null;
+   hero.root.userData.equipmentGrip[slot]=equipmentGrip(slot);
+   if(slot==='weapon')hero.root.userData.weaponKind='none';
+   const hand=slot==='weapon'?rightHand:leftHand;
+   if(hand){
+    const grip=hero.root.userData.equipmentGrip[slot];
+    hand.rotation.set(grip.x,grip.y,grip.z,grip.order);
+   }
+   characterPreview.refresh();
+  },
+  swap:(slot,gltf,spec)=>{
+   const {hand,kind,tuning,def}=spec;
+   const unique=slot==='weapon'&&def?.adminOnly;
+   // Clone the cached source. Never move it from another player or preview.
+   const mesh=unique?new THREE.Group():gltf.scene.clone(true);
+   if(unique){
+    const asset=gltf.scene.clone(true),bbox=new THREE.Box3().setFromObject(asset);
+    const dim=bbox.getSize(new THREE.Vector3());
+    const scale=1.95/Math.max(.001,dim.x,dim.y,dim.z);
+    const center=bbox.getCenter(new THREE.Vector3());
+    asset.scale.multiplyScalar(scale);
+    asset.position.sub(center.multiplyScalar(scale));
+    mesh.add(asset);
+   }
+   mesh.name='gear-'+(slot==='shield'?'shield':kind);
+   const grip=unique?applyBattlefuryPose(mesh,hand,battlefuryTuning):
+    applyEquipmentTransform(mesh,hand,{slot,kind,tuning,sourceId:def?.sourceId});
+   // Atomic replacement: attach the fully prepared model BEFORE removing
+   // the old one. On iPhone it cannot vanish during repeated progress saves.
+   const old=modelSlots[slot];
+   hand.add(mesh);
+   modelSlots[slot]=mesh;
+   hero.root.userData.equipmentGrip[slot]=grip;
+   old?.removeFromParent();
+   if(slot==='weapon'){
+    hero.root.userData.weaponKind=kind;
+    applyWeaponQuality(THREE,hero.root,kind,def?.rarity);
+   }
+   if(slot==='shield')styleShieldGlb(THREE,mesh,def?.rarity);
+   characterPreview.refresh();
+  },
+  onError:(slot,error)=>console.warn('Planet equipment model unavailable',slot,error)
+ });
+ function updateEquipmentVisuals(){
   const weaponDef=ITEM_CATALOG[state.equipment.weapon?.id];
   const shieldDef=ITEM_CATALOG[state.equipment.shield?.id];
   const weaponKind=weaponDef?.weaponKind||null;
   const shieldKind=shieldDef?.rarity==='uncommon'||shieldDef?.rarity==='rare'?'kite':shieldDef?'round':null;
-  hero.root.userData.weaponKind=weaponKind||'none';
-  hero.root.userData.equipmentGrip={weapon:equipmentGrip('weapon'),shield:equipmentGrip('shield')};
-  for(const [slot,model] of Object.entries(modelSlots)){
-   if(model){model.removeFromParent();modelSlots[slot]=null;}
-  }
-  if(rightHand)rightHand.rotation.set(-Math.PI/2,0,0);
-  if(leftHand)leftHand.rotation.set(Math.PI,0,0);
-  const loader=await modelLoader;
-  if(request!==visualRequest)return;
-  if(!loader){characterPreview.refresh();return;}
-  const desired=[];
+  let weapon=null,shield=null;
   if(weaponKind&&rightHand){
-   const data={axe:['tauren-axe-v0.1.glb',AXE_TUNER_DEFAULTS,'axe'],sword:['plains-sword-v0.1.glb',SWORD_TUNER_DEFAULTS,'sword'],dagger:['steppe-dagger-v0.1.glb',DAGGER_TUNER_DEFAULTS,'dagger']}[weaponKind];
-   if(weaponDef?.modelPath)desired.push(['weapon',weaponDef.modelPath,battlefuryTuning,'axe',rightHand]);
-    else if(data)desired.push(['weapon','../assets/weapons/'+data[0],data[1],data[2],rightHand]);
+   const data={axe:['tauren-axe-v0.1.glb',AXE_TUNER_DEFAULTS,'axe'],
+    sword:['plains-sword-v0.1.glb',SWORD_TUNER_DEFAULTS,'sword'],
+    dagger:['steppe-dagger-v0.1.glb',DAGGER_TUNER_DEFAULTS,'dagger']}[weaponKind];
+   const url=weaponDef?.modelPath||data&&'../assets/weapons/'+data[0];
+   if(url)weapon={url,key:weaponDef.id+'|'+url,
+    tuning:weaponDef?.modelPath?battlefuryTuning:data[1],
+    kind:weaponDef?.modelPath?'axe':data[2],hand:rightHand,def:weaponDef};
   }
   if(shieldKind&&leftHand){
    const name=shieldKind==='kite'?'nexgame_kite_shield_quality.glb':'nexgame_round_shield_poor.glb';
-   desired.push(['shield','../assets/shields/'+name,SHIELD_TUNER_DEFAULTS[shieldKind],shieldKind,leftHand]);
+   const url='../assets/shields/'+name;
+   shield={url,key:shieldDef.id+'|'+url,tuning:SHIELD_TUNER_DEFAULTS[shieldKind],
+    kind:shieldKind,hand:leftHand,def:shieldDef};
   }
-  for(const [slot,url,tuning,kind,hand] of desired){
-   try{
-    const gltf=await loader.loadAsync(url);
-    if(request!==visualRequest)return;
-    const unique=slot==='weapon'&&weaponDef?.adminOnly;
-    // Only runtime scene transforms are changed; the original GLB stays untouched.
-    const mesh=unique?new THREE.Group():gltf.scene;
-    if(unique){
-     const asset=gltf.scene,bbox=new THREE.Box3().setFromObject(asset);
-     const dim=bbox.getSize(new THREE.Vector3());
-     const scale=1.95/Math.max(0.001,dim.x,dim.y,dim.z);
-     const center=bbox.getCenter(new THREE.Vector3());
-     asset.scale.multiplyScalar(scale);
-     asset.position.sub(center.multiplyScalar(scale));
-     mesh.add(asset);
-    }
-    mesh.name='gear-'+(slot==='shield'?'shield':kind);
-    const def=slot==='weapon'?weaponDef:shieldDef;
-    const grip=unique?applyBattlefuryPose(mesh,hand,battlefuryTuning):
-     applyEquipmentTransform(mesh,hand,{slot,kind,tuning,sourceId:def?.sourceId});
-    hand.add(mesh);modelSlots[slot]=mesh;
-    hero.root.userData.equipmentGrip[slot]=grip;
-    if(slot==='weapon')applyWeaponQuality(THREE,hero.root,kind,weaponDef?.rarity);
-    if(slot==='shield')styleShieldGlb(THREE,mesh,shieldDef?.rarity);
-   }catch(err){console.warn('Planet equipment model unavailable',url,err);}
-  }
-  characterPreview.refresh();
+  // Repeated server progress packets with identical equipment are no-ops.
+  // Pending loads are coalesced; only changed slots are rebuilt.
+  void equipmentVisuals.update('weapon',weapon?.key??null,weapon);
+  void equipmentVisuals.update('shield',shield?.key??null,shield);
  }
 
  let target=null,autoplay=false,swing=0,clock=0,messageUntil=0,pendingLoot=null,pendingLootTake=null,gatherCast=null,
