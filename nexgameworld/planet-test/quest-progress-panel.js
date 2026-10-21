@@ -4,6 +4,7 @@ import {GATHER_QUESTS} from './gather-world.js';
 import {BANDIT_QUEST_KILLS} from './creature-registry.js';
 import {BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED} from './bandit-weapons.js';
 import {isAcceptedQuest} from './starter-quest-guidance.js';
+import {readExpedition} from './expedition-quest.js';
 const amount=(inventory,id)=>(Array.isArray(inventory)?inventory:[])
  .reduce((n,row)=>n+(row?.id===id?Math.max(0,Number(row.qty)||0):0),0);
 const bounded=(n,max)=>Math.max(0,Math.min(max,Math.trunc(Number(n)||0)));
@@ -13,6 +14,12 @@ const progress=(id,title,verb,done,total,after)=>({
 });
 export function questProgressSummary(id,state,inventory=state?.inventory||[]){
  if(!isAcceptedQuest(id,state))return null;
+ if(id==='expedition'){
+  const q=readExpedition(state.expedition);
+  if(q.stage===1)return {id,title:'За последним холмом',detail:'Найти лагерь разведчиков',complete:false};
+  if(q.stage===2)return progress(id,'Лесные ориентиры','Исследовано',q.visited.filter(Boolean).length,3,'Сдать');
+  if(q.stage===3)return progress(id,'Лесные ориентиры','Исследовано',3,3,'Сдать');
+ }
  const stage=state.quest;
  if(id==='mentor'){
   if(stage===1)return progress(id,'Обряд силы','Убито',state.kills,3,'Сдать');

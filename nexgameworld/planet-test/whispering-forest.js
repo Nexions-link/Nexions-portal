@@ -6,6 +6,11 @@ const smooth=(a,b,n)=>{const t=clamp01((n-a)/(b-a));return t*t*(3-2*t)};
 export const FOREST_ENTRANCE_LONGITUDE=.16;
 export const FOREST_TRAIL_END=1.46;
 export const FOREST_TREE_CAP=400;
+export const FOREST_SITE_CLEARINGS=Object.freeze([
+ Object.freeze({lon:.98,lat:forestTrailLatitude(.98)+.105,radius:6}),
+ Object.freeze({lon:1.115,lat:forestTrailLatitude(1.115)-.094,radius:6}),
+ Object.freeze({lon:1.285,lat:forestTrailLatitude(1.285)+.093,radius:6})
+]);
 export const FOREST_CAMP=Object.freeze({lon:.86,lat:forestTrailLatitude(.86),clearingRadius:22});
 export const FOREST_CAMP_PROPS=Object.freeze([
  Object.freeze({kind:'tent',dx:-10,dz:7,r:2.6}),
@@ -53,6 +58,7 @@ export function createForestLayout(seed=451921){
   // No large trunks in the walking corridor.
   if(Math.abs(lat-forestTrailLatitude(lon))*261<7.2+radius)continue;
   if(forestDistance(lon,lat,FOREST_CAMP.lon,FOREST_CAMP.lat)<FOREST_CAMP.clearingRadius+radius)continue;
+  if(FOREST_SITE_CLEARINGS.some(s=>forestDistance(lon,lat,s.lon,s.lat)<s.radius+radius))continue;
   if(trees.some(t=>Math.hypot((t.lon-lon)*261,(t.lat-lat)*261)<t.radius+radius+3.1))continue;
   trees.push({lon,lat,height,radius,yaw:rand()*TAU,evergreen:rand()<.59,tint:rand()});
  }

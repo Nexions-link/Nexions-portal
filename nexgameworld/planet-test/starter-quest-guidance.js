@@ -5,6 +5,7 @@ import {GATHER_QUESTS} from './gather-world.js';
 import {BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_MIN_LEVEL} from './creature-registry.js';
 import {BANDIT_WEAPON_LOCATIONS,BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED} from './bandit-weapons.js';
 import {RELIC_POSITION,SCOUT_POSITION,BOSS_POSITION} from './mentor-chain.js';
+import {readExpedition,expeditionNextPoint,EXPEDITION_SITES} from './expedition-quest.js';
 export const QUEST_GIVERS=Object.freeze({
  mentor:Object.freeze({x:-1.5,z:-5}),herbalist:Object.freeze({x:8,z:1}),
  bandit:BANDIT_QUEST_GIVER
@@ -23,6 +24,12 @@ const closest=(points,position)=>{
 };
 export function questWaypoint(id,state,inventory=[],position={x:0,z:0}){
  const mentor=state.quest,bandit=state.banditQuest?.stage??0;
+ if(id==='expedition'){
+  const q=readExpedition(state.expedition);
+  if(q.stage===0||q.stage===4)return null;
+  const site=expeditionNextPoint(q);
+  return arrived(site.title||'Лагерь разведчиков',site);
+ }
  const weapons=state.banditWeaponsQuest?.stage??(state.banditChiefQuest?.stage>0?2:0);
  const chief=state.banditChiefQuest?.stage??0;
  if(id==='mentor'){
@@ -96,13 +103,14 @@ export function preferredQuestId(state,inventory=[]){
 // An offer is NOT an active objective. Only accepted quests can be pinned.
 // This predicate is client-only; gameplay rewards remain server authoritative.
 export function acceptedQuestIds(state){
- const ids=['mentor','gather-'+(state?.gatherStage??0),'bandit-trail','bandit-weapons','bandit-chief'];
+ const ids=['mentor','gather-'+(state?.gatherStage??0),'bandit-trail','bandit-weapons','bandit-chief','expedition'];
  return ids.filter(id=>isAcceptedQuest(id,state));
 }
 export function isAcceptedQuest(id,state){
  const mentor=state?.quest??0,bandit=state?.banditQuest?.stage??0,
   weapons=state?.banditWeaponsQuest?.stage??0,chief=state?.banditChiefQuest?.stage??0;
  if(id==='mentor')return [1,2,4,5,7,8,10,11].includes(mentor);
+ if(id==='expedition'){const stage=readExpedition(state?.expedition).stage;return stage>=1&&stage<=3;}
  if(id==='bandit-trail')return bandit===1||bandit===2;
  if(id==='bandit-weapons')return bandit===3&&weapons===1;
  if(id==='bandit-chief')return bandit===3&&weapons===2&&(chief===1||chief===2);
@@ -130,6 +138,11 @@ export function trackedQuestMap(id,state,inventory=[],position={x:0,z:0}){
  if(!isAcceptedQuest(id,state))return null;
  const waypoint=questWaypoint(id,state,inventory,position);
  if(!waypoint)return null;
+ if(id==='expedition'){
+  const q=readExpedition(state.expedition);
+  if(q.stage===2)return pointMap(EXPEDITION_SITES.filter(p=>!q.visited[p.index]),'Лесные ориентиры');
+  return pointMap([waypoint],waypoint.title);
+ }
  if(id==='mentor'){
   if(state.quest===1)return pointMap(DOLGONOG_SPAWNS.slice(0,DOLGONOG_BOSS_INDEX),'Равнинные долгоноги','targets');
   if(state.quest===10)return {...pointMap([BOSS_POSITION],'Грозоклюв','targets'),bossRoute:true};

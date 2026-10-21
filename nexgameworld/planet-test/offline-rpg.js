@@ -2,9 +2,10 @@ import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=7';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
-import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=3';
+import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=4';
 import {createQuestTracking} from './quest-tracking-state.js?v=2';
-import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=1';
+import {EXPEDITION_SCOUT,EXPEDITION_SITES,EXPEDITION_LEVEL,EXPEDITION_REWARD,readExpedition,expeditionJournal} from './expedition-quest.js?v=1';
+import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=2';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=3';
@@ -122,6 +123,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    row.quests?.gather?.accepted===false;
    safe.banditQuest=row.quests?.bandit||{stage:0,kills:0};
   safe.banditChiefQuest=row.quests?.banditChief||{stage:0};
+  safe.expedition=readExpedition(row.quests?.expedition);
   safe.banditWeaponsQuest=row.quests?.banditWeapons||{stage:row.quests?.banditChief?.stage>0?2:0};
   safe.hotbar=normalizeHotbar(row.actionBar?.length?row.actionBar:DEFAULT_HOTBAR,'warrior',safe.level);
   return safe;
@@ -703,6 +705,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   if(progress.quests?.mentor?.kills!==undefined)state.kills=progress.quests.mentor.kills;
   if(progress.quests?.bandit)state.banditQuest={...progress.quests.bandit};
+  state.expedition=readExpedition(progress.quests?.expedition);
   if(progress.quests?.banditChief)state.banditChiefQuest={...progress.quests.banditChief};
   state.banditWeaponsQuest=progress.quests?.banditWeapons?{...progress.quests.banditWeapons}:
    {stage:progress.quests?.banditChief?.stage>0?2:0};
@@ -714,7 +717,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   state.hotbar=normalizeHotbar(progress.actionBar?.length?progress.actionBar:DEFAULT_HOTBAR,'warrior',state.level);
   void updateEquipmentVisuals();
   draw();
-  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','banditQuest'].includes(modal.dataset.kind))renderModal();
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','banditQuest','expedition'].includes(modal.dataset.kind))renderModal();
   // Every server-verified reward uses the same level curve, including quests.
   // Checkpoints, logins and duplicate broadcasts must not trigger fake popups.
   const newXp=earnedExperienceSince(previousLevel,previousXp,state.level,state.xp);
@@ -909,6 +912,26 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const vendor=npc('vendor',6,11,'Борун Крепкая Ладонь');
  const merchantLabel=makeLabel('Оружие и доспехи','#e5c574',23);
  merchantLabel.position.y=3.85;vendor.root.add(merchantLabel);
+ const expeditionScout=authenticatedProfile?
+  npc('expedition',EXPEDITION_SCOUT.x,EXPEDITION_SCOUT.z,'Следопыт Дальний Ветер'):null;
+ if(expeditionScout)for(const glyph of ['!','?','·'])expeditionScout.root.add(questMarkers.create(glyph,5.58));
+ const expeditionSites=authenticatedProfile?EXPEDITION_SITES.map(site=>{
+  const root=new THREE.Group();group.add(root);
+  const stone=new THREE.MeshStandardMaterial({color:'#6a7970',roughness:1});
+  const rune=new THREE.MeshStandardMaterial({color:'#b0c9ac',emissive:'#204735',emissiveIntensity:.27});
+  const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.48,.74,3.8,7),stone);
+  pillar.position.y=1.9;pillar.rotation.z=.08*(site.index-1);root.add(pillar);
+  const crown=new THREE.Mesh(new THREE.DodecahedronGeometry(.85,0),stone);
+  crown.position.y=3.9;root.add(crown);
+  for(let k=0;k<3;k++){
+   const glyph=new THREE.Mesh(new THREE.BoxGeometry(.52,.12,.065),rune);
+   glyph.position.set(0,1.4+k*.59,.56);glyph.rotation.z=(k-1)*.23;root.add(glyph);
+  }
+  const label=makeLabel(site.title,'#c3d1b5',23);label.position.y=5;root.add(label);
+  const entity={kind:'expeditionSite',name:site.title,index:site.index,
+    x:site.x,z:site.z,root,radius:1.1,yaw:.1};
+  entities.push(entity);setModelAt(entity);return entity;
+ }):[];
  const herbalist=npc('herbalist',8,1,'Травница Тихая Заря');
  for(const glyph of ['!','?','·'])herbalist.root.add(questMarkers.create(glyph,5.58));
  // Shared radial ground-shadow texture. Only one transparent plane per mob.
@@ -1528,6 +1551,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     sendAccountAction('mentorInteract',{interaction:nearby.kind});return;
    }
    if(nearby.kind==='mob')return showCorpseLoot(nearby);
+   if(nearby.kind==='expeditionSite'){sendAccountAction('expeditionDiscover',{index:nearby.index});return}
+   if(nearby.kind==='expedition'){openWindow('expedition');return}
    if(nearby.kind==='mentor'){openWindow('mentor');return}
    if(nearby.kind==='banditQuest'){openWindow('banditQuest');return}
    if(nearby.kind==='vendor'){openWindow('merchant');return}
@@ -1713,7 +1738,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   $('trackedQuestHint').hidden=true;
   $('questGuidance').hidden=true;
   const glyph=mentorGlyph(state.quest);
-  for(const child of mentor.root.children)if(child.userData.questMarker)child.visible=child.userData.glyph===glyph;
+  for(const child of mentor.root.children)if(child.userData.questMarker)
+   child.visible=child.userData.glyph===(glyph||
+    (authenticatedProfile&&readExpedition(state.expedition).stage===0&&state.level>=EXPEDITION_LEVEL?'!':null));
+  if(expeditionScout){
+   const q=readExpedition(state.expedition),mark=q.stage===1?'!':q.stage===2?'·':q.stage===3?'?':null;
+   for(const child of expeditionScout.root.children)if(child.userData.questMarker)child.visible=child.userData.glyph===mark;
+   for(const site of expeditionSites)site.root.visible=q.stage>=1&&q.stage<4&&!q.visited[site.index];
+  }
   const banditStage=state.banditQuest?.stage??0;
   const weaponStage=weaponsStage(),weaponCount=itemCount(BANDIT_WEAPON_ITEM);
   const chiefStage=state.banditChiefQuest?.stage??0;
@@ -1857,7 +1889,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    questTracking.sync();
    const snapshot=JSON.stringify([journalTab,questTracking.trackedIds,state.quest,state.kills,state.level,
     state.gatherStage,state.gatherAvailable,state.banditQuest,state.banditWeaponsQuest,
-    state.banditChiefQuest,state.inventory]);
+    state.banditChiefQuest,state.expedition,state.inventory]);
    if(journalRenderSnapshot===snapshot&&body.querySelector('.planet-journal-tabs'))return;
    journalRenderSnapshot=snapshot;
   }
@@ -1883,7 +1915,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   $('panel').classList.toggle('settings-modal',kind==='settings');
   $('panel').classList.toggle('game-menu-modal',kind==='menu');
   title.textContent=({bag:'Рюкзак',character:'Персонаж',quests:'Журнал заданий',
-   merchant:'Торговец',loot:'Обыск тела',menu:'Меню',settings:'Настройки',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
+   merchant:'Торговец',loot:'Обыск тела',menu:'Меню',settings:'Настройки',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',expedition:'Следопыт Дальний Ветер',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
   body.replaceChildren();
   const line=(label,caption,actions=[])=>{
    const row=document.createElement('div');row.className='rpgRow';
@@ -2039,7 +2071,27 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    else line('Тропа снова безопасна','Главарь повержен. Благодарю за службу.');
    return;
   }
+  if(authenticatedProfile&&kind==='expedition'){
+   const q=readExpedition(state.expedition);
+   if(q.stage===0)line('За пределами родных земель','Поручение ожидает у наставника Каменного Рога.');
+   else if(q.stage===1)line('Первый костёр',
+    'Наш лагерь держится в тени древних деревьев. Помоги нанести на карту три ориентира.',
+    [['Начать разведку',()=>sendAccountAction('expeditionArrive')]]);
+   else if(q.stage===2)line('Три лесных ориентира',
+    'В лесу есть древние камни. Осмотри все три; найдено '+q.visited.filter(Boolean).length+' / 3.');
+   else if(q.stage===3)line('Путь открыт',
+    'Теперь дорога известна! Награда: '+EXPEDITION_REWARD.xp+' опыта и '+EXPEDITION_REWARD.gold+' монет.',
+    [['Сдать донесение',()=>sendAccountAction('expeditionTurnIn')]]);
+   else line('Первый маршрут нанесён на карту',
+    'Ты открыл Шепчущий лес. Наши разведчики готовят новую экспедицию.');
+   return;
+  }
   if(authenticatedProfile&&kind==='mentor'){
+   const expedition=readExpedition(state.expedition);
+   if(expedition.stage===0&&state.level>=EXPEDITION_LEVEL)
+    line('Зов горизонта · ур. 4',
+     'Степь не должна ограничивать наши дороги. Найди следопыта Дальнего Ветра за восточными скалами и помоги исследовать Шепчущий лес.',
+     [['Принять экспедицию',()=>sendAccountAction('expeditionAccept')]]);
    const q=state.quest;
    if([0,3,6,9].includes(q))
     line((QUEST_LINES[q]||[])[0]||'Наставник',(QUEST_LINES[q]||[])[1]||'Начни новое испытание.',
@@ -2283,6 +2335,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    const entries=mentorJournalRows(state).map(item=>({...item,routeId:'mentor',npc:'Наставник Каменный Рог'}));
    if(authenticatedProfile){
+    const ex=expeditionJournal(state.expedition,state.level);
+    if(ex.status!=='locked')entries.push({...ex,id:'expedition',
+      reward:EXPEDITION_REWARD.xp+' опыта · '+EXPEDITION_REWARD.gold+' монет',
+      npc:ex.status==='available'?'Наставник Каменный Рог':'Следопыт Дальний Ветер'});
     const q=state.banditQuest||{stage:0,kills:0};
     entries.push({id:'bandit-trail',
      status:q.stage===0?(state.level>=BANDIT_QUEST_MIN_LEVEL?'available':'locked'):q.stage===3?'completed':'current',
