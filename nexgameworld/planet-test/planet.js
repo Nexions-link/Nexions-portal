@@ -6,6 +6,7 @@ import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
@@ -150,6 +151,9 @@ try {
   renderer.shadowMap.autoUpdate=false;
   const shadowBudget=createShadowRefreshBudget();
   const localFog=new THREE.Fog(skyDay,105,290);
+  const forestFogColor=new THREE.Color('#536e68');
+  const forestSkyColor=new THREE.Color('#8ba9a1');
+  const blendedForestSky=new THREE.Color();
   sun.shadow.camera.left=-31;sun.shadow.camera.right=31;
   sun.shadow.camera.top=31;sun.shadow.camera.bottom=-31;
   sun.shadow.camera.near=1;sun.shadow.camera.far=120;
@@ -218,6 +222,8 @@ try {
     const b = sectorIndex(lon);
     // Keep the starting village clear.
     if (Math.abs(angleDelta(lon, 0)) < .13 && Math.abs(lat) < .12) continue;
+    // The new tall forest replaces small placeholder trees in this corridor.
+    if (lon>.18&&lon<1.52&&Math.abs(lat-(-.02))<.46) continue;
     const scale = .7 + random() * .8;
     const p = {lon, lat, scale, spin: random() * TAU, tint: random()};
     if (b === 0 && chance(.23) || b === 1 && chance(.83) || b === 3 && chance(.38)) {
@@ -288,6 +294,7 @@ try {
   })();
   // Detailed native camp, lake and authentic procedural Tauren are isolated in start-zone.js.
   const startZone=createStartZone(THREE,scene,()=>R,heightAt);
+  const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
   relocateInstances();
   const hero=createTauren(THREE,scene,{player:true});
   const actor=hero.root;
@@ -345,6 +352,7 @@ try {
     // The portal shows the latest village art without costly shadows or high DPR.
     if(isPortalPreview)sceneryDensity.detail=.68;
     startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,shadows:enabled});
+    whisperingForest.setQuality(qualityName,isPortalPreview);
     hero.visualDetails?.setQuality(isPortalPreview?.68:profile.detail);
     combatQualitySink?.(isPortalPreview?.15:profile.detail);
     if(qualityHelp)qualityHelp.textContent=
@@ -536,8 +544,9 @@ try {
     distanceEl.textContent = Math.round(state.meters) + ' м · оборотов: ' + completed;
     const b=sectorIndex(Math.atan2(state.normal.x,state.normal.z));
     const local=normalToLocal(state.normal,R),inStartingZone=local.d<74;
-    const currentName=inStartingZone?'Стартовая зона NexGameWorld':NAMES[b];
-    if(force||zoneName.textContent!==currentName){zoneName.textContent=currentName;zoneLabel.textContent=inStartingZone?'ЛАГЕРЬ · ОЗЕРО ТИХИХ ВОД':LABELS[b];$('area').textContent=inStartingZone?'Лагерь Нараче':currentName;}
+    const forestName=forestMoodAt(Math.atan2(state.normal.x,state.normal.z),Math.asin(clamp(state.normal.y,-1,1)))>.35;
+    const currentName=inStartingZone?'Стартовая зона NexGameWorld':forestName?'Шепчущий лес':NAMES[b];
+    if(force||zoneName.textContent!==currentName){zoneName.textContent=currentName;zoneLabel.textContent=inStartingZone?'ЛАГЕРЬ · ОЗЕРО ТИХИХ ВОД':forestName?'ДРЕВНИЕ ДЕРЕВЬЯ · ЛЕСНАЯ ТРОПА':LABELS[b];$('area').textContent=inStartingZone?'Лагерь Нараче':currentName;}
     drawGlobe();
     drawNativeMinimap();
   }
@@ -759,7 +768,7 @@ try {
 
   const windowFocus=new THREE.Vector3();let hasWindowFocus=false;
   const clock = new THREE.Clock();
-  let elapsed = 0, uiClock = 0, introClock = 0;
+  let elapsed = 0, uiClock = 0, introClock = 0, forestFogBlend=0;
   let fpsSeconds=0,fpsFrames=0;
   function animate() {
     requestAnimationFrame(animate);
@@ -768,6 +777,17 @@ try {
     const rawDt=clock.getDelta();
     const dt = Math.min(rawDt, .05);
     elapsed += dt; uiClock += dt; introClock += dt;
+    // A gradual forest microclimate: darker distant silhouettes, not a jump cut.
+    const forestLongitude=Math.atan2(state.normal.x,state.normal.z);
+    const forestLatitude=Math.asin(clamp(state.normal.y,-1,1));
+    const desiredForestFog=isPortalPreview?0:forestMoodAt(forestLongitude,forestLatitude);
+    forestFogBlend+=(desiredForestFog-forestFogBlend)*Math.min(1,dt*1.3);
+    const fogProfile=GRAPHICS_PRESETS[qualityName];
+    localFog.near=fogProfile.fogNear*(1-.18*forestFogBlend);
+    localFog.far=fogProfile.fogFar*(1-.42*forestFogBlend);
+    localFog.color.copy(skyDay).lerp(forestFogColor,forestFogBlend*.58);
+    if(!state.orbit&&!isPortalPreview)
+     scene.background=blendedForestSky.copy(skyDay).lerp(forestSkyColor,forestFogBlend*.62);
     if(measureFrames&&rawDt>0&&rawDt<=.25){
       fpsFrames++;fpsSeconds+=rawDt;
     }else{fpsSeconds=0;fpsFrames=0;}
