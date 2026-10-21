@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import {screenMoveVector,turnTowardsAngle} from '../movement-controls.js?v=0.3.7.0';
 import {readPlanetView,writePlanetView} from './world-save.js?v=3';
-import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=15';
+import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=16';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=3';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=5';
 import {createForestEcology} from './forest-ecology.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
@@ -19,7 +19,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=45';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=46';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.

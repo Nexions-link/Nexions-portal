@@ -24,9 +24,20 @@ export function forestDistance(lon,lat,lon2,lat2,radius=261){
   Math.cos(lat)*Math.cos(lat2)*Math.sin((lon2-lon)/2)**2;
  return 2*radius*Math.asin(Math.min(1,Math.sqrt(a)));
 }
+// Shared geodesic projection of the actual 3D camp local axes.
+ // Camp +X points east, +Z points towards decreasing latitude.
 export function forestCampPoint(dx,dz,radius=261){
- return {lon:FOREST_CAMP.lon+dx/(radius*Math.cos(FOREST_CAMP.lat)),
-  lat:FOREST_CAMP.lat+dz/radius};
+ const lon=FOREST_CAMP.lon,lat=FOREST_CAMP.lat,d=Math.hypot(dx,dz);
+ if(d<1e-8)return {lon,lat};
+ const sin=Math.sin(lat),cos=Math.cos(lat),sl=Math.sin(lon),cl=Math.cos(lon);
+ const cx=cos*sl,cy=sin,cz=cos*cl;
+ const eastX=cl,eastZ=-sl;
+ const northX=-sin*sl,northY=cos,northZ=-sin*cl;
+ const angle=d/radius,k=Math.sin(angle)/d,c=Math.cos(angle);
+ const x=c*cx+k*(dx*eastX-dz*northX);
+ const y=c*cy+k*(-dz*northY);
+ const z=c*cz+k*(dx*eastZ-dz*northZ);
+ return {lon:Math.atan2(x,z),lat:Math.asin(Math.max(-1,Math.min(1,y)))};
 }
 export function forestLocalPoint(lon,lat,radius=261){
  const nx=Math.cos(lat)*Math.sin(lon),ny=Math.sin(lat),
@@ -39,7 +50,8 @@ export function forestLocalPoint(lon,lat,radius=261){
 export function forestTrailLatitude(lon){
  const d=lon-.145;
  // Through the gap between existing sandstone mesas east of the village.
- return -.035+.015*Math.sin(d*4)+.012*Math.sin(Math.max(0,lon-.51)*8.5)+.011*Math.exp(-Math.pow((lon-.40)/.072,2));
+ return -.035+.015*Math.sin(d*4)+.012*Math.sin(Math.max(0,lon-.51)*8.5)+.011*Math.exp(-Math.pow((lon-.40)/.072,2))
+  +0; // A clear straight route; the legacy tree was moved visibly off the path.
 }
 export function forestMoodAt(lon,lat){
  return smooth(.15,.62,lon)*(1-smooth(1.45,1.75,lon))*
@@ -97,6 +109,12 @@ function forestCollisionIndex(radius=261){
  }
  const index={cellSize,cells};
  collisionCache.set(key,index);return index;
+}
+// All blocking forest geometry comes exclusively from visible tree trunk and
+// visible camp props. Decorative rocks, ferns, fungi, animals and logs are passable.
+export function forestColliders(radius=261){
+ const {cells}=forestCollisionIndex(radius);
+ return [...cells.values()].flat().map(row=>({...row}));
 }
 export function blocksForestAtLocal(x,z,actorRadius=.42,radius=261,height=0){
  if(!Number.isFinite(x)||!Number.isFinite(z)||!Number.isFinite(radius)||radius<1)return false;
@@ -198,7 +216,14 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  scene.add(campRoot);
  const campNormal=normalAt(FOREST_CAMP.lon,FOREST_CAMP.lat).clone();
  campRoot.position.copy(campNormal).multiplyScalar(radius+heightAt(campNormal)+.08);
- campRoot.quaternion.setFromUnitVectors(up,campNormal);
+ // The renderer and the server's forestCampPoint use the same east/up/south axes.
+ const campEast=new THREE.Vector3(Math.cos(FOREST_CAMP.lon),0,-Math.sin(FOREST_CAMP.lon));
+ const campSouth=new THREE.Vector3(
+  Math.sin(FOREST_CAMP.lat)*Math.sin(FOREST_CAMP.lon),
+  -Math.cos(FOREST_CAMP.lat),
+  Math.sin(FOREST_CAMP.lat)*Math.cos(FOREST_CAMP.lon));
+ const campFrame=new THREE.Matrix4().makeBasis(campEast,campNormal,campSouth);
+ campRoot.quaternion.setFromRotationMatrix(campFrame);
  const campWood=new THREE.MeshStandardMaterial({color:'#604932',roughness:1});
  const campWoodLight=new THREE.MeshStandardMaterial({color:'#8d714b',roughness:1});
  const campHide=new THREE.MeshStandardMaterial({color:'#b5a080',roughness:1,side:THREE.DoubleSide});

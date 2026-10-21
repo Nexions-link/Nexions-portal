@@ -213,7 +213,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
   shadowCasters.push(ell(g,leaf2,1.4,5,.2,2.1,.95,1.6));
   shadowCasters.push(ell(g,leaf,0,5.65,0,2.5,.85,1.8));
  }
- for(const [x,z,s] of [[-26,21,1.2],[54,35,1],[34,-26,.95],[-34,-30,1.15],[9,49,1.2],[-39,40,1.1],[51,25,1.3],[50,-8,.8],[-47,-7,1.1]])tree(x,z,s);
+ for(const [x,z,s] of [[-26,21,1.2],[54,35,1],[34,-26,.95],[-34,-30,1.15],[9,49,1.2],[-39,40,1.1],[51,25,1.3],[57,-21,.8],[-47,-7,1.1]])tree(x,z,s);
  // Grass and rocks approximate the distribution; the main game uses instancing.
  let seed=179311;const rnd=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
  const brush=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),leaf2,175);

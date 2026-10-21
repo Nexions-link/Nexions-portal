@@ -1,5 +1,5 @@
 import {blocksRockOrMesa} from './planet-landmarks.js?v=1';
-import {blocksForestAtLocal} from './whispering-forest.js?v=2';
+import {blocksForestAtLocal} from './whispering-forest.js?v=5';
 import {LONGHOUSE,toHouseCoordinates,insideHouse} from './hearth-house.js?v=10';
 export {toHouseCoordinates} from './hearth-house.js?v=10';
 // PT 0.6.0 — spherical contact and third-person camera constraints.
@@ -13,7 +13,7 @@ const TENTS=[
  {x:-23,z:-15,r:3,yaw:.5}
 ];
 const TREES=[[-26,21,1.2],[54,35,1],[34,-26,.95],[-34,-30,1.15],
- [9,49,1.2],[-39,40,1.1],[51,25,1.3],[50,-8,.8],[-47,-7,1.1]];
+ [9,49,1.2],[-39,40,1.1],[51,25,1.3],[57,-21,.8],[-47,-7,1.1]];
 const TOTEMS=[[-3,-5,1],[5,9,.75],[-5,25,.8],[35,-14,1.25]];
 const BANNERS=[[-4,19],[5,-14]];
 const boxHit=(x,z,cx,cz,hw,hd)=>Math.abs(x-cx)<hw&&Math.abs(z-cz)<hd;
