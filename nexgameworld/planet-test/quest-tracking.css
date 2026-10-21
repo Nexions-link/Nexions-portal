@@ -85,3 +85,21 @@
 @media(max-width:360px){
  #questProgressPanel{width:min(150px,calc(49vw - 12px))}
 }
+
+// Share the actual first column of the responsive top HUD with the player frame.
+// Unlike a fixed pixel / viewport width this stays pixel-exact on iPhone,
+// landscape, desktop and devices with safe-area insets.
+#hudTop #questProgressPanel{
+ position:relative;top:auto;left:auto;right:auto;bottom:auto;
+ grid-column:1;grid-row:2;justify-self:stretch;align-self:start;
+ box-sizing:border-box;width:100%!important;min-width:0;max-width:none;
+ margin:8px 0 0;
+ border:1px solid #9c875987;border-left:2px solid #c7a76cb5;
+ border-radius:8px;
+ background:linear-gradient(145deg,#202820f0,#111a16ed);
+ box-shadow:0 3px 13px #0007;
+ pointer-events:none;
+}
+@media(max-height:510px) and (min-width:600px){
+ #hudTop #questProgressPanel{margin-top:5px}
+}

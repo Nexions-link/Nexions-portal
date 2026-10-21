@@ -58,3 +58,19 @@ test('live panel updates quest count on server kill credit with three quests',()
  assert.ok(labels().includes('Убито 1 / 3'));
  assert.ok(labels().includes('Убито 3 / 3 · Сдать'));
 });
+
+test('progress panel shares the same responsive HUD column and width as player HP frame',async()=>{
+ const fs=await import('node:fs');
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const css=fs.readFileSync(new URL('../quest-tracking.css',import.meta.url),'utf8');
+ const top=html.indexOf('<div id="hudTop"');
+ const panel=html.indexOf('<aside id="questProgressPanel"');
+ const area=html.indexOf('<div id="zoneTitle"');
+ assert.ok(top>=0&&panel>top&&area>panel,'tracker is inside the top HUD, before its closing tag');
+ assert.match(html.slice(panel,area),/<aside id="questProgressPanel"[^>]*><\/aside>\s*<\/div>/);
+ assert.match(css,/#hudTop #questProgressPanel\{[\s\S]*?grid-column:1;grid-row:2;/);
+ assert.match(css,/#hudTop #questProgressPanel\{[\s\S]*?width:100%!important;/);
+ assert.match(css,/background:linear-gradient\(145deg,#202820f0,#111a16ed\)/);
+ assert.match(css,/#hudTop #questProgressPanel\{[\s\S]*?pointer-events:none;/);
+ assert.match(html,/quest-tracking\.css\?v=4/);
+});
