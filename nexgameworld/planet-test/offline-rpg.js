@@ -1,12 +1,13 @@
 import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
-import {renderCharacterSheet} from './character-sheet.js?v=6';
+import {renderCharacterSheet} from './character-sheet.js?v=7';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
 import {questWaypoint,questDirection,preferredQuestId} from './starter-quest-guidance.js?v=1';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=3';
 import {getAbilityRangeIndicator,getAbilityResourceIndicator} from './ability-range-visuals.js?v=2';
+import {levelExperienceRequirement,earnedExperienceSince,earlyLevelMilestone} from './level-progression.js?v=1';
 import {compareEquipment,itemStatRows,formatBagEquipmentChanges} from './equipment-comparison.js?v=2';
 import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.6.43.5';
 import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.6.43.53';
@@ -28,6 +29,7 @@ import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
 import {createXpFeedback} from './xp-feedback.js?v=1';
+import {createLevelUpFeedback} from './level-up-feedback.js?v=1';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=2';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
 import {createCameraTargetFilter} from './camera-targeting.js?v=1';
@@ -71,7 +73,7 @@ const SPAWNS=DOLGONOG_SPAWNS.slice(0,-1);
 const SAVE_KEY=OFFLINE_RPG_SAVE_KEY;
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const xpRequired=level=>100+(level-1)*50;
+const xpRequired=levelExperienceRequirement;
 const pretty=num=>Number(num).toLocaleString('ru-RU',{maximumFractionDigits:1});
 const LABEL=EQUIPMENT_LABELS;
 const EQUIP_SLOTS=['weapon','shield','head','chest','legs','hands','waist','wrists','feet'];
@@ -106,7 +108,8 @@ function restore(){
 export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRadius,toNormal,toLocal,heightAt,camera,canvas,preview=false,authenticatedProfile=null}){
  const serverInitial=()=>{
   const safe=initial(),row=authenticatedProfile;
-  safe.level=row.level;safe.xp=row.experience||0;safe.gold=row.gold||0;
+  safe.level=Number.isSafeInteger(row.level)&&row.level>=1&&row.level<=60?row.level:1;
+  safe.xp=row.experience||0;safe.gold=row.gold||0;
   safe.hp=row.health??null;safe.resource=row.resource||0;
   safe.inventory=Array.isArray(row.inventory)?row.inventory.filter(Boolean).map(item=>({...item})):[];
   safe.equipment=row.equipment||{};
@@ -701,18 +704,28 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   void updateEquipmentVisuals();
   draw();
   if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','banditQuest'].includes(modal.dataset.kind))renderModal();
-  if(source==='mob'){
-   // A saved revision can be rebroadcast during reconnect. Never animate it twice.
-   if(Number.isInteger(progress.revision)&&progress.revision===lastMobXpRevision)return;
-   if(Number.isInteger(progress.revision))lastMobXpRevision=progress.revision;
-   let gained=state.xp-previousXp;
-   for(let level=previousLevel;level<state.level&&level<60;level++)gained+=xpRequired(level);
-   gained=Math.max(0,gained);
-   xpFeedback.show(gained,{levelUp:state.level>previousLevel});
-   msg(gained>0?
-    'Получено +'+gained+' опыта. Осмотри тело для получения добычи.':
-    'Противник слишком слаб: 0 опыта. Добыча остаётся на теле.',2.6);
+  // Every server-verified reward uses the same level curve, including quests.
+  // Checkpoints, logins and duplicate broadcasts must not trigger fake popups.
+  const newXp=earnedExperienceSince(previousLevel,previousXp,state.level,state.xp);
+  const leveled=state.level>previousLevel;
+  if(source==='mob'&&Number.isInteger(progress.revision)){
+   if(progress.revision===lastMobXpRevision)return;
+   lastMobXpRevision=progress.revision;
   }
+  if(source==='mob'||source!=='welcome'&&source!=='checkpoint'&&(newXp>0||leveled))
+   xpFeedback.show(newXp,{levelUp:leveled});
+  if(leveled){
+   const unlocked=previousLevel<8&&state.level>=8;
+   levelUpFeedback.show(state.level,{unlockedCharge:unlocked});
+   // The separate center-screen level card contains the celebration.
+   // Keep ordinary XP/loot toast unchanged for existing quests and tests.
+   if(source!=='mob')
+    msg('Новый уровень: '+state.level+'! Здоровье восстановлено.'+
+     (unlocked?' Новая способность: «Рывок» — открой книгу способностей.':''),4);
+  }
+  if(source==='mob')msg(newXp>0?
+   'Получено +'+newXp+' опыта. Осмотри тело для получения добычи.':
+   'Противник слишком слаб: 0 опыта. Добыча остаётся на теле.',2.6);
  }
  function onKillCredit(event){
   if(authenticatedProfile)return;
@@ -826,6 +839,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  if(!feedbackLayer)throw Error('Отсутствует слой чисел урона');
  const combatFeedback=createSphereCombatFeedback({THREE,document,camera,layer:feedbackLayer});
  const xpFeedback=createXpFeedback({document,layer:$('xpFeedback')});
+ const levelUpFeedback=createLevelUpFeedback({document,layer:$('levelUpFeedback')});
  let lastMobXpRevision=null;
   const combatVfx=createSphericalCombatVfx({THREE,parent:scene,
    getViewerNormal:playerNormal,getRadius});
@@ -1524,9 +1538,16 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   draw();
  }
  function levelCheck(){
+  const previousLevel=state.level;
   while(state.level<60&&state.xp>=xpRequired(state.level)){
    state.xp-=xpRequired(state.level);state.level++;
-   const oldMax=stats().maxHp;state.hp=oldMax;msg('Новый уровень: '+state.level+'!');
+   state.hp=stats().maxHp;
+  }
+  if(state.level>previousLevel){
+   const unlocked=previousLevel<8&&state.level>=8;
+   levelUpFeedback.show(state.level,{unlockedCharge:unlocked});
+   msg('Новый уровень: '+state.level+'! Здоровье восстановлено.'+
+    (unlocked?' Открыта способность «Рывок»!':''),3.5);
   }
   state.hotbar=normalizeHotbar(state.hotbar,'warrior',state.level);persist();
  }

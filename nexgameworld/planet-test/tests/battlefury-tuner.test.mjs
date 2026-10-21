@@ -37,7 +37,7 @@ test('the admin axe no longer displays any tuning controls',()=>{
 test('updated scene invalidates cached grip and character sheet',()=>{
  const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
  assert.match(read('../offline-rpg.js'),/battlefury-tuner\.js\?v=2/);
- assert.match(read('../offline-rpg.js'),/character-sheet\.js\?v=6/);
+ assert.match(read('../offline-rpg.js'),/character-sheet\.js\?v=7/);
  const planet=read('../planet.js'),html=read('../index.html');
  const gameModule=planet.match(/offline-rpg\.js\?v=(\d+)/);
  const entrypoint=html.match(/planet\.js\?v=(\d+)/);

@@ -1,3 +1,4 @@
+import {levelProgress} from './level-progression.js';
 // NexGameWorld character sheet: preserve the item-inspection language of
 // the archived flat NexGame window, with only the online game's real slots.
 export const CHARACTER_ARMOR_COLUMNS=Object.freeze({
@@ -58,7 +59,15 @@ export function renderCharacterSheet({
  const subtitle=document.createElement('span');
  subtitle.textContent='ТАУРЕН · ВОИН · УРОВЕНЬ '+state.level;
  const progress=document.createElement('small');progress.textContent='Опыт '+state.xp+' / '+xpRequired(state.level)+' · '+pretty(state.gold)+' монет';
- hero.append(name,subtitle,progress);sheet.append(hero);
+ hero.append(name,subtitle,progress);
+ // Make levels 1–10 and the level-eight Charge unlock predictable without
+ // touching the authoritative XP, item ownership or saved action bar.
+ const growth=levelProgress(state.level,state.xp);
+ const goal=document.createElement('small');goal.className='character-level-goal';
+ goal.textContent=state.level>=10?'Прогресс 1–10: пройден':
+  'До 10 уровня: '+pretty(growth.toEarlyCap)+' опыта'+
+  (growth.milestone?' · '+growth.milestone.label+' с '+growth.milestone.level+' ур.':'');
+ hero.append(goal);sheet.append(hero);
  const sectionLabel=document.createElement('div');sectionLabel.className='character-section-label';
  sectionLabel.textContent='✦  СНАРЯЖЕНИЕ  ✦';sheet.append(sectionLabel);
  const stage=document.createElement('div');stage.className='character-stage';

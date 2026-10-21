@@ -39,12 +39,13 @@
 </style>
 <link rel="stylesheet" href="./world-sheet.css?v=1">
 <link rel="stylesheet" href="./bag-discard.css?v=1">
-<link rel="stylesheet" href="./character-sheet.css?v=4">
+<link rel="stylesheet" href="./character-sheet.css?v=5">
 <link rel="stylesheet" href="./battlefury-tuner.css?v=1">
 <link rel="stylesheet" href="./loot-sheet.css?v=1">
 <link rel="stylesheet" href="./target-hud.css?v=1">
 <link rel="stylesheet" href="./bandit-quest.css?v=3">
 <link rel="stylesheet" href="./xp-feedback.css?v=1">
+<link rel="stylesheet" href="./level-up-feedback.css?v=1">
 <style id="ngw-connection-guard">
 #connectionBanner[hidden]{display:none!important}
 #connectionBanner{
@@ -506,6 +507,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <main id="viewport" aria-label="Сферический мир NexGameWorld"></main>
 <div id="combatFeedback" aria-hidden="true"></div>
 <div id="xpFeedback" aria-live="polite" aria-atomic="false" aria-label="Полученный опыт"></div>
+<div id="levelUpFeedback" aria-live="polite" aria-label="Повышение уровня"></div>
 <div id="vignette"></div>
 <div id="hudTop" aria-label="Игровые панели персонажа цели и карты">
 <header id="playerFrame" class="frame">
@@ -572,7 +574,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.43.69" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.43.70" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -659,7 +661,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=171').catch(error=>{
+  import('./planet.js?v=172').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

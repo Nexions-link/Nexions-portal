@@ -314,3 +314,9 @@
  #panel.character-modal .character-socket{padding:3px 2px}
  #panel.character-modal .character-weapon-row .character-socket{min-height:62px}
 }
+
+/* Compact early-game progress hint, beneath native XP/coin summary. */
+.character-identity .character-level-goal{
+ font:10px/1.4 system-ui,sans-serif;color:#e3be77;text-align:center;
+ max-width:100%;white-space:normal;overflow-wrap:break-word;
+}
