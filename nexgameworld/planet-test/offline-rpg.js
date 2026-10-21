@@ -12,6 +12,7 @@ import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.j
 import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.6.43.53';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.6.43.53';
 import {attachAbilityDrag} from './ability-drag-drop.js?v=1';
+import {attachBagDiscardDrag} from './bag-discard-drag.js?v=1';
 import {goToCharacterSelection} from './character-navigation.js?v=1';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
 import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,resetWalkingClip,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.6.43.35';
@@ -263,7 +264,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  let journalTab='current',merchantTab='buy',selectedEquipmentSlot=null;
  let trackedQuestId=null,journalRenderSnapshot=null;
- let selectedBagSlot=-1,selectedBagItemId=null,bagRenderSnapshot=null;
+ let selectedBagSlot=-1,selectedBagItemId=null,bagRenderSnapshot=null,pendingBagDiscard=false;
  const group=new THREE.Group();scene.add(group);
  // The mesh is bent vertex-by-vertex onto the actual spherical terrain:
  // no texture intersection/z-fighting and a saturated red outline.
@@ -377,6 +378,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function setMultiplayer(transport){multiplayer=transport||null;}
  function onNetworkDisconnect(){
   if(!authenticatedProfile)return;
+  pendingBagDiscard=false;
   // A reconnect creates a NEW world socket and group identity. Never display
   // old membership/leader controls until the server publishes fresh state.
   onPartyState({groupId:null,leaderId:null,members:[]});
@@ -522,6 +524,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  let lastServerScoutRequest=0;
  function onEconomyResult(event){
+  if(event?.kind==='inventoryDiscard')pendingBagDiscard=false;
   if(!authenticatedProfile||!event)return;
   if(event.kind==='lootTake')pendingLootTake=null;
   if(event.ok&&['lootAvailable','lootOpen','lootInspect','lootTake'].includes(event.kind)){
@@ -569,6 +572,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     untrusted_interaction_context:'Сейчас взаимодействовать нельзя',
     not_enough_gold:'Недостаточно монет',inventory_full:'Рюкзак заполнен',
     item_not_owned:'Предмет не найден в рюкзаке',item_not_sellable:'Предмет нельзя продать',
+    inventory_discard_stale:'Содержимое ячейки изменилось. Открой рюкзак и попробуй снова.',
+    invalid_inventory_discard:'Нельзя удалить этот предмет',
     potion_cooldown:'Зелье восстанавливается',potion_not_needed:'Сейчас здоровье полное',
     chest_transfer_rejected:'В сундуке или рюкзаке нет места',
     gather_node_respawning:'Растение ещё не выросло',
@@ -601,6 +606,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   const labels={
    hotbarSet:'Панель умений сохранена',merchantBuy:'Покупка сохранена',merchantSell:'Продажа сохранена',
+   inventoryDiscard:'Предмет удалён из рюкзака и сохранён',
    gatherAccept:'Задание травницы принято',gatherFinish:'Ресурс собран и сохранён',
    banditAccept:'Разведка принята · найди лагерь на западе.',
    banditTurnIn:'Разведка завершена! Следопыт предложит собрать кинжалы.',
@@ -2109,6 +2115,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     const grid=document.createElement('div');grid.className='inventory-grid';
     const detail=document.createElement('div');detail.className='inventory-detail';
     detail.textContent='Нажми на предмет, чтобы узнать подробности.';
+    const dropHelp=document.createElement('small');
+    dropHelp.className='ngw-bag-discard-help';
+    dropHelp.textContent='Удерживай предмет и перетащи за пределы рюкзака, чтобы удалить всю стопку.';
     for(let i=0;i<12;i++){
       const item=state.inventory[i],def=item&&ITEM_CATALOG[item.id];
       const cell=document.createElement('button');cell.type='button';
@@ -2120,6 +2129,35 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
         const icon=document.createElement('span');icon.className='slot-icon';icon.textContent=def?.icon||'🧪';if(item.id===BATTLEFURY_ITEM_ID)icon.classList.add('battlefury-icon');
         const qty=document.createElement('span');qty.className='slot-count';qty.textContent=item.qty>1?item.qty:'';
         cell.append(icon,qty);
+        attachBagDiscardDrag(cell,{document,panel:$('panel'),
+         item:{id:item.id,qty:item.qty,name:def?.name||'Предмет'},
+         onDiscard:()=>{
+          if(pendingBagDiscard)return msg('Предыдущее удаление ещё сохраняется');
+          // Check both the currently displayed position and the physical
+          // server slot before showing the irreversible confirmation.
+          const current=state.inventory[i];
+          const physicalSlot=authenticatedProfile?serverBagSlot(i):i;
+          const physical=authenticatedProfile?serverBagSlots[physicalSlot]:current;
+          if(!current||current.id!==item.id||current.qty!==item.qty||
+             !physical||physical.id!==item.id||physical.qty!==item.qty){
+           msg('Ячейка изменилась — выбери предмет заново');return;
+          }
+          const name=def?.name||item.id;
+          if(!window.confirm('Удалить '+name+(item.qty>1?' ×'+item.qty:'')+
+            ' из рюкзака?\nВосстановить удалённый предмет нельзя.'))return;
+          if(authenticatedProfile){
+           if(!isOnline())return msg('Нет связи с сервером — удаление отменено');
+           pendingBagDiscard=true;
+           const accepted=sendAccountAction('inventoryDiscard',{
+            bagSlot:physicalSlot,itemId:item.id,qty:item.qty,requestId:crypto.randomUUID()
+           });
+           if(accepted===false)pendingBagDiscard=false;
+          }else{
+           state.inventory.splice(i,1);
+           selectedBagSlot=-1;selectedBagItemId=null;bagRenderSnapshot=null;
+           persist();renderModal();draw();msg('Удалено: '+name);
+          }
+         }});
         cell.addEventListener('click',()=>{
           selectedBagSlot=i;selectedBagItemId=item.id;
           detail.replaceChildren();detail.scrollTop=0;
@@ -2169,7 +2207,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
       }else{const dot=document.createElement('span');dot.className='slot-empty-mark';dot.textContent='·';cell.append(dot);}
       grid.append(cell);
     }
-    body.append(summary,grid,detail);
+    body.append(summary,grid,dropHelp,detail);
     const selected=state.inventory[selectedBagSlot];
     if(selected&&selected.id===selectedBagItemId)
      grid.children[selectedBagSlot]?.click();

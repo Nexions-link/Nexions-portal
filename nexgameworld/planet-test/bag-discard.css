@@ -1,0 +1,28 @@
+/* Drag inventory stacks without moving the floating bag or the game world. */
+#panel.inventory-modal .inventory-slot.occupied{
+ touch-action:none!important;-webkit-user-select:none;user-select:none;
+ -webkit-touch-callout:none;cursor:grab;
+}
+#panel.inventory-modal .inventory-slot.ngw-bag-item-dragging{
+ opacity:.56;cursor:grabbing;border-color:#f8d48d!important;
+ box-shadow:inset 0 0 0 2px #f8d48d66!important;
+}
+#panel.inventory-modal.ngw-bag-discard-ready{
+ outline:2px dashed #d5a37c;outline-offset:3px;
+}
+#panel.inventory-modal .ngw-bag-discard-help{
+ display:block;flex:none;margin:-3px 0 6px;padding:2px 1px;
+ color:#bca786;font:10px/1.35 system-ui,sans-serif;
+}
+.ngw-bag-discard-ghost{
+ position:fixed;z-index:9999;left:0;top:0;
+ transform:translate(-50%,-125%);pointer-events:none;
+ max-width:min(210px,62vw);padding:7px 10px;
+ border:1px solid #a38b6b;border-radius:6px;
+ background:#282722f5;color:#f3ddba;
+ box-shadow:0 4px 14px #0009;
+ text-align:center;font:700 12px/1.35 system-ui,sans-serif;
+}
+.ngw-bag-discard-ghost.is-free{
+ border-color:#da805c;background:#552f29f2;color:#fff0d6;
+}
