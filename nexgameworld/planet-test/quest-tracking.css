@@ -35,3 +35,53 @@
 
 /* The entire distance/goal sidebar is obsolete: navigation is minimap-only. */
 #quest{display:none!important}
+
+/* Up to three accepted quests: thin read-only overlay, no floating distance UI. */
+#questProgressPanel[hidden]{display:none!important}
+#questProgressPanel{
+ position:fixed;z-index:6;
+ top:calc(20px + var(--safe-top,0px) + var(--hud-row-height,90px));
+ left:calc(var(--hud-edge,12px) + env(safe-area-inset-left,0px));
+ box-sizing:border-box;width:min(205px,41vw);max-height:min(156px,36dvh);
+ padding:6px 8px 5px;overflow:hidden;
+ border:1px solid #ae98685e;border-left:2px solid #d1b577a1;
+ border-radius:5px;background:linear-gradient(100deg,#18221dca,#18221d91);
+ box-shadow:0 2px 9px #0004;color:#e8dec5;
+ font:10px/1.25 system-ui,-apple-system,sans-serif;
+ text-shadow:0 1px 3px #0c110c;
+ pointer-events:none;user-select:none;-webkit-user-select:none;
+}
+#questProgressPanel .ngw-quest-panel-heading{
+ color:#cbb78b;font:700 9px/1.25 system-ui,sans-serif;
+ letter-spacing:.09em;margin:0 0 3px;
+}
+#questProgressPanel .ngw-quest-panel-list{display:grid;gap:3px}
+#questProgressPanel .ngw-quest-panel-item{
+ display:grid;gap:1px;min-width:0;overflow:hidden;
+ padding:2px 0 3px 5px;border-left:1px solid #9c8b6155;
+}
+#questProgressPanel .ngw-quest-panel-item.is-complete{border-left-color:#8eb19a}
+#questProgressPanel .ngw-quest-panel-name{
+ overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+ color:#f2e5c2;font-weight:650;font-size:10px;
+}
+#questProgressPanel .ngw-quest-panel-detail{
+ overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+ color:#c5caac;font-size:10px;line-height:1.2;
+}
+#questProgressPanel .ngw-quest-panel-item.is-complete .ngw-quest-panel-detail{color:#9fceb0}
+@media(max-width:760px){
+ #questProgressPanel{width:min(178px,calc(49vw - 14px));
+  padding:5px 6px 4px;max-height:min(144px,34dvh)}
+ #questProgressPanel .ngw-quest-panel-name,
+ #questProgressPanel .ngw-quest-panel-detail{font-size:9px}
+}
+@media(max-height:510px) and (min-width:600px){
+ #questProgressPanel{top:calc(17px + var(--safe-top,0px) + var(--hud-row-height,90px));
+  max-height:118px;padding:4px 6px 3px}
+ #questProgressPanel .ngw-quest-panel-list{gap:1px}
+ #questProgressPanel .ngw-quest-panel-item{padding:1px 0 2px 4px}
+}
+@media(max-width:360px){
+ #questProgressPanel{width:min(150px,calc(49vw - 12px))}
+}

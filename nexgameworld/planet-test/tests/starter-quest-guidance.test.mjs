@@ -71,9 +71,9 @@ test('online journal pins a quest; progress update routes player back to quest g
  assert.equal(h.get('quest').hidden,true,'no floating objective window');
  assert.equal(h.rpg.getQuestMapState().kind,'targets','accepted quest immediately auto-tracks');
  h.get('journal').click();
- const buttons=()=>descendants(h.get('mbody')).filter(x=>x.textContent==='Отслеживать'||x.textContent==='✓ Отслеживается · Выключить');
+ const buttons=()=>descendants(h.get('mbody')).filter(x=>x.textContent==='Отслеживать'||x.textContent==='✓ Выключить');
  assert.equal(buttons().length,1);
- assert.equal(buttons()[0].textContent,'✓ Отслеживается · Выключить');
+ assert.equal(buttons()[0].textContent,'✓ Выключить');
  assert.equal(hint.hidden,true,'route distance and label are removed');
  assert.equal(h.get('quest').hidden,true,'navigation is exclusively on the minimap');
  assert.equal(h.rpg.getQuestMapState().kind,'targets');
@@ -81,7 +81,7 @@ test('online journal pins a quest; progress update routes player back to quest g
  const updated={...state,revision:2,quests:{...state.quests,bandit:{stage:2,kills:3}}};
  h.rpg.applyServerProgress(updated,'banditKill');
  assert.equal(h.rpg.getQuestMapState().kind,'waypoint','turn-in uses a neutral pin');
- assert.equal(buttons()[0].textContent,'✓ Отслеживается · Выключить');
+ assert.equal(buttons()[0].textContent,'✓ Выключить');
  h.get('modalClose').click();
  assert.equal(h.rpg.getQuestMapState().kind,'waypoint');
  h.get('untrackQuest').click();

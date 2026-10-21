@@ -79,7 +79,7 @@ test('gathering tracking and quick untrack clear all map hints immediately',()=>
  const h=harness({save:{quest:12,gatherStage:1,gatherAvailable:false}});
  h.get('journal').click();
  assert.equal(h.rpg.getQuestMapState().kind,'area','accepted gathering auto-tracks at first load');
- const stop=descendants(h.get('mbody')).find(x=>String(x.textContent).startsWith('✓ Отслеживается'));
+ const stop=descendants(h.get('mbody')).find(x=>String(x.textContent).startsWith('✓ Выключить'));
  assert.ok(stop,'journal can disable automatic tracking');
  assert.equal(h.get('quest').hidden,true,'no distance panel under any circumstances');
  h.get('untrackQuest').click();
@@ -106,4 +106,16 @@ test('waypoint marker is not a sword, including the final quest turn-in',()=>{
  paintTrackedQuestOnMinimap(ctx,{kind:'waypoint',points:[{x:3,z:4}]},3.8);
  assert.equal(events.filter(x=>x[0]==='fillText'&&x[1]==='⚔').length,0);
  assert.ok(events.some(x=>x[0]==='closePath'));
+});
+
+test('three tracked map overlays retain 2 sword clusters and a gathering region',()=>{
+ const calls=[];
+ const ctx=new Proxy({}, {get:(o,k)=>k in o?o[k]:(...args)=>calls.push([k,...args]),
+  set:(o,k,v)=>{o[k]=v;return true}});
+ paintTrackedQuestOnMinimap(ctx,{kind:'targets',points:[{x:10,z:5}],
+  overlays:[{kind:'area',center:{x:20,z:10},radiusX:12,radiusZ:16},
+   {kind:'targets',points:[{x:-9,z:-4},{x:-14,z:-2}]}]},3.8);
+ assert.equal(calls.filter(c=>c[0]==='fillText'&&c[1]==='⚔').length,3);
+ assert.equal(calls.filter(c=>c[0]==='ellipse').length,1);
+ assert.equal(calls.filter(c=>c[0]==='restore').length,3);
 });

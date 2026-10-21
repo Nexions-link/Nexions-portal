@@ -3,7 +3,8 @@ import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=7';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
 import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=3';
-import {createQuestTracking} from './quest-tracking-state.js?v=1';
+import {createQuestTracking} from './quest-tracking-state.js?v=2';
+import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=1';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=3';
@@ -115,6 +116,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   safe.inventory=Array.isArray(row.inventory)?row.inventory.filter(Boolean).map(item=>({...item})):[];
   safe.equipment=row.equipment||{};
   safe.quest=row.quests?.mentor?.step||0;
+  safe.kills=row.quests?.mentor?.kills||0;
   safe.gatherStage=row.quests?.gather?.stage||0;
   safe.gatherAvailable=safe.gatherStage>=1&&safe.gatherStage<=3&&
    row.quests?.gather?.accepted===false;
@@ -270,9 +272,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const trackStorageKey='ngw-quest-tracking-v1:'+
   (authenticatedProfile?.characterId||authenticatedProfile?.id||authenticatedProfile?.nickname||'offline');
  const questTracking=createQuestTracking({state,storage:localStorage,key:trackStorageKey});
- let journalRenderSnapshot=null;
+ let journalRenderSnapshot=null,questPanelSnapshot='';
  function setTrackedQuest(id){
-  questTracking.select(id);
+  if(id)questTracking.toggle(id);
+  else questTracking.select(null);
   journalRenderSnapshot=null;
  }
  let selectedBagSlot=-1,selectedBagItemId=null,bagRenderSnapshot=null,pendingBagDiscard=false;
@@ -1697,6 +1700,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   // The minimap is the only navigation UI. Never overlay distance on the world.
   questTracking.sync();
+  const panelRows=questTracking.trackedIds.map(id=>questProgressSummary(id,state,state.inventory)).filter(Boolean);
+  const panelSnapshot=JSON.stringify(panelRows);
+  if(panelSnapshot!==questPanelSnapshot){
+   renderQuestProgressPanel(document,$('questProgressPanel'),panelRows);
+   questPanelSnapshot=panelSnapshot;
+  }
   $('quest').hidden=true;
   $('mainQuestTracker').hidden=true;
   $('gatherQuestTracker').hidden=true;
@@ -1845,7 +1854,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    chiefRewardRenderSnapshot=snapshot;
   }
   if(kind==='quests'){
-   const snapshot=JSON.stringify([journalTab,questTracking.sync(),state.quest,state.kills,state.level,
+   questTracking.sync();
+   const snapshot=JSON.stringify([journalTab,questTracking.trackedIds,state.quest,state.kills,state.level,
     state.gatherStage,state.gatherAvailable,state.banditQuest,state.banditWeaponsQuest,
     state.banditChiefQuest,state.inventory]);
    if(journalRenderSnapshot===snapshot&&body.querySelector('.planet-journal-tabs'))return;
@@ -2268,7 +2278,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    body.append(tabs);
    if(journalTab!=='completed'){
     const note=document.createElement('p');note.className='ngw-journal-help';
-    note.textContent='Принятое задание отслеживается автоматически. Здесь можно выбрать другое или выключить отслеживание. Мечи — обитание противников, подсвеченная область — поиск предметов.';
+    note.textContent='До трёх заданий отслеживаются одновременно. Новые добавляются автоматически; в журнале можно включить или отключить каждое. Мечи — противники, светлая область — сбор.';
     body.append(note);
    }
    const entries=mentorJournalRows(state).map(item=>({...item,routeId:'mentor',npc:'Наставник Каменный Рог'}));
@@ -2321,9 +2331,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     const routeId=entry.routeId||entry.id;
     const waypoint=entry.status==='current'&&isAcceptedQuest(routeId,state)?
      questWaypoint(routeId,state,state.inventory,player()):null;
-    const actions=waypoint?[[(questTracking.selectedId===routeId?'✓ Отслеживается · Выключить':'Отслеживать'),
+    const actions=waypoint?[[(questTracking.trackedIds.includes(routeId)?'✓ Выключить':'Отслеживать'),
       ()=>{
-       setTrackedQuest(questTracking.selectedId===routeId?null:routeId);
+       setTrackedQuest(routeId);
        draw(false);renderModal();
       }]]:[];
     line((entry.status==='completed'?'✓ ':entry.status==='available'?'! ':'• ')+entry.title,
@@ -2834,8 +2844,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    stomp:timeline.stompProgress,blockRemaining,weaponKind:hero.root.userData.weaponKind||'none'};
  }
  function getQuestMapState(){
-  const id=questTracking.sync();
-  return id?trackedQuestMap(id,state,state.inventory,player()):null;
+  questTracking.sync();
+  const maps=questTracking.trackedIds.map(id=>trackedQuestMap(id,state,state.inventory,player())).filter(Boolean);
+  return maps.length?{...maps[0],overlays:maps.slice(1)}:null;
  }
  function handleSlotKey(key){
   const n=Number(key);if(Number.isInteger(n)&&n>=1&&n<=8){useAbility(n-1);return true;}

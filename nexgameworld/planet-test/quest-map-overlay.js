@@ -2,6 +2,10 @@
 // are known spawn territories, not real-time enemy/resource detections.
 export function paintTrackedQuestOnMinimap(ctx,map,scale){
  if(!ctx||!map||!Number.isFinite(scale)||scale<=0)return;
+ // Older pinned quests render underneath the newest so sword targets stay
+ // legible even if a gathering territory overlaps their spawn positions.
+ for(const other of [...(map.overlays||[])].reverse())
+  paintTrackedQuestOnMinimap(ctx,{...other,overlays:[]},scale);
  ctx.save();
  try{
   if(map.kind==='area'){
