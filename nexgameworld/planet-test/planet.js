@@ -7,10 +7,11 @@ import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=3';
+import {createForestEcology} from './forest-ecology.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=143';
+import {createOfflineRpg} from './offline-rpg.js?v=144';
 import {createSphericalPresence} from './sphere-online.js?v=20';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=12';
@@ -295,6 +296,7 @@ try {
   // Detailed native camp, lake and authentic procedural Tauren are isolated in start-zone.js.
   const startZone=createStartZone(THREE,scene,()=>R,heightAt);
   const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
+  const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
   relocateInstances();
   const hero=createTauren(THREE,scene,{player:true});
   const actor=hero.root;
@@ -353,6 +355,7 @@ try {
     if(isPortalPreview)sceneryDensity.detail=.68;
     startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,shadows:enabled});
     whisperingForest.setQuality(qualityName,isPortalPreview);
+    forestEcology?.setQuality(qualityName,isPortalPreview);
     hero.visualDetails?.setQuality(isPortalPreview?.68:profile.detail);
     combatQualitySink?.(isPortalPreview?.15:profile.detail);
     if(qualityHelp)qualityHelp.textContent=
@@ -887,6 +890,7 @@ try {
     onlinePresence?.tick(dt,elapsed);
     startZone.animate(elapsed);
     whisperingForest.animate(elapsed);
+    forestEcology?.animate(elapsed);
     rpg.update(dt);
     // Single native pose pass after gathering/combat state has updated.
     // No second subsystem may reset the hip, knee, torso or arm angles.

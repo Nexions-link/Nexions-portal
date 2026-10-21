@@ -4,6 +4,8 @@ import {renderCharacterSheet} from './character-sheet.js?v=7';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
 import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=4';
 import {createQuestTracking} from './quest-tracking-state.js?v=2';
+import {forestMoodAt} from './whispering-forest.js';
+import {createForestAmbience} from './forest-ambience.js?v=1';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,EXPEDITION_LEVEL,EXPEDITION_REWARD,readExpedition,expeditionJournal} from './expedition-quest.js?v=1';
 import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=2';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
@@ -129,6 +131,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   return safe;
  };
  const state=preview?initial():authenticatedProfile?serverInitial():restore(),runtime=createAbilityRuntime();
+ const forestAmbience=createForestAmbience({storage:preview?null:localStorage});
  let chiefRewardSelection=null,chiefRewardSubmitting=false,chiefRewardRenderSnapshot=null;
  let serverBagSlots=Array.isArray(authenticatedProfile?.inventory)?
   authenticatedProfile.inventory.map(row=>row?{...row}:null):Array(12).fill(null);
@@ -281,6 +284,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   journalRenderSnapshot=null;
  }
  let selectedBagSlot=-1,selectedBagItemId=null,bagRenderSnapshot=null,pendingBagDiscard=false;
+ if(!preview)document.addEventListener('pointerdown',()=>forestAmbience.unlock(),{passive:true});
  const group=new THREE.Group();scene.add(group);
  // The mesh is bent vertex-by-vertex onto the actual spherical terrain:
  // no texture intersection/z-fighting and a saturated red outline.
@@ -2180,6 +2184,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     ()=>openWindow('settings'));
    body.append(actions);
   }else if(kind==='settings'){
+   const soundLabel=document.createElement('label');
+   soundLabel.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 8px;margin:7px 0;color:#e4d6b7;cursor:pointer';
+   const soundCheck=document.createElement('input');soundCheck.type='checkbox';
+   soundCheck.checked=forestAmbience.enabled;
+   soundCheck.style.cssText='width:19px;height:19px;accent-color:#b0aa79';
+   soundCheck.addEventListener('change',()=>forestAmbience.setEnabled(soundCheck.checked));
+   const soundText=document.createElement('span');
+   soundText.textContent='Звуки леса · ветер и далёкие птицы';
+   soundLabel.append(soundCheck,soundText);body.append(soundLabel);
    const back=document.createElement('button');back.type='button';
    back.className='ngw-settings-back';
    back.textContent='‹ К меню';
@@ -2610,6 +2623,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function update(dt){
   clock+=dt;
+  if(forestAmbience.enabled){
+   const normal=playerNormal();
+   forestAmbience.update(clock,
+    forestMoodAt(Math.atan2(normal.x,normal.z),Math.asin(clamp(normal.y,-1,1))),document.hidden);
+  }
   updateServerGatherCast();
   characterPreview.tick(dt);
   // Recover a mobile connection that stopped responding after a loot request.
