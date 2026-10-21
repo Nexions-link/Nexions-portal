@@ -2,7 +2,7 @@ import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=7';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
-import {questWaypoint,questDirection,preferredQuestId} from './starter-quest-guidance.js?v=1';
+import {questWaypoint,questDirection,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=2';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=3';
@@ -266,7 +266,18 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   return swinging||preparingStomp||mobs.some(m=>m.root.visible&&m.hp>0&&!m.corpse&&m.aggro);
  }
  let journalTab='current',merchantTab='buy',selectedEquipmentSlot=null;
+ const trackStorageKey='ngw-quest-tracking-v1:'+
+  (authenticatedProfile?.characterId||authenticatedProfile?.id||authenticatedProfile?.nickname||'offline');
  let trackedQuestId=null,journalRenderSnapshot=null;
+ try{
+  const saved=localStorage.getItem(trackStorageKey);
+  if(saved&&isAcceptedQuest(saved,state))trackedQuestId=saved;
+ }catch{}
+ function setTrackedQuest(id){
+  trackedQuestId=id&&isAcceptedQuest(id,state)?id:null;
+  try{localStorage.setItem(trackStorageKey,trackedQuestId||'')}catch{}
+  journalRenderSnapshot=null;
+ }
  let selectedBagSlot=-1,selectedBagItemId=null,bagRenderSnapshot=null,pendingBagDiscard=false;
  const group=new THREE.Group();scene.add(group);
  // The mesh is bent vertex-by-vertex onto the actual spherical terrain:
@@ -1688,25 +1699,21 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     $('dummyStats').hidden=target.kind!=='dummy';
   }
   const stage=state.quest,lines=QUEST_LINES[stage]||QUEST_LINES[12];
-  objective.textContent=stage===1?'Победи долгоногов: '+state.kills+' / 3':lines[1];
-  $('qtitle').textContent=lines[0];
-  $('mainQuestTracker').hidden=stage===12;
-  $('quest-progress').textContent=stage===12?'Цепочка · 5 / 5 ✓':'Цепочка · '+mentorChainNumber(stage)+' / 5';
+  // An untracked task never fills the player's world view; the global
+  // journal button stays available even when this whole HUD section is hidden.
+  if(trackedQuestId&&!isAcceptedQuest(trackedQuestId,state))setTrackedQuest(null);
   const navigation=$('trackedQuestHint');
-  if(navigation){
-   const location=player();
-   if(trackedQuestId&&!questWaypoint(trackedQuestId,state,state.inventory,location))trackedQuestId=null;
-   const questId=trackedQuestId||preferredQuestId(state,state.inventory);
-   const waypoint=questId?questWaypoint(questId,state,state.inventory,location):null;
-   const route=questDirection(waypoint,location);
-   navigation.hidden=!authenticatedProfile||!route;
-   if(route)$('trackedQuestText').textContent=route.description;
-   navigation.classList.toggle('is-pinned',!!trackedQuestId);
-  }
+  const waypoint=trackedQuestId?questWaypoint(trackedQuestId,state,state.inventory,player()):null;
+  const route=questDirection(waypoint,player());
+  $('quest').hidden=!route;
+  $('mainQuestTracker').hidden=true;
+  $('gatherQuestTracker').hidden=true;
+  $('banditQuestTracker').hidden=true;
+  navigation.hidden=!route;
+  if(route)$('trackedQuestText').textContent=route.description;
+  navigation.classList.toggle('is-pinned',!!route);
   const guidance=$('questGuidance');
-  guidance.hidden=stage!==7&&stage!==10;
-  if(stage===7)guidance.textContent='Разведка: найди каменную развилку (12, 37).';
-  if(stage===10)guidance.textContent='Красный пунктир ведёт к Грозоклюву · 108 HP';
+  guidance.hidden=true;
   const glyph=mentorGlyph(state.quest);
   for(const child of mentor.root.children)if(child.userData.questMarker)child.visible=child.userData.glyph===glyph;
   const banditStage=state.banditQuest?.stage??0;
@@ -1720,8 +1727,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    child.visible=child.userData.glyph===banditGlyph;
   const showWeapons=banditStage===3&&weaponStage===1;
   const showChief=banditStage===3&&weaponStage===2&&(chiefStage===1||chiefStage===2);
-  $('banditQuestTracker').hidden=!authenticatedProfile||
-   !(showChief||showWeapons||banditStage===1||banditStage===2);
+  // Historical secondary trackers are always suppressed; the one explicitly
+  // selected task is rendered in trackedQuestHint above.
   const banditTrackerTitle=$('banditQuestTitle');
   if(banditTrackerTitle)banditTrackerTitle.textContent=showChief?'Главарь · 3/3':
    showWeapons?'Оружие разбойников · 2/3':'Разведка лагеря · 1/3';
@@ -2272,7 +2279,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    body.append(tabs);
    if(journalTab!=='completed'){
     const note=document.createElement('p');note.className='ngw-journal-help';
-    note.textContent='Нажми «Отслеживать» возле задания, чтобы увидеть цель и расстояние прямо в игровом мире.';
+    note.textContent='Отслеживание включается только для принятого задания. На миникарте появятся точки противников или область поиска; отключи его в журнале или на экране.';
     body.append(note);
    }
    const entries=mentorJournalRows(state).map(item=>({...item,routeId:'mentor',npc:'Наставник Каменный Рог'}));
@@ -2323,12 +2330,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    for(const entry of visible){
     const routeId=entry.routeId||entry.id;
-    const waypoint=entry.status!=='completed'?
+    const waypoint=entry.status==='current'&&isAcceptedQuest(routeId,state)?
      questWaypoint(routeId,state,state.inventory,player()):null;
-    const actions=waypoint?[[(trackedQuestId===routeId?'✓ Отслеживается':'Отслеживать'),
+    const actions=waypoint?[[(trackedQuestId===routeId?'✓ Отслеживается · Выключить':'Отслеживать'),
       ()=>{
-       trackedQuestId=trackedQuestId===routeId?null:routeId;
-       journalRenderSnapshot=null;
+       setTrackedQuest(trackedQuestId===routeId?null:routeId);
        draw(false);renderModal();
       }]]:[];
     line((entry.status==='completed'?'✓ ':entry.status==='available'?'! ':'• ')+entry.title,
@@ -2480,6 +2486,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   ['targetNext',()=>targetNearest(1)],['interact',interact],
   ['bag',()=>openWindow('bag')],['character',()=>openWindow('character')],
   ['journal',()=>openWindow('quests')],['questJournalOpen',()=>openWindow('quests')],
+  ['untrackQuest',()=>{setTrackedQuest(null);draw(false);} ],
   ['spellbookButton',toggleSpellbook],
   ['pause',()=>openWindow('menu')],
   ['partyOpen',()=>openWindow('party')],
@@ -2838,13 +2845,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    stomp:timeline.stompProgress,blockRemaining,weaponKind:hero.root.userData.weaponKind||'none'};
  }
  function getQuestMapState(){
-  return {
-   stage:state.quest,guide:state.quest===10,
-   scout:state.quest===7||state.quest===8,
-   relic:state.quest===4,
-   bossAlive:giant.root.visible&&!giant.corpse&&giant.hp>0,
-   boss:{x:giant.x,z:giant.z},scoutPosition:SCOUT_POSITION,relicPosition:RELIC_POSITION
-  };
+  return trackedQuestId?trackedQuestMap(trackedQuestId,state,state.inventory,player()):null;
  }
  function handleSlotKey(key){
   const n=Number(key);if(Number.isInteger(n)&&n>=1&&n<=8){useAbility(n-1);return true;}

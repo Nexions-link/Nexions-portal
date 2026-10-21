@@ -4,11 +4,12 @@ import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=14';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
+import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=138';
+import {createOfflineRpg} from './offline-rpg.js?v=139';
 import {createSphericalPresence} from './sphere-online.js?v=20';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=12';
@@ -721,32 +722,10 @@ try {
     for(const route of ROUTES){
       ctx.beginPath();route.forEach(([x,z],i)=>i?ctx.lineTo(x*scale,z*scale):ctx.moveTo(x*scale,z*scale));ctx.stroke();
     }
-    const questMap=rpg.getQuestMapState();
-    if(questMap.guide){
-      // The same dotted route as in the 3D spherical world.
-      ctx.save();ctx.strokeStyle='#d43835';ctx.lineWidth=3;
-      ctx.setLineDash([7,7]);ctx.beginPath();
-      [[0,9],[1,24],[12,37],[32,43],[39,47]].forEach(([x,z],i)=>
-       i?ctx.lineTo(x*scale,z*scale):ctx.moveTo(x*scale,z*scale));
-      ctx.stroke();ctx.restore();
-    }
-    if(questMap.bossAlive){
-      const {x,z}=questMap.boss;
-      ctx.fillStyle='#d33f39';ctx.strokeStyle='#ffe4b5';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.arc(x*scale,z*scale,5,0,TAU);ctx.fill();
-      if(questMap.guide)ctx.stroke();
-    }
-    if(questMap.relic){
-      ctx.fillStyle='#8af1e1';ctx.beginPath();
-      ctx.arc(questMap.relicPosition.x*scale,questMap.relicPosition.z*scale,4.6,0,TAU);ctx.fill();
-    }
-    if(questMap.scout){
-      ctx.fillStyle='#f4d5a0';ctx.beginPath();
-      ctx.arc(questMap.scoutPosition.x*scale,questMap.scoutPosition.z*scale,4.6,0,TAU);ctx.fill();
-    }
+    // Quest overlays only exist for the chosen, accepted and enabled task.
+    // The yellow NPC exclamation marks remain in the 3D world instead.
+    paintTrackedQuestOnMinimap(ctx,rpg.getQuestMapState(),scale);
     ctx.fillStyle='#8d6541';ctx.fillRect(-37*scale,-12*scale,20*scale,21*scale);
-    ctx.fillStyle='#f8df88';
-    for(const [x,z] of [[-1.5,-5],[6,11]]){ctx.beginPath();ctx.arc(x*scale,z*scale,4,0,TAU);ctx.fill();}
     ctx.restore();
     ctx.fillStyle='#fff2bb';ctx.strokeStyle='#342916';ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(size/2,size/2,6,0,TAU);ctx.fill();ctx.stroke();

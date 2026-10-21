@@ -92,3 +92,54 @@ export function preferredQuestId(state,inventory=[]){
  if(state.gatherStage===0)return 'gather-1';
  return null;
 }
+
+// An offer is NOT an active objective. Only accepted quests can be pinned.
+// This predicate is client-only; gameplay rewards remain server authoritative.
+export function isAcceptedQuest(id,state){
+ const mentor=state?.quest??0,bandit=state?.banditQuest?.stage??0,
+  weapons=state?.banditWeaponsQuest?.stage??0,chief=state?.banditChiefQuest?.stage??0;
+ if(id==='mentor')return [1,2,4,5,7,8,10,11].includes(mentor);
+ if(id==='bandit-trail')return bandit===1||bandit===2;
+ if(id==='bandit-weapons')return bandit===3&&weapons===1;
+ if(id==='bandit-chief')return bandit===3&&weapons===2&&(chief===1||chief===2);
+ if(/^gather-[1-3]$/.test(id||'')){
+  const stage=Number(id.slice(-1));
+  return state.gatherStage===stage&&!state.gatherAvailable;
+ }
+ return false;
+}
+const pointMap=(points,label)=>({
+ kind:'targets',label,
+ points:points.map(row=>Array.isArray(row)?{x:row[0],z:row[1]}:{x:row.x,z:row.z})
+});
+const searchArea=(points,label)=>{
+ const xs=points.map(p=>Array.isArray(p)?p[0]:p.x),
+  zs=points.map(p=>Array.isArray(p)?p[1]:p.z);
+ const minX=Math.min(...xs),maxX=Math.max(...xs),
+  minZ=Math.min(...zs),maxZ=Math.max(...zs);
+ // The area represents possible spawn territory, not exact live resources.
+ return {kind:'area',label,center:{x:(minX+maxX)/2,z:(minZ+maxZ)/2},
+  radiusX:Math.max(8,(maxX-minX)/2+6),
+  radiusZ:Math.max(8,(maxZ-minZ)/2+6)};
+};
+export function trackedQuestMap(id,state,inventory=[],position={x:0,z:0}){
+ if(!isAcceptedQuest(id,state))return null;
+ const waypoint=questWaypoint(id,state,inventory,position);
+ if(!waypoint)return null;
+ if(id==='mentor'){
+  if(state.quest===1)return pointMap(DOLGONOG_SPAWNS.slice(0,DOLGONOG_BOSS_INDEX),'Равнинные долгоноги');
+  if(state.quest===10)return {...pointMap([BOSS_POSITION],'Грозоклюв'),bossRoute:true};
+ }
+ if(id==='bandit-trail'&&state.banditQuest?.stage===1)
+  return pointMap(BANDIT_SPAWNS.slice(0,-1),'Разбойники');
+ if(id==='bandit-chief'&&state.banditChiefQuest?.stage===1)
+  return pointMap(BANDIT_SPAWNS.slice(-1),'Главарь');
+ if(id==='bandit-weapons'&&count(inventory,BANDIT_WEAPON_ITEM)<BANDIT_WEAPON_REQUIRED)
+  return searchArea(BANDIT_WEAPON_LOCATIONS,'Кинжалы разбойников');
+ if(/^gather-[1-3]$/.test(id)){
+  const stage=Number(id.slice(-1)),quest=GATHER_QUESTS[stage];
+  if(count(inventory,quest.item)<quest.count)return searchArea(quest.locations,quest.title);
+ }
+ // Hand-in, exploration and relic quests use one small point, not a full map overlay.
+ return pointMap([waypoint],waypoint.title);
+}

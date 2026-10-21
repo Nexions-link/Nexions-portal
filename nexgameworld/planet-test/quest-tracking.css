@@ -1,0 +1,34 @@
+/* One compact objective, and no objective HUD until actively tracked. */
+#quest[hidden],#trackedQuestHint[hidden],#mainQuestTracker[hidden],
+#gatherQuestTracker[hidden],#banditQuestTracker[hidden]{display:none!important}
+#quest{
+ box-sizing:border-box;width:min(225px,calc(100vw - 165px))!important;
+ padding:3px 5px 4px 9px!important;pointer-events:none;
+}
+#quest #questJournalOpen{
+ pointer-events:auto;max-width:100%;
+}
+#quest #trackedQuestHint{
+ display:flex;align-items:center;gap:6px;max-width:100%;min-width:0;
+ margin:4px 0 0;padding:5px 5px 5px 7px;
+ border:1px solid #a68f595c;border-radius:6px;
+ background:#232c21bd;color:#e9dcb9;
+ font:11px/1.35 system-ui,sans-serif;
+}
+#trackedQuestHint .ngw-route-marker{flex:none;color:#e7c67f;font-size:15px}
+#trackedQuestHint #trackedQuestText{flex:1;min-width:0;overflow-wrap:anywhere}
+#trackedQuestHint #untrackQuest{
+ flex:none;align-self:flex-start;display:grid;place-items:center;
+ width:25px;height:25px;min-width:25px;min-height:25px;
+ padding:0;border:1px solid #968665;border-radius:4px;
+ background:#403b2d;color:#f0d9b1;
+ font:19px/1 system-ui,sans-serif;pointer-events:auto;touch-action:manipulation;
+}
+@media(max-width:760px){
+ #quest{width:min(205px,calc(100vw - 148px))!important}
+ #quest #trackedQuestHint{font-size:10px}
+}
+@media(max-height:510px) and (min-width:600px){
+ #quest{width:200px!important}
+ #quest #trackedQuestHint{font-size:10px}
+}

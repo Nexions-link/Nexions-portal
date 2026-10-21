@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {harness,descendants} from './harness.mjs';
-import {questWaypoint,questDirection,preferredQuestId} from '../starter-quest-guidance.js';
+import {questWaypoint,questDirection,preferredQuestId,isAcceptedQuest,trackedQuestMap} from '../starter-quest-guidance.js';
 import {BANDIT_QUEST_GIVER} from '../creature-registry.js';
 import {GATHER_QUESTS} from '../gather-world.js';
 
@@ -67,20 +67,31 @@ test('online journal pins a quest; progress update routes player back to quest g
    bandit:{stage:1,kills:1},banditWeapons:{stage:0},banditChief:{stage:0}}};
  const h=harness({x:-60,z:-15,authenticatedProfile:state});
  const hint=h.get('trackedQuestHint');
- assert.equal(hint.hidden,false);
- assert.match(h.get('trackedQuestText').textContent,/Лагерь разбойников/);
+ assert.equal(hint.hidden,true,'no automatic tracking');
+ assert.equal(h.get('quest').hidden,true,'no objective window without opt-in');
+ assert.equal(h.rpg.getQuestMapState(),null);
  h.get('journal').click();
- const buttons=()=>descendants(h.get('mbody')).filter(x=>x.textContent==='Отслеживать'||x.textContent==='✓ Отслеживается');
+ const buttons=()=>descendants(h.get('mbody')).filter(x=>x.textContent==='Отслеживать'||x.textContent==='✓ Отслеживается · Выключить');
  assert.equal(buttons().length,1);
  buttons()[0].click();
+ assert.equal(hint.hidden,false);
+ assert.equal(h.get('quest').hidden,false);
+ assert.match(h.get('trackedQuestText').textContent,/Лагерь разбойников/);
  assert.match(hint.className,/is-pinned/);
- assert.equal(buttons()[0].textContent,'✓ Отслеживается');
+ assert.equal(buttons()[0].textContent,'✓ Отслеживается · Выключить');
+ assert.equal(h.rpg.getQuestMapState().kind,'targets');
+ assert.equal(h.rpg.getQuestMapState().points.length,3);
  const updated={...state,revision:2,quests:{...state.quests,bandit:{stage:2,kills:3}}};
  h.rpg.applyServerProgress(updated,'banditKill');
  assert.match(h.get('trackedQuestText').textContent,/Следопыт Медная Стрела/);
- assert.equal(buttons()[0].textContent,'✓ Отслеживается');
+ assert.equal(buttons()[0].textContent,'✓ Отслеживается · Выключить');
  h.get('modalClose').click();
  assert.match(h.get('trackedQuestText').textContent,/Следопыт Медная Стрела/);
+ assert.equal(h.rpg.getQuestMapState().kind,'targets');
+ h.get('untrackQuest').click();
+ assert.equal(h.get('quest').hidden,true);
+ assert.equal(h.get('trackedQuestHint').hidden,true);
+ assert.equal(h.rpg.getQuestMapState(),null);
 });
 test('relogged herbalist stage two without acceptance is available, not accidentally active',()=>{
  const p={level:3,experience:0,gold:30,health:200,resource:0,revision:1,
