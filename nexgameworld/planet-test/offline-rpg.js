@@ -688,6 +688,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(event.blocked){blockRemaining=.65;hero.root.userData.blockRecoil=.65;combatVfx.trigger({root:hero.root},'block');}
   state.resource=changeResource(state.resource,5,'warrior');lastCombatAt=clock;draw(false);
  }
+ // Observers see real impact; the victim already plays the hit in onMobAttack.
+ function onMobStrike(event,selfId){
+  if(!isOnline()||event?.targetId===selfId)return;
+  const mob=mobs.find(m=>m.id===event?.mobId);
+  if(!mob||mob.corpse||!mob.root.visible||event.life!==mob.life)return;
+  mob.attackWindup=0;
+  mob.visualStrikeHitSequence=(mob.visualStrikeHitSequence||0)+1;
+ }
  function onMobTelegraph(event){
   if(!isOnline()||typeof event?.mobId!=='string')return;
   const mob=mobs.find(e=>e.id===event.mobId);
@@ -2709,7 +2717,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  persist();draw();void updateEquipmentVisuals();
  return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
   setMultiplayer,onNetworkDisconnect,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
-  onVitals,onCombatEvent,onChargeAccepted,onChargeRejected,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobTelegraph,onNetworkRespawn,onMobSnapshot,
+  onVitals,onCombatEvent,onChargeAccepted,onChargeRejected,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobStrike,onMobTelegraph,onNetworkRespawn,onMobSnapshot,
   // Only the active owner's cosmetic pose is sent; item entitlement remains on server.
   getBattlefuryPose:()=>authenticatedProfile&&state.equipment.weapon?.id===BATTLEFURY_ITEM_ID?
    {...battlefuryTuning}:null,
