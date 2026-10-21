@@ -193,17 +193,29 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   return mesh;
  }
  // Fine, inward-only fluting: the ground ring remains exactly the collision radius.
- const trunks=new THREE.CylinderGeometry(.52,FOREST_TRUNK_BASE_SCALE,1,11,8);
- const barkVertices=trunks.getAttribute('position');
+ // Vertical fissures are carved inward; no visible bark can extend outside
+ // the existing trunk collider. Vertex colours create mossy bases and scar lines.
+ const trunks=new THREE.CylinderGeometry(.52,FOREST_TRUNK_BASE_SCALE,1,20,18);
+ const barkVertices=trunks.getAttribute('position'),barkColors=[];
  for(let i=0;i<barkVertices.count;i++){
   const x=barkVertices.getX(i),z=barkVertices.getZ(i),y=barkVertices.getY(i);
-  const groove=Math.max(0,Math.min(1,(y+.5)*3))*.05*
-   (.5+.5*Math.sin(Math.atan2(z,x)*4.7+y*8));
-  barkVertices.setXYZ(i,x*(1-groove),y,z*(1-groove));
+  const angle=Math.atan2(z,x);
+  const grain=Math.sin(angle*13.2+Math.sin(y*12.4)*.22);
+  const knot=Math.sin(angle*5.3-y*22)*Math.sin(y*5.6+angle*9);
+  const crease=Math.pow(.5+.5*grain,5)*(.75+.25*Math.sin(y*28));
+  const carve=(.026+.085*crease)*(.57+.43*Math.min(1,(y+.5)*5));
+  barkVertices.setXYZ(i,x*(1-carve),y,z*(1-carve));
+  const shade=Math.max(.48,Math.min(1,.84-.30*crease+.075*knot));
+  const baseMoss=Math.max(0,1-Math.max(0,y+.5)*8);
+  barkColors.push(shade*(1-.20*baseMoss),
+   shade*(.92+.11*baseMoss),
+   shade*(.83-.13*baseMoss));
  }
+ trunks.setAttribute('color',new THREE.Float32BufferAttribute(barkColors,3));
  barkVertices.needsUpdate=true;trunks.computeVertexNormals();
  const leafGeo=new THREE.IcosahedronGeometry(1,1),pineGeo=new THREE.ConeGeometry(1,1,9,2);
  const bark=new THREE.MeshStandardMaterial({color:'#a6a09b',roughness:1});
+ const detailedBark=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,vertexColors:true});
  const leaves=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1});
  const pine=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1});
  const darkBark=p=>p.tint>.52?'#62544a':'#493f38';
@@ -225,7 +237,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1}),
   p=>({y:.01,sx:p.radius,sy:2.3+p.radius*.36,sz:p.radius}),
   p=>p.tint>.52?'#483d35':'#5b4c3d');
- add('forest-ancient-trunks',layout.trees,trunks,bark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
+ add('forest-ancient-trunks',layout.trees,trunks,detailedBark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
  add('forest-pine-lower',ever,pineGeo,pine,p=>({y:p.height*.69,sx:p.radius*3.2,sy:p.height*.48,sz:p.radius*3.2}),p=>p.tint>.5?'#3c5a48':'#344d41');
  add('forest-pine-crown',ever,pineGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?'#526d55':'#3d5f50');
  add('forest-oak-crown',broad,leafGeo,leaves,p=>({y:p.height*.79,sx:p.radius*3.9,sy:p.height*.21,sz:p.radius*3.8}),p=>p.tint>.52?'#42624b':'#526a4b');

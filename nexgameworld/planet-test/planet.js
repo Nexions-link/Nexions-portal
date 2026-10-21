@@ -6,8 +6,9 @@ import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=8';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=9';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
+import {createForestFloor} from './forest-floor.js?v=1';
 import {createForestEcology} from './forest-ecology.js?v=2';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
@@ -302,6 +303,7 @@ try {
   const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
   const forestLightPools=isPortalPreview?null:createForestLightPools(THREE,{scene,radius:R,heightAt});
   const forestAtmosphere=isPortalPreview?null:createForestAtmosphere(THREE,{scene,radius:R,heightAt});
+  const forestFloor=isPortalPreview?null:createForestFloor(THREE,{scene,radius:R,heightAt});
   relocateInstances();
   const hero=createTauren(THREE,scene,{player:true});
   const actor=hero.root;
@@ -363,6 +365,7 @@ try {
     forestEcology?.setQuality(qualityName,isPortalPreview);
     forestLightPools?.setQuality(qualityName,isPortalPreview);
     forestAtmosphere?.setQuality(qualityName,isPortalPreview);
+    forestFloor?.setQuality(qualityName,isPortalPreview);
     hero.visualDetails?.setQuality(isPortalPreview?.68:profile.detail);
     combatQualitySink?.(isPortalPreview?.15:profile.detail);
     if(qualityHelp)qualityHelp.textContent=
