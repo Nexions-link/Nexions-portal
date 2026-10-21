@@ -263,10 +263,21 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   };
   row('Группа',partyState.groupId?'Участников: '+partyState.members.length+' / 5':'Вы пока не в группе',
    partyState.groupId?[['Покинуть',()=>multiplayer.leaveParty()]]:[]);
-  for(const member of partyState.members)
-   row(member.name||'Игрок',(member.id===partyState.leaderId?'Лидер · ':'')+'Уровень '+(member.level||1),
-    onlinePlayers.some(peer=>peer.id===member.id)?[['Выбрать',()=>{selectAlly(member.id);closeWindow()}]]:[]);
-  if(!partyState.groupId||partyState.members.length<5){
+  for(const member of partyState.members){
+   const actions=[];
+   if(onlinePlayers.some(peer=>peer.id===member.id))
+    actions.push(['Выбрать',()=>{selectAlly(member.id);closeWindow()}]);
+   if(partyState.leaderId===multiplayer?.selfId&&member.id!==multiplayer?.selfId)
+    actions.push(['Назначить лидером',()=>{
+     if(window.confirm('Передать лидерство игроку '+(member.name||'Игрок')+'?'))
+      multiplayer?.promoteParty(member.id);
+    }]);
+   row(member.name||'Игрок',
+    (member.id===partyState.leaderId?'Лидер · ':'')+'Уровень '+(member.level||1),
+    actions);
+  }
+  if((!partyState.groupId||partyState.leaderId===multiplayer?.selfId)
+    &&partyState.members.length<5){
    row('Игроки в мире','Выбери игрока для приглашения.');
    for(const peer of onlinePlayers)if(!partyState.members.some(member=>member.id===peer.id))
     row(peer.name||'Странник','Уровень '+(peer.level||1),[
@@ -330,6 +341,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function setMultiplayer(transport){multiplayer=transport||null;}
  function onNetworkDisconnect(){
   if(!authenticatedProfile)return;
+  // A reconnect creates a NEW world socket and group identity. Never display
+  // old membership/leader controls until the server publishes fresh state.
+  onPartyState({groupId:null,leaderId:null,members:[]});
+  selectedAllyId=null;
   autoplay=false;approach=null;chargeRequestedAt=0;timeline.clear();
   pendingLootTake=null;chiefRewardSubmitting=false;chiefRewardRenderSnapshot=null;
   stopServerGatherCast();clearChestRetry();
