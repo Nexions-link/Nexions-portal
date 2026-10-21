@@ -5,7 +5,7 @@ const TAU=Math.PI*2;
 export function forestEcologyLayout(seed=97431){
  let s=seed>>>0;
  const rand=()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);
- const trees=createForestLayout().trees,shrubs=[],rocks=[],fungi=[],wildlife=[];
+ const trees=createForestLayout().trees,shrubs=[],rocks=[],fungi=[],bracken=[],wildlife=[];
  const free=(lon,lat,margin)=>forestDistance(lon,lat,FOREST_CAMP.lon,FOREST_CAMP.lat)>=FOREST_CAMP.clearingRadius+margin&&
   FOREST_SITE_CLEARINGS.every(p=>forestDistance(lon,lat,p.lon,p.lat)>=p.radius+margin);
  function sample(margin,trail=5){
@@ -16,6 +16,7 @@ export function forestEcologyLayout(seed=97431){
   }
   return null;
  }
+ // Preserve legacy shrub and wildlife coordinates for existing players.
  for(let i=0;i<500;i++){const p=sample(1.1);if(p)shrubs.push(p)}
  for(let i=0;i<190;i++){const p=sample(.9);if(p)rocks.push(p)}
  for(let i=0;i<145;i++){const p=sample(.25);if(p)fungi.push(p)}
@@ -30,7 +31,13 @@ export function forestEcologyLayout(seed=97431){
   }
   if(p)wildlife.push(p);
  }
- return {shrubs,rocks,fungi,wildlife};
+ // Add a separate seed continuation after the established wildlife layout,
+ // so additional foliage never re-rolls animals, rocks, or mushrooms.
+ for(let i=0;i<480;i++){
+  const p=sample(.7,7.4);
+  if(p&&p.lon>.42&&p.lon<1.38)bracken.push(p);
+ }
+ return {shrubs,rocks,fungi,bracken,wildlife};
 }
 export function createForestEcology(THREE,{scene,radius,heightAt}){
  const layout=forestEcologyLayout(),up=new THREE.Vector3(0,1,0),n=new THREE.Vector3();
@@ -50,10 +57,30 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
   mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);
   batches.push({mesh,size:items.length});
  }
+ // Six thin, two-sided leaves per clump; geometry and materials are shared
+ // by the entire batch. No transparent textures or alpha-sorting overhead.
+ function brackenGeometry(){
+  const vertices=[],leafCount=6;
+  for(let i=0;i<leafCount;i++){
+   const a=i*TAU/leafCount,x=Math.cos(a),z=Math.sin(a),px=-z,pz=x;
+   const mid=[x*.45,.58,z*.45],tip=[x*.93,.29,z*.93],width=.15;
+   vertices.push(0,.06,0,mid[0]+px*width,mid[1],mid[2]+pz*width,
+    tip[0],tip[1],tip[2],
+    0,.06,0,tip[0],tip[1],tip[2],
+    mid[0]-px*width,mid[1],mid[2]-pz*width);
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+  geo.computeVertexNormals();return geo;
+ }
  const leaves=mat('#ffffff',{flatShading:true}),stones=mat('#ffffff',{flatShading:true});
  instance('forest-shrubs',layout.shrubs,new THREE.IcosahedronGeometry(1,0),leaves,
   p=>({x:p.size,y:p.size*.62,z:p.size,h:p.size*.50}),
   p=>p.variation>.65?'#526b51':p.variation>.3?'#3d5b46':'#657453');
+ instance('forest-deep-bracken',layout.bracken,brackenGeometry(),
+  mat('#ffffff',{side:THREE.DoubleSide}),p=>({
+   x:p.size*1.12,y:p.size*(.74+.25*p.variation),z:p.size*1.12,h:.035
+  }),p=>p.variation>.7?'#31533c':p.variation>.34?'#496745':'#647756');
  instance('forest-stones',layout.rocks,new THREE.DodecahedronGeometry(1,0),stones,
   p=>({x:p.size*.73,y:p.size*.29,z:p.size*.58,h:p.size*.24}),
   p=>p.variation>.65?'#5a6a5c':p.variation>.32?'#72786c':'#606f64');

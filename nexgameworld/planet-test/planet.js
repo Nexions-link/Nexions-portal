@@ -7,7 +7,8 @@ import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=7';
-import {createForestEcology} from './forest-ecology.js?v=1';
+import {createForestEcology} from './forest-ecology.js?v=2';
+import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
@@ -139,7 +140,8 @@ try {
   renderer.toneMappingExposure = 1.15;
   viewport.appendChild(renderer.domElement);
   const canvas = renderer.domElement;
-  scene.add(new THREE.HemisphereLight('#f7e6c6', '#486b70', 1.95));
+  const skyFill=new THREE.HemisphereLight('#f7e6c6', '#486b70', 1.95);
+  scene.add(skyFill);
   const sun = new THREE.DirectionalLight('#ffebba', 2.50);
   sun.position.set(130, 225, 155);
   scene.add(sun);
@@ -297,6 +299,7 @@ try {
   const startZone=createStartZone(THREE,scene,()=>R,heightAt);
   const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
   const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
+  const forestLightPools=isPortalPreview?null:createForestLightPools(THREE,{scene,radius:R,heightAt});
   relocateInstances();
   const hero=createTauren(THREE,scene,{player:true});
   const actor=hero.root;
@@ -356,6 +359,7 @@ try {
     startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,shadows:enabled});
     whisperingForest.setQuality(qualityName,isPortalPreview);
     forestEcology?.setQuality(qualityName,isPortalPreview);
+    forestLightPools?.setQuality(qualityName,isPortalPreview);
     hero.visualDetails?.setQuality(isPortalPreview?.68:profile.detail);
     combatQualitySink?.(isPortalPreview?.15:profile.detail);
     if(qualityHelp)qualityHelp.textContent=
@@ -771,7 +775,7 @@ try {
 
   const windowFocus=new THREE.Vector3();let hasWindowFocus=false;
   const clock = new THREE.Clock();
-  let elapsed = 0, uiClock = 0, introClock = 0, forestFogBlend=0;
+  let elapsed = 0, uiClock = 0, introClock = 0, forestFogBlend=0, forestShadeBlend=0;
   let fpsSeconds=0,fpsFrames=0;
   function animate() {
     requestAnimationFrame(animate);
@@ -785,12 +789,22 @@ try {
     const forestLatitude=Math.asin(clamp(state.normal.y,-1,1));
     const desiredForestFog=isPortalPreview?0:forestMoodAt(forestLongitude,forestLatitude);
     forestFogBlend+=(desiredForestFog-forestFogBlend)*Math.min(1,dt*1.3);
+    const desiredShade=isPortalPreview?0:forestCanopyShadeAt(forestLongitude,forestLatitude);
+    forestShadeBlend+=(desiredShade-forestShadeBlend)*Math.min(1,dt*1.15);
     const fogProfile=GRAPHICS_PRESETS[qualityName];
-    localFog.near=fogProfile.fogNear*(1-.18*forestFogBlend);
-    localFog.far=fogProfile.fogFar*(1-.42*forestFogBlend);
-    localFog.color.copy(skyDay).lerp(forestFogColor,forestFogBlend*.58);
+    // Shade follows the traveller, not the whole globe. A clearing gradually
+    // restores daylight; combat silhouettes remain legible at every preset.
+    const localLight=forestLightResponse(forestShadeBlend,fogProfile.exposure);
+    skyFill.intensity=localLight.hemi;
+    sun.intensity=localLight.sun;
+    fill.intensity=localLight.fill;
+    renderer.toneMappingExposure=localLight.exposure;
+    localFog.near=fogProfile.fogNear*(1-.18*forestFogBlend-.08*forestShadeBlend);
+    localFog.far=fogProfile.fogFar*(1-.42*forestFogBlend-.11*forestShadeBlend);
+    localFog.color.copy(skyDay).lerp(forestFogColor,forestFogBlend*(.58+.1*forestShadeBlend));
     if(!state.orbit&&!isPortalPreview)
-     scene.background=blendedForestSky.copy(skyDay).lerp(forestSkyColor,forestFogBlend*.62);
+     scene.background=blendedForestSky.copy(skyDay).lerp(forestSkyColor,
+      forestFogBlend*(.62+.09*forestShadeBlend));
     if(measureFrames&&rawDt>0&&rawDt<=.25){
       fpsFrames++;fpsSeconds+=rawDt;
     }else{fpsSeconds=0;fpsFrames=0;}
