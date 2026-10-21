@@ -2,7 +2,8 @@ import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=7';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
-import {questWaypoint,questDirection,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=2';
+import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=3';
+import {createQuestTracking} from './quest-tracking-state.js?v=1';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=3';
@@ -268,14 +269,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  let journalTab='current',merchantTab='buy',selectedEquipmentSlot=null;
  const trackStorageKey='ngw-quest-tracking-v1:'+
   (authenticatedProfile?.characterId||authenticatedProfile?.id||authenticatedProfile?.nickname||'offline');
- let trackedQuestId=null,journalRenderSnapshot=null;
- try{
-  const saved=localStorage.getItem(trackStorageKey);
-  if(saved&&isAcceptedQuest(saved,state))trackedQuestId=saved;
- }catch{}
+ const questTracking=createQuestTracking({state,storage:localStorage,key:trackStorageKey});
+ let journalRenderSnapshot=null;
  function setTrackedQuest(id){
-  trackedQuestId=id&&isAcceptedQuest(id,state)?id:null;
-  try{localStorage.setItem(trackStorageKey,trackedQuestId||'')}catch{}
+  questTracking.select(id);
   journalRenderSnapshot=null;
  }
  let selectedBagSlot=-1,selectedBagItemId=null,bagRenderSnapshot=null,pendingBagDiscard=false;
@@ -1698,22 +1695,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      (CREATURE_TYPE_LABELS[target.creatureType]||'Существо')+' · '+status:status;
     $('dummyStats').hidden=target.kind!=='dummy';
   }
-  const stage=state.quest,lines=QUEST_LINES[stage]||QUEST_LINES[12];
-  // An untracked task never fills the player's world view; the global
-  // journal button stays available even when this whole HUD section is hidden.
-  if(trackedQuestId&&!isAcceptedQuest(trackedQuestId,state))setTrackedQuest(null);
-  const navigation=$('trackedQuestHint');
-  const waypoint=trackedQuestId?questWaypoint(trackedQuestId,state,state.inventory,player()):null;
-  const route=questDirection(waypoint,player());
-  $('quest').hidden=!route;
+  // The minimap is the only navigation UI. Never overlay distance on the world.
+  questTracking.sync();
+  $('quest').hidden=true;
   $('mainQuestTracker').hidden=true;
   $('gatherQuestTracker').hidden=true;
   $('banditQuestTracker').hidden=true;
-  navigation.hidden=!route;
-  if(route)$('trackedQuestText').textContent=route.description;
-  navigation.classList.toggle('is-pinned',!!route);
-  const guidance=$('questGuidance');
-  guidance.hidden=true;
+  $('trackedQuestHint').hidden=true;
+  $('questGuidance').hidden=true;
   const glyph=mentorGlyph(state.quest);
   for(const child of mentor.root.children)if(child.userData.questMarker)child.visible=child.userData.glyph===glyph;
   const banditStage=state.banditQuest?.stage??0;
@@ -1856,7 +1845,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    chiefRewardRenderSnapshot=snapshot;
   }
   if(kind==='quests'){
-   const snapshot=JSON.stringify([journalTab,trackedQuestId,state.quest,state.kills,state.level,
+   const snapshot=JSON.stringify([journalTab,questTracking.sync(),state.quest,state.kills,state.level,
     state.gatherStage,state.gatherAvailable,state.banditQuest,state.banditWeaponsQuest,
     state.banditChiefQuest,state.inventory]);
    if(journalRenderSnapshot===snapshot&&body.querySelector('.planet-journal-tabs'))return;
@@ -2279,7 +2268,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    body.append(tabs);
    if(journalTab!=='completed'){
     const note=document.createElement('p');note.className='ngw-journal-help';
-    note.textContent='Отслеживание включается только для принятого задания. На миникарте появятся точки противников или область поиска; отключи его в журнале или на экране.';
+    note.textContent='Принятое задание отслеживается автоматически. Здесь можно выбрать другое или выключить отслеживание. Мечи — обитание противников, подсвеченная область — поиск предметов.';
     body.append(note);
    }
    const entries=mentorJournalRows(state).map(item=>({...item,routeId:'mentor',npc:'Наставник Каменный Рог'}));
@@ -2332,14 +2321,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     const routeId=entry.routeId||entry.id;
     const waypoint=entry.status==='current'&&isAcceptedQuest(routeId,state)?
      questWaypoint(routeId,state,state.inventory,player()):null;
-    const actions=waypoint?[[(trackedQuestId===routeId?'✓ Отслеживается · Выключить':'Отслеживать'),
+    const actions=waypoint?[[(questTracking.selectedId===routeId?'✓ Отслеживается · Выключить':'Отслеживать'),
       ()=>{
-       setTrackedQuest(trackedQuestId===routeId?null:routeId);
+       setTrackedQuest(questTracking.selectedId===routeId?null:routeId);
        draw(false);renderModal();
       }]]:[];
     line((entry.status==='completed'?'✓ ':entry.status==='available'?'! ':'• ')+entry.title,
      entry.objective+' · '+entry.progress+(entry.reward?' · '+entry.reward:'')+
-     ' · '+entry.npc+(waypoint?' · Цель: '+waypoint.title:''),actions);
+     ' · '+entry.npc,actions);
    }
    if(!visible.length&&!hasHint)line('Пока пусто','В этом разделе заданий пока нет.');
    body.scrollTop=previousJournalScroll;
@@ -2845,7 +2834,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    stomp:timeline.stompProgress,blockRemaining,weaponKind:hero.root.userData.weaponKind||'none'};
  }
  function getQuestMapState(){
-  return trackedQuestId?trackedQuestMap(trackedQuestId,state,state.inventory,player()):null;
+  const id=questTracking.sync();
+  return id?trackedQuestMap(id,state,state.inventory,player()):null;
  }
  function handleSlotKey(key){
   const n=Number(key);if(Number.isInteger(n)&&n>=1&&n<=8){useAbility(n-1);return true;}

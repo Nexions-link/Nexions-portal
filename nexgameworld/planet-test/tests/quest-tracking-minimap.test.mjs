@@ -45,7 +45,7 @@ test('gather tasks show search areas and then a turn-in dot',()=>{
   for(const [x,z] of GATHER_QUESTS[stage].locations)
    assert.ok(Math.abs(x-m.center.x)<=m.radiusX&&Math.abs(z-m.center.z)<=m.radiusZ);
   const done=trackedQuestMap('gather-'+stage,s,[{id:GATHER_QUESTS[stage].item,qty:GATHER_QUESTS[stage].count}]);
-  assert.equal(done.kind,'targets');assert.equal(done.points.length,1);
+  assert.equal(done.kind,'waypoint');assert.equal(done.points.length,1);
  }
  s.gatherStage=4;assert.equal(trackedQuestMap('gather-3',s),null);
  s.banditQuest.stage=3;s.banditWeaponsQuest.stage=1;
@@ -62,6 +62,7 @@ test('minimap painter draws nothing when tracking is off, static dots or search 
  assert.equal(events.length,0);
  paintTrackedQuestOnMinimap(ctx,{kind:'targets',points:[{x:1,z:2},{x:3,z:4}]},3.8);
  assert.equal(events.filter(e=>e[0]==='arc').length,2);
+ assert.equal(events.filter(e=>e[0]==='fillText'&&e[1]==='⚔').length,2);
  paintTrackedQuestOnMinimap(ctx,{kind:'area',center:{x:4,z:5},radiusX:8,radiusZ:9},3.8);
  assert.equal(events.filter(e=>e[0]==='ellipse').length,1);
  assert.equal(events.filter(e=>e[0]==='restore').length,2);
@@ -77,10 +78,10 @@ test('no accepted quest means no HUD; journal remains accessible',()=>{
 test('gathering tracking and quick untrack clear all map hints immediately',()=>{
  const h=harness({save:{quest:12,gatherStage:1,gatherAvailable:false}});
  h.get('journal').click();
- const track=descendants(h.get('mbody')).find(x=>x.textContent==='Отслеживать');
- assert.ok(track);track.click();
- assert.equal(h.rpg.getQuestMapState().kind,'area');
- assert.equal(h.get('quest').hidden,false);
+ assert.equal(h.rpg.getQuestMapState().kind,'area','accepted gathering auto-tracks at first load');
+ const stop=descendants(h.get('mbody')).find(x=>String(x.textContent).startsWith('✓ Отслеживается'));
+ assert.ok(stop,'journal can disable automatic tracking');
+ assert.equal(h.get('quest').hidden,true,'no distance panel under any circumstances');
  h.get('untrackQuest').click();
  assert.equal(h.rpg.getQuestMapState(),null);
  assert.equal(h.get('quest').hidden,true);
@@ -91,7 +92,18 @@ test('off map and UI uses only tracked accepted objective, buttons work by touch
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const js=fs.readFileSync(new URL('../planet.js',import.meta.url),'utf8');
  assert.match(style,/#quest\[hidden\]/);
+ assert.match(style,/#quest\{display:none!important\}/);
  assert.match(html,/<aside id="quest" hidden>/);
  assert.match(html,/id="untrackQuest"/);
  assert.match(js,/paintTrackedQuestOnMinimap\(ctx,rpg.getQuestMapState\(\),scale\)/);
+});
+
+// Never draw swords for a turn-in destination, even if it follows a kill quest.
+test('waypoint marker is not a sword, including the final quest turn-in',()=>{
+ const events=[];
+ const ctx=new Proxy({}, {get:(obj,key)=>key in obj?obj[key]:(...values)=>events.push([key,...values]),
+  set:(obj,key,value)=>{obj[key]=value;return true}});
+ paintTrackedQuestOnMinimap(ctx,{kind:'waypoint',points:[{x:3,z:4}]},3.8);
+ assert.equal(events.filter(x=>x[0]==='fillText'&&x[1]==='⚔').length,0);
+ assert.ok(events.some(x=>x[0]==='closePath'));
 });

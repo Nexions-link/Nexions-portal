@@ -32,3 +32,6 @@
  #quest{width:200px!important}
  #quest #trackedQuestHint{font-size:10px}
 }
+
+/* The entire distance/goal sidebar is obsolete: navigation is minimap-only. */
+#quest{display:none!important}

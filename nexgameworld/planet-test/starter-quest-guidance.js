@@ -95,6 +95,10 @@ export function preferredQuestId(state,inventory=[]){
 
 // An offer is NOT an active objective. Only accepted quests can be pinned.
 // This predicate is client-only; gameplay rewards remain server authoritative.
+export function acceptedQuestIds(state){
+ const ids=['mentor','gather-'+(state?.gatherStage??0),'bandit-trail','bandit-weapons','bandit-chief'];
+ return ids.filter(id=>isAcceptedQuest(id,state));
+}
 export function isAcceptedQuest(id,state){
  const mentor=state?.quest??0,bandit=state?.banditQuest?.stage??0,
   weapons=state?.banditWeaponsQuest?.stage??0,chief=state?.banditChiefQuest?.stage??0;
@@ -108,8 +112,8 @@ export function isAcceptedQuest(id,state){
  }
  return false;
 }
-const pointMap=(points,label)=>({
- kind:'targets',label,
+const pointMap=(points,label,kind='waypoint')=>({
+ kind,label,
  points:points.map(row=>Array.isArray(row)?{x:row[0],z:row[1]}:{x:row.x,z:row.z})
 });
 const searchArea=(points,label)=>{
@@ -127,13 +131,13 @@ export function trackedQuestMap(id,state,inventory=[],position={x:0,z:0}){
  const waypoint=questWaypoint(id,state,inventory,position);
  if(!waypoint)return null;
  if(id==='mentor'){
-  if(state.quest===1)return pointMap(DOLGONOG_SPAWNS.slice(0,DOLGONOG_BOSS_INDEX),'Равнинные долгоноги');
-  if(state.quest===10)return {...pointMap([BOSS_POSITION],'Грозоклюв'),bossRoute:true};
+  if(state.quest===1)return pointMap(DOLGONOG_SPAWNS.slice(0,DOLGONOG_BOSS_INDEX),'Равнинные долгоноги','targets');
+  if(state.quest===10)return {...pointMap([BOSS_POSITION],'Грозоклюв','targets'),bossRoute:true};
  }
  if(id==='bandit-trail'&&state.banditQuest?.stage===1)
-  return pointMap(BANDIT_SPAWNS.slice(0,-1),'Разбойники');
+  return pointMap(BANDIT_SPAWNS.slice(0,-1),'Разбойники','targets');
  if(id==='bandit-chief'&&state.banditChiefQuest?.stage===1)
-  return pointMap(BANDIT_SPAWNS.slice(-1),'Главарь');
+  return pointMap(BANDIT_SPAWNS.slice(-1),'Главарь','targets');
  if(id==='bandit-weapons'&&count(inventory,BANDIT_WEAPON_ITEM)<BANDIT_WEAPON_REQUIRED)
   return searchArea(BANDIT_WEAPON_LOCATIONS,'Кинжалы разбойников');
  if(/^gather-[1-3]$/.test(id)){
