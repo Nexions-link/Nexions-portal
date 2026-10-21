@@ -6,10 +6,35 @@ const smooth=(a,b,n)=>{const t=clamp01((n-a)/(b-a));return t*t*(3-2*t)};
 export const FOREST_ENTRANCE_LONGITUDE=.16;
 export const FOREST_TRAIL_END=1.46;
 export const FOREST_TREE_CAP=400;
+export const FOREST_CAMP=Object.freeze({lon:.86,lat:forestTrailLatitude(.86),clearingRadius:22});
+export const FOREST_CAMP_PROPS=Object.freeze([
+ Object.freeze({kind:'tent',dx:-10,dz:7,r:2.6}),
+ Object.freeze({kind:'tent',dx:10,dz:8,r:2.9}),
+ Object.freeze({kind:'tent',dx:-11,dz:-7,r:2.4}),
+ Object.freeze({kind:'table',dx:9,dz:-7,r:1.6}),
+ Object.freeze({kind:'fire',dx:0,dz:6,r:1.05})
+]);
+export function forestDistance(lon,lat,lon2,lat2,radius=261){
+ const a=Math.sin((lat2-lat)/2)**2+
+  Math.cos(lat)*Math.cos(lat2)*Math.sin((lon2-lon)/2)**2;
+ return 2*radius*Math.asin(Math.min(1,Math.sqrt(a)));
+}
+export function forestCampPoint(dx,dz,radius=261){
+ return {lon:FOREST_CAMP.lon+dx/(radius*Math.cos(FOREST_CAMP.lat)),
+  lat:FOREST_CAMP.lat+dz/radius};
+}
+export function forestLocalPoint(lon,lat,radius=261){
+ const nx=Math.cos(lat)*Math.sin(lon),ny=Math.sin(lat),
+  nz=Math.cos(lat)*Math.cos(lon),rho=Math.hypot(nx,ny);
+ if(rho<1e-9)return {x:0,z:0};
+ const d=Math.acos(Math.max(-1,Math.min(1,nz)))*radius/rho;
+ return {x:nx*d,z:ny*d};
+}
+
 export function forestTrailLatitude(lon){
  const d=lon-.145;
  // Through the gap between existing sandstone mesas east of the village.
- return -.035+.015*Math.sin(d*4)+.012*Math.sin(Math.max(0,lon-.51)*8.5);
+ return -.035+.015*Math.sin(d*4)+.012*Math.sin(Math.max(0,lon-.51)*8.5)+.011*Math.exp(-Math.pow((lon-.40)/.072,2));
 }
 export function forestMoodAt(lon,lat){
  return smooth(.15,.62,lon)*(1-smooth(1.45,1.75,lon))*
@@ -27,20 +52,59 @@ export function createForestLayout(seed=451921){
   const radius=1.15+rand()*1.12+.65*smooth(.40,1.0,lon);
   // No large trunks in the walking corridor.
   if(Math.abs(lat-forestTrailLatitude(lon))*261<7.2+radius)continue;
+  if(forestDistance(lon,lat,FOREST_CAMP.lon,FOREST_CAMP.lat)<FOREST_CAMP.clearingRadius+radius)continue;
   if(trees.some(t=>Math.hypot((t.lon-lon)*261,(t.lat-lat)*261)<t.radius+radius+3.1))continue;
   trees.push({lon,lat,height,radius,yaw:rand()*TAU,evergreen:rand()<.59,tint:rand()});
  }
  for(let i=0;i<920;i++){
   const lon=.20+rand()*1.27,lat=forestTrailLatitude(lon)+(rand()-.5)*.82;
   if(Math.abs(lat-forestTrailLatitude(lon))*261<2.9)continue;
+  if(forestDistance(lon,lat,FOREST_CAMP.lon,FOREST_CAMP.lat)<FOREST_CAMP.clearingRadius-2)continue;
   ground.push({lon,lat,size:.44+rand()*.92,yaw:rand()*TAU,tint:rand()});
  }
- for(let i=0;i<34;i++){
+ for(let i=0;i<100&&logs.length<34;i++){
   const lon=.27+rand()*1.17,lat=forestTrailLatitude(lon)+(rand()-.5)*.7;
   if(Math.abs(lat-forestTrailLatitude(lon))*261<6)continue;
+  if(forestDistance(lon,lat,FOREST_CAMP.lon,FOREST_CAMP.lat)<FOREST_CAMP.clearingRadius+4)continue;
   logs.push({lon,lat,length:3+rand()*5,width:.35+rand()*.32,yaw:rand()*TAU});
  }
  return {trees,ground,logs};
+}
+// Used by browser movement, camera and the authoritative server without THREE.
+const collisionCache=new Map();
+function forestCollisionIndex(radius=261){
+ const key=Number(radius);
+ if(collisionCache.has(key))return collisionCache.get(key);
+ const cellSize=12,cells=new Map();
+ const add=(x,z,r,h)=>{
+  const id=Math.floor(x/cellSize)+':'+Math.floor(z/cellSize);
+  if(!cells.has(id))cells.set(id,[]);
+  cells.get(id).push({x,z,r,h});
+ };
+ for(const tree of createForestLayout().trees){
+  const point=forestLocalPoint(tree.lon,tree.lat,radius);
+  add(point.x,point.z,tree.radius*.72,tree.height);
+ }
+ for(const p of FOREST_CAMP_PROPS){
+  const pos=forestCampPoint(p.dx,p.dz,radius),point=forestLocalPoint(pos.lon,pos.lat,radius);
+  add(point.x,point.z,p.r,p.kind==='fire'?1.1:p.kind==='table'?1.8:4.6);
+ }
+ const index={cellSize,cells};
+ collisionCache.set(key,index);return index;
+}
+export function blocksForestAtLocal(x,z,actorRadius=.42,radius=261,height=0){
+ if(!Number.isFinite(x)||!Number.isFinite(z)||!Number.isFinite(radius)||radius<1)return false;
+ const {cellSize,cells}=forestCollisionIndex(radius);
+ const cx=Math.floor(x/cellSize),cz=Math.floor(z/cellSize);
+ for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){
+  const bucket=cells.get((cx+a)+':'+(cz+b));if(!bucket)continue;
+  for(const c of bucket){
+   if(height>=c.h||height<-.5)continue;
+   const dx=x-c.x,dz=z-c.z,limit=c.r+actorRadius;
+   if(dx*dx+dz*dz<limit*limit)return true;
+  }
+ }
+ return false;
 }
 function fernGeometry(THREE){
  const vertices=[];
@@ -122,6 +186,70 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1
  }));
  road.name='forest-expedition-trail';scene.add(road);
+
+ // A survey camp with tall trees around the clearing; purely visual, not yet a quest hub.
+ const campRoot=new THREE.Group();campRoot.name='forest-expedition-camp';
+ scene.add(campRoot);
+ const campNormal=normalAt(FOREST_CAMP.lon,FOREST_CAMP.lat).clone();
+ campRoot.position.copy(campNormal).multiplyScalar(radius+heightAt(campNormal)+.08);
+ campRoot.quaternion.setFromUnitVectors(up,campNormal);
+ const campWood=new THREE.MeshStandardMaterial({color:'#604932',roughness:1});
+ const campWoodLight=new THREE.MeshStandardMaterial({color:'#8d714b',roughness:1});
+ const campHide=new THREE.MeshStandardMaterial({color:'#b5a080',roughness:1,side:THREE.DoubleSide});
+ const campSeams=new THREE.MeshStandardMaterial({color:'#554436',roughness:1});
+ const campStone=new THREE.MeshStandardMaterial({color:'#6f7469',roughness:1});
+ const campFlame=new THREE.MeshStandardMaterial({color:'#ffb75e',emissive:'#f07825',emissiveIntensity:1.1});
+ function mesh(geo,mat,x,y,z){
+  const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);campRoot.add(m);return m;
+ }
+ function pole(x,y,z,rad,length){return mesh(new THREE.CylinderGeometry(rad*.85,rad,length,6),campWood,x,y,z)}
+ for(const p of FOREST_CAMP_PROPS){
+  if(p.kind==='tent'){
+   const {dx:x,dz:z,r}=p;
+   const short=mesh(new THREE.CylinderGeometry(r,r*.98,.65,9),campSeams,x,.34,z);
+   const roof=mesh(new THREE.ConeGeometry(r,r*1.67,9),campHide,x,r*.835+.65,z);
+   short.rotation.y=roof.rotation.y=.26;
+   pole(x,r*.82,z,.14,r*1.92);
+   mesh(new THREE.BoxGeometry(r*.57,.95,.08),campSeams,x,.59,z+r*.92);
+  }
+  if(p.kind==='table'){
+   const {dx:x,dz:z}=p;
+   mesh(new THREE.BoxGeometry(3.4,.17,2),campWoodLight,x,1.24,z);
+   for(const ix of [-1.25,1.25])for(const iz of [-.69,.69])
+    pole(x+ix,.58,z+iz,.095,1.16);
+   mesh(new THREE.BoxGeometry(2.25,.035,1.27),
+    new THREE.MeshStandardMaterial({color:'#c2b18b',roughness:1}),x,1.34,z);
+  }
+ }
+ for(let i=0;i<10;i++){
+  const a=i*TAU/10;
+  mesh(new THREE.DodecahedronGeometry(.29,0),campStone,
+   Math.cos(a)*1.03,.19,6+Math.sin(a)*1.03);
+ }
+ for(const angle of [0,Math.PI/3,2*Math.PI/3]){
+  const log=mesh(new THREE.CylinderGeometry(.13,.19,1.65,7),campWood,0,.29,6);
+  log.rotation.z=Math.PI/2;log.rotation.y=angle;
+ }
+ const flame=mesh(new THREE.ConeGeometry(.48,1.32,7),campFlame,0,.91,6);
+ const campLight=new THREE.PointLight('#e9a45c',.65,20,2);
+ campLight.position.set(0,2.4,6);campRoot.add(campLight);
+ const smoke=[0,1,2].map(i=>mesh(new THREE.IcosahedronGeometry(.62,0),
+  new THREE.MeshBasicMaterial({color:'#9ea7a1',transparent:true,opacity:.13,depthWrite:false}),
+  Math.sin(i)*.2,1.8+i*.92,6+Math.cos(i)*.12));
+ pole(16,2.35,2,.13,4.7);
+ const flag=mesh(new THREE.PlaneGeometry(2.45,1.25),
+  new THREE.MeshStandardMaterial({color:'#6b7f67',side:THREE.DoubleSide}),17.17,3.9,2);
+ flag.rotation.y=.2;
+ function animate(time){
+  flame.scale.y=.84+.16*Math.sin(time*8.7);flame.rotation.y=time*.5;
+  for(let i=0;i<smoke.length;i++){
+   const stage=(time*.17+i/3)%1;
+   smoke[i].position.y=1.8+stage*4.1;
+   smoke[i].position.x=Math.sin(stage*5+time*.5)*.45;
+   smoke[i].scale.setScalar(.45+stage*.85);
+   smoke[i].material.opacity=.12*(1-stage);
+  }
+ }
  function setQuality(q,portal=false){
   // Keep tree/canopy identities paired at all presets; only reduce ground detail.
   const groundFraction=portal?.13:q==='economy'?.28:q==='high'?1:.60;
@@ -129,7 +257,12 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
    if(kind==='ground')mesh.count=Math.floor(mesh.instanceMatrix.count*groundFraction);
    mesh.castShadow=!portal&&q==='high'&&kind==='tree';
   }
+  campLight.visible=!portal&&q==='high';
+  for(const item of smoke)item.visible=!portal&&q!=='economy';
  }
  setQuality('balanced');
- return {setQuality,treeCount:layout.trees.length,trailStart:FOREST_ENTRANCE_LONGITUDE};
+ return {setQuality,animate,treeCount:layout.trees.length,
+  campLocation:{lon:FOREST_CAMP.lon,lat:FOREST_CAMP.lat},
+  trailStart:FOREST_ENTRANCE_LONGITUDE};
+
 }

@@ -1,16 +1,16 @@
 import * as THREE from 'three';
 import {screenMoveVector,turnTowardsAngle} from '../movement-controls.js?v=0.3.7.0';
 import {readPlanetView,writePlanetView} from './world-save.js?v=3';
-import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=14';
+import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=15';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=1';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=2';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=141';
+import {createOfflineRpg} from './offline-rpg.js?v=142';
 import {createSphericalPresence} from './sphere-online.js?v=20';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=12';
@@ -886,6 +886,7 @@ try {
     updateActor();
     onlinePresence?.tick(dt,elapsed);
     startZone.animate(elapsed);
+    whisperingForest.animate(elapsed);
     rpg.update(dt);
     // Single native pose pass after gathering/combat state has updated.
     // No second subsystem may reset the hip, knee, torso or arm angles.

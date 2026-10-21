@@ -1,4 +1,5 @@
 import {blocksRockOrMesa} from './planet-landmarks.js?v=1';
+import {blocksForestAtLocal} from './whispering-forest.js?v=2';
 import {LONGHOUSE,toHouseCoordinates,insideHouse} from './hearth-house.js?v=10';
 export {toHouseCoordinates} from './hearth-house.js?v=10';
 // PT 0.6.0 — spherical contact and third-person camera constraints.
@@ -18,7 +19,7 @@ const BANNERS=[[-4,19],[5,-14]];
 const boxHit=(x,z,cx,cz,hw,hd)=>Math.abs(x-cx)<hw&&Math.abs(z-cz)<hd;
 const circleHit=(x,z,cx,cz,r)=>Math.hypot(x-cx,z-cz)<r;
 export function isInLonghouse(x,z){return insideHouse(x,z);}
-export function canWalkCamp(x,z,playerRadius=.42){
+export function canWalkCamp(x,z,playerRadius=.42,worldRadius=261){
  if(!Number.isFinite(x)||!Number.isFinite(z))return false;
  const r=playerRadius,p=toHouseCoordinates(x,z),ax=Math.abs(p.x),az=Math.abs(p.z);
  const hw=LONGHOUSE.width/2,hd=LONGHOUSE.depth/2,t=LONGHOUSE.wallThickness;
@@ -31,6 +32,7 @@ export function canWalkCamp(x,z,playerRadius=.42){
  // An empty house must not inherit outdoor collisions from old camp props.
  if(ax<hw-t-r&&az<hd-t-r)return true;
  if(blocksRockOrMesa(x,z,playerRadius))return false;
+ if(blocksForestAtLocal(x,z,playerRadius,worldRadius))return false;
  if(Math.hypot(x,z)>90)return true;
  for(const tent of TENTS){
   // Cone tents are solid in the current starting zone. Their fabric is a
@@ -42,8 +44,9 @@ export function canWalkCamp(x,z,playerRadius=.42){
  for(const [bx,bz] of BANNERS)if(circleHit(x,z,bx,bz,.19+r))return false;
  return true;
 }
-function geometryAt(x,z,height,interior=false){
+function geometryAt(x,z,height,interior=false,worldRadius=261){
  if(blocksRockOrMesa(x,z,.25,height))return true;
+ if(blocksForestAtLocal(x,z,.20,worldRadius,height))return true;
  const p=toHouseCoordinates(x,z),ax=Math.abs(p.x),az=Math.abs(p.z);
  const hw=LONGHOUSE.width/2,hd=LONGHOUSE.depth/2,t=LONGHOUSE.wallThickness;
  if(height>=0&&height<LONGHOUSE.height+LONGHOUSE.roofRise+.25){
@@ -93,7 +96,7 @@ export function cameraObstruction(THREE,{
   const elevation=point.length()-radius-heightAt(direction);
   // Mesas sit at ~105-115 metres from camp, beyond the old 89m cutoff.
   // World coordinates remain geodesic for every sampled camera segment.
-  if(elevation<clearance||geometryAt(loc.x,loc.z,elevation,inside)){
+  if(elevation<clearance||geometryAt(loc.x,loc.z,elevation,inside,radius)){
    safe=Math.max(.08,(i-2)/N);
    blocked=true;break;
   }
