@@ -90,6 +90,23 @@ export function createForestLayout(seed=451921){
  }
  return {trees,ground,logs};
 }
+// Upper-canopy silhouettes are cosmetic. Keeping these meshes well above head
+// height means no new invisible blockers or changes to server movement.
+export function forestCanopyDetailLayout(layout=createForestLayout()){
+ const limbs=[],tufts=[];
+ for(const tree of layout.trees){
+  if(tree.evergreen)continue;
+  for(let i=0;i<3;i++){
+   const yaw=tree.yaw+i*TAU/3+(tree.tint-.5)*.34;
+   const length=tree.radius*(2.8+.35*((i+1)%3));
+   const height=tree.height*(.62+.052*i);
+   limbs.push({...tree,yaw,length,branchHeight:height,tilt:-1.29+.07*i});
+   tufts.push({...tree,yaw,branchHeight:height+.22*length,
+    spread:length*.88,bulge:tree.radius*(1.22+.18*i)});
+  }
+ }
+ return {limbs,tufts};
+}
 // Used by browser movement, camera and the authoritative server without THREE.
 const collisionCache=new Map();
 function forestCollisionIndex(radius=261){
@@ -147,7 +164,7 @@ function fernGeometry(THREE){
  return geo;
 }
 export function createWhisperingForest(THREE,{scene,radius,heightAt}){
- const layout=createForestLayout(),up=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
+ const layout=createForestLayout(),canopy=forestCanopyDetailLayout(layout),up=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
  const object=new THREE.Object3D(),twist=new THREE.Quaternion(),align=new THREE.Quaternion();
  const batches=[];
  const normalAt=(lon,lat)=>normal.set(Math.cos(lat)*Math.sin(lon),Math.sin(lat),Math.cos(lat)*Math.cos(lon));
@@ -162,6 +179,8 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
    align.setFromUnitVectors(up,n);
    object.quaternion.copy(align).multiply(twist.setFromAxisAngle(up,p.yaw));
    if(g.rotationZ)object.rotateZ(g.rotationZ);
+   if(g.offsetAlongAxis)object.translateY(g.offsetAlongAxis);
+   if(g.offsetX)object.translateX(g.offsetX);
    object.scale.set(g.sx,g.sy,g.sz);
    object.updateMatrix();
    mesh.setMatrixAt(i,object.matrix);
@@ -173,7 +192,16 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   batches.push({mesh,kind});
   return mesh;
  }
- const trunks=new THREE.CylinderGeometry(.52,FOREST_TRUNK_BASE_SCALE,1,9,5);
+ // Fine, inward-only fluting: the ground ring remains exactly the collision radius.
+ const trunks=new THREE.CylinderGeometry(.52,FOREST_TRUNK_BASE_SCALE,1,11,8);
+ const barkVertices=trunks.getAttribute('position');
+ for(let i=0;i<barkVertices.count;i++){
+  const x=barkVertices.getX(i),z=barkVertices.getZ(i),y=barkVertices.getY(i);
+  const groove=Math.max(0,Math.min(1,(y+.5)*3))*.05*
+   (.5+.5*Math.sin(Math.atan2(z,x)*4.7+y*8));
+  barkVertices.setXYZ(i,x*(1-groove),y,z*(1-groove));
+ }
+ barkVertices.needsUpdate=true;trunks.computeVertexNormals();
  const leafGeo=new THREE.IcosahedronGeometry(1,1),pineGeo=new THREE.ConeGeometry(1,1,9,2);
  const bark=new THREE.MeshStandardMaterial({color:'#a6a09b',roughness:1});
  const leaves=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1});
@@ -185,8 +213,25 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  add('forest-pine-crown',ever,pineGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?'#526d55':'#3d5f50');
  add('forest-oak-crown',broad,leafGeo,leaves,p=>({y:p.height*.79,sx:p.radius*3.9,sy:p.height*.21,sz:p.radius*3.8}),p=>p.tint>.52?'#42624b':'#526a4b');
  add('forest-oak-upper-crown',broad,leafGeo,leaves,p=>({y:p.height*.94,sx:p.radius*3.1,sy:p.height*.17,sz:p.radius*3.2}),p=>p.tint>.52?'#547557':'#42634d');
+ // Instanced elevated boughs and small outer foliage masses make the crowns
+ // feel multi-layered without hundreds of independent draw calls.
+ const limbGeo=new THREE.CylinderGeometry(.43,.72,1,7,2);
+ add('forest-high-boughs',canopy.limbs,limbGeo,bark,p=>({
+  y:p.branchHeight,sx:p.radius*.24,sy:p.length,sz:p.radius*.24,
+  rotationZ:p.tilt,offsetAlongAxis:p.length*.46
+ }),darkBark,'detail');
+ add('forest-crown-silhouettes',canopy.tufts,leafGeo,leaves,p=>({
+  y:p.branchHeight,sx:p.bulge*1.35,sy:p.bulge*.58,sz:p.bulge*1.16,
+  offsetX:p.spread
+ }),p=>p.tint>.5?'#416047':'#587150','detail');
  const under=new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1});
  add('forest-ferns',layout.ground,fernGeometry(THREE),under,p=>({y:.05,sx:p.size,sy:p.size,sz:p.size}),p=>p.tint>.5?'#466b4b':'#6b8052','ground');
+ // Dry leaf and needle mats at the edges of the trail: no solid collider.
+ const litterGeo=new THREE.CircleGeometry(1,7);
+ litterGeo.rotateX(-Math.PI/2);
+ add('forest-leaf-litter',layout.ground.filter((_,i)=>i%3===0),litterGeo,under,
+  p=>({y:.07,sx:p.size*.95,sy:1,sz:p.size*.56}),
+  p=>p.tint>.68?'#736046':p.tint>.34?'#514934':'#66573d','ground');
  const fallen=new THREE.CylinderGeometry(.7,.8,1,7);
  add('forest-fallen-timber',layout.logs,fallen,bark,p=>({y:p.width*.85,sx:p.width,sy:p.length,sz:p.width,rotationZ:Math.PI/2}),()=> '#514337','ground');
  // Thin curved path mesh follows terrain instead of creating another map.
@@ -288,6 +333,8 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   const groundFraction=portal?.13:q==='economy'?.28:q==='high'?1:.60;
   for(const {mesh,kind} of batches){
    if(kind==='ground')mesh.count=Math.floor(mesh.instanceMatrix.count*groundFraction);
+   if(kind==='detail')mesh.count=Math.floor(mesh.instanceMatrix.count*
+    (portal?.12:q==='economy'?.35:q==='high'?1:.72));
    mesh.castShadow=!portal&&q==='high'&&kind==='tree';
   }
   campLight.visible=!portal&&q==='high';
