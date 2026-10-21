@@ -8,7 +8,8 @@ export const CORPSE_COIN_ID='coins';
 export const MAX_CORPSE_COIN_DROP=100000;
 export function creatureTypeForMob(index){
  return Number.isInteger(index)&&index>=0&&index<=9?CREATURE_TYPE_BEAST:
-  Number.isInteger(index)&&index>=10&&index<=12?CREATURE_TYPE_HUMANOID:null;
+  Number.isInteger(index)&&index>=10&&index<=13?CREATURE_TYPE_HUMANOID:
+  Number.isInteger(index)&&index>=14&&index<=19?CREATURE_TYPE_BEAST:null;
 }
 export function rollCreatureCoins(creatureType,level,rng=Math.random){
  if(creatureType===CREATURE_TYPE_BEAST)return [];

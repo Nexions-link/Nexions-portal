@@ -30,6 +30,12 @@ export const CREATURE_LOOT_TABLES=Object.freeze({
    {id:'charm',chance:.12,min:1,max:1}
   ],
   equipment:{poor:.18,uncommon:.06}
+ },
+ forestWolf:{
+  name:'Лесной волк',
+  materials:[{id:'wolfPelt',chance:.64,min:1,max:1},
+    {id:'wolfFang',chance:.26,min:1,max:1}],
+  equipment:{poor:.10,uncommon:.025}
  }
 });
 // Starter-zone gear is separated by enemy family. A level-1 longstrider
@@ -49,6 +55,10 @@ export const CREATURE_GEAR_POOLS=Object.freeze({
  stormbeak:Object.freeze({
   poor:Object.freeze(['chainVest','chainPants','chainBoots','chainGloves','chainBelt',
    'chainBracers','raggedVest','raggedPants','letterOpener','feebleSword','batteredBuckler','bentShield']),
+  uncommon:Object.freeze(['meadowguardBracers','dusttrailVest'])
+ }),
+ forestWolf:Object.freeze({
+  poor:Object.freeze(['chainVest','chainBoots','chainGloves','chainBracers','rustyHatchet']),
   uncommon:Object.freeze(['meadowguardBracers','dusttrailVest'])
  })
 });

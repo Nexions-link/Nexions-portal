@@ -3,6 +3,7 @@
 import {DOLGONOG_LEVELS,DOLGONOG_SPAWNS,DOLGONOG_BOSS_INDEX,
  mobBaseExperience,monsterMaxHealth} from './mob-levels.js';
 import {CREATURE_TYPE_BEAST,CREATURE_TYPE_HUMANOID} from './creature-types.js';
+import {FOREST_WOLF_SPAWNS} from './forest-wolf-spawns.js';
 export const BANDIT_CAMP=Object.freeze({x:-68,z:2});
 export const BANDIT_QUEST_GIVER=Object.freeze({x:-20,z:13,range:4.7});
 export const BANDIT_SPAWNS=Object.freeze([[-50,-17],[-73,-18],[-55,15],[-72,33]].map(p=>Object.freeze(p)));
@@ -21,6 +22,11 @@ export const CREATURE_SPAWNS=Object.freeze([
   id:'bandit-'+i,index:DOLGONOG_SPAWNS.length+i,x,z,
   family:'bandit',name:i===BANDIT_BOSS_INDEX?'Главарь Пыльной тропы':'Разбойник Пыльной тропы',
   level:i===BANDIT_BOSS_INDEX?5:i===2?4:3,boss:i===BANDIT_BOSS_INDEX,type:CREATURE_TYPE_HUMANOID
+ })),
+ ...FOREST_WOLF_SPAWNS.map(({x,z,level},i)=>Object.freeze({
+  id:'forest-wolf-'+i,index:DOLGONOG_SPAWNS.length+BANDIT_SPAWNS.length+i,
+  x,z,family:'forestWolf',name:level>=7?'Матёрый лесной волк':'Лесной волк',
+  level,boss:false,type:CREATURE_TYPE_BEAST
  }))
 ]);
 const BY_ID=new Map(CREATURE_SPAWNS.map(m=>[m.id,m]));

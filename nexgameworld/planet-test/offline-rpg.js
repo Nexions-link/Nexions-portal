@@ -65,8 +65,9 @@ import {advanceCreatureStrike,resetCreatureStrike} from './creature-strike.js?v=
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
-import {rollCreatureLoot} from './loot-tables.js?v=2';
-import {creatureByIndex,BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_KILLS,BANDIT_QUEST_MIN_LEVEL,BANDIT_BOSS_SCALE} from './creature-registry.js?v=5';
+import {rollCreatureLoot} from './loot-tables.js?v=3';
+import {creatureByIndex,CREATURE_SPAWNS,BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_KILLS,BANDIT_QUEST_MIN_LEVEL,BANDIT_BOSS_SCALE} from './creature-registry.js?v=6';
+import {createForestWolfVisual} from './forest-wolf-visual.js?v=1';
 import {createBanditVisual} from './bandit-visual.js?v=2';
 import {rollCreatureCoins} from './creature-types.js?v=1';
 import {creatureTypeForMob,CREATURE_TYPE_LABELS,CORPSE_COIN_ID,isValidCorpseCoins} from './creature-types.js?v=1';
@@ -817,7 +818,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const wasCorpse=mob.corpse,wasHidden=!mob.root.visible,changedLife=mob.life!==remote.life;
    // Online longstriders: keep previous/current server positions for a
    // constant-speed visual segment; combat continues using mob.x/z.
-   if(mob.family!=='bandit'){
+   if(mob.family==='dolgonog'||mob.family==='stormbeak'){
     if(remote.phase==='alive'&&!wasCorpse&&!wasHidden&&!changedLife)
      queueLongstriderSnapshot(mob,{x:remote.x,z:remote.z,
       yaw:Number.isFinite(remote.yaw)?remote.yaw:0},clock);
@@ -826,7 +827,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    mob.x=remote.x;mob.z=remote.z;mob.yaw=Number.isFinite(remote.yaw)?remote.yaw:0;
    if(!Number.isFinite(mob.renderX)||wasHidden||wasCorpse||changedLife){
     mob.renderX=mob.x;mob.renderZ=mob.z;mob.renderYaw=mob.yaw;
-    if(mob.family!=='bandit')resetLongstriderSnapshot(mob);
+    if(mob.family==='dolgonog'||mob.family==='stormbeak')resetLongstriderSnapshot(mob);
    }
    mob.hp=remote.hp;mob.life=remote.life;mob.aggro=remote.aggro===true;mob.returning=false;
    if(remote.phase!=='alive'||changedLife){
@@ -841,7 +842,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     mob.deathAnimation.begin(playerNormal());
     if(target===mob){target=null;autoplay=false;approach=null;timeline.clear();}
    }else if(remote.phase==='alive'&&(wasCorpse||wasHidden)){
-    mob.deathAnimation.reset();if(mob.family!=='bandit')resetPlainstriderVisual(mob);
+    mob.deathAnimation.reset();if(mob.family==='dolgonog'||mob.family==='stormbeak')resetPlainstriderVisual(mob);
     resetCreatureImpact(mob);
     if(mob.pendingBanditAsset){attachBanditVisual(mob,mob.pendingBanditAsset);mob.pendingBanditAsset=null;}
     mob.loot=null;mob.lootKnown=false;mob.lootInspectAt=0;mob.navigation=null;
@@ -1015,6 +1016,31 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   mobs.push(mob);entities.push(mob);setModelAt(mob);return mob;
  }
  BANDIT_SPAWNS.forEach(([x,z],i)=>createBandit(x,z,i));
+ for(const spec of CREATURE_SPAWNS.filter(row=>row.family==='forestWolf')){
+  const root=new THREE.Group();group.add(root);
+  const visual=createForestWolfVisual(THREE,spec.index);
+  root.add(visual.root);
+  const contactShadow=addContactShadow(root,.9);
+  const hp=monsterMaxHealth(spec.level);
+  const mob={kind:'mob',id:spec.id,index:spec.index,family:'forestWolf',
+   level:spec.level,name:spec.name,lootId:'forestWolf',creatureType:spec.type,
+   root,x:spec.x,z:spec.z,yaw:0,spawnX:spec.x,spawnZ:spec.z,
+   hp,maxHp:hp,aggro:false,attackCd:1.2,stun:0,dead:0,loot:null,corpse:false,
+   respawn:0,returning:false,walk:0,hit:0,attackWindup:0,alertRemaining:0,
+   corpseAge:0,boss:false,contactShadow,roamTime:spec.index*1.73,
+   navigation:null,forestWolfVisual:visual};
+  const tag=makeLabel(spec.name+' · ур. '+spec.level,'#dfd3bf',25);
+  tag.position.y=3.15;root.add(tag);mob.nameTag=tag;
+  const alert=makeLabel('!','#ffc978',78);
+  alert.position.y=3.65;alert.scale.set(1.5,1.4,1);alert.visible=false;
+  root.add(alert);mob.alertTag=alert;
+  const loot=makeLabel('◆','#fff5dc',68);
+  loot.position.y=1.12;loot.scale.set(1.3,1.06,1);loot.visible=false;
+  root.add(loot);mob.lootMarker=loot;
+  mob.fallbackVisual=visual.root;
+  mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:visual.root,getRadius,heightAt});
+  mobs.push(mob);entities.push(mob);setModelAt(mob);
+ }
  const dummyRoot=new THREE.Group();group.add(dummyRoot);addContactShadow(dummyRoot,1.1);
  const straw=new THREE.MeshStandardMaterial({color:'#bb9665',roughness:1});
  const dummyBody=new THREE.Mesh(new THREE.CylinderGeometry(.56,.63,2.2,12),straw);
@@ -1228,7 +1254,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(!loader)throw Error('GLTFLoader unavailable');
    const asset=await loader.loadAsync('../bestiary/models/dolgonog-v0.1.glb?v=0.3.5.43');
    if(!validatePlainstriderGltf(asset))throw Error('Unexpected Dolgonog clips');
-   for(const mob of mobs.filter(m=>m.family!=='bandit')){
+   for(const mob of mobs.filter(m=>m.family==='dolgonog'||m.family==='stormbeak')){
     // Never swap an already falling/settled corpse to a freshly loaded rig.
     if(mob.corpse)mob.pendingBirdAsset=asset;
     else attachBirdVisual(mob,asset);
@@ -1260,6 +1286,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  // Smooth original NexGame GLB Idle, Walk, Peck and hit reactions.
  function birdAnimation(mob,dt,moved=0){
+  if(mob.forestWolfVisual){
+   if(!mob.corpse)mob.forestWolfVisual.animate(clock,moved,mob.attackWindup>0?1:0);
+   return;
+  }
   if(mob.banditVisual){banditAnimation(mob,dt,moved);return;}
   if(mob.birdVisual&&!mob.corpse){
    const bird=mob.birdVisual;
@@ -2733,7 +2763,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    }
    if(mob.alertTag){
     mob.alertTag.visible=mob.alertRemaining>0&&mob.root.visible&&!mob.corpse;
-    if(mob.alertTag.visible)mob.alertTag.position.y=(mob.family==='bandit'?4.25:mob.boss?4:4.95)+Math.sin(clock*7)*.1;
+    if(mob.alertTag.visible)mob.alertTag.position.y=(mob.family==='bandit'?4.25:mob.family==='forestWolf'?3.65:mob.boss?4:4.95)+Math.sin(clock*7)*.1;
    }
    if(isOnline()||authenticatedProfile){
     if(authenticatedProfile&&isOnline()&&mob.corpse&&!mob.lootKnown&&distance(mob)<=CORPSE_LOOT_RANGE&&clock>=(mob.lootInspectAt||0)){
@@ -2747,7 +2777,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      // Smooth authoritative 100ms server snapshots without altering hit detection.
      const bx=mob.renderX??mob.x,bz=mob.renderZ??mob.z;
      const delta=Math.hypot(mob.x-bx,mob.z-bz);
-     const interpolated=mob.family!=='bandit'&&sampleLongstriderSnapshot(mob,dt);
+     const interpolated=(mob.family==='dolgonog'||mob.family==='stormbeak')&&sampleLongstriderSnapshot(mob,dt);
      if(!interpolated){
       const t=delta>7?1:1-Math.exp(-Math.min(.1,Math.max(0,dt))*15);
       mob.renderX=bx+(mob.x-bx)*t;mob.renderZ=bz+(mob.z-bz)*t;
@@ -2774,7 +2804,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      mob.navigation=null;
      mob.root.visible=true;mob.returning=false;mob.aggro=false;mob.attackCd=1.2;mob.attackWindup=0;mob.hit=0;mob.corpseAge=0;mob.alertRemaining=0;
      mob.deathAnimation.reset();
-     if(mob.family!=='bandit')resetPlainstriderVisual(mob);
+     if(mob.family==='dolgonog'||mob.family==='stormbeak')resetPlainstriderVisual(mob);
      resetCreatureImpact(mob);
      if(mob.pendingBirdAsset){attachBirdVisual(mob,mob.pendingBirdAsset);mob.pendingBirdAsset=null;}
      if(mob.pendingBanditAsset){attachBanditVisual(mob,mob.pendingBanditAsset);mob.pendingBanditAsset=null;}
