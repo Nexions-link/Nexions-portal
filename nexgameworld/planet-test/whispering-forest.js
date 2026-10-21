@@ -208,6 +208,23 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  const pine=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1});
  const darkBark=p=>p.tint>.52?'#62544a':'#493f38';
  const broad=layout.trees.filter(t=>!t.evergreen),ever=layout.trees.filter(t=>t.evergreen);
+ // Buttress ribs are inside the existing trunk collision footprint (max .72
+ // of trunk radius vs .78 collision), so they cannot create invisible walls.
+ const ribs=[],ribColors=[],ribCount=5;
+ for(let j=0;j<ribCount;j++){
+  const a=j*TAU/ribCount;
+  const point=(r,y,angle)=>[Math.cos(angle)*r,y,Math.sin(angle)*r];
+  const summit=point(.51,1,a),left=point(.70,.025,a-.24);
+  const tip=point(.72,.03,a),right=point(.70,.025,a+.24);
+  ribs.push(...summit,...left,...tip,...summit,...tip,...right);
+ }
+ const rootGeo=new THREE.BufferGeometry();
+ rootGeo.setAttribute('position',new THREE.Float32BufferAttribute(ribs,3));
+ rootGeo.computeVertexNormals();
+ add('forest-buttress-roots',layout.trees,rootGeo,
+  new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1}),
+  p=>({y:.01,sx:p.radius,sy:2.3+p.radius*.36,sz:p.radius}),
+  p=>p.tint>.52?'#483d35':'#5b4c3d');
  add('forest-ancient-trunks',layout.trees,trunks,bark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
  add('forest-pine-lower',ever,pineGeo,pine,p=>({y:p.height*.69,sx:p.radius*3.2,sy:p.height*.48,sz:p.radius*3.2}),p=>p.tint>.5?'#3c5a48':'#344d41');
  add('forest-pine-crown',ever,pineGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?'#526d55':'#3d5f50');
@@ -224,6 +241,21 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   y:p.branchHeight,sx:p.bulge*1.35,sy:p.bulge*.58,sz:p.bulge*1.16,
   offsetX:p.spread
  }),p=>p.tint>.5?'#416047':'#587150','detail');
+ // Hanging moss reinforces the enormous vertical scale, entirely visual.
+ const mossGeo=new THREE.BufferGeometry(),mossVerts=[];
+ for(let k=0;k<5;k++){
+  const angle=k*TAU/5,r=.59+.14*(k%3);
+  const x=Math.cos(angle)*r,z=Math.sin(angle)*r;
+  const tip=.53+.085*(k%3);
+  mossVerts.push(x-.055,0,z,x+.055,0,z,x+.026,-tip,z+.12,
+   x-.04,0,z,x+.026,-tip,z+.12,x-.015,-tip*.91,z+.075);
+ }
+ mossGeo.setAttribute('position',new THREE.Float32BufferAttribute(mossVerts,3));
+ mossGeo.computeVertexNormals();
+ add('forest-hanging-moss',broad.filter((_,i)=>i%2===0),mossGeo,
+  new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1}),
+  p=>({y:p.height*.76,sx:p.radius*2.6,sy:p.height*.24,sz:p.radius*2.6}),
+  p=>p.tint>.5?'#587157':'#6b815b','detail');
  const under=new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1});
  add('forest-ferns',layout.ground,fernGeometry(THREE),under,p=>({y:.05,sx:p.size,sy:p.size,sz:p.size}),p=>p.tint>.5?'#466b4b':'#6b8052','ground');
  // Dry leaf and needle mats at the edges of the trail: no solid collider.

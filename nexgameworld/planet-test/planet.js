@@ -6,7 +6,8 @@ import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=7';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=8';
+import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestEcology} from './forest-ecology.js?v=2';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
@@ -300,6 +301,7 @@ try {
   const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
   const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
   const forestLightPools=isPortalPreview?null:createForestLightPools(THREE,{scene,radius:R,heightAt});
+  const forestAtmosphere=isPortalPreview?null:createForestAtmosphere(THREE,{scene,radius:R,heightAt});
   relocateInstances();
   const hero=createTauren(THREE,scene,{player:true});
   const actor=hero.root;
@@ -360,6 +362,7 @@ try {
     whisperingForest.setQuality(qualityName,isPortalPreview);
     forestEcology?.setQuality(qualityName,isPortalPreview);
     forestLightPools?.setQuality(qualityName,isPortalPreview);
+    forestAtmosphere?.setQuality(qualityName,isPortalPreview);
     hero.visualDetails?.setQuality(isPortalPreview?.68:profile.detail);
     combatQualitySink?.(isPortalPreview?.15:profile.detail);
     if(qualityHelp)qualityHelp.textContent=
@@ -905,6 +908,7 @@ try {
     startZone.animate(elapsed);
     whisperingForest.animate(elapsed);
     forestEcology?.animate(elapsed);
+    forestAtmosphere?.animate(elapsed,state.orbit?0:forestFogBlend);
     rpg.update(dt);
     // Single native pose pass after gathering/combat state has updated.
     // No second subsystem may reset the hip, knee, torso or arm angles.
