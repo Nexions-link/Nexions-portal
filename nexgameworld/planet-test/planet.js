@@ -8,8 +8,8 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=133';
-import {createSphericalPresence} from './sphere-online.js?v=19';
+import {createOfflineRpg} from './offline-rpg.js?v=134';
+import {createSphericalPresence} from './sphere-online.js?v=20';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=12';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
@@ -390,7 +390,18 @@ try {
    authenticatedProfile:accountProfile});
   combatQualitySink=rpg.setVisualQuality;
   combatQualitySink(isPortalPreview?.15:GRAPHICS_PRESETS[qualityName].detail);
-  let presenceMoving=false,chargeMotion=null,chargeRecovery=0;
+  let presenceMoving=false,chargeMotion=null,chargeRecovery=0,chargeLandingCorrection=null;
+  function applyChargeLandingCorrection(event){
+   if(!Array.isArray(event?.normal)||event.normal.length!==3||
+      !event.normal.every(Number.isFinite))return;
+   const latest=new THREE.Vector3(...event.normal);
+   if(latest.lengthSq()<.9||latest.lengthSq()>1.1)return;
+   const oldLon=Math.atan2(state.normal.x,state.normal.z);
+   state.normal.copy(latest).normalize();
+   state.lonUnwrapped+=angleDelta(Math.atan2(state.normal.x,state.normal.z),oldLon);
+   if(Number.isFinite(event.heading))state.heading=angleDelta(event.heading,0);
+   updateActor();
+  }
   const connectionBanner=$('connectionBanner');
   const onlinePresence=isPortalPreview?null:createSphericalPresence({
     THREE,scene,
@@ -410,11 +421,18 @@ try {
     onChargeAccepted:message=>{
       if(!rpg.onChargeAccepted(message)||!Array.isArray(message.normal)||
          message.normal.length!==3||!message.normal.every(Number.isFinite))return;
+      chargeLandingCorrection=null;
       chargeMotion={from:state.normal.clone(),to:new THREE.Vector3(...message.normal).normalize(),
        heading:message.heading,duration:Math.max(.1,Math.min(1,Number(message.durationMs||550)/1000)),
        elapsed:0,previousFraction:0,distance:0};
       chargeMotion.distance=chargeMotion.from.angleTo(chargeMotion.to)*R;
       chargeRecovery=0;
+    },
+    onChargeLanded:event=>{
+      // The target can drift during the dash; apply the short, validated
+      // authoritative correction after the local charge pose finishes.
+      if(chargeMotion)chargeLandingCorrection=event;
+      else applyChargeLandingCorrection(event);
     },
     onPositionCorrection:correction=>{
       if(chargeMotion)return;
@@ -442,7 +460,7 @@ try {
     onChestResult:msg=>rpg.onChestResult(msg),
     onCombatRejected:msg=>rpg.onChargeRejected(msg),
     onDisconnect:()=>{
-      chargeMotion=null;chargeRecovery=0;presenceMoving=false;
+      chargeMotion=null;chargeRecovery=0;chargeLandingCorrection=null;presenceMoving=false;
       rpg.onNetworkDisconnect();
       rpg.onPartyState({groupId:null,leaderId:null,members:[]});
     },
@@ -810,6 +828,10 @@ try {
        state.normal.copy(motion.to);
        if(Number.isFinite(motion.heading))state.heading=angleDelta(motion.heading,0);
        chargeMotion=null;chargeRecovery=.15;
+       if(chargeLandingCorrection){
+        applyChargeLandingCorrection(chargeLandingCorrection);
+        chargeLandingCorrection=null;
+       }
       }
     }else if (power > 0) {
       tangentBasis(state.normal);

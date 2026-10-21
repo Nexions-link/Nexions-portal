@@ -53,7 +53,7 @@ function disposeActor(root){
 }
 export function createSphericalPresence({
  THREE,scene,createAvatar,animateAvatar,getPosition,getCharacter,getBattlefuryPose,getRadius,heightAt,onStatus,
- onPlayers,onMobs,onVitals,onCombat,onKillCredit,onMobAttack,onMobStrike,onMobTelegraph,onRespawn,
+ onPlayers,onMobs,onVitals,onCombat,onKillCredit,onMobAttack,onMobStrike,onMobTelegraph,onRespawn,onChargeLanded,
  onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
  onChestState,onChestStatus,onChestResult,onCombatRejected,onChargeAccepted,onDisconnect,
  onVerifiedProgress,onAuthRejected,onEconomyResult,onPositionCorrection,
@@ -264,6 +264,7 @@ export function createSphericalPresence({
    else if(m.type==='respawnAccepted')onRespawn?.(m);
    else if(m.type==='combatRejected')onCombatRejected?.(m);
    else if(m.type==='chargeAccepted')onChargeAccepted?.(m);
+   else if(m.type==='chargeLanded')onChargeLanded?.(m);
    else if(m.type==='playerVitals')onVitals?.(m);
    else if(m.type==='partyState')onPartyState?.(m);
    else if(m.type==='partyInvite')onPartyInvite?.(m);

@@ -18,9 +18,9 @@ export function createCombatTimeline(){
   get current(){return current},
   get attackProgress(){return current&&current.skill!=='thunderStomp'?current.elapsed/MELEE_ANIMATION_SECONDS:-1},
   get stompProgress(){return current?.skill==='thunderStomp'?current.elapsed/STOMP_ANIMATION_SECONDS:-1},
-  start(skill,target=null){
+  start(skill,target=null,{visualOnly=false}={}){
    if(current)return false;
-   current={skill,target,elapsed:0,impacted:false};return true;
+   current={skill,target,elapsed:0,impacted:false,visualOnly:!!visualOnly};return true;
   },
   update(dt){
    if(!current)return null;
@@ -28,7 +28,7 @@ export function createCombatTimeline(){
    const stomp=current.skill==='thunderStomp';
    let impact=null;
    if(!current.impacted&&current.elapsed>=(stomp?STOMP_IMPACT_SECONDS:MELEE_IMPACT_SECONDS)){
-    current.impacted=true;impact={skill:current.skill,target:current.target};
+    current.impacted=true;impact={skill:current.skill,target:current.target,...(current.visualOnly?{visualOnly:true}:{})};
    }
    if(current.elapsed>=(stomp?STOMP_ANIMATION_SECONDS:MELEE_ANIMATION_SECONDS))current=null;
    return impact;

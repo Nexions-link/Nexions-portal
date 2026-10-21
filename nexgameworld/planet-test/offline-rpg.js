@@ -38,7 +38,7 @@ import {createSphericalTargetRing} from './spherical-target-ring.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=12';
 import {beginPlayerHitReaction,resetPlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=3';
-import {createCombatTimeline,MELEE_RANGE,APPROACH_RANGE,rageForHit,rollMeleeDamage} from './combat-timeline.js?v=1';
+import {createCombatTimeline,MELEE_RANGE,APPROACH_RANGE,rageForHit,rollMeleeDamage} from './combat-timeline.js?v=2';
 import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
 import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v=1';
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
@@ -595,7 +595,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   runtime.cooldowns.charge=def.cooldown;
   runtime.gcd=Math.max(runtime.gcd,def.gcd);
   if(event?.mobId===target?.id&&isLivingHostile(target)){
-   approach=null;autoplay=true;swing=0;
+   approach=null;autoplay=true;timeline.clear();
+   // Landing damage is server-owned. Prevent a premature client swing while
+   // the dash is still in flight and the server's first hit is pending.
+   swing=Math.max(swing,Math.max(.1,Number(event.durationMs||550)/1000)+.45);
   }
   msg('Рывок!',.9);draw();
   return true;
@@ -617,7 +620,16 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   mob.visualHitSequence=(mob.visualHitSequence||0)+1;
   combatFeedback.hit(mob,event.damage,event.abilityId);
   combatVfx.trigger(mob,event.abilityId==='heavyStrike'?'strong':event.abilityId==='thunderStomp'?'stomp':'hit');
-  if(event.fromId===selfId)lastCombatAt=clock;
+  if(event.fromId===selfId){
+   lastCombatAt=clock;
+   if(event.chargeImpact===true){
+    // Render the server-confirmed impact once, without transmitting a second
+    // autoattack that would consume an extra swing or double-award rage.
+    timeline.clear();
+    timeline.start('autoAttack',mob,{visualOnly:true});
+    swing=Math.max(swing,stats().speed);
+   }
+  }
   draw(false);
  }
  function applyServerProgress(progress,source='checkpoint'){
@@ -2479,6 +2491,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     hits++;
    }
    msg('Громовая поступь: '+hits+' целей');
+  }else if(impact?.visualOnly){
+   // Cosmetic follow-through only: the authoritative charge strike has landed.
   }else if(impact&&isLivingHostile(impact.target)&&distance(impact.target)<=MELEE_RANGE){
    if(facesTarget(impact.target)){
     const bonus=impact.skill==='heavyStrike'?(getAbilityDefinition(impact.skill).damageBonus||0):0;
