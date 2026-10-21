@@ -35,7 +35,8 @@ import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
 import {createSphericalTargetRing} from './spherical-target-ring.js?v=1';
-import {animateSphericalTauren} from './tauren-animation.js?v=11';
+import {animateSphericalTauren} from './tauren-animation.js?v=12';
+import {beginPlayerHitReaction,resetPlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=3';
 import {createCombatTimeline,MELEE_RANGE,APPROACH_RANGE,rageForHit,rollMeleeDamage} from './combat-timeline.js?v=1';
 import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
@@ -48,7 +49,7 @@ import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceCreatureGait} from './creature-gait.js?v=3';
 import {advanceMobImpact,mobVisualMode} from './mob-impact.js?v=1';
-import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=5';
+import {advanceCreatureSecondary,applyCreatureSecondary,resetCreatureSecondary,shouldReplayCreatureHurt} from './creature-secondary.js?v=6';
 import {advanceCreatureStrike,resetCreatureStrike} from './creature-strike.js?v=1';
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
@@ -346,6 +347,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   onPartyState({groupId:null,leaderId:null,members:[]});
   selectedAllyId=null;
   autoplay=false;approach=null;chargeRequestedAt=0;timeline.clear();
+  resetPlayerHitReaction(hero.root.userData);
   pendingLootTake=null;chiefRewardSubmitting=false;chiefRewardRenderSnapshot=null;
   stopServerGatherCast();clearChestRetry();
   onlineChest=null;knownChestUsed=null;lastChestRevision=-1;
@@ -685,6 +687,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    attacker.visualStrikeHitSequence=(attacker.visualStrikeHitSequence||0)+1;
   }
   if(Number.isFinite(event.hp))state.hp=Math.max(0,event.hp);
+  // Damage/block animation begins on server confirmation, never on a timer.
+  beginPlayerHitReaction(hero.root.userData,{damage:event.damage,
+   blocked:event.blocked===true,absorbed:event.absorbed||0});
   if(event.blocked){blockRemaining=.65;hero.root.userData.blockRecoil=.65;combatVfx.trigger({root:hero.root},'block');}
   state.resource=changeResource(state.resource,5,'warrior');lastCombatAt=clock;draw(false);
  }
@@ -712,6 +717,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  function onNetworkRespawn(event){
   chargeRequestedAt=0;
+  resetPlayerHitReaction(hero.root.userData);
   state.hp=Number(event.hp)||stats().maxHp;state.resource=0;
   autoplay=false;approach=null;timeline.clear();target=null;
   for(const mob of mobs)mob.aggro=false;
@@ -1091,7 +1097,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const stance=advanceCreatureSecondary(gltf.secondary,delta,{
    kind:'raider',yaw:isOnline()?mob.renderYaw??mob.yaw:mob.yaw,
    walking:gait.walking,speed:Math.min(1,gltf.gait.rate||0),
-   attacking,attackRemaining:gltf.attackRemaining,hitWeight:impact.weight,
+   attacking,attackRemaining:gltf.attackRemaining,hitWeight:impact.weight,hitSide:impact.side,
    strikePrepare:strike.prepare,strikeImpact:strike.impact,strikeRecover:strike.recover,
    stridePhase:gait.stridePhase,stepWeight:gait.stepWeight
   });
@@ -1164,7 +1170,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     kind:'longstrider',yaw:isOnline()?mob.renderYaw??mob.yaw:mob.yaw,
     walking:gait.walking,speed:Math.min(1,bird.gait?.rate||0),
     attacking:bird.mode==='Peck',attackRemaining:bird.attackRemaining,
-    hitWeight:impact.weight,
+    hitWeight:impact.weight,hitSide:impact.side,
     strikePrepare:strike.prepare,strikeImpact:strike.impact,strikeRecover:strike.recover,
     stridePhase:gait.stridePhase,stepWeight:gait.stepWeight
    });

@@ -3,6 +3,7 @@
 import {weaponSwingProfile,daggerThrustPose} from '../weapon-visuals.js?v=0.3.7.1';
 import {shieldBlockPose} from '../shield-block.js?v=0.3.7.1';
 import {combatPose} from './combat-pose.js?v=1';
+import {advancePlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {advancePlayerMotion} from './player-motion.js?v=1';
 import {weaponActionDetail} from './weapon-action-detail.js?v=1';
 import {footStrideZ,hoofSwingLift,hoofToeFlex} from './foot-placement.js?v=2';
@@ -169,5 +170,19 @@ export function animateSphericalTauren(actor,{
    .11*chargeDrive;
   b.rotation.z=(i?-.018:.018)*Math.sin(time*1.23+i);
  });
+ // Server-confirmed stagger runs on local joints after normal gait, grip and IK.
+ // All offsets are bounded and recomputed every frame: no root drift.
+ const incoming=advancePlayerHitReaction(user,seconds);
+ actor.body.rotation.x+=incoming.pitch;
+ actor.body.rotation.z+=incoming.roll;
+ actor.body.position.y-=incoming.dip;
+ actor.body.position.z-=incoming.depth;
+ actor.chest.rotation.x+=incoming.pitch*.72;
+ actor.chest.rotation.z+=incoming.roll*.45;
+ actor.head.rotation.x+=incoming.headPitch;
+ actor.head.rotation.z-=incoming.roll*.45;
+ actor.arms[0].shoulder.rotation.x-=incoming.shieldBrace;
+ actor.arms[0].elbow.rotation.x-=incoming.shieldBrace*.38;
+ actor.arms[1].shoulder.rotation.x+=incoming.weaponBrace;
  return {crouch:bend,block:block.power,attack:playing?swing:0,dagger:stabbing?.extend||0};
 }
