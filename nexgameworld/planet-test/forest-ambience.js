@@ -53,6 +53,20 @@ export function createForestAmbience({storage,AudioContextClass}={}){
   }
   if(mood>.54&&time>=callAt){chirp(t,mood);callAt=time+8+3*Math.abs(Math.sin(time*.8))}
  }
+ function playHowl(){
+  if(!enabled||!ctx||ctx.state!=='running')return;
+  const t=ctx.currentTime,osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type='triangle';
+  osc.frequency.setValueAtTime(230,t);
+  osc.frequency.exponentialRampToValueAtTime(355,t+.45);
+  osc.frequency.exponentialRampToValueAtTime(248,t+1.05);
+  gain.gain.setValueAtTime(.0001,t);
+  gain.gain.exponentialRampToValueAtTime(.022,t+.13);
+  gain.gain.exponentialRampToValueAtTime(.0001,t+1.1);
+  osc.connect(gain);gain.connect(ctx.destination);
+  osc.start(t);osc.stop(t+1.12);
+  osc.onended=()=>{osc.disconnect();gain.disconnect()};
+ }
  function dispose(){enabled=false;try{source?.stop()}catch{}if(ctx)void ctx.close().catch(()=>{})}
- return {get enabled(){return enabled},setEnabled,unlock,update,dispose};
+ return {get enabled(){return enabled},setEnabled,unlock,update,playHowl,dispose};
 }

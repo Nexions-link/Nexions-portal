@@ -790,6 +790,24 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   mob.attackWindup=0;
   mob.visualStrikeHitSequence=(mob.visualStrikeHitSequence||0)+1;
  }
+ function onMobHowl(event){
+  if(!isOnline()||typeof event?.mobId!=='string'||!Array.isArray(event.helperIds))return;
+  const source=mobs.find(m=>m.id===event.mobId);
+  if(!source||source.corpse||!source.root.visible||event.life!==source.life||
+    source.family!=='forestWolf')return;
+  const seconds=Math.min(1.8,Math.max(.6,(event.durationMs||1050)/1000));
+  for(const id of [event.mobId,...event.helperIds]){
+   const wolf=mobs.find(m=>m.id===id);
+   if(wolf?.family==='forestWolf'&&!wolf.corpse){
+    wolf.howlRemaining=Math.max(wolf.howlRemaining||0,seconds);
+    wolf.alertRemaining=Math.max(wolf.alertRemaining||0,seconds+1);
+   }
+  }
+  if(distance(source)<46){
+   msg('Волчий вой! На зов откликнулась стая.',2.1);
+   forestAmbience.playHowl();
+  }
+ }
  function onMobTelegraph(event){
   if(!isOnline()||typeof event?.mobId!=='string')return;
   const mob=mobs.find(e=>e.id===event.mobId);
@@ -1327,7 +1345,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  // Smooth original NexGame GLB Idle, Walk, Peck and hit reactions.
  function birdAnimation(mob,dt,moved=0){
   if(mob.forestWolfVisual){
-   if(!mob.corpse)mob.forestWolfVisual.animate(clock,moved,mob.attackWindup>0?1:0);
+   if(!mob.corpse)mob.forestWolfVisual.animate(clock,moved,mob.attackWindup>0?1:0,
+    mob.howlRemaining>0?Math.min(1,mob.howlRemaining*1.5):0,mob.hit||0);
    return;
   }
   if(mob.banditVisual){banditAnimation(mob,dt,moved);return;}
@@ -2812,6 +2831,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(isOnline())mob.attackWindup=Math.max(0,(mob.attackWindup||0)-dt);
    mob.hit=Math.max(0,(mob.hit||0)-dt);
    mob.alertRemaining=Math.max(0,(mob.alertRemaining||0)-dt);
+   mob.howlRemaining=Math.max(0,(mob.howlRemaining||0)-dt);
    if(mob.lootMarker?.visible){
     const tier=mob.lootMarker.userData.rarity;
     const t=tier==='rare'?.12:tier==='uncommon'?.065:.02;
@@ -3028,7 +3048,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  persist();draw();void updateEquipmentVisuals();
  return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
   setMultiplayer,onNetworkDisconnect,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
-  onVitals,onCombatEvent,onChargeAccepted,onChargeRejected,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobStrike,onMobTelegraph,onNetworkRespawn,onMobSnapshot,
+  onVitals,onCombatEvent,onChargeAccepted,onChargeRejected,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobStrike,onMobTelegraph,onMobHowl,onNetworkRespawn,onMobSnapshot,
   // Only the active owner's cosmetic pose is sent; item entitlement remains on server.
   getBattlefuryPose:()=>authenticatedProfile&&state.equipment.weapon?.id===BATTLEFURY_ITEM_ID?
    {...battlefuryTuning}:null,
