@@ -5,6 +5,7 @@ import {BANDIT_QUEST_KILLS} from './creature-registry.js';
 import {BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED} from './bandit-weapons.js';
 import {isAcceptedQuest} from './starter-quest-guidance.js';
 import {readExpedition} from './expedition-quest.js';
+import {readForestHunt,FOREST_HUNT_KILLS} from './forest-hunt-quest.js';
 const amount=(inventory,id)=>(Array.isArray(inventory)?inventory:[])
  .reduce((n,row)=>n+(row?.id===id?Math.max(0,Number(row.qty)||0):0),0);
 const bounded=(n,max)=>Math.max(0,Math.min(max,Math.trunc(Number(n)||0)));
@@ -14,6 +15,13 @@ const progress=(id,title,verb,done,total,after)=>({
 });
 export function questProgressSummary(id,state,inventory=state?.inventory||[]){
  if(!isAcceptedQuest(id,state))return null;
+ if(id==='forest-hunt'){
+  const q=readForestHunt(state.forestHunt);
+  if(q.stage===1)return progress(id,'Хищники на границе','Убито',q.kills,FOREST_HUNT_KILLS,'Сдать');
+  if(q.stage===2)return progress(id,'Хищники на границе','Убито',FOREST_HUNT_KILLS,FOREST_HUNT_KILLS,'Сдать');
+  if(q.stage===3)return progress(id,'Следы стаи','Исследовано',q.traces.filter(Boolean).length,2,'Сдать');
+  if(q.stage===4)return progress(id,'Следы стаи','Исследовано',2,2,'Сдать');
+ }
  if(id==='expedition'){
   const q=readExpedition(state.expedition);
   if(q.stage===1)return {id,title:'За последним холмом',detail:'Найти лагерь разведчиков',complete:false};

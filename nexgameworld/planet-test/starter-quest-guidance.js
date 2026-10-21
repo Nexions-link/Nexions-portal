@@ -6,6 +6,8 @@ import {BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_MIN_LEVEL} from './creatur
 import {BANDIT_WEAPON_LOCATIONS,BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED} from './bandit-weapons.js';
 import {RELIC_POSITION,SCOUT_POSITION,BOSS_POSITION} from './mentor-chain.js';
 import {readExpedition,expeditionNextPoint,EXPEDITION_SITES} from './expedition-quest.js';
+import {readForestHunt,forestHuntNextPoint,FOREST_DEN_SITES} from './forest-hunt-quest.js';
+import {FOREST_WOLF_SPAWNS} from './forest-wolf-spawns.js';
 export const QUEST_GIVERS=Object.freeze({
  mentor:Object.freeze({x:-1.5,z:-5}),herbalist:Object.freeze({x:8,z:1}),
  bandit:BANDIT_QUEST_GIVER
@@ -24,6 +26,12 @@ const closest=(points,position)=>{
 };
 export function questWaypoint(id,state,inventory=[],position={x:0,z:0}){
  const mentor=state.quest,bandit=state.banditQuest?.stage??0;
+ if(id==='forest-hunt'){
+  const q=readForestHunt(state.forestHunt);
+  if(q.stage<1||q.stage>4)return null;
+  const point=forestHuntNextPoint(q);
+  return arrived(q.stage===1?'Лесные волки':q.stage===3?point.title:'Следопыт Дальний Ветер',point);
+ }
  if(id==='expedition'){
   const q=readExpedition(state.expedition);
   if(q.stage===0||q.stage===4)return null;
@@ -103,7 +111,7 @@ export function preferredQuestId(state,inventory=[]){
 // An offer is NOT an active objective. Only accepted quests can be pinned.
 // This predicate is client-only; gameplay rewards remain server authoritative.
 export function acceptedQuestIds(state){
- const ids=['mentor','gather-'+(state?.gatherStage??0),'bandit-trail','bandit-weapons','bandit-chief','expedition'];
+ const ids=['mentor','gather-'+(state?.gatherStage??0),'bandit-trail','bandit-weapons','bandit-chief','expedition','forest-hunt'];
  return ids.filter(id=>isAcceptedQuest(id,state));
 }
 export function isAcceptedQuest(id,state){
@@ -111,6 +119,7 @@ export function isAcceptedQuest(id,state){
   weapons=state?.banditWeaponsQuest?.stage??0,chief=state?.banditChiefQuest?.stage??0;
  if(id==='mentor')return [1,2,4,5,7,8,10,11].includes(mentor);
  if(id==='expedition'){const stage=readExpedition(state?.expedition).stage;return stage>=1&&stage<=3;}
+ if(id==='forest-hunt'){const stage=readForestHunt(state?.forestHunt).stage;return stage>=1&&stage<=4;}
  if(id==='bandit-trail')return bandit===1||bandit===2;
  if(id==='bandit-weapons')return bandit===3&&weapons===1;
  if(id==='bandit-chief')return bandit===3&&weapons===2&&(chief===1||chief===2);
@@ -138,6 +147,12 @@ export function trackedQuestMap(id,state,inventory=[],position={x:0,z:0}){
  if(!isAcceptedQuest(id,state))return null;
  const waypoint=questWaypoint(id,state,inventory,position);
  if(!waypoint)return null;
+ if(id==='forest-hunt'){
+  const q=readForestHunt(state.forestHunt);
+  if(q.stage===1)return pointMap(FOREST_WOLF_SPAWNS,'Лесные волки','targets');
+  if(q.stage===3)return pointMap(FOREST_DEN_SITES.filter(p=>!q.traces[p.index]),'Следы волков');
+  return pointMap([waypoint],waypoint.title);
+ }
  if(id==='expedition'){
   const q=readExpedition(state.expedition);
   if(q.stage===2)return pointMap(EXPEDITION_SITES.filter(p=>!q.visited[p.index]),'Лесные ориентиры');

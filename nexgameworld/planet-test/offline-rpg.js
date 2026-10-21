@@ -2,12 +2,14 @@ import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=7';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
-import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=4';
+import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=5';
 import {createQuestTracking} from './quest-tracking-state.js?v=2';
 import {forestMoodAt} from './whispering-forest.js';
 import {createForestAmbience} from './forest-ambience.js?v=1';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,EXPEDITION_LEVEL,EXPEDITION_REWARD,readExpedition,expeditionJournal} from './expedition-quest.js?v=1';
-import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=2';
+import {FOREST_DEN_SITES,FOREST_HUNT_KILLS,FOREST_HUNT_REWARD,readForestHunt,forestHuntJournal,forestHuntAvailable} from './forest-hunt-quest.js?v=1';
+import {forestCampPoint,forestLocalPoint} from './whispering-forest.js';
+import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=3';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=3';
@@ -38,7 +40,7 @@ import {createLevelUpFeedback} from './level-up-feedback.js?v=2';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=2';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
 import {createCameraTargetFilter} from './camera-targeting.js?v=1';
-import {createHostileTargetCycle,nearbyInteractable,CORPSE_LOOT_RANGE} from './interaction-targeting.js?v=23';
+import {createHostileTargetCycle,nearbyInteractable,CORPSE_LOOT_RANGE} from './interaction-targeting.js?v=24';
 import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v=1';
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
@@ -127,6 +129,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    safe.banditQuest=row.quests?.bandit||{stage:0,kills:0};
   safe.banditChiefQuest=row.quests?.banditChief||{stage:0};
   safe.expedition=readExpedition(row.quests?.expedition);
+  safe.forestHunt=readForestHunt(row.quests?.forestHunt);
   safe.banditWeaponsQuest=row.quests?.banditWeapons||{stage:row.quests?.banditChief?.stage>0?2:0};
   safe.hotbar=normalizeHotbar(row.actionBar?.length?row.actionBar:DEFAULT_HOTBAR,'warrior',safe.level);
   return safe;
@@ -711,6 +714,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(progress.quests?.mentor?.kills!==undefined)state.kills=progress.quests.mentor.kills;
   if(progress.quests?.bandit)state.banditQuest={...progress.quests.bandit};
   state.expedition=readExpedition(progress.quests?.expedition);
+  state.forestHunt=readForestHunt(progress.quests?.forestHunt);
   if(progress.quests?.banditChief)state.banditChiefQuest={...progress.quests.banditChief};
   state.banditWeaponsQuest=progress.quests?.banditWeapons?{...progress.quests.banditWeapons}:
    {stage:progress.quests?.banditChief?.stage>0?2:0};
@@ -937,6 +941,42 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     x:site.x,z:site.z,root,radius:1.1,yaw:.1};
   entities.push(entity);setModelAt(entity);return entity;
  }):[];
+ // Wolves' visible den traces; these intentionally add NO world collision volumes.
+ const forestDenSites=authenticatedProfile?FOREST_DEN_SITES.map(site=>{
+  const root=new THREE.Group();group.add(root);
+  const earth=new THREE.MeshStandardMaterial({color:'#4d4234',roughness:1,side:THREE.DoubleSide});
+  const boneMat=new THREE.MeshStandardMaterial({color:'#bfb08e',roughness:1});
+  const imprint=new THREE.Mesh(new THREE.CircleGeometry(1.6,10),earth);
+  imprint.rotation.x=-Math.PI/2;imprint.position.y=.055;root.add(imprint);
+  for(let i=0;i<5;i++){
+   const bone=new THREE.Mesh(new THREE.CylinderGeometry(.055,.08,.73,6),boneMat);
+   bone.position.set(Math.sin(i*2.1)*.65,.16,Math.cos(i*2.1)*.67);
+   bone.rotation.z=1.4;bone.rotation.y=i*.75;root.add(bone);
+  }
+  const label=makeLabel(site.title,'#dcc9a5',21);
+  label.position.y=1.5;root.add(label);
+  const entity={kind:'forestDen',name:site.title,index:site.index,
+   x:site.x,z:site.z,root,radius:1,yaw:0};
+  entities.push(entity);setModelAt(entity);return entity;
+ }):[];
+ // Post-completion personal outpost upgrade: visible only, never collidable.
+ const forestCampUpgrade=authenticatedProfile?(()=>{
+  const root=new THREE.Group();group.add(root);
+  const pos=forestCampPoint(-3,-14),point=forestLocalPoint(pos.lon,pos.lat);
+  const wood=new THREE.MeshStandardMaterial({color:'#826849',roughness:1});
+  const fabric=new THREE.MeshStandardMaterial({color:'#aa9776',roughness:1,side:THREE.DoubleSide});
+  for(let i=0;i<3;i++){
+   const crate=new THREE.Mesh(new THREE.BoxGeometry(1,.8,.97),wood);
+   crate.position.set((i-1)*1.15,.43,0);root.add(crate);
+  }
+  for(const x of [-2,2]){
+   const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,4.1,6),wood);
+   pole.position.set(x,2.05,.9);root.add(pole);
+  }
+  const awning=new THREE.Mesh(new THREE.PlaneGeometry(4.5,2.4),fabric);
+  awning.rotation.x=-Math.PI/2;awning.position.set(0,4.12,.9);root.add(awning);
+  setModelAt({root,x:point.x,z:point.z,yaw:0});root.visible=false;return root;
+ })():null;
  const herbalist=npc('herbalist',8,1,'Травница Тихая Заря');
  for(const glyph of ['!','?','·'])herbalist.root.add(questMarkers.create(glyph,5.58));
  // Shared radial ground-shadow texture. Only one transparent plane per mob.
@@ -1585,6 +1625,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     sendAccountAction('mentorInteract',{interaction:nearby.kind});return;
    }
    if(nearby.kind==='mob')return showCorpseLoot(nearby);
+   if(nearby.kind==='forestDen'){sendAccountAction('forestHuntInspect',{index:nearby.index});return}
    if(nearby.kind==='expeditionSite'){sendAccountAction('expeditionDiscover',{index:nearby.index});return}
    if(nearby.kind==='expedition'){openWindow('expedition');return}
    if(nearby.kind==='mentor'){openWindow('mentor');return}
@@ -1776,9 +1817,15 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    child.visible=child.userData.glyph===(glyph||
     (authenticatedProfile&&readExpedition(state.expedition).stage===0&&state.level>=EXPEDITION_LEVEL?'!':null));
   if(expeditionScout){
-   const q=readExpedition(state.expedition),mark=q.stage===1?'!':q.stage===2?'·':q.stage===3?'?':null;
+   const q=readExpedition(state.expedition),hunt=readForestHunt(state.forestHunt);
+   const mark=hunt.stage===0&&forestHuntAvailable(state)?'!':
+    hunt.stage===2||hunt.stage===4?'?':
+    q.stage===1?'!':q.stage===2?'·':q.stage===3?'?':
+    hunt.stage===1||hunt.stage===3?'·':null;
    for(const child of expeditionScout.root.children)if(child.userData.questMarker)child.visible=child.userData.glyph===mark;
    for(const site of expeditionSites)site.root.visible=q.stage>=1&&q.stage<4&&!q.visited[site.index];
+   for(const site of forestDenSites)site.root.visible=hunt.stage===3&&!hunt.traces[site.index];
+   if(forestCampUpgrade)forestCampUpgrade.visible=hunt.stage===5;
   }
   const banditStage=state.banditQuest?.stage??0;
   const weaponStage=weaponsStage(),weaponCount=itemCount(BANDIT_WEAPON_ITEM);
@@ -1923,7 +1970,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    questTracking.sync();
    const snapshot=JSON.stringify([journalTab,questTracking.trackedIds,state.quest,state.kills,state.level,
     state.gatherStage,state.gatherAvailable,state.banditQuest,state.banditWeaponsQuest,
-    state.banditChiefQuest,state.expedition,state.inventory]);
+    state.banditChiefQuest,state.expedition,state.forestHunt,state.inventory]);
    if(journalRenderSnapshot===snapshot&&body.querySelector('.planet-journal-tabs'))return;
    journalRenderSnapshot=snapshot;
   }
@@ -2118,6 +2165,24 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     [['Сдать донесение',()=>sendAccountAction('expeditionTurnIn')]]);
    else line('Первый маршрут нанесён на карту',
     'Ты открыл Шепчущий лес. Наши разведчики готовят новую экспедицию.');
+   const hunt=readForestHunt(state.forestHunt);
+   if(hunt.stage===0&&forestHuntAvailable(state))
+    line('Тени между стволами · ур. 5',
+     'Стая рыскает вокруг лесной стоянки. Победи трёх лесных волков; затем мы найдём их логово.',
+     [['Принять поручение',()=>sendAccountAction('forestHuntAccept')]]);
+   else if(hunt.stage===1)
+    line('Хищники на границе','Убито волков: '+hunt.kills+' / '+FOREST_HUNT_KILLS+'. Они живут в чаще, вдали от тропы.');
+   else if(hunt.stage===2)
+    line('Следы стаи','Стая отступила. Найди два следа их логова, затем возвращайся.',
+     [['Начать поиск логова',()=>sendAccountAction('forestHuntReport')]]);
+   else if(hunt.stage===3)
+    line('Чужая территория','Исследовано следов: '+hunt.traces.filter(Boolean).length+' / 2. Они отмечены на миникарте.');
+   else if(hunt.stage===4)
+    line('Тихая стоянка','Логово найдено. Я укреплю наш лагерь и выплачу тебе '+
+     FOREST_HUNT_REWARD.xp+' опыта и '+FOREST_HUNT_REWARD.gold+' монеты.',
+     [['Сдать разведку',()=>sendAccountAction('forestHuntTurnIn')]]);
+   else if(hunt.stage===5)
+    line('Стоянка укреплена','Провизия сложена под навесом. Спасибо за защиту лагеря!');
    return;
   }
   if(authenticatedProfile&&kind==='mentor'){
@@ -2382,6 +2447,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     if(ex.status!=='locked')entries.push({...ex,id:'expedition',
       reward:EXPEDITION_REWARD.xp+' опыта · '+EXPEDITION_REWARD.gold+' монет',
       npc:ex.status==='available'?'Наставник Каменный Рог':'Следопыт Дальний Ветер'});
+    const forestJournal=forestHuntJournal(state.forestHunt,state);
+    if(forestJournal.status!=='locked')entries.push({...forestJournal,
+      reward:FOREST_HUNT_REWARD.xp+' опыта · '+FOREST_HUNT_REWARD.gold+' монеты',
+      npc:'Следопыт Дальний Ветер'});
     const q=state.banditQuest||{stage:0,kills:0};
     entries.push({id:'bandit-trail',
      status:q.stage===0?(state.level>=BANDIT_QUEST_MIN_LEVEL?'available':'locked'):q.stage===3?'completed':'current',
