@@ -36,7 +36,7 @@ export function createLevelUpFeedback({document,layer,schedule=setTimeout,cancel
   card.setAttribute('aria-label','Новый уровень '+level+
    '. Здоровье восстановлено.'+(unlockedCharge?' Открыта способность Рывок.':''));
   layer.append(card);current=card;
-  timer=schedule(()=>{if(current===card)dismiss();},3500);
+  timer=schedule(()=>{if(current===card)dismiss();},2800);
   return card;
  }
  return {show,dismiss};

@@ -48,3 +48,18 @@ test('offline and online level-up events use same standalone celebration',async(
  assert.match(html,/id="levelUpFeedback"/);
  assert.match(html,/level-up-feedback\.css/);
 });
+
+// The compact banner must remain unobtrusive on iPhone and in landscape.
+test('level-up notice stays compact, subtle and does not block world taps',async()=>{
+ const fs=await import('node:fs');
+ const css=fs.readFileSync(new URL('../level-up-feedback.css',import.meta.url),'utf8');
+ const js=fs.readFileSync(new URL('../level-up-feedback.js',import.meta.url),'utf8');
+ assert.match(css,/#levelUpFeedback\{[^}]*pointer-events:none/s);
+ assert.match(css,/width:min\(188px,calc\(100vw - 46px\)\)/);
+ assert.match(css,/font-size:clamp\(44px,13vw,54px\)/);
+ assert.match(css,/animation:ngw-levelup-appear 2\.8s/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+ assert.match(js,/\},2800\);/);
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/level-up-feedback\.css\?v=2/);
+});
