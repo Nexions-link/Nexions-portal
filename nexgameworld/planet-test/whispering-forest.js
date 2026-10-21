@@ -1,6 +1,8 @@
 // P2.3.2-A: deterministic tall forest on the existing spherical world.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
 const TAU=Math.PI*2;
+// Match the blocker exactly to the visible trunk's maximum ground radius.
+export const FOREST_TRUNK_BASE_SCALE=.78;
 const clamp01=n=>Math.max(0,Math.min(1,n));
 const smooth=(a,b,n)=>{const t=clamp01((n-a)/(b-a));return t*t*(3-2*t)};
 export const FOREST_ENTRANCE_LONGITUDE=.16;
@@ -101,7 +103,7 @@ function forestCollisionIndex(radius=261){
  };
  for(const tree of createForestLayout().trees){
   const point=forestLocalPoint(tree.lon,tree.lat,radius);
-  add(point.x,point.z,tree.radius*.72,tree.height);
+  add(point.x,point.z,tree.radius*FOREST_TRUNK_BASE_SCALE,tree.height);
  }
  for(const p of FOREST_CAMP_PROPS){
   const pos=forestCampPoint(p.dx,p.dz,radius),point=forestLocalPoint(pos.lon,pos.lat,radius);
@@ -171,7 +173,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   batches.push({mesh,kind});
   return mesh;
  }
- const trunks=new THREE.CylinderGeometry(.52,.78,1,9,5);
+ const trunks=new THREE.CylinderGeometry(.52,FOREST_TRUNK_BASE_SCALE,1,9,5);
  const leafGeo=new THREE.IcosahedronGeometry(1,1),pineGeo=new THREE.ConeGeometry(1,1,9,2);
  const bark=new THREE.MeshStandardMaterial({color:'#a6a09b',roughness:1});
  const leaves=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1});

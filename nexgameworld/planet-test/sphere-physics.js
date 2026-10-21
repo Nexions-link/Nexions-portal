@@ -1,5 +1,5 @@
 import {blocksRockOrMesa} from './planet-landmarks.js?v=1';
-import {blocksForestAtLocal} from './whispering-forest.js?v=5';
+import {blocksForestAtLocal} from './whispering-forest.js?v=6';
 import {LONGHOUSE,toHouseCoordinates,insideHouse} from './hearth-house.js?v=10';
 export {toHouseCoordinates} from './hearth-house.js?v=10';
 // PT 0.6.0 — spherical contact and third-person camera constraints.

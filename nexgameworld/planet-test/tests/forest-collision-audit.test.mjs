@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createForestLayout,forestColliders,blocksForestAtLocal,FOREST_CAMP,FOREST_CAMP_PROPS,
- forestCampPoint,forestLocalPoint,forestTrailLatitude,FOREST_SITE_CLEARINGS,forestDistance}
+ forestCampPoint,forestLocalPoint,forestTrailLatitude,FOREST_SITE_CLEARINGS,forestDistance,FOREST_TRUNK_BASE_SCALE}
  from '../whispering-forest.js';
 import {canWalkCamp} from '../sphere-physics.js';
 import {walkableSphereNormal} from '../../server/world-movement.js';
@@ -14,7 +14,8 @@ test('no unseen forest collision: every collider belongs to rendered trunk or vi
  assert.ok(colliders.length>390);
  for(const tree of layout.trees){
   const p=local(tree.lon,tree.lat);
-  assert.ok(colliders.some(c=>Math.hypot(c.x-p.x,c.z-p.z)<.001&&c.r<=tree.radius*.8));
+  assert.ok(colliders.some(c=>Math.hypot(c.x-p.x,c.z-p.z)<.001&&Math.abs(c.r-tree.radius*FOREST_TRUNK_BASE_SCALE)<1e-9),
+   'forest trunk blocker must match the visible widest base');
   assert.equal(blocksForestAtLocal(p.x,p.z),true);
  }
  for(const prop of FOREST_CAMP_PROPS){
@@ -54,5 +55,19 @@ test('visible camp mesh tangent orientation agrees with geodetic collision coord
     (d?Math.sin(angle)/d:0)*(east[i]*prop.dx+south[i]*prop.dz));
   const actual=[Math.cos(q.lat)*Math.sin(q.lon),Math.sin(q.lat),Math.cos(q.lat)*Math.cos(q.lon)];
   assert.ok(Math.hypot(...predicted.map((v,i)=>v-actual[i]))<1e-8);
+ }
+});
+
+// A path that only passes at its center can still feel blocked on a phone.
+test('both shoulders of the walking trail remain free of forest colliders',()=>{
+ for(let lon=.145;lon<=1.46;lon+=.008){
+  // The survey camp has visible tents and a table beside the centerline;
+  // those should block passage, not be mistaken for invisible trail walls.
+  if(forestDistance(lon,forestTrailLatitude(lon),FOREST_CAMP.lon,FOREST_CAMP.lat)<FOREST_CAMP.clearingRadius+4)continue;
+  for(const sideways of [-3.5,-2,0,2,3.5]){
+   const p=local(lon,forestTrailLatitude(lon)+sideways/R);
+   assert.equal(blocksForestAtLocal(p.x,p.z,.42,R),false,
+    'unexpected trunk or camp blocker at lon '+lon+' offset '+sideways);
+  }
  }
 });

@@ -14,9 +14,10 @@ export function createForestWolfVisual(THREE,variant=0){
  part(head,sph,fur,0,0,.23,.45,.38,.50);
  part(head,sph,light,0,-.18,.65,.26,.20,.40);
  part(head,sph,black,0,-.17,.96,.15,.11,.16);
+ const ears=[];
  for(const s of [-1,1]){
   const ear=part(head,new THREE.ConeGeometry(.18,.55,6),mane,s*.29,.42,.12);
-  ear.rotation.z=-s*.12;
+  ear.rotation.z=-s*.12;ears.push(ear);
   part(head,sph,iris,s*.37,.10,.51,.062,.053,.055);
  }
  const legs=[];
@@ -27,11 +28,20 @@ export function createForestWolfVisual(THREE,variant=0){
  const tail=part(body,new THREE.ConeGeometry(.25,1.06,7),fur,0,1.31,-1.12);
  tail.rotation.x=-1.13;
  function animate(time,distance=0,attack=0){
-  const moving=Math.min(1,Math.max(0,distance*2.5)),phase=time*7.3+variant;
+  const moving=Math.min(1,Math.max(0,distance*2.5)),idle=1-moving;
+  const phase=time*7.3+variant,threat=attack>0;
+  // Small idle breaths, listening movements and ear twitches make a still
+  // wolf readable in the undergrowth without changing its hitbox or position.
+  body.scale.y=1+.014*Math.sin(time*1.9+variant)*idle;
   for(let i=0;i<legs.length;i++)legs[i].rotation.x=Math.sin(phase+(i===0||i===3?0:Math.PI))*.43*moving;
-  head.rotation.x=attack?-.20:.07*Math.sin(time*.8+variant);
+  head.rotation.x=threat?-.20:.07*Math.sin(time*.8+variant);
+  head.rotation.y=threat?0:Math.sin(time*.67+variant*.9)*.11*idle;
+  for(let i=0;i<ears.length;i++){
+   const side=i===0?-1:1;
+   ears[i].rotation.z=-side*.12+Math.sin(time*2.1+variant+i*1.7)*.035*idle;
+  }
   body.position.y=Math.sin(phase*2)*.07*moving;
-  tail.rotation.z=Math.sin(time*1.9+variant)*.15;
+  tail.rotation.z=Math.sin(time*1.9+variant)*(threat?.06:.15);
  }
  return {root,animate};
 }
