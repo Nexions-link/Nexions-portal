@@ -73,9 +73,25 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
   geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
   geo.computeVertexNormals();return geo;
  }
- const leaves=mat('#ffffff',{flatShading:true}),stones=mat('#ffffff',{flatShading:true});
- instance('forest-shrubs',layout.shrubs,new THREE.IcosahedronGeometry(1,0),leaves,
-  p=>({x:p.size,y:p.size*.62,z:p.size,h:p.size*.50}),
+ function shrubLeafGeometry(){
+  // Angular bushes previously resembled stones; layered leaves give them
+  // recognisable stems and an open silhouette without extra draw calls.
+  const positions=[];
+  for(let i=0;i<9;i++){
+   const a=i*TAU/9,dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx;
+   const h=.54+(i%4)*.10,r=.48+(i%3)*.13,w=.23;
+   const mid=[dx*r*.64,h*.72,dz*r*.64];
+   const tip=[dx*r,h,dz*r];
+   positions.push(0,.06,0,mid[0]+px*w,mid[1],mid[2]+pz*w,...tip,
+    0,.06,0,...tip,mid[0]-px*w,mid[1],mid[2]-pz*w);
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geometry.computeVertexNormals();return geometry;
+ }
+ const leaves=mat('#ffffff',{side:THREE.DoubleSide}),stones=mat('#ffffff',{flatShading:true});
+ instance('forest-shrubs',layout.shrubs,shrubLeafGeometry(),leaves,
+  p=>({x:p.size,y:p.size*1.20,z:p.size,h:.045}),
   p=>p.variation>.65?'#526b51':p.variation>.3?'#3d5b46':'#657453');
  instance('forest-deep-bracken',layout.bracken,brackenGeometry(),
   mat('#ffffff',{side:THREE.DoubleSide}),p=>({

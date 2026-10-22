@@ -9,8 +9,9 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=9';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
+import {createForestGroundLife} from './forest-ground-life.js?v=1';
 import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=1';
-import {createForestEcology} from './forest-ecology.js?v=2';
+import {createForestEcology} from './forest-ecology.js?v=3';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
@@ -316,6 +317,7 @@ try {
   const forestLightPools=isPortalPreview?null:createForestLightPools(THREE,{scene,radius:R,heightAt});
   const forestAtmosphere=isPortalPreview?null:createForestAtmosphere(THREE,{scene,radius:R,heightAt});
   const forestFloor=isPortalPreview?null:createForestFloor(THREE,{scene,radius:R,heightAt});
+  const forestGroundLife=isPortalPreview?null:createForestGroundLife(THREE,{scene,radius:R,heightAt});
   relocateInstances();
   const hero=createTauren(THREE,scene,{player:true});
   const actor=hero.root;
@@ -378,6 +380,7 @@ try {
     forestLightPools?.setQuality(qualityName,isPortalPreview);
     forestAtmosphere?.setQuality(qualityName,isPortalPreview);
     forestFloor?.setQuality(qualityName,isPortalPreview);
+    forestGroundLife?.setQuality(qualityName,isPortalPreview);
     hero.visualDetails?.setQuality(isPortalPreview?.68:profile.detail);
     combatQualitySink?.(isPortalPreview?.15:profile.detail);
     if(qualityHelp)qualityHelp.textContent=
