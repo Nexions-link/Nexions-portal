@@ -25,6 +25,14 @@ export function createLandscapeMap(THREE,segments,size=1024){
    const edge=(patch-.5)*.6+(fine-.5)*.18;
    worn=Math.max(worn,1-smooth(s.width*.32,s.width*.67,distance+edge));
   }
+  // Bare mineral soil and damp turf break up the green meadow carpet.
+  const exposed=smooth(.33,.70,soil*.46+(1-patch)*.32+(1-moisture)*.22)*
+   (.25+.31*(1-dry))*(1-worn);
+  r+=(128+dry*7-r)*exposed;
+  g+=(91+moisture*5-g)*exposed;
+  b+=(63+dry*4-b)*exposed;
+  const damp=exposed*smooth(.45,.78,moisture*.73+(1-soil)*.27)*.29;
+  r+=(74-r)*damp;g+=(76-g)*damp;b+=(55-b)*damp;
   const dirt=patch*13+fine*8;
   r+=(151+dirt-r)*worn;g+=(126+dirt-g)*worn;b+=(81+dirt*.7-b)*worn;
   // Baked pebbles on trails and sun-bleached tufts elsewhere: no extra meshes.

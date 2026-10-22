@@ -1,4 +1,4 @@
-import {createLandscapeMap} from '../landscape.js?v=0.3.7.0';
+import {createLandscapeMap} from '../landscape.js?v=0.6.43.89';
 import {createSphericalMeadow} from './sphere-meadow.js?v=2';
 import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';

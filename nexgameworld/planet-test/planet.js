@@ -9,6 +9,7 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=9';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
+import {installForestGroundShader} from './forest-ground-shader.js?v=1';
 import {createForestEcology} from './forest-ecology.js?v=2';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
@@ -22,7 +23,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=46';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=47';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -181,7 +182,9 @@ try {
   }
   groundGeo.setAttribute('color', new THREE.BufferAttribute(colorData, 3));
   groundGeo.computeVertexNormals();
-  const ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({vertexColors: true, roughness: 1, flatShading: false}));
+  const groundMaterial=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:false});
+  const groundShading=installForestGroundShader(groundMaterial,{radius:R});
+  const ground=new THREE.Mesh(groundGeo,groundMaterial);
   scene.add(ground);
   // Reposition vertex data from immutable unit directions, so switching size
   // never accumulates distortion or scales terrain elevation in metres.
@@ -344,6 +347,7 @@ try {
   let combatQualitySink=null;
   function applyGraphicsQuality(){
     const profile=GRAPHICS_PRESETS[qualityName];
+    groundShading.setQuality(qualityName);
     const enabled=!isPortalPreview&&!state.orbit&&profile.shadowSize>0;
     renderer.setPixelRatio(effectivePixelRatio(qualityName,window.devicePixelRatio||1,isPortalPreview));
     renderer.toneMappingExposure=profile.exposure;
