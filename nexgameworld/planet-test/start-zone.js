@@ -1,4 +1,5 @@
-import {createLandscapeMap} from '../landscape.js?v=0.6.43.89';
+import {createLandscapeMap} from '../landscape.js?v=0.6.43.96';
+import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=11';
 import {createSphericalMeadow} from './sphere-meadow.js?v=2';
 import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';
@@ -20,7 +21,13 @@ export const START_RADIUS=261;
 const TAU=Math.PI*2;
 const smooth=(a,b,v)=>{const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)};
 export const LAKE={x:30,z:26,radiusX:17.2,radiusZ:12.5,maxDepth:10.5};
-export const ROUTES=[[[0,9],[-2,0],[-5,-12],[-8,-26],[-18,-42]],[[0,3],[13,5],[25,2],[38,-9]],[[0,9],[1,24],[12,37],[32,43]],
+// A shared geodesic connector continues the road into the tall forest.
+export const FOREST_ROAD_CONNECTOR=Object.freeze(Array.from({length:13},(_,i)=>{
+ const lon=.164+i*.018;
+ const p=forestLocalPoint(lon,forestTrailLatitude(lon),START_RADIUS);
+ return Object.freeze([p.x,p.z]);
+}));
+export const ROUTES=[[[0,9],[-2,0],[-5,-12],[-8,-26],[-18,-42]],[[0,3],[13,5],[25,2],[38,-9],...FOREST_ROAD_CONNECTOR],[[0,9],[1,24],[12,37],[32,43]],
  [[-34,-12],[-46,-10],[-57,-5],[BANDIT_CAMP.center.x,BANDIT_CAMP.center.z]],BANDIT_CHIEF_PATH];
 const PATHS=[];
 for(const [ri,route] of ROUTES.entries())for(let j=0;j<route.length-1;j++){const a=route[j],b=route[j+1];PATHS.push({ax:a[0],az:a[1],dx:b[0]-a[0],dz:b[1]-a[1],width:ri===4?1.85:2.55})}
@@ -254,8 +261,31 @@ export function createStartZone(three,scene,getRadius,heightAt){
   }
  }
  // The same procedural meadow and path map as the main NexGame.
- const routeSegments=ROUTES.flatMap((route,ri)=>route.slice(0,-1).map((a,i)=>({ax:a[0],az:a[1],bx:route[i+1][0],bz:route[i+1][1],width:ri===4?2.25:3.5})));
- const paintedMap=createLandscapeMap(THREE,routeSegments,1024);
+ // Curves soften the initial prototype's abrupt angular junctions.
+ // Everything is painted on the existing terrain, never new road collision.
+ const smoothRoute=route=>{
+  const points=[];
+  for(let i=0;i<route.length-1;i++){
+   const p0=route[Math.max(0,i-1)],p1=route[i],
+    p2=route[i+1],p3=route[Math.min(route.length-1,i+2)];
+   for(let step=0;step<3;step++){
+    const t=step/3,t2=t*t,t3=t2*t;
+    points.push([0,1].map(k=>.5*(2*p1[k]+(-p0[k]+p2[k])*t+
+     (2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+
+     (-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3)));
+   }
+  }
+  points.push(route.at(-1));
+  return points;
+ };
+ const routeSegments=ROUTES.flatMap((route,ri)=>{
+  const curve=smoothRoute(route);
+  return curve.slice(0,-1).map((a,i)=>({
+   ax:a[0],az:a[1],bx:curve[i+1][0],bz:curve[i+1][1],
+   width:ri===4?2.25:ri===1?3.25:3.5
+  }));
+ });
+ const paintedMap=createLandscapeMap(THREE,routeSegments,1280);
  const tileUVs=[];
  for(let i=0;i<points.length;i+=2)tileUVs.push((points[i]+95)/190,1-(points[i+1]+95)/190);
  const verts=new Float32Array(points.length/2*3);

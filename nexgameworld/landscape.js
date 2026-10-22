@@ -1,50 +1,86 @@
-// Painted landscape, baked once at startup. No extra per-frame work or RNG use.
+// NexGameWorld: deterministic baked meadow soil and organically feathered trails.
+// All surface changes are visual only: no new geometry, height or collision.
 const clamp01=v=>Math.max(0,Math.min(1,v));
-function smooth(a,b,v){const t=clamp01((v-a)/(b-a));return t*t*(3-2*t)}
+const smooth=(a,b,v)=>{const t=clamp01((v-a)/(b-a));return t*t*(3-2*t)};
+const mix=(a,b,t)=>a+(b-a)*clamp01(t);
 function hash(x,z){let n=Math.imul(x,374761393)^Math.imul(z,668265263);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295}
 function noise(x,z){const ix=Math.floor(x),iz=Math.floor(z),u=smooth(0,1,x-ix),v=smooth(0,1,z-iz);return (hash(ix,iz)*(1-u)+hash(ix+1,iz)*u)*(1-v)+(hash(ix,iz+1)*(1-u)+hash(ix+1,iz+1)*u)*v}
-
+export function prepareLandscapeRoutes(segments=[]){
+ return segments.filter(s=>Number.isFinite(s.ax)&&Number.isFinite(s.az)&&
+  Number.isFinite(s.bx)&&Number.isFinite(s.bz)).map(s=>({
+  ...s,dx:s.bx-s.ax,dz:s.bz-s.az,length2:Math.max(.00001,
+   (s.bx-s.ax)**2+(s.bz-s.az)**2),width:Math.max(.6,s.width||3.5),
+  minX:Math.min(s.ax,s.bx)-6,maxX:Math.max(s.ax,s.bx)+6,
+  minZ:Math.min(s.az,s.bz)-6,maxZ:Math.max(s.az,s.bz)+6
+ }));
+}
+export function landscapeGroundPixel(x,z,preparedRoutes=[]){
+ // World-space frequencies, so quality remains consistent when map resolution
+ // changes and the old grass/earth colour bands never repeat like a tiled rug.
+ const broad=noise(x*.057,z*.057),clump=noise(x*.18+31,z*.18-17);
+ const mineral=noise(x*.38-19,z*.38+37),moisture=noise(x*.092+11,z*.092-27);
+ const flecks=noise(x*1.45+17,z*1.45+7),grit=noise(x*4.15-12,z*4.15+35);
+ const dry=smooth(.29,.77,broad*.58+clump*.42);
+ const damp=smooth(.32,.74,moisture*.73+(1-mineral)*.27);
+ const earth=smooth(.38,.69,clump*.47+mineral*.39+(1-broad)*.14);
+ const moss=smooth(.38,.75,moisture*.45+broad*.32+(1-mineral)*.23);
+ // Character-sized patches of living grass, decomposing leaf litter and
+ // ochre mineral soil. Small colour variation is baked, never alpha-blended.
+ let r=mix(93,127,dry),g=mix(112,123,dry),b=mix(61,66,dry);
+ const soil=.16+.58*earth*(1-.22*moss);
+ r=mix(r,132,soil);g=mix(g,94,soil);b=mix(b,65,soil);
+ const wetMoss=.37*moss*(1-.42*earth);
+ r=mix(r,74,wetMoss);g=mix(g,105,wetMoss);b=mix(b,61,wetMoss);
+ const faded=(clump*.6+mineral*.4);
+ const litter=smooth(.54,.8,faded)*(.16+.26*dry);
+ r=mix(r,145,litter);g=mix(g,103,litter);b=mix(b,62,litter);
+ // Tangled grass tips and rough soil micro-grain.
+ const grain=(flecks-.5)*16+(grit-.5)*11;
+ r+=grain;g+=grain*.83;b+=grain*.63;
+ let worn=0,roadEdge=0;
+ for(const seg of preparedRoutes){
+  // Bounding-box rejection keeps startup cheap even with smoothed roads.
+  if(x<seg.minX||x>seg.maxX||z<seg.minZ||z>seg.maxZ)continue;
+  const t=clamp01(((x-seg.ax)*seg.dx+(z-seg.az)*seg.dz)/seg.length2);
+  const d=Math.hypot(x-seg.ax-seg.dx*t,z-seg.az-seg.dz*t);
+  // Eroded, scalloped verges replace the old uniform strip width.
+  const edge=(clump-.5)*.95+(mineral-.5)*.42+
+   (flecks-.5)*.17;
+  const path=1-smooth(seg.width*.32,seg.width*.99,d+edge);
+  if(path>worn){worn=path;roadEdge=d;}
+ }
+ if(worn>.001){
+  const dusty=smooth(.30,.8,mineral*.51+(1-moisture)*.49);
+  const mud=smooth(.57,.82,moisture*.55+clump*.45);
+  const gravel=(grit-.5)*14+(flecks-.5)*10;
+  // A walked-down middle, a pair of faint wheel/rain ruts, dry shoulders.
+  const pairedRuts=Math.exp(-Math.pow((roadEdge-1.14)/.24,2))*.11;
+  const midWear=(1-smooth(0,1.1,roadEdge))*.085;
+  const roadDry=mix(129,159,dusty)+gravel-midWear*28-pairedRuts*32;
+  const roadGreen=mix(106,132,dusty)+gravel*.76-midWear*19-pairedRuts*21;
+  const roadBlue=mix(73,92,dusty)+gravel*.54-midWear*12-pairedRuts*14;
+  const darkMud=worn*mud*.21;
+  r=mix(r,roadDry,worn);g=mix(g,roadGreen,worn);b=mix(b,roadBlue,worn);
+  r=mix(r,78,darkMud);g=mix(g,76,darkMud);b=mix(b,62,darkMud);
+  const pebble=worn*smooth(.915,.992,hash(Math.floor(x*3.8),Math.floor(z*3.8)));
+  r+=pebble*23;g+=pebble*23;b+=pebble*19;
+ }
+ return [Math.round(Math.max(0,Math.min(255,r))),
+  Math.round(Math.max(0,Math.min(255,g))),
+  Math.round(Math.max(0,Math.min(255,b))),255];
+}
 export function createLandscapeMap(THREE,segments,size=1024){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
  const context=canvas.getContext('2d'),image=context.createImageData(size,size),pixels=image.data;
- const routes=segments.map(s=>({...s,dx:s.bx-s.ax,dz:s.bz-s.az,length2:(s.bx-s.ax)**2+(s.bz-s.az)**2}));
+ const prepared=prepareLandscapeRoutes(segments);
  for(let py=0;py<size;py++)for(let px=0;px<size;px++){
   const x=(px+.5)/size*190-95,z=(py+.5)/size*190-95;
-  const broad=noise(x*.065,z*.065),patch=noise(x*.27+31,z*.27-17),fine=noise(x*1.3,z*1.3);
-  const dry=smooth(.34,.8,broad*.72+patch*.28),moisture=smooth(.24,.77,noise(x*.095+11,z*.095-27));
-  const grain=(hash(px,py)-.5)*9,soil=noise(x*.16-19,z*.16+37);
-  // Slow-changing golden/green meadow patches with fine blade-like flecks.
-  let r=84+dry*48+fine*8+soil*6-moisture*7;
-  let g=112+dry*18+fine*12+moisture*18;
-  let b=52+dry*19+fine*6+moisture*8;
-  // Capsule union rounds corners/junctions; broad noise breaks up the verge.
-  let worn=0;
-  for(const s of routes){
-   const t=clamp01(((x-s.ax)*s.dx+(z-s.az)*s.dz)/s.length2);
-   const distance=Math.hypot(x-s.ax-s.dx*t,z-s.az-s.dz*t);
-   const edge=(patch-.5)*.6+(fine-.5)*.18;
-   worn=Math.max(worn,1-smooth(s.width*.32,s.width*.67,distance+edge));
-  }
-  // Bare mineral soil and damp turf break up the green meadow carpet.
-  const exposed=smooth(.33,.70,soil*.46+(1-patch)*.32+(1-moisture)*.22)*
-   (.25+.31*(1-dry))*(1-worn);
-  r+=(128+dry*7-r)*exposed;
-  g+=(91+moisture*5-g)*exposed;
-  b+=(63+dry*4-b)*exposed;
-  const damp=exposed*smooth(.45,.78,moisture*.73+(1-soil)*.27)*.29;
-  r+=(74-r)*damp;g+=(76-g)*damp;b+=(55-b)*damp;
-  const dirt=patch*13+fine*8;
-  r+=(151+dirt-r)*worn;g+=(126+dirt-g)*worn;b+=(81+dirt*.7-b)*worn;
-  // Baked pebbles on trails and sun-bleached tufts elsewhere: no extra meshes.
-  const speck=hash(Math.floor(x*3.8),Math.floor(z*3.8));
-  const pebble=worn*smooth(.945,.996,speck);
-  const straw=(1-worn)*dry*smooth(.95,.998,speck);
-  r+=pebble*21+straw*24;g+=pebble*18+straw*12;b+=pebble*11+straw*4;
-  const i=(py*size+px)*4;pixels[i]=r+grain;pixels[i+1]=g+grain;pixels[i+2]=b+grain*.7;pixels[i+3]=255;
+  pixels.set(landscapeGroundPixel(x,z,prepared),(py*size+px)*4);
  }
  context.putImageData(image,0,0);
  const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;
- map.name='Painted meadow and feathered paths';return map;
+ map.name='NexGameWorld natural mineral meadow and continuous trails';
+ map.generateMipmaps=true;return map;
 }
 
 export function createSkyMap(THREE){

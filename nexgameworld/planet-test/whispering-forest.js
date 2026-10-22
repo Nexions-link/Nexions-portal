@@ -295,30 +295,10 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   p=>p.tint>.68?'#736046':p.tint>.34?'#514934':'#66573d','ground');
  const fallen=new THREE.CylinderGeometry(.7,.8,1,7);
  add('forest-fallen-timber',layout.logs,fallen,bark,p=>({y:p.width*.85,sx:p.width,sy:p.length,sz:p.width,rotationZ:Math.PI/2}),()=> '#514337','ground');
- // Thin curved path mesh follows terrain instead of creating another map.
- const vertices=[],indices=[],colors=[];
- const dirt=new THREE.Color('#77684a'),moss=new THREE.Color('#53624c'),segments=108;
- for(let i=0;i<=segments;i++){
-  const lon=.145+(FOREST_TRAIL_END-.145)*i/segments,center=forestTrailLatitude(lon);
-  const width=(1-smooth(.2,.65,lon))*2.65+smooth(.2,.65,lon)*2.1;
-  for(const side of [-1,1]){
-   const lat=center+side*width/radius,n=normalAt(lon,lat),point=radius+heightAt(n)+.10;
-   vertices.push(n.x*point,n.y*point,n.z*point);
-   const c=dirt.clone().lerp(moss,((i*11)%17)/57);
-   colors.push(c.r,c.g,c.b);
-  }
-  if(i<segments){const j=i*2;indices.push(j,j+1,j+2,j+1,j+3,j+2);}
- }
- const roadGeometry=new THREE.BufferGeometry();
- roadGeometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
- roadGeometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
- roadGeometry.setIndex(indices);roadGeometry.computeVertexNormals();
- const road=new THREE.Mesh(roadGeometry,new THREE.MeshStandardMaterial({
-  vertexColors:true,side:THREE.DoubleSide,roughness:1,
-  polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1
- }));
- road.name='forest-expedition-trail';scene.add(road);
-
+ // The earlier opaque road ribbon has been retired. The forest path is now
+ // baked into the one opaque planetary ground texture; this removes the
+ // obvious raised strip, edge seams, z-fighting and extra overdraw entirely.
+ // Layout, quest targets and server-authoritative collisions are unchanged.
  // A survey camp with tall trees around the clearing; purely visual, not yet a quest hub.
  const campRoot=new THREE.Group();campRoot.name='forest-expedition-camp';
  scene.add(campRoot);
