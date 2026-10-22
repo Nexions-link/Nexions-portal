@@ -9,6 +9,7 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=9';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
+import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=1';
 import {createForestEcology} from './forest-ecology.js?v=2';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
@@ -170,20 +171,27 @@ try {
   const pos = groundGeo.attributes.position;
   const colorData = new Float32Array(pos.count * 3);
   const groundDirections = new Float32Array(pos.count * 3);
+  // One baked texture on the existing opaque globe, never a replacement shader.
+  const groundTexture=isPortalPreview?null:createForestGroundTexture(THREE);
   const n0 = new THREE.Vector3();
+  const neutralForest=new THREE.Color('#ffffff');
   for (let i = 0; i < pos.count; i++) {
     n0.fromBufferAttribute(pos, i).normalize();
     groundDirections.set([n0.x, n0.y, n0.z], i * 3);
     const h = heightAt(n0), backgroundElevation=backgroundHeightAt(n0);
     pos.setXYZ(i, n0.x * (R + backgroundElevation), n0.y * (R + backgroundElevation), n0.z * (R + backgroundElevation));
     const c = colorAt(n0, h);
+    if(groundTexture){
+      const lon=Math.atan2(n0.x,n0.z),lat=Math.asin(clamp(n0.y,-1,1));
+      c.lerp(neutralForest,forestTextureMask(lon,lat));
+    }
     colorData[i * 3] = c.r; colorData[i * 3 + 1] = c.g; colorData[i * 3 + 2] = c.b;
   }
   groundGeo.setAttribute('color', new THREE.BufferAttribute(colorData, 3));
   groundGeo.computeVertexNormals();
   // Guaranteed opaque stock Three.js ground material. Never allow a failed custom
   // fragment shader to make the planet vanish on mobile Safari.
-  const groundMaterial=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,
+  const groundMaterial=new THREE.MeshStandardMaterial({map:groundTexture,vertexColors:true,roughness:1,
     flatShading:false,transparent:false,depthWrite:true,side:THREE.FrontSide});
   const ground=new THREE.Mesh(groundGeo,groundMaterial);
   scene.add(ground);
