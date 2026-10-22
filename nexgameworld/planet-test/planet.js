@@ -9,7 +9,6 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=9';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
-import {installForestGroundShader} from './forest-ground-shader.js?v=1';
 import {createForestEcology} from './forest-ecology.js?v=2';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
@@ -182,8 +181,10 @@ try {
   }
   groundGeo.setAttribute('color', new THREE.BufferAttribute(colorData, 3));
   groundGeo.computeVertexNormals();
-  const groundMaterial=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:false});
-  const groundShading=installForestGroundShader(groundMaterial,{radius:R});
+  // Guaranteed opaque stock Three.js ground material. Never allow a failed custom
+  // fragment shader to make the planet vanish on mobile Safari.
+  const groundMaterial=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,
+    flatShading:false,transparent:false,depthWrite:true,side:THREE.FrontSide});
   const ground=new THREE.Mesh(groundGeo,groundMaterial);
   scene.add(ground);
   // Reposition vertex data from immutable unit directions, so switching size
@@ -347,7 +348,6 @@ try {
   let combatQualitySink=null;
   function applyGraphicsQuality(){
     const profile=GRAPHICS_PRESETS[qualityName];
-    groundShading.setQuality(qualityName);
     const enabled=!isPortalPreview&&!state.orbit&&profile.shadowSize>0;
     renderer.setPixelRatio(effectivePixelRatio(qualityName,window.devicePixelRatio||1,isPortalPreview));
     renderer.toneMappingExposure=profile.exposure;
