@@ -43,7 +43,7 @@ export function coniferCrownData(variant=0){
   positions.push(x,y,z);colors.push(.77*light,.94*light,.83*light);
  }
  for(let level=0;level<whorls;level++){
-  const vertical=-.44+level*.192;
+  const vertical=-.40+level*.192;
   const radius=(.96-level*.168)*(level===0?1:.96);
   // Overlapping tapered branch fans, with ragged and drooping outer tips.
   for(let j=0;j<branches;j++){
