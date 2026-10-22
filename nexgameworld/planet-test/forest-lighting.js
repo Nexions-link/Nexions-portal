@@ -58,20 +58,29 @@ export function forestSunbreakLayout(seed=57021){
 // Four-channel vertex colours give each pool a soft fading rim without
 // textures, costly additional point lights, or a shader compilation path.
 function sunPoolGeometry(THREE){
- const position=[],color=[],facets=12;
- for(let i=0;i<facets;i++){
-  for(const [x,z,opacity] of [[0,0,.28],
-   [Math.cos(i*TAU/facets),Math.sin(i*TAU/facets),0],
-   [Math.cos((i+1)*TAU/facets),Math.sin((i+1)*TAU/facets),0]]){
-   position.push(x,0,z);
-   color.push(1,1,1,opacity);
+ // Dappled canopy light. Each shared instance scatters nine soft leaf-shaped
+ // islands, replacing an artificial perfect glowing disc. One draw call.
+ const position=[],color=[],islands=9,facets=9;
+ for(let leaf=0;leaf<islands;leaf++){
+  const phase=leaf*2.399963229728653,radial=leaf===0?0:.24+.11*(leaf%4);
+  const cx=radial*Math.cos(phase),cz=radial*Math.sin(phase);
+  const width=.21+.075*(leaf%3),depth=.17+.06*((leaf+1)%3);
+  for(let i=0;i<facets;i++){
+   const make=(a,r,opacity)=>{
+    const w=1+.14*Math.sin(a*3+leaf*.75);
+    position.push(cx+Math.cos(a)*width*r*w,0,
+     cz+Math.sin(a)*depth*r*w);
+    color.push(1,1,1,opacity);
+   };
+   make(0,0,.18+.09*(leaf%3)/2);
+   make(i*TAU/facets,1,0);
+   make((i+1)*TAU/facets,1,0);
   }
  }
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.Float32BufferAttribute(position,3));
  geo.setAttribute('color',new THREE.Float32BufferAttribute(color,4));
- geo.computeVertexNormals();
- return geo;
+ geo.computeVertexNormals();return geo;
 }
 
 export function createForestLightPools(THREE,{scene,radius,heightAt}){
