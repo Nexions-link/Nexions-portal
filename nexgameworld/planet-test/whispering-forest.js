@@ -1,6 +1,7 @@
 // P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
 import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=1';
+import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=1';
 const TAU=Math.PI*2;
 // Match the blocker exactly to the visible trunk's maximum ground radius.
 export const FOREST_TRUNK_BASE_SCALE=.78;
@@ -221,13 +222,20 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  const outerTuftGeo=makeForestCrownGeometry(THREE,'deciduous',2);
  const pineGeo=makeForestCrownGeometry(THREE,'conifer',0);
  const pineUpperGeo=makeForestCrownGeometry(THREE,'conifer',1);
- const bark=new THREE.MeshStandardMaterial({color:'#a6a09b',roughness:1});
- const detailedBark=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,vertexColors:true});
+ // The same tiny tiled bark atlas gives all ancient trunks, branches and
+ // fallen timber visible fissures, grain and relief without extra draw calls.
+ // A failed texture allocation always falls back to the old opaque materials.
+ const barkTextures=createForestBarkTextures(THREE);
+ const bark=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
+  map:barkTextures?.map||null,bumpMap:barkTextures?.bumpMap||null,bumpScale:.043});
+ const detailedBark=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
+  vertexColors:true,map:barkTextures?.map||null,
+  bumpMap:barkTextures?.bumpMap||null,bumpScale:.043});
  const leaves=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
   vertexColors:true,side:THREE.DoubleSide});
  const pine=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
   vertexColors:true,side:THREE.DoubleSide});
- const darkBark=p=>p.tint>.52?'#62544a':'#493f38';
+ const darkBark=p=>p.tint>.52?'#998779':'#806f61';
  const broad=layout.trees.filter(t=>!t.evergreen),ever=layout.trees.filter(t=>t.evergreen);
  // Buttress ribs are inside the existing trunk collision footprint (max .72
  // of trunk radius vs .78 collision), so they cannot create invisible walls.
@@ -382,6 +390,12 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   }
  }
  function setQuality(q,portal=false){
+  const barkProfile=forestBarkQuality(q,portal);
+  for(const material of [bark,detailedBark]){
+   const relief=barkProfile.bump?barkTextures?.bumpMap||null:null;
+   if(material.bumpMap!==relief){material.bumpMap=relief;material.needsUpdate=true;}
+   material.bumpScale=barkProfile.bumpScale;
+  }
   // Keep tree/canopy identities paired at all presets; only reduce ground detail.
   const groundFraction=portal?.13:q==='economy'?.28:q==='high'?1:.60;
   for(const {mesh,kind} of batches){

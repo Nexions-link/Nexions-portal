@@ -38,8 +38,14 @@ export function forestGroundPixel(lon,lat){
  r=mix(r,151,blendLeaf);g=mix(g,108,blendLeaf);b=mix(b,65,blendLeaf);
  // Existing road receives baked compacted dirt, no overlapping polygon.
  r=mix(r,145,path*.96);g=mix(g,117,path*.96);b=mix(b,82,path*.96);
- const grain=(noise(x*1.34+4,z*1.34+15)-.5)*21;
+ // Low-frequency canopy mottling, needle fall and grit break the smooth
+ // colour blanket without touching terrain geometry or its opacity.
+ const canopy=noise(x*.088-27,z*.088+49);
+ const dapple=smooth(.39,.73,canopy)*(1-path)*.13*mask;
+ const needles=(noise(x*.61+64,z*.61-23)-.5)*22*(1-path);
+ const grain=(noise(x*1.34+4,z*1.34+15)-.5)*21+needles;
  const fleck=(noise(x*3.28+37,z*3.28-13)-.5)*9;
+ r*=1-dapple;g*=1-dapple*.88;b*=1-dapple*.74;
  r=clamp((r+grain+fleck)/255)*255;
  g=clamp((g+grain*.86+fleck*.68)/255)*255;
  b=clamp((b+grain*.67+fleck*.47)/255)*255;
@@ -69,7 +75,7 @@ export function buildForestGroundPixels(width=1024,height=512){
  }
  return bytes;
 }
-export function createForestGroundTexture(THREE,{width=1024,height=512,documentRef=globalThis.document}={}){
+export function createForestGroundTexture(THREE,{width=1280,height=640,documentRef=globalThis.document}={}){
  if(!documentRef?.createElement)return null;
  try{
   const canvas=documentRef.createElement('canvas');
