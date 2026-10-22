@@ -1,5 +1,6 @@
-// P2.3.2-A: deterministic tall forest on the existing spherical world.
+// P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
+import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=1';
 const TAU=Math.PI*2;
 // Match the blocker exactly to the visible trunk's maximum ground radius.
 export const FOREST_TRUNK_BASE_SCALE=.78;
@@ -213,11 +214,19 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  }
  trunks.setAttribute('color',new THREE.Float32BufferAttribute(barkColors,3));
  barkVertices.needsUpdate=true;trunks.computeVertexNormals();
- const leafGeo=new THREE.IcosahedronGeometry(1,1),pineGeo=new THREE.ConeGeometry(1,1,9,2);
+ // Irregular branch whorls and individually lobed crowns replace the old
+ // perfect cones and spheres, but keep exactly the same tree locations.
+ const leafGeo=makeForestCrownGeometry(THREE,'deciduous',0);
+ const upperLeafGeo=makeForestCrownGeometry(THREE,'deciduous',1);
+ const outerTuftGeo=makeForestCrownGeometry(THREE,'deciduous',2);
+ const pineGeo=makeForestCrownGeometry(THREE,'conifer',0);
+ const pineUpperGeo=makeForestCrownGeometry(THREE,'conifer',1);
  const bark=new THREE.MeshStandardMaterial({color:'#a6a09b',roughness:1});
  const detailedBark=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,vertexColors:true});
- const leaves=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1});
- const pine=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1});
+ const leaves=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
+  vertexColors:true,side:THREE.DoubleSide});
+ const pine=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
+  vertexColors:true,side:THREE.DoubleSide});
  const darkBark=p=>p.tint>.52?'#62544a':'#493f38';
  const broad=layout.trees.filter(t=>!t.evergreen),ever=layout.trees.filter(t=>t.evergreen);
  // Buttress ribs are inside the existing trunk collision footprint (max .72
@@ -238,10 +247,10 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   p=>({y:.01,sx:p.radius,sy:2.3+p.radius*.36,sz:p.radius}),
   p=>p.tint>.52?'#483d35':'#5b4c3d');
  add('forest-ancient-trunks',layout.trees,trunks,detailedBark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
- add('forest-pine-lower',ever,pineGeo,pine,p=>({y:p.height*.69,sx:p.radius*3.2,sy:p.height*.48,sz:p.radius*3.2}),p=>p.tint>.5?'#3c5a48':'#344d41');
- add('forest-pine-crown',ever,pineGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?'#526d55':'#3d5f50');
- add('forest-oak-crown',broad,leafGeo,leaves,p=>({y:p.height*.79,sx:p.radius*3.9,sy:p.height*.21,sz:p.radius*3.8}),p=>p.tint>.52?'#42624b':'#526a4b');
- add('forest-oak-upper-crown',broad,leafGeo,leaves,p=>({y:p.height*.94,sx:p.radius*3.1,sy:p.height*.17,sz:p.radius*3.2}),p=>p.tint>.52?'#547557':'#42634d');
+ add('forest-pine-lower',ever,pineGeo,pine,p=>({y:p.height*.69,sx:p.radius*3.2*(.93+.14*p.tint),sy:p.height*.48,sz:p.radius*3.2*(1.07-.14*p.tint)}),p=>p.tint>.5?'#3c5a48':'#344d41');
+ add('forest-pine-crown',ever,pineUpperGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?'#526d55':'#3d5f50');
+ add('forest-oak-crown',broad,leafGeo,leaves,p=>({y:p.height*.79,sx:p.radius*3.9*(.94+.13*p.tint),sy:p.height*.21,sz:p.radius*3.8*(1.05-.12*p.tint)}),p=>p.tint>.52?'#42624b':'#526a4b');
+ add('forest-oak-upper-crown',broad,upperLeafGeo,leaves,p=>({y:p.height*.94,sx:p.radius*3.1,sy:p.height*.17,sz:p.radius*3.2}),p=>p.tint>.52?'#547557':'#42634d');
  // Instanced elevated boughs and small outer foliage masses make the crowns
  // feel multi-layered without hundreds of independent draw calls.
  const limbGeo=new THREE.CylinderGeometry(.43,.72,1,7,2);
@@ -249,7 +258,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   y:p.branchHeight,sx:p.radius*.24,sy:p.length,sz:p.radius*.24,
   rotationZ:p.tilt,offsetAlongAxis:p.length*.46
  }),darkBark,'detail');
- add('forest-crown-silhouettes',canopy.tufts,leafGeo,leaves,p=>({
+ add('forest-crown-silhouettes',canopy.tufts,outerTuftGeo,leaves,p=>({
   y:p.branchHeight,sx:p.bulge*1.35,sy:p.bulge*.58,sz:p.bulge*1.16,
   offsetX:p.spread
  }),p=>p.tint>.5?'#416047':'#587150','detail');
