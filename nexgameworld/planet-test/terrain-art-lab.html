@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1b2923">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Сад Каменного ветра · графический полигон NexGameWorld</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Arial,sans-serif;color:#e8e7d9;
+ --paper:rgba(18,30,26,.88);--line:rgba(181,202,159,.34);--gold:#dbbe87}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#20372e;touch-action:none}
+canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
+#labViewport{position:fixed;inset:0}
+.top{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));
+ right:calc(10px + env(safe-area-inset-right,0px));display:flex;align-items:flex-start;justify-content:space-between;gap:8px;pointer-events:none}
+.panel{border:1px solid var(--line);background:var(--paper);backdrop-filter:blur(10px);
+ box-shadow:0 8px 30px #0006;border-radius:12px;padding:10px 13px}
+.top .panel{max-width:min(470px,73vw);pointer-events:auto}
+.eyebrow{text-transform:uppercase;color:#d9c18d;letter-spacing:.15em;font-size:10px}
+h1{font:600 clamp(16px,4vw,22px)/1.14 Georgia,serif;margin:3px 0 4px;color:#f2edd2}
+.caption{font-size:11px;line-height:1.5;color:#c1c8b8}
+a{color:#f0d2a0;text-decoration:none}
+.back{pointer-events:auto;white-space:nowrap;font-size:12px;font-weight:650;min-height:39px;
+ background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px;color:#e9e1c6}
+.controls{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));right:calc(10px + env(safe-area-inset-right,0px));
+ display:flex;flex-direction:column;gap:7px;width:min(242px,46vw)}
+button,select{font:600 12px/1.2 system-ui;color:#ede4ce;background:#33463d;border:1px solid #71816a;
+ border-radius:9px;min-height:40px;padding:9px 11px;touch-action:manipulation}
+button:active,a:active{filter:brightness(1.22)}
+select{width:100%;font-size:13px;min-height:40px}
+.controls .panel{padding:10px}
+.control-row{display:flex;gap:6px}
+.control-row>*{flex:1;min-width:0}
+#fps{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:11px;color:#c8d6b7}
+#materials{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+#materials span{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#d6d5c1;
+ padding:3px 5px;background:#2b4035;border-radius:6px}
+#materials i{width:9px;height:9px;border-radius:3px}
+#qualityInfo{margin-top:6px;font-size:10px;color:#b8c8b8}
+#stick{position:fixed;left:calc(15px + env(safe-area-inset-left,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));
+ width:113px;height:113px;border-radius:100%;border:2px solid #b8c2a47c;background:#203d3499;
+ touch-action:none;box-shadow:0 0 35px #0007;display:grid;place-items:center}
+#nub{border-radius:100%;background:#b2c49d88;width:48px;height:48px;border:2px solid #d0debb;
+ pointer-events:none;box-shadow:0 0 10px #1118}
+#instructions{position:fixed;left:calc(12px + env(safe-area-inset-left,0px));
+ bottom:calc(150px + env(safe-area-inset-bottom,0px));max-width:162px;color:#d7e3cd;
+ font-size:10px;line-height:1.5;text-shadow:0 2px 8px #111}
+#loading{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;
+ color:#fff1d0;background:#1b2923ed;border:1px solid #b5ab81;padding:19px;border-radius:10px;
+ max-width:85vw;font-size:13px;line-height:1.6;pointer-events:none}
+#loading[hidden]{display:none}
+@media(max-width:400px){.top .panel{max-width:67vw;padding:9px}.caption{font-size:10px}
+ .controls{width:min(209px,49vw)}.controls .panel{padding:7px}button,select{padding:8px}}
+</style>
+</head>
+<body>
+<div id="labViewport"></div>
+<header class="top">
+ <div class="panel">
+  <div class="eyebrow">NexGameWorld · P2.4.1 · художественный эксперимент</div>
+  <h1>Сад Каменного ветра</h1>
+  <div class="caption">Отдельный природный сектор на сферической планете · 34 × 34 м.<br>
+   Игровые сохранения, персонаж и стартовая зона не меняются.</div>
+ </div>
+ <a class="back" href="/nexgameworld/">← В игру</a>
+</header>
+<div id="instructions">Джойстик — движение по площадке.<br>
+Свайп — камера. Два пальца — приблизить/отдалить.<br>
+На ПК: WASD, мышь и колесо.</div>
+<div id="stick" role="application" aria-label="Виртуальный джойстик"><div id="nub"></div></div>
+<div class="controls">
+ <div class="panel">
+  <div class="eyebrow">Материалы поверхности</div>
+  <div id="materials"></div>
+  <div id="qualityInfo"></div>
+ </div>
+ <div class="control-row">
+  <button type="button" id="compare">Показать без отделки</button>
+  <select id="quality" aria-label="Качество полигона">
+   <option value="economy">Экономично</option>
+   <option value="balanced" selected>Баланс</option>
+   <option value="high">Высокое</option>
+  </select>
+ </div>
+ <div class="panel" id="fps" aria-live="off">FPS —</div>
+</div>
+<div id="loading">Создаём оригинальные природные материалы NexGameWorld…</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
+<script type="module">
+ import('./terrain-art-lab-view.js?v=1').catch(error=>{
+  document.getElementById('loading').textContent='Не удалось открыть полигон: '+(error?.message||String(error));
+  console.error('NexGameWorld art lab:',error);
+ });
+</script>
+</body>
+</html>

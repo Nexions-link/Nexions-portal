@@ -576,7 +576,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.43.99" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.44.0" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -644,6 +644,11 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
   <label class="camera-follow-row" for="showFps"><input id="showFps" type="checkbox" role="switch" aria-describedby="fpsHelp"><span>Показывать FPS</span></label>
   <small id="fpsHelp" class="settings-help">FPS, P95 времени кадра и просадки измеряются локально. Для сравнения проверь поворот камеры, бой и дом.</small>
   <div class="fps-diagnostics-actions"><button type="button" id="copyFpsReport">Скопировать FPS-отчёт</button><button type="button" id="resetFpsReport">Сбросить замеры</button></div>
+   <div class="ngw-art-lab-entry" style="margin-top:14px;padding:10px;border:1px solid #76866d;border-radius:9px;background:#23382c;color:#e1e8d4;display:grid;gap:5px">
+    <strong style="font-size:13px">Новый графический полигон P2.4</strong>
+    <small style="font-size:11px;line-height:1.5;color:#c7d1bd">Сравни пять оригинальных природных материалов на удалённом участке планеты. Прогресс персонажа и стартовая зона не затрагиваются.</small>
+    <a id="openArtLab" href="/nexgameworld/planet-test/terrain-art-lab.html" style="min-height:39px;display:grid;place-items:center;color:#faf0d1;border:1px solid #a5b08e;background:#476047;border-radius:7px;text-decoration:none;font-size:12px;font-weight:700">Открыть художественный полигон ↗</a>
+   </div>
  </section><div id="choices"></div></div></div>
 
 <div id="labLegacy" hidden><div id="hud">
@@ -663,7 +668,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=204').catch(error=>{
+  import('./planet.js?v=205').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');
