@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {selectForestWolfLOD,FOREST_WOLF_GLB,FOREST_WOLF_REQUIRED_CLIPS,
  FOREST_WOLF_SWITCH,validateForestWolfAssets} from '../forest-wolf-glb.js';
 test('wolf LOD uses hysteresis and never swaps to distant while fighting',()=>{
@@ -20,4 +21,12 @@ test('wolf models are shared and the near one needs all combat clips',()=>{
  const far={scene:{}};
  assert.equal(validateForestWolfAssets(near,far),true);
  assert.equal(validateForestWolfAssets({...near,animations:[]},far),false);
+});
+
+test('wolf howl has an isolated pivot instead of accumulating bone rotation',()=>{
+ const source=readFileSync(new URL('../forest-wolf-glb.js',import.meta.url),'utf8');
+ assert.match(source,/howlPivot\.rotation\.x=-Math\.min/);
+ assert.match(source,/howlPivot\.rotation\.set\(0,0,0\)/);
+ assert.doesNotMatch(source,/head\.rotation\.x\s*[-+]=/);
+ assert.match(source,/setLOD\(distance,urgent\);/);
 });
