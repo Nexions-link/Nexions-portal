@@ -2,9 +2,12 @@
 // Replaces ONLY the client visuals for three deterministic existing forest trees.
 // The server's forest layout and all collision cylinders remain untouched.
 import {createAncientPine,ancientPineTrunkRadius}
- from './tree-library-ancient-pine.js?v=4';
+ from './tree-library-ancient-pine.js?v=5';
 import {createForestLibraryTree,forestTrunkRadius}
- from './tree-library-forest-types.js?v=4';
+ from './tree-library-forest-types.js?v=6';
+import {enableTreeInstanceCulling,simplifyForestBarkShading,
+ createForestShadowSilhouette,configurePilotTreeRender}
+ from './forest-tree-render-optimization.js?v=1';
 
 const TAU=Math.PI*2;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -96,6 +99,20 @@ export function createWhisperingForestTreePilot(THREE,{
    asset.group.userData.forestPilot=true;
    asset.group.userData.originalColliderRadius=fit.existingBlockerRadius;
    asset.group.userData.modelBaseRadius=fit.masterBaseRadius*fit.horizontal;
+   // Preserve all master triangles and leaf instances, but stop submitting
+   // canopy tiers hidden outside the camera frustum.
+   const culledInstances=enableTreeInstanceCulling(asset.group);
+   // Master geometry already contains all bark grooves; a normal map plus
+   // a duplicate bump pass wastes fragment work on a close-up tree.
+   const savedFragmentPasses=simplifyForestBarkShading(asset.group);
+   // Shadows use one cheap silhouette instead of re-rasterizing the entire
+   // sculpted bough/root surface. No new collision or visible proxy.
+   const shadow=createForestShadowSilhouette(THREE,{id,height:masterHeight});
+   asset.group.add(shadow);
+   asset.group.userData.rendererOptimizations={
+    culledInstances,savedFragmentPasses,shadowProxyTriangles:shadow.userData.triangleCount
+   };
+   configurePilotTreeRender(asset.group,{quality:'balanced'});
    scene.add(asset.group);
    models.push(asset);
    replaced.add(forestTreeKey(site));
@@ -109,12 +126,15 @@ export function createWhisperingForestTreePilot(THREE,{
   setQuality(quality,portal=false){
    for(const model of models){
     model.group.visible=!portal;
-    model.group.traverse(o=>{
-     if(o.isMesh&&!o.isInstancedMesh)o.castShadow=!portal&&quality==='high';
-    });
+    configurePilotTreeRender(model.group,{quality,portal});
    }
   },
-  dispose(){for(const m of models)m.dispose();},
+  dispose(){for(const m of models){
+   m.group.traverse(o=>{
+    if(o.userData.cosmeticShadow){o.geometry.dispose();o.material.dispose();}
+   });
+   m.dispose();
+  }},
   get count(){return models.length;}
  };
 }

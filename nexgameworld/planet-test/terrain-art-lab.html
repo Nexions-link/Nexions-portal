@@ -109,7 +109,7 @@ select{width:100%;font-size:13px;min-height:40px}
 <div id="loading">Создаём оригинальные природные материалы NexGameWorld…</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
 <script type="module">
- import('./terrain-art-lab-view.js?v=10').catch(error=>{
+ import('./terrain-art-lab-view.js?v=11').catch(error=>{
   document.getElementById('loading').textContent='Не удалось открыть полигон: '+(error?.message||String(error));
   console.error('NexGameWorld art lab:',error);
  });

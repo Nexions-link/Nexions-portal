@@ -200,23 +200,32 @@ export function createAncientPine(THREE,{seed=17,mapSize=1024,groundHeight=()=>0
      'Hero pine / fork '+layer+'-'+j+'-'+twig,false);
     for(let k=0;k<4;k++){
      placements.push([mix(x,end[0],k/3),mix(y,end[1],k/3),mix(z,end[2],k/3),
-      a+(k%2?-.42:.42),.55+.36*hash(layer*17+j*3+twig*5+k)]);
+      a+(k%2?-.42:.42),.55+.36*hash(layer*17+j*3+twig*5+k),layer]);
     }
    }
   }
  }
- const tuftGeom=createNeedleGeometry(THREE),tuft=new THREE.InstancedMesh(tuftGeom,needle,placements.length);
- const o=new THREE.Object3D(),tint=new THREE.Color();
- for(let i=0;i<placements.length;i++){
-  const [x,y,z,a,s]=placements[i];
-  o.position.set(x,y,z);o.rotation.set(Math.PI*.25+hash(i*15)*.7,a,hash(i*19)*TAU);
-  o.scale.set(s*.82,s,s*.91);o.updateMatrix();tuft.setMatrixAt(i,o.matrix);
-  tint.setHSL(.29+hash(i*71)*.05,.23+hash(i*9)*.09,.24+hash(i*31)*.14);
-  tuft.setColorAt(i,tint);
+ // All original needles remain present. Four independent instancing bounds
+ // prevent invisible canopy tiers from being drawn while inspecting the roots.
+ const tuftGeom=createNeedleGeometry(THREE),o=new THREE.Object3D(),tint=new THREE.Color();
+ for(let tier=0;tier<4;tier++){
+  const indices=[];
+  for(let i=0;i<placements.length;i++)
+   if(Math.floor(placements[i][5]/4)===tier)indices.push(i);
+  const tuft=new THREE.InstancedMesh(tuftGeom,needle,indices.length);
+  for(let k=0;k<indices.length;k++){
+   const i=indices[k],[x,y,z,a,s]=placements[i];
+   o.position.set(x,y,z);o.rotation.set(Math.PI*.25+hash(i*15)*.7,a,hash(i*19)*TAU);
+   o.scale.set(s*.82,s,s*.91);o.updateMatrix();tuft.setMatrixAt(k,o.matrix);
+   tint.setHSL(.29+hash(i*71)*.05,.23+hash(i*9)*.09,.24+hash(i*31)*.14);
+   tuft.setColorAt(k,tint);
+  }
+  tuft.instanceMatrix.needsUpdate=true;tuft.instanceColor.needsUpdate=true;
+  tuft.name='Hero pine / layered individual 3D needle tufts / tier '+tier;
+  tuft.castShadow=false;tuft.computeBoundingSphere();tuft.frustumCulled=true;
+  group.add(tuft);
  }
- tuft.instanceMatrix.needsUpdate=true;tuft.instanceColor.needsUpdate=true;
- tuft.name='Hero pine / layered individual 3D needle tufts';tuft.castShadow=false;tuft.frustumCulled=false;
- group.add(tuft);geometries.push(tuftGeom);
+ geometries.push(tuftGeom);
  const mossGeom=new THREE.IcosahedronGeometry(1,2),patches=260,
   moss=new THREE.InstancedMesh(mossGeom,mossMaterial,patches);
  for(let i=0;i<patches;i++){
@@ -228,7 +237,7 @@ export function createAncientPine(THREE,{seed=17,mapSize=1024,groundHeight=()=>0
   o.scale.set(size,size*(.65+hash(i*15)),size*.5);o.updateMatrix();
   moss.setMatrixAt(i,o.matrix);
  }
- moss.instanceMatrix.needsUpdate=true;moss.frustumCulled=false;
+ moss.instanceMatrix.needsUpdate=true;moss.computeBoundingSphere();moss.frustumCulled=true;
  moss.name='Hero pine / volumetric moss growing on bark';group.add(moss);geometries.push(mossGeom);
  // Merge the full sculpted branch/root geometry into one draw call without
  // reducing polygons or removing any detail. Prototype art stays lossless.

@@ -3,9 +3,9 @@ import {ART_LAB,artLabNormal,artLabWorldPoint,artLabBiomeHeight,
  artLabGroundDetails,artLabSurfaceQuality,artLabHeight} from './terrain-art-lab.js';
 import {createArtLabTextures} from './terrain-art-materials.js';
 import {createForestBarkTextures} from './forest-bark-texture.js';
-import {createAncientPine} from './tree-library-ancient-pine.js?v=4';
+import {createAncientPine} from './tree-library-ancient-pine.js?v=5';
 import {TREE_LIBRARY,TREE_GALLERY_SITES,createForestLibraryTree}
- from './tree-library-forest-types.js?v=4';
+ from './tree-library-forest-types.js?v=6';
 import {createWeatheredStoneGeometry} from './stone-surface.js';
 import {createStonewindShowcase} from './terrain-art-showcase.js?v=2';
 import {createDetailedCrownGeometry,createRidgedBarkSegment,mergeBarkParts,
