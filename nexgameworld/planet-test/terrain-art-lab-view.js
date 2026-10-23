@@ -92,6 +92,7 @@ let quality='balanced',finished=true,artEnabled=true,asset=null,pbr=null;
 let newTreesEnabled=params.get('tree')!=='before',dusk=params.get('light')==='dusk';
 let selectedTree=TREE_LIBRARY.findIndex(t=>t.id===params.get('species'));
 if(selectedTree<0)selectedTree=0;
+const treeVariation=clamp(Number(params.get('variation'))||0,0,2)|0;
 const grassData=artLabGroundDetails();
 const decorBatches=[];
 const tinted=(color,vertex=false)=>new THREE.MeshStandardMaterial({
@@ -166,8 +167,8 @@ for(let index=0;index<ART_LAB.treeSites.length;index++){
 const gallery= TREE_LIBRARY.map((entry,i)=>{
  const [x,z]=TREE_GALLERY_SITES[i];
  const groundHeight=(dx,dz)=>artLabHeight(x+dx,z+dz)-artLabHeight(x,z);
- const tree=i===0?createAncientPine(THREE,{seed:17,mapSize:1024,groundHeight}):
-  createForestLibraryTree(THREE,{id:entry.id,seed:17+i*9,mapSize:512,groundHeight});
+ const tree=i===0?createAncientPine(THREE,{seed:17+treeVariation*131,mapSize:1024,groundHeight}):
+  createForestLibraryTree(THREE,{id:entry.id,seed:17+i*9+treeVariation*131,mapSize:512,groundHeight});
  orient(tree.group,x,z);scene.add(tree.group);
  return tree;
 });
@@ -324,6 +325,16 @@ async function loadAtlas(preset){
 $('compare').addEventListener('click',()=>{artEnabled=!artEnabled;materialApply()});
 $('treeVariant').addEventListener('click',()=>{newTreesEnabled=!newTreesEnabled;qualityApply()});
 $('treeSelect').value=TREE_LIBRARY[selectedTree].id;
+$('treeVariation').value=String(treeVariation);
+$('treeVariation').addEventListener('change',e=>{
+ const url=new URL(location.href);
+ url.searchParams.set('species',TREE_LIBRARY[selectedTree].id);
+ url.searchParams.set('variation',e.target.value);
+ url.searchParams.set('tree',newTreesEnabled?'after':'before');
+ url.searchParams.set('light',dusk?'dusk':'day');
+ url.searchParams.set('view','pine');
+ location.assign(url.toString());
+});
 $('treeSelect').addEventListener('change',e=>{
  const id=TREE_LIBRARY.findIndex(t=>t.id===e.target.value);
  if(id>=0){selectedTree=id;focusTree(6.9)}

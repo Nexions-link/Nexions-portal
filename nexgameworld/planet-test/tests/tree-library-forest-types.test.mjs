@@ -79,5 +79,7 @@ test('gallery is presentation only: no gameplay, network, physics or quest modif
  assert.match(script,/newTreesEnabled/);
  assert.match(script,/groundHeight=/);
  assert.match(html,/treeSelect/);
+ assert.match(html,/treeVariation/);
+ assert.match(script,/treeVariation\*131/);
  assert.doesNotMatch(script,/WebSocket|accountLaunch|createSphericalPresence/);
 });
