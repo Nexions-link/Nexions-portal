@@ -12,6 +12,7 @@ import {createForestFloor} from './forest-floor.js?v=1';
 import {createForestGroundLife} from './forest-ground-life.js?v=2';
 import {createForestUnderstory} from './forest-understory.js?v=2';
 import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=2';
+import {createSurfaceMicrodetail} from './surface-microdetail.js?v=1';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
 import {createForestEcology} from './forest-ecology.js?v=4';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
@@ -26,7 +27,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=49';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=50';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -314,6 +315,7 @@ try {
   })();
   // Detailed native camp, lake and authentic procedural Tauren are isolated in start-zone.js.
   const startZone=createStartZone(THREE,scene,()=>R,heightAt);
+  const surfaceMicrodetail=isPortalPreview?null:createSurfaceMicrodetail(THREE,{scene,radius:R,heightAt});
   const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
   const roadsideDetails=isPortalPreview?null:createRoadsideDetails(THREE,{scene,radius:R,heightAt,startRoute:ROUTES[1]});
   const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
@@ -378,12 +380,12 @@ try {
     const sceneryDensity=graphicsDensity(qualityName);
     // The portal shows the latest village art without costly shadows or high DPR.
     if(isPortalPreview)sceneryDensity.detail=.68;
-    startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,shadows:enabled,portal:isPortalPreview});
+    startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,shadows:enabled,portal:isPortalPreview,microBump:surfaceMicrodetail?.reliefVillage});
     // The existing opaque forest map doubles as subtle material relief on
     // richer presets, adding zero GPU texture memory or custom shaders.
-    const relief=!isPortalPreview&&qualityName!=='economy'?groundTexture:null;
+    const relief=!isPortalPreview&&qualityName!=='economy'?(surfaceMicrodetail?.reliefGlobe||groundTexture):null;
     if(groundMaterial.bumpMap!==relief){groundMaterial.bumpMap=relief;groundMaterial.needsUpdate=true;}
-    groundMaterial.bumpScale=qualityName==='high'?.046:.022;
+    groundMaterial.bumpScale=qualityName==='high'?.074:.043;
     whisperingForest.setQuality(qualityName,isPortalPreview);
     roadsideDetails?.setQuality(qualityName,isPortalPreview);
     forestEcology?.setQuality(qualityName,isPortalPreview);
@@ -392,6 +394,7 @@ try {
     forestFloor?.setQuality(qualityName,isPortalPreview);
     forestGroundLife?.setQuality(qualityName,isPortalPreview);
     forestUnderstory?.setQuality(qualityName,isPortalPreview);
+    surfaceMicrodetail?.setQuality(qualityName,isPortalPreview);
     hero.visualDetails?.setQuality(isPortalPreview?.68:profile.detail);
     combatQualitySink?.(isPortalPreview?.15:profile.detail);
     if(qualityHelp)qualityHelp.textContent=

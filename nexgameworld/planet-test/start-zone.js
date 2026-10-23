@@ -406,7 +406,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
   patch.receiveShadow=shadowsEnabled;
   // Standard Three.js bump shading reuses the colour atlas, so no second
   // texture is needed on iPhone. The ground mesh never changes its shape.
-  const bump=(preset.detail??0)>=.60&&!preset.portal?paintedMap:null;
+  const bump=(preset.detail??0)>=.60&&!preset.portal?(preset.microBump||paintedMap):null;
   if(terrainMaterial.bumpMap!==bump){
    terrainMaterial.bumpMap=bump;terrainMaterial.needsUpdate=true;
   }
