@@ -100,8 +100,8 @@ select{width:100%;font-size:13px;min-height:40px}
   <button type="button" id="compare">Показать основу</button>
   <select id="quality" aria-label="Качество полигона">
    <option value="economy">Экономично</option>
-   <option value="balanced" selected>Баланс</option>
-   <option value="high">Максимум</option>
+   <option value="balanced">Баланс</option>
+   <option value="high" selected>Максимум</option>
   </select>
  </div>
  <div class="panel" id="fps" aria-live="off">FPS —</div>
@@ -109,7 +109,7 @@ select{width:100%;font-size:13px;min-height:40px}
 <div id="loading">Создаём оригинальные природные материалы NexGameWorld…</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
 <script type="module">
- import('./terrain-art-lab-view.js?v=8').catch(error=>{
+ import('./terrain-art-lab-view.js?v=9').catch(error=>{
   document.getElementById('loading').textContent='Не удалось открыть полигон: '+(error?.message||String(error));
   console.error('NexGameWorld art lab:',error);
  });

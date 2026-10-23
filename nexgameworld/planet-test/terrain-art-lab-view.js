@@ -88,7 +88,7 @@ const terrain=new THREE.Mesh(landGeo,simpleLand);terrain.receiveShadow=true;
 terrain.name='original-art-lab-surface-no-collision';
 scene.add(terrain);
 const params=new URLSearchParams(location.search);
-let quality='balanced',finished=true,artEnabled=true,asset=null,pbr=null;
+let quality='high',finished=true,artEnabled=true,asset=null,pbr=null;
 let newTreesEnabled=params.get('tree')!=='before',dusk=params.get('light')==='dusk';
 let selectedTree=TREE_LIBRARY.findIndex(t=>t.id===params.get('species'));
 if(selectedTree<0)selectedTree=0;

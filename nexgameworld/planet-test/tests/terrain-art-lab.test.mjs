@@ -109,7 +109,7 @@ test('lab access is standalone and does not alter the authenticated hero or star
  assert.match(main,/href="\/nexgameworld\/planet-test\/terrain-art-lab.html"/);
  for(const id of ['labViewport','quality','compare','materials','fps','stick'])
   assert.match(html,new RegExp('id="'+id+'"'));
- assert.match(html,/import\('\.\/terrain-art-lab-view\.js\?v=8'\)/);
+ assert.match(html,/import\('\.\/terrain-art-lab-view\.js\?v=9'\)/);
  assert.match(viewer,/ART_LAB\.treeSites/);
  assert.match(viewer,/createArtLabTextures/);
  assert.doesNotMatch(viewer,/createSphericalPresence|setCharacterPosition|fetch\(|WebSocket|accountLaunch/);
