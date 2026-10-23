@@ -3,6 +3,7 @@ import {ART_LAB,artLabNormal,artLabWorldPoint,artLabBiomeHeight,
  artLabGroundDetails,artLabSurfaceQuality} from './terrain-art-lab.js';
 import {createArtLabTextures} from './terrain-art-materials.js';
 import {createForestBarkTextures} from './forest-bark-texture.js';
+import {createAncientPine} from './tree-library-ancient-pine.js?v=1';
 import {createWeatheredStoneGeometry} from './stone-surface.js';
 import {createStonewindShowcase} from './terrain-art-showcase.js?v=2';
 import {createDetailedCrownGeometry,createRidgedBarkSegment,mergeBarkParts,
@@ -84,7 +85,9 @@ const simpleLand=new THREE.MeshStandardMaterial({
 const terrain=new THREE.Mesh(landGeo,simpleLand);terrain.receiveShadow=true;
 terrain.name='original-art-lab-surface-no-collision';
 scene.add(terrain);
+const params=new URLSearchParams(location.search);
 let quality='balanced',finished=true,artEnabled=true,asset=null,pbr=null;
+let pineEnabled=params.get('tree')!=='before',dusk=params.get('light')==='dusk';
 const grassData=artLabGroundDetails();
 const decorBatches=[];
 const tinted=(color,vertex=false)=>new THREE.MeshStandardMaterial({
@@ -154,6 +157,9 @@ for(let index=0;index<ART_LAB.treeSites.length;index++){
  group.add(stem,canopy);
  treeRoots.push(group);treeCrowns.push(canopy);
 }
+// T1: keep the original hero tree at the same spherical site for A/B comparison.
+const heroPine=createAncientPine(THREE,{seed:17,mapSize:1024});
+orient(heroPine.group,...ART_LAB.treeSites[0]);scene.add(heroPine.group);
 const rockGeo=createDetailedRockGeometry(THREE);
 const stoneMat=tinted('#dad7cb',true);
 for(let i=0;i<ART_LAB.rockSites.length;i++){
@@ -242,6 +248,7 @@ const compass=new THREE.Mesh(new THREE.RingGeometry(.7,.79,30),
  new THREE.MeshBasicMaterial({color:'#a8d4ac',transparent:true,opacity:.38,side:THREE.DoubleSide}));
 compass.rotation.x=-PI/2;marker.add(compass);
 const move={x:0,z:0},pose={x:0,z:0,yaw:-.24,pitch:.33,zoom:11.8};
+if(params.get('view')==='pine'){pose.x=.85;pose.z=5.1;pose.yaw=0;pose.zoom=7.4;}
 function qualityApply(){
  const q=artLabSurfaceQuality(quality);
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,q.dpr));
@@ -258,12 +265,20 @@ function qualityApply(){
  trunk.needsUpdate=true;
   scene.fog.near=quality==='high'?38:quality==='balanced'?32:24;
   scene.fog.far=quality==='high'?175:quality==='balanced'?147:112;
-  sun.intensity=quality==='high'?2.85:quality==='balanced'?2.45:2.0;
+  sun.intensity=dusk?.46:(quality==='high'?2.85:quality==='balanced'?2.45:2.0);
+  sun.color.set(dusk?'#b5c2ee':'#ffe1a8');
+  hemi.color.set(dusk?'#8aabc7':'#d7e4c9');
+  hemi.intensity=dusk?.68:1.19;
+  scene.background.set(dusk?'#263743':'#9aaea5');
+  scene.fog.color.set(dusk?'#405a5b':'#a3b7a3');
   renderer.toneMappingExposure=quality==='high'?1.09:1.12;
-  treeRoots.forEach(r=>{r.visible=artEnabled;
+  heroPine.group.visible=artEnabled&&pineEnabled;
+  treeRoots.forEach((r,i)=>{r.visible=artEnabled&&(i!==0||!pineEnabled);
    r.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh)o.castShadow=q.shadows&&quality==='high';});
   });
- $('qualityInfo').textContent=
+ $('treeVariant').textContent=pineEnabled?'Сосна T1 · показать до':'Сосна T1 · показать после';
+  $('lightMode').textContent=dusk?'Дневное освещение':'Сумерки';
+  $('qualityInfo').textContent=
   'Режим: '+quality+' · атлас '+(asset?.atlasSize||'…')+
   ' px · '+(quality==='high'?'максимальная детализация':quality==='balanced'?'живой лес':'облегчённый лес')+
    ' · сектор '+ART_LAB.lon.toFixed(2)+'/'+ART_LAB.lat.toFixed(2);
@@ -290,6 +305,11 @@ async function loadAtlas(preset){
  materialApply();$('loading').hidden=true;
 }
 $('compare').addEventListener('click',()=>{artEnabled=!artEnabled;materialApply()});
+$('treeVariant').addEventListener('click',()=>{pineEnabled=!pineEnabled;qualityApply()});
+$('lightMode').addEventListener('click',()=>{dusk=!dusk;qualityApply()});
+$('treeFocus').addEventListener('click',()=>{
+ pose.x=.85;pose.z=5.1;pose.yaw=0;pose.pitch=.26;pose.zoom=5.8;
+});
 $('quality').addEventListener('change',async e=>{
  quality=e.target.value;
  try{await loadAtlas(quality);if(pbr)pbr.normalScale.set(quality==='high'?.95:.71)}catch(err){$('loading').textContent='Ошибка материалов: '+err.message;}
@@ -313,7 +333,7 @@ renderer.domElement.addEventListener('pointermove',e=>{
 renderer.domElement.addEventListener('pointerup',()=>{dragging=false});
 renderer.domElement.addEventListener('pointercancel',()=>{dragging=false});
 renderer.domElement.addEventListener('wheel',e=>{
- e.preventDefault();pose.zoom=clamp(pose.zoom+e.deltaY*.012,4.8,25);
+ e.preventDefault();pose.zoom=clamp(pose.zoom+e.deltaY*.012,2.2,29);
 },{passive:false});
 renderer.domElement.addEventListener('touchstart',e=>{
  if(e.touches.length===2){
@@ -325,7 +345,7 @@ renderer.domElement.addEventListener('touchmove',e=>{
  if(e.touches.length!==2||!pinch)return;
  const next=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
   e.touches[0].clientY-e.touches[1].clientY);
- pose.zoom=clamp(pose.zoom*pinch/Math.max(1,next),4.8,25);pinch=next;
+ pose.zoom=clamp(pose.zoom*pinch/Math.max(1,next),2.2,29);pinch=next;
 },{passive:true});
 renderer.domElement.addEventListener('touchend',()=>{pinch=null},{passive:true});
 const keys=new Set();document.addEventListener('keydown',e=>{
