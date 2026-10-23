@@ -29,5 +29,12 @@
 - Геометрия корней/ветвей объединяется **без потери деталей**, чтобы не увеличивать draw calls на каждый сегмент.
 - Смена модели работает только в независимом Саду Каменного ветра, не меняет сохранения, многопользовательский сервер и лесные коллизии.
 - Ссылки фиксированного кадра: [до](https://nexions.ru/nexgameworld/planet-test/terrain-art-lab.html?view=pine&tree=before&light=day), [после](https://nexions.ru/nexgameworld/planet-test/terrain-art-lab.html?view=pine&tree=after&light=day), [сумерки](https://nexions.ru/nexgameworld/planet-test/terrain-art-lab.html?view=pine&tree=after&light=dusk).
-- Первый CI выявил два устаревших утверждения об идентификаторе страницы и параметре скрипта; тесты поправлены. Повторная проверка pending на момент фиксации этого журнала.
-- Известное ограничение: реальный рендер и визуальная оценка ещё не подтверждены браузерным скриншотом, поэтому T1 — TESTING, а не PUBLISHED.
+- Первый CI выявил два устаревших утверждения об идентификаторе страницы и параметре скрипта; тесты поправлены. Повторная проверка пройдена после синхронизации номера сборки с сервером.
+- Итог: CI клиента/сервера/нагрузки успешно пройден, зеркало и версия на Nexions.ru подтверждены production-аудитом. Тестирование реального WebGL-рендера и художественная приёмка на устройстве владельца остаются открытыми; поэтому статус T1 — TESTING.
+
+## Подтверждение релиза Alpha 0.6.44.4
+- Исходный релиз: `f32832b6f725dfb8eb0723c5b5532cac81cf4a7c` (`Nexgame/main`).
+- Проверка `NexGameWorld Spherical and Server CI`: **success**; `Planet Test CI`: **success**; серверные регрессии: **success**; нагрузочный gate: **success**.
+- Зеркало `Nexions-portal` содержит `nexgameworld/planet-test/version.json` с `0.6.44.4`, новый `tree-library-ancient-pine.js` и HTML полигона с управлением сравнением.
+- GitHub Actions `Verify NexGameWorld production release`: **success**; лог: `RELEASE READY {version:0.6.44.4,publishedSha:f32832b6…,serverReady:true}`. [Результат проверки](https://github.com/Nexions-link/Nexgame/actions/runs/40010362827).
+- Публикация проверена инфраструктурно; отсутствие автоматического скриншота WebGL означает, что эстетическая приёмка ещё требуется.
