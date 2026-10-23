@@ -38,6 +38,10 @@ export function createForestWolfGltf(THREE,nearAsset,farAsset){
   if(actions[name])actions[name].clampWhenFinished=true;
  }
  const head=near.getObjectByName('Head');
+ // Apply the howl on a separate parent pivot. Directly subtracting from the
+ // head rotation accumulates on rigs whose Idle clip does not key that bone.
+ const howlPivot=new THREE.Group();howlPivot.name='wolf-howl-pivot';
+ head.parent.add(howlPivot);howlPivot.add(head);
  let lod='near',mode=null;
  function forceNear(){
   lod='near';near.visible=true;far.visible=false;
@@ -71,10 +75,11 @@ export function createForestWolfGltf(THREE,nearAsset,farAsset){
   if(walking)actions[next].setEffectiveTimeScale(Math.min(2,Math.max(.65,speed/(next==='Run'?3.4:1.8))));
   mixer.update(Math.max(0,Math.min(dt,.12)));
   // Reapply the howl to the animated neck without changing origin or hitbox.
-  if(howl>0&&head)head.rotation.x-=Math.min(.52,howl*.5); // Mixer restores base pose every frame.
+  howlPivot.rotation.x=-Math.min(.52,Math.max(0,howl)*.5);
  }
  function reset(){
-  mixer.stopAllAction();mixer.timeScale=1;mode=null;forceNear();
+  mixer.stopAllAction();mixer.timeScale=1;mode=null;
+  howlPivot.rotation.set(0,0,0);forceNear();
  }
  return {container,near,far,mixer,actions,update,reset,forceNear,setLOD,
   get lod(){return lod;},get mode(){return mode;}};
