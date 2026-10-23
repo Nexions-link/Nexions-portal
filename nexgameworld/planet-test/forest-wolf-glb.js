@@ -61,7 +61,7 @@ export function createForestWolfGltf(THREE,nearAsset,farAsset){
  function update(dt,moved,{distance=0,windup=0,hit=0,howl=0,aggro=false,targeted=false}={}){
   // Prefer the complete rig during combat, warning howls, targeting and close viewing.
   const urgent=windup>0||hit>0||howl>0||targeted||distance<12;
-  if(setLOD(distance,urgent)==='far')return;
+  setLOD(distance,urgent); // Keep animation time advancing even while the far LOD is displayed.
   const speed=Math.max(0,moved)/Math.max(dt,.001);
   const traveling=moved>.008&&speed>.08;
   const next=hit>0?'Hurt':windup>0?'Attack':
@@ -71,7 +71,7 @@ export function createForestWolfGltf(THREE,nearAsset,farAsset){
   if(walking)actions[next].setEffectiveTimeScale(Math.min(2,Math.max(.65,speed/(next==='Run'?3.4:1.8))));
   mixer.update(Math.max(0,Math.min(dt,.12)));
   // Reapply the howl to the animated neck without changing origin or hitbox.
-  if(howl>0&&head)head.rotation.x-=Math.min(.52,howl*.5);
+  if(howl>0&&head)head.rotation.x-=Math.min(.52,howl*.5); // Mixer restores base pose every frame.
  }
  function reset(){
   mixer.stopAllAction();mixer.timeScale=1;mode=null;forceNear();
