@@ -4,7 +4,7 @@
 import {createAncientPine,ancientPineTrunkRadius}
  from './tree-library-ancient-pine.js?v=4';
 import {createForestLibraryTree,forestTrunkRadius}
- from './tree-library-forest-types.js?v=3';
+ from './tree-library-forest-types.js?v=4';
 
 const TAU=Math.PI*2;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));

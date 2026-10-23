@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import {ART_LAB,artLabHeight,artLabWorldPoint,artLabNormal}
  from '../terrain-art-lab.js';
 import {TREE_LIBRARY,TREE_GALLERY_SITES,forestBarkSample,
- createForestBarkMaps,forestTrunkRadius,trunkCenterAt,createForestLibraryTree}
+ createForestBarkMaps,forestTrunkRadius,trunkCenterAt,createForestLibraryTree,
+ speciesBranchGesture}
  from '../tree-library-forest-types.js';
 
 const ids=['tree_pine_ancient','tree_oak_whispering','tree_dead_sentinel',
@@ -82,4 +83,17 @@ test('gallery is presentation only: no gameplay, network, physics or quest modif
  assert.match(html,/treeVariation/);
  assert.match(script,/treeVariation\*131/);
  assert.doesNotMatch(script,/WebSocket|accountLaunch|createSphericalPresence/);
+});
+
+test('species-specific growth produces non-repetitive silhouettes',()=>{
+ const names=['tree_oak_whispering','tree_dead_sentinel','tree_broadleaf_moss','tree_root_ancient'];
+ const gestures=names.map(id=>speciesBranchGesture(id,.43,.84,5,17));
+ assert.equal(new Set(gestures.map(x=>x.rise.toFixed(5))).size,4);
+ assert.ok(gestures[1].leafWeight===0);
+ assert.ok(gestures[2].rise<gestures[1].rise);
+ assert.ok(gestures[3].turn>gestures[0].turn);
+ for(const g of gestures)assert.ok(Object.values(g).every(Number.isFinite));
+ assert.notDeepEqual(speciesBranchGesture(names[0],.20,.75,2,17),
+  speciesBranchGesture(names[0],.20,.75,3,17));
+ assert.throws(()=>speciesBranchGesture('alien',.4,.3,2,17),RangeError);
 });

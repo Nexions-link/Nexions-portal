@@ -5,7 +5,7 @@ import {createArtLabTextures} from './terrain-art-materials.js';
 import {createForestBarkTextures} from './forest-bark-texture.js';
 import {createAncientPine} from './tree-library-ancient-pine.js?v=4';
 import {TREE_LIBRARY,TREE_GALLERY_SITES,createForestLibraryTree}
- from './tree-library-forest-types.js?v=3';
+ from './tree-library-forest-types.js?v=4';
 import {createWeatheredStoneGeometry} from './stone-surface.js';
 import {createStonewindShowcase} from './terrain-art-showcase.js?v=2';
 import {createDetailedCrownGeometry,createRidgedBarkSegment,mergeBarkParts,
