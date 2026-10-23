@@ -2,6 +2,8 @@
 // Every tree has real 3D roots, branches and botanical silhouettes. No game
 // logic, saved state, network APIs, external models, or invisible colliders.
 import {mergeBarkParts} from './terrain-art-asset-polish.js';
+import {sculptedWoodPathGeometry,rootGrowthFlare,branchGrowthCollar,
+ cambiumRadiusModifier} from './tree-library-wood-sculpture.js?v=1';
 import {createAncientPine,ANCIENT_PINE_METADATA} from './tree-library-ancient-pine.js?v=3';
 const TAU=Math.PI*2,clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const mix=(a,b,t)=>a+(b-a)*t;
@@ -91,50 +93,48 @@ export function trunkCenterAt(id,t,seed=17){
  return [st.twist*sin(t*2.86+seed*.047)*Math.pow(t,1.35),
   st.twist*.71*cos(t*3.6+seed*.061)*Math.pow(t,1.28)];
 }
-export function forestTrunkRadius(id,t,angle,seed=17){
- const st=STYLES[id];if(!st)throw new RangeError('Unknown tree');
- const flare=st.radius*.55*Math.exp(-Math.pow(t/.10,2));
- const base=mix(st.radius,st.radius*.095,Math.pow(clamp(t),.73));
- const facet=1+.072*cos(angle*7+seed*.09+t*11)+.038*sin(angle*13-t*21);
- const ridge=.075*sin(angle*st.grooves+t*15+seed*.11)+
-  .040*cos(angle*27-t*57);
- return Math.max(.035,(base+flare)*facet+ridge);
-}
-function pathTube(THREE,points,radii,{sides=10}={}){
- const xyz=[],uv=[],indices=[];
- for(let i=0;i<points.length;i++){
-  const p=new THREE.Vector3(...points[i]),prev=new THREE.Vector3(...points[Math.max(0,i-1)]),
-   next=new THREE.Vector3(...points[Math.min(points.length-1,i+1)]),
-   tangent=next.sub(prev).normalize();
-  if(tangent.lengthSq()<.5)tangent.set(0,1,0);
-  const ref=Math.abs(tangent.y)>.94?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0);
-  const b=new THREE.Vector3().crossVectors(tangent,ref).normalize(),
-   c=new THREE.Vector3().crossVectors(b,tangent).normalize();
-  for(let j=0;j<=sides;j++){
-   const a=j*TAU/sides,r=radii[i],p2=p.clone()
-    .addScaledVector(b,r*cos(a)).addScaledVector(c,r*sin(a));
-   xyz.push(p2.x,p2.y,p2.z);uv.push(j/sides,i/(points.length-1)*2);
-   if(i<points.length-1&&j<sides){
-    const q=i*(sides+1)+j;
-    indices.push(q,q+sides+1,q+1,q+1,q+sides+1,q+sides+2);
-   }
-  }
+// Each joint swells the trunk surface itself. This removes the tell-tale
+// impression of a narrow stick simply intersecting a regular cylinder.
+function forestBranchAttachments(id,seed){
+ const st=STYLES[id],nodes=[];
+ for(let i=0;i<st.branches;i++){
+  const phase=i/st.branches,t=st.crownStart+(1-st.crownStart)*phase,
+   direction=i*2.39996+seed*.23+(i%3)*.20;
+  nodes.push({level:st.height*t,direction,weight:1-phase*.35});
  }
- const g=new THREE.BufferGeometry();
- g.setAttribute('position',new THREE.Float32BufferAttribute(xyz,3));
- g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
- g.setIndex(indices);g.computeVertexNormals();g.computeBoundingSphere();return g;
+ return nodes;
+}
+export function forestTrunkRadius(id,t,angle,seed=17,collars=null){
+ const st=STYLES[id];if(!st)throw new RangeError('Unknown tree');
+ t=clamp(t);const y=t*st.height;
+ const flare=st.radius*.52*Math.exp(-Math.pow(t/.095,2));
+ const base=mix(st.radius,st.radius*.105,Math.pow(t,.76));
+ const swell=rootGrowthFlare(y,angle,{count:st.roots,seed,phase:.11,
+  reach:st.radius*(id==='tree_root_ancient'?.63:.42),
+  spread:id==='tree_root_ancient'?.35:.29,
+  height:id==='tree_root_ancient'?4.35:2.9});
+ const attachments=collars||forestBranchAttachments(id,seed);
+ const junction=branchGrowthCollar(y,angle,attachments,{height:.38,strength:.23});
+ const cambium=cambiumRadiusModifier(y,angle,seed,{grain:.15,grooves:st.grooves});
+ const asymmetric=1+.065*Math.cos(angle*5+seed*.097+t*13)+.034*Math.sin(angle*11-t*19);
+ const furrow=.028*Math.sin(angle*31+y*13+.18*Math.cos(angle*7));
+ return Math.max(.035,(base+flare)*asymmetric+swell+junction+cambium+furrow);
+}
+function pathTube(THREE,points,radii,{sides=18,seed=17,kind='branch'}={}){
+ return sculptedWoodPathGeometry(THREE,points,radii,
+  {sides,seed,character:kind==='root'?1.4:1.0,kind,subdivisions:4});
 }
 function trunkGeometry(THREE,id,seed){
- const st=STYLES[id],rows=110,sides=80,vertices=[],uv=[],indices=[];
+ const st=STYLES[id],rows=148,sides=112,vertices=[],uv=[],indices=[],
+  collars=forestBranchAttachments(id,seed);
  for(let i=0;i<=rows;i++){
   const t=i/rows,[cx,cz]=trunkCenterAt(id,t,seed);
   for(let j=0;j<=sides;j++){
-   const a=j*TAU/sides,rad=forestTrunkRadius(id,t,a,seed);
+   const a=j*TAU/sides,rad=forestTrunkRadius(id,t,a,seed,collars);
    const end=id==='tree_dead_sentinel'?1.0-.08*(1+sin(a*7+seed)):1;
    const y=st.height*(i===rows?end:t);
    vertices.push(cx+cos(a)*rad,y,cz+sin(a)*rad);
-   uv.push(j/sides,t*3);
+   uv.push(j/sides,t*3.1);
    if(i<rows&&j<sides){
     const q=i*(sides+1)+j;indices.push(q,q+sides+1,q+1,q+1,q+sides+1,q+sides+2);
    }
@@ -221,10 +221,10 @@ export function createForestLibraryTree(THREE,{id,seed=17,mapSize=512,
     d=st.radius*.42+t*reach,rx=cos(angle)*d,rz=sin(angle)*d;
    const terrain=clamp(groundHeight(rx,rz),-1.5,1.5);
    points.push([rx,mix(.7,terrain-.045,t)+.24*sin(t*Math.PI),rz]);
-   rads.push(Math.max(.012,mix(st.radius*.34,.018,Math.pow(t,.78))*
+   rads.push(Math.max(.012,mix(st.radius*.42,.018,Math.pow(t,.78))*
     (1+.15*sin(t*14+root*3))));
   }
-  const rootGeom=pathTube(THREE,points,rads,{sides:14});
+  const rootGeom=pathTube(THREE,points,rads,{sides:20,seed:seed+root*7,kind:'root'});
   segments.push(new THREE.Mesh(rootGeom,bark));
  }
  let boughs=0;
@@ -235,23 +235,33 @@ export function createForestLibraryTree(THREE,{id,seed=17,mapSize=512,
    reach=st.reach*Math.pow(1-phase,.36)*asym,
    twist=id==='tree_root_ancient'?1.3:1;
   const [ox,oz]=trunkCenterAt(id,t,seed),
+   jointR=forestTrunkRadius(id,t,ang,seed),
+   originX=ox+cos(ang)*jointR*.74,originZ=oz+sin(ang)*jointR*.74,
    endX=ox+cos(ang)*reach,endZ=oz+sin(ang)*reach;
   const droop=id==='tree_broadleaf_moss'?-1.65:id==='tree_dead_sentinel'?.55:-.35;
   const points=[],rads=[];
   for(let j=0;j<=20;j++){
-   const f=j/20,bend=f*f*(.22*sin(i*19)+.20*twist);
-   points.push([mix(ox,endX,f)+sin(ang)*bend,
-    level+.7*sin(f*Math.PI)+droop*f*f, mix(oz,endZ,f)+cos(ang)*bend]);
-   rads.push(Math.max(.012,mix(.36*(1-phase*.65),.016,Math.pow(f,.84))));
+   const f=j/20,bend=f*f*(.38*sin(i*19+seed*.12)+.24*twist)+
+    .17*sin(f*5.8+i*1.77)*sin(Math.PI*f);
+   points.push([mix(originX,endX,f)+sin(ang)*bend,
+    level+(.82+.19*sin(i*6.8))*sin(f*Math.PI)+droop*f*f+
+     .17*Math.sin(f*4.1+i)*Math.sin(Math.PI*f),
+    mix(originZ,endZ,f)+cos(ang)*bend]);
+   rads.push(Math.max(.012,mix(.46*(1-phase*.65),.016,Math.pow(f,.84))*
+    (1+.12*Math.sin(f*14+i))));
   }
-  segments.push(new THREE.Mesh(pathTube(THREE,points,rads),bark));boughs++;
+  segments.push(new THREE.Mesh(pathTube(THREE,points,rads,{sides:18,seed:seed+i*11}),bark));boughs++;
   for(let fork=0;fork<4;fork++){
    const f=.43+fork*.13,r=reach*f,sp=(fork%2?1:-1)*(.75+.37*hash(i*13+fork)),
-    start=[ox+cos(ang)*r,level+.1,oz+sin(ang)*r],
+    start=points[Math.min(19,Math.floor(f*20))],
     tip=[start[0]+cos(ang)*reach*.16-sin(ang)*sp,
      start[1]+.55+(fork%3)*.18+(droop<0?-.33*fork:0),
-     start[2]+sin(ang)*reach*.16+cos(ang)*sp];
-   segments.push(new THREE.Mesh(pathTube(THREE,[start,tip],[.075,.012],{sides:7}),bark));
+     start[2]+sin(ang)*reach*.16+cos(ang)*sp],
+    mid=[mix(start[0],tip[0],.53)+.19*Math.sin(i+fork),
+     mix(start[1],tip[1],.53)+.21,
+     mix(start[2],tip[2],.53)+.19*Math.cos(i-fork)];
+   segments.push(new THREE.Mesh(pathTube(THREE,[start,mid,tip],[.085,.048,.009],
+    {sides:10,seed:seed+i*11+fork*3}),bark));
    if(st.leaf)for(let n=0;n<8;n++){
     const along=(n+.5)/8;
     placements.push([mix(start[0],tip[0],along),mix(start[1],tip[1],along),
@@ -302,7 +312,8 @@ export function createForestLibraryTree(THREE,{id,seed=17,mapSize=512,
   cavity.position.set(x,st.height*.82,z);cavity.name=id+' dark hollow interior';
   group.add(cavity);geometries.push(cavity.geometry);
  }
- group.userData.geometryCounts={branches:boughs,roots:st.roots,
+ group.userData.geometryCounts={sculptedWood:true,branchCollars:st.branches,
+  rootButtresses:st.roots,branches:boughs,roots:st.roots,
   leafClusters:placements.length,mossPatches:st.moss,height:st.height};
  return {group,maps:mats,metadata:meta,
   dispose(){group.parent?.remove(group);for(const g of geometries)g.dispose();

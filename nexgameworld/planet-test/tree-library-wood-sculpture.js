@@ -13,11 +13,11 @@ const wrapAngle=x=>Math.atan2(Math.sin(x),Math.cos(x));
 
 // Root flares rise organically INTO the same trunk shell. Root anchor directions
 // are exactly the directions used by the external root sculptures.
-export function rootGrowthFlare(y,angle,{count=9,seed=17,reach=1,phase=.11,
+export function rootGrowthFlare(y,angle,{count=9,seed=17,reach=1,phase=.11,jitter=0,
  spread=.33,height=2.8}={}){
  let sum=0;
  for(let j=0;j<count;j++){
-  const axis=j*TAU/count+seed*phase+(phase===.11?hash(j*13)*.20:0);
+  const axis=j*TAU/count+seed*phase+jitter*hash(j*13);
   const diff=wrapAngle(angle-axis-.13*Math.sin(y*.8+j));
   const width=spread*(1+.23*hash(j*13+seed));
   sum+=gaussian(diff,width)*(.65+.55*hash(j*31+seed));
