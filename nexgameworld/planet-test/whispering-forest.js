@@ -1,7 +1,7 @@
 // P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
 import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=1';
-import {createWhisperingForestTreePilot,forestTreeKey} from './whispering-forest-tree-pilot.js?v=1';
+import {createWhisperingForestTreePilot,forestTreeKey} from './whispering-forest-tree-pilot.js?v=2';
 import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=1';
 const TAU=Math.PI*2;
 // Match the blocker exactly to the visible trunk's maximum ground radius.
