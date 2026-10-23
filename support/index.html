@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1b22">
-<meta name="description" content="Добровольная поддержка автора NexGameWorld — бесплатной браузерной RPG.">
-<meta property="og:title" content="Поддержать NexGameWorld">
-<meta property="og:description" content="Добровольная поддержка разработки NexGameWorld.">
+<meta name="description" content="О NexGameWorld — бесплатной независимой браузерной RPG. Пригласите друзей исследовать наш мир.">
+<meta property="og:title" content="О проекте NexGameWorld">
+<meta property="og:description" content="NexGameWorld — бесплатная браузерная RPG. Лучший способ помочь развитию мира — поделиться игрой с друзьями.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="shortcut icon" href="/favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&display=swap" rel="stylesheet">
-<title>Поддержать разработку · NexGameWorld</title>
+<title>О проекте · NexGameWorld</title>
 <style>
 :root{color-scheme:dark}
 *,*::before,*::after{box-sizing:border-box}
@@ -37,17 +37,26 @@ main{text-align:center;margin:clamp(36px,7vh,76px) auto 0}
 .eyebrow{color:#aebeb5;font-size:11px;font-weight:700;letter-spacing:.19em;text-transform:uppercase}
 h1{margin:12px 0 16px;font:600 clamp(30px,6.8vw,50px)/1.18 "Cinzel",Georgia,serif;background:linear-gradient(180deg,#faeacc 9%,#dac08f 66%,#a78b61);-webkit-background-clip:text;background-clip:text;color:transparent}
 .lead{max-width:560px;margin:0 auto;color:#d1dcd4;font-size:clamp(15px,2.8vw,17px);line-height:1.75}
-.support-card{margin:32px auto 0;max-width:530px;border:1px solid rgba(190,164,111,.37);border-radius:14px;padding:28px clamp(16px,6vw,32px);background:linear-gradient(180deg,rgba(30,55,61,.84),rgba(13,32,39,.94));box-shadow:0 20px 60px rgba(0,0,0,.15)}
-.support-card h2{margin:0 0 7px;color:#f0dfb9;font:600 20px/1.4 system-ui,-apple-system,sans-serif}
-.support-card p{margin:0;color:#bfccc6;font-size:14px}
-.payment{display:flex;justify-content:center;align-items:center;margin:24px auto 10px}
-.payment-button{display:inline-flex;justify-content:center;align-items:center;gap:10px;width:min(100%,254px);min-height:52px;padding:12px 24px;border:1px solid #e8c98e;border-radius:8px;background:linear-gradient(180deg,#efd7a2,#d7b67a);color:#172820;font-weight:750;font-size:16px;line-height:1.2;letter-spacing:.015em;text-decoration:none;box-shadow:0 7px 19px rgba(3,14,18,.22),inset 0 1px 0 rgba(255,255,255,.35);transition:background .16s,transform .16s,box-shadow .16s}
-.payment-button:hover{background:linear-gradient(180deg,#f5e0b3,#e2c389);transform:translateY(-2px);box-shadow:0 9px 22px rgba(3,14,18,.27)}
-.payment-button:active{transform:translateY(0)}
-.payment-button:focus-visible{outline:3px solid #fff2cd;outline-offset:4px}
-.payment-button svg{flex-shrink:0;display:block;width:19px;height:19px}
-.payment-note{display:block;font-size:12px;color:#adc2bc}
-@media(prefers-reduced-motion:reduce){.payment-button{transition:none}}
+.share-card{margin:32px auto 0;max-width:530px;border:1px solid rgba(190,164,111,.37);border-radius:14px;padding:28px clamp(16px,6vw,32px);background:linear-gradient(180deg,rgba(30,55,61,.84),rgba(13,32,39,.94));box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.share-card h2{margin:0 0 7px;color:#f0dfb9;font:600 20px/1.4 system-ui,-apple-system,sans-serif}
+.share-card p{margin:0;color:#bfccc6;font-size:14px}
+.share-symbol{display:grid;place-items:center;width:54px;height:54px;margin:0 auto 18px;border:1px solid rgba(228,199,142,.5);border-radius:50%;background:radial-gradient(circle,rgba(232,195,129,.19),rgba(232,195,129,.03));color:#e9d19f;box-shadow:0 0 32px rgba(212,172,101,.09)}
+.share-symbol svg{width:27px;height:27px}
+.share-card h2{max-width:410px;margin:0 auto 12px!important;font:600 clamp(20px,4vw,24px)/1.35 "Cinzel",Georgia,serif!important}
+.share-card p{max-width:410px;margin:0 auto;color:#c5d1ca;font-size:14px;line-height:1.75}
+.share-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:24px auto 14px}
+.share-button,.copy-button{display:inline-flex;justify-content:center;align-items:center;gap:9px;min-height:48px;padding:11px 18px;border:1px solid #e8c98e;border-radius:8px;font:700 14px/1.25 system-ui,-apple-system,sans-serif;cursor:pointer;transition:transform .16s,background .16s,box-shadow .16s}
+.share-button{background:linear-gradient(180deg,#efd7a2,#d7b67a);color:#172820;box-shadow:0 7px 19px rgba(3,14,18,.22),inset 0 1px 0 rgba(255,255,255,.35)}
+.share-button:hover{background:linear-gradient(180deg,#f5e0b3,#e2c389);transform:translateY(-2px)}
+.copy-button{border-color:#68807a;background:rgba(8,28,35,.5);color:#e9dfca}
+.copy-button:hover{background:rgba(43,76,78,.7);transform:translateY(-2px)}
+.share-button:active,.copy-button:active{transform:translateY(0)}
+.share-button:focus-visible,.copy-button:focus-visible{outline:2px solid #fff2cd;outline-offset:3px}
+.share-button svg,.copy-button svg{width:18px;height:18px;flex-shrink:0}
+.game-link{display:inline-block;font-size:13px;color:#c9d4cd;text-decoration:none;border-bottom:1px solid rgba(201,212,205,.45);overflow-wrap:anywhere}
+.game-link:hover{color:#f0dfb9;border-bottom-color:#f0dfb9}
+.share-feedback{min-height:22px;margin-top:12px!important;font-size:12px!important;color:#dbd0a8!important}
+@media(prefers-reduced-motion:reduce){.share-button,.copy-button{transition:none}}
 .details{margin:32px auto 0;max-width:560px;text-align:left}
 .details h2{margin:0 0 10px;color:#e6d3a9;font-size:16px}
 .details p{margin:0 0 12px;color:#bdcac5;font-size:14px}
@@ -58,8 +67,8 @@ h1{margin:12px 0 16px;font:600 clamp(30px,6.8vw,50px)/1.18 "Cinzel",Georgia,seri
  .wrap{padding:19px 16px max(32px,env(safe-area-inset-bottom))}
  .topbar .brand{font-size:16px}
  main{margin-top:38px}
- .support-card{margin-top:28px;padding:23px 13px}
- .support-card h2{font-size:18px}
+ .share-card{margin-top:28px;padding:23px 13px}
+ .share-card h2{font-size:18px}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
@@ -72,25 +81,31 @@ h1{margin:12px 0 16px;font:600 clamp(30px,6.8vw,50px)/1.18 "Cinzel",Georgia,seri
 </header>
 <main>
  <div class="eyebrow">Независимая браузерная RPG</div>
- <h1>Поддержать разработку</h1>
- <p class="lead">NexGameWorld — бесплатная игра, которую я развиваю как независимый проект. Если вам нравится наш мир, вы можете добровольно поддержать его создание.</p>
- <section class="support-card" aria-labelledby="support-title">
-  <h2 id="support-title">Подарить автору</h2>
-  <p>Размер поддержки вы выбираете самостоятельно. Она не влияет на игровой процесс.</p>
-  <div class="payment">
-   <a class="payment-button" href="https://yoomoney.ru/to/4100110140800450" target="_blank" rel="noopener noreferrer" aria-label="Подарить автору — перейти на страницу сбора ЮMoney">
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>
-    Подарить
-   </a>
+ <h1>Наш мир начинается здесь</h1>
+ <p class="lead">NexGameWorld — бесплатная браузерная RPG с оригинальным фэнтезийным миром. Мы постепенно наполняем его лесами, поселениями, приключениями и новыми возможностями для игроков.</p>
+ <section class="share-card" aria-labelledby="share-title">
+  <div class="share-symbol" aria-hidden="true">
+   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.6 6.6-4.2M8.7 13.4l6.6 4.2"/></svg>
   </div>
-  <span class="payment-note">Перевод оформляется на защищённой странице ЮMoney</span>
+  <h2 id="share-title">Лучшая поддержка — поделиться игрой</h2>
+  <p>Расскажите о NexGameWorld друзьям и пригласите их в путешествие. Каждый новый игрок помогает нашему миру становиться больше, интереснее и живее.</p>
+  <div class="share-actions">
+   <button class="share-button" id="shareGame" type="button">
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3m0 0L7 8m5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
+    Поделиться игрой
+   </button>
+   <button class="copy-button" id="copyGame" type="button">
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+    Скопировать ссылку
+   </button>
+  </div>
+  <a class="game-link" href="/nexgameworld/">nexions.ru/nexgameworld/</a>
+  <p class="share-feedback" id="shareFeedback" role="status" aria-live="polite"></p>
  </section>
  <section class="details" aria-labelledby="details-title">
-  <h2 id="details-title">На что помогает поддержка</h2>
-  <p>Средства помогают автору оплачивать серверы, необходимые для проекта инструменты и работу над новыми игровыми материалами.</p>
-  <div class="disclaimer">
-   Поддержка представляет собой добровольный безвозмездный денежный подарок автору — физическому лицу. Она не является оплатой товаров, услуг, доступа к игре, внутриигровых предметов или преимуществ и не предполагает обязательств по выпуску конкретных обновлений. Участие полностью добровольное.
-  </div>
+  <h2 id="details-title">О NexGameWorld</h2>
+  <p>Это независимый проект, который растёт вместе с игроками. Мы улучшаем графику и атмосферу мира, создаём задания, развиваем боевую систему и возможности совместных приключений.</p>
+  <p>Игра находится в альфа-разработке, поэтому многое ещё меняется. Исследуйте мир, делитесь впечатлениями и возвращайтесь посмотреть, каким он стал.</p>
  </section>
  <nav class="bottom-links" aria-label="Другие разделы">
   <a href="/nexgameworld/account.html">Войти в мир</a>
@@ -98,5 +113,49 @@ h1{margin:12px 0 16px;font:600 clamp(30px,6.8vw,50px)/1.18 "Cinzel",Georgia,seri
  </nav>
 </main>
 </div>
+<script>
+(()=>{
+ 'use strict';
+ const gameUrl='https://nexions.ru/nexgameworld/';
+ const shareButton=document.getElementById('shareGame');
+ const copyButton=document.getElementById('copyGame');
+ const feedback=document.getElementById('shareFeedback');
+ const notify=text=>{feedback.textContent=text};
+ async function copyLink(){
+   try{
+     if(navigator.clipboard&&window.isSecureContext){
+       await navigator.clipboard.writeText(gameUrl);
+     }else{
+       const input=document.createElement('textarea');
+       input.value=gameUrl;
+       input.setAttribute('readonly','');
+       input.style.position='fixed';
+       input.style.opacity='0';
+       document.body.appendChild(input);
+       input.select();
+       const copied=document.execCommand('copy');
+       input.remove();
+       if(!copied)throw Error('Clipboard unavailable');
+     }
+     notify('Ссылка скопирована. Отправьте её друзьям!');
+   }catch{
+     notify('Выделите и скопируйте адрес игры под кнопками.');
+   }
+ }
+ copyButton.addEventListener('click',copyLink);
+ shareButton.addEventListener('click',async()=>{
+   if(navigator.share){
+     try{
+       await navigator.share({title:'NexGameWorld',text:'Приглашаю тебя в NexGameWorld — бесплатную браузерную RPG!',url:gameUrl});
+       notify('');
+     }catch(error){
+       if(error&&error.name!=='AbortError')await copyLink();
+     }
+   }else{
+     await copyLink();
+   }
+ });
+})();
+</script>
 </body>
 </html>
