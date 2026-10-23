@@ -1,4 +1,6 @@
 import {mergeBarkParts} from './terrain-art-asset-polish.js';
+import {sculptedWoodPathGeometry,rootGrowthFlare,branchGrowthCollar,
+ cambiumRadiusModifier} from './tree-library-wood-sculpture.js?v=1';
 // NGW-ART-TREES-001 / T1. Original hero pine for the Stonewind art lab.
 // Procedural master: no extracted game materials, gameplay hooks or colliders.
 const TAU = Math.PI * 2;
@@ -74,39 +76,33 @@ export function createOldPineMaps(THREE,{width=1024,height=2048}={}){
   roughnessMap:texture(rough,false,'NGW old pine roughness'),
   heightMap:texture(relief,false,'NGW old pine height / bump')};
 }
-export function ancientPineTrunkRadius(y,angle,seed=7){
- const t=clamp(y/28),base=mix(1.37,.13,Math.pow(t,.71));
- const flare=.67*Math.exp(-Math.pow(t/.075,2));
- const macro=1+.075*Math.sin(angle*7+seed*.17+t*8)+.034*Math.cos(angle*13-t*18);
- const micro=.045*snoise(angle*2.4,t*19)+.018*Math.sin(angle*31+t*54);
- const plate=oldPineBarkSample(angle/TAU,t*3).height;
- return Math.max(.085,(base+flare)*macro+micro+.085*(plate-.5));
-}
-function pathGeometry(THREE,points,radii,{sides=12}={}){
- const positions=[],uv=[],indices=[];
- for(let i=0;i<points.length;i++){
-  const p=new THREE.Vector3(...points[i]),
-   prev=new THREE.Vector3(...points[Math.max(0,i-1)]),
-   next=new THREE.Vector3(...points[Math.min(points.length-1,i+1)]),
-   axis=next.sub(prev).normalize();
-  const helper=Math.abs(axis.y)>.92?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0);
-  const right=new THREE.Vector3().crossVectors(axis,helper).normalize(),
-   front=new THREE.Vector3().crossVectors(right,axis).normalize();
-  for(let j=0;j<=sides;j++){
-   const a=j*TAU/sides,r=radii[i],vertex=p.clone().addScaledVector(right,Math.cos(a)*r)
-    .addScaledVector(front,Math.sin(a)*r);
-   positions.push(...vertex);uv.push(j/sides,i/(points.length-1)*2);
-   if(i<points.length-1&&j<sides){
-    const k=i*(sides+1)+j;
-    indices.push(k,k+sides+1,k+1,k+1,k+sides+1,k+sides+2);
-   }
+function pineBranchAttachments(seed){
+ const anchors=[];
+ for(let layer=0;layer<16;layer++){
+  const h=8+layer*1.07,count=layer<4?6:layer<12?7:5;
+  for(let j=0;j<count;j++){
+   const a=(j+(layer%2)*.46)*TAU/count+seed*.031;
+   anchors.push({level:h,direction:a,weight:1-layer*.038});
   }
  }
- const g=new THREE.BufferGeometry();
- g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
- g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
- g.setIndex(indices);g.computeVertexNormals();g.computeBoundingSphere();
- return g;
+ return anchors;
+}
+export function ancientPineTrunkRadius(y,angle,seed=7,collars=null){
+ const t=clamp(y/28),base=mix(1.37,.13,Math.pow(t,.71));
+ const flare=.67*Math.exp(-Math.pow(t/.075,2));
+ const macro=1+.068*Math.sin(angle*7+seed*.17+t*8)+.034*Math.cos(angle*13-t*18);
+ const plate=oldPineBarkSample(angle/TAU,t*3).height;
+ const root=rootGrowthFlare(y,angle,{count:9,seed,phase:.11,jitter:.20,
+  reach:.57,spread:.27,height:2.65});
+ const collar=branchGrowthCollar(y,angle,collars||pineBranchAttachments(seed),
+  {height:.25,strength:.12});
+ const cambium=cambiumRadiusModifier(y,angle,seed,{grain:.083,grooves:12});
+ const micro=.035*snoise(angle*2.4,t*19)+.020*Math.sin(angle*31+t*54);
+ return Math.max(.085,(base+flare)*macro+root+collar+cambium+micro+.085*(plate-.5));
+}
+function pathGeometry(THREE,points,radii,{sides=18,seed=17,kind='branch'}={}){
+ return sculptedWoodPathGeometry(THREE,points,radii,
+  {sides,seed,character:kind==='root'?1.35:1.1,kind,subdivisions:4});
 }
 function createNeedleGeometry(THREE){
  const positions=[],colors=[];
@@ -144,11 +140,12 @@ export function createAncientPine(THREE,{seed=17,mapSize=1024,groundHeight=()=>0
  const add=(g,m,name,cast=true)=>{const o=new THREE.Mesh(g,m);o.name=name;o.castShadow=cast;
   o.receiveShadow=true;group.add(o);meshes.push(o);geometries.push(g);return o;};
  // 28 m sculpted trunk, asymmetric in angle and height (actual silhouette relief).
- const trunk=new THREE.CylinderGeometry(.13,1.37,28,96,140,false);
+ const trunk=new THREE.CylinderGeometry(.13,1.37,28,112,172,false);
+ const collars=pineBranchAttachments(seed);
  const p=trunk.getAttribute('position'),uv=trunk.getAttribute('uv');
  for(let i=0;i<p.count;i++){
   const x=p.getX(i),z=p.getZ(i),y=p.getY(i)+14,a=Math.atan2(z,x);
-  const r=ancientPineTrunkRadius(y,a,seed),rr=Math.hypot(x,z)||1;
+  const r=ancientPineTrunkRadius(y,a,seed,collars),rr=Math.hypot(x,z)||1;
   p.setXYZ(i,x/rr*r,y,z/rr*r);
   uv.setY(i,uv.getY(i)*3.1);
  }
@@ -166,9 +163,10 @@ export function createAncientPine(THREE,{seed=17,mapSize=1024,groundHeight=()=>0
    const surface=clamp(groundHeight(Math.cos(theta)*rad,Math.sin(theta)*rad),-1.5,1.5);
    const y=mix(.36,surface-.05,t)+.20*Math.sin(Math.PI*t);
    points.push([Math.cos(theta)*rad,y,Math.sin(theta)*rad]);
-   radii.push(Math.max(.018,mix(.49,.026,Math.pow(t,.77))*(1+.13*Math.sin(t*13+j))));
+   radii.push(Math.max(.018,mix(.64,.026,Math.pow(t,.76))*(1+.19*Math.sin(t*12+j*3))));
   }
-  add(pathGeometry(THREE,points,radii,{sides:14}),wood,'Hero pine / root '+j);
+  add(pathGeometry(THREE,points,radii,{sides:22,seed:seed+j*19,kind:'root'}),wood,
+   'Hero pine / root '+j);
  }
  // Crown: layered age-distributed boughs, bare lower stem, open gaps,
  // nested secondary twigs. Pseudo-random but deterministic and reproducible.
@@ -178,20 +176,27 @@ export function createAncientPine(THREE,{seed=17,mapSize=1024,groundHeight=()=>0
   for(let j=0;j<whorlCount;j++){
    const a=(j+(layer%2)*.46)*TAU/whorlCount+seed*.031,
     asym=.75+.42*hash(layer*97+j*11),reach=(6.7-layer*.27)*asym;
-   const sx=.08*Math.sin(h*.22),sz=.12*Math.cos(h*.19);
+   const sx=.08*Math.sin(h*.22),sz=.12*Math.cos(h*.19),
+    trunkR=ancientPineTrunkRadius(h,a,seed,collars);
    const px=sx+Math.cos(a)*reach,pz=sz+Math.sin(a)*reach;
    const ey=h-.48-(j%3)*.20+layer*.014;
-   const pts=[[sx,h,sz],[sx+Math.cos(a)*reach*.32,h+.12,sz+Math.sin(a)*reach*.32],
-    [sx+Math.cos(a)*reach*.69,h-.18,sz+Math.sin(a)*reach*.69],
-    [px,ey,pz]],rs=[.20-.005*layer,.16-.005*layer,.075,.017];
-   add(pathGeometry(THREE,pts,rs,{sides:10}),wood,'Hero pine / primary bough '+layer+'-'+j,false);
+   const pts=[[sx+Math.cos(a)*trunkR*.74,h,sz+Math.sin(a)*trunkR*.74],
+    [sx+Math.cos(a)*reach*.30,h+.25,sz+Math.sin(a)*reach*.30],
+    [sx+Math.cos(a)*reach*.66+Math.sin(a)*.15,h-.21,
+     sz+Math.sin(a)*reach*.66-Math.cos(a)*.15],
+    [px,ey,pz]],rs=[.29-.009*layer,.23-.008*layer,.082,.016];
+   add(pathGeometry(THREE,pts,rs,{sides:16,seed:seed+layer*17+j*23}),wood,
+    'Hero pine / primary bough '+layer+'-'+j,false);
+   const primaryCurve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
    for(let twig=0;twig<5;twig++){
     const t=.40+twig*.13,spread=(twig%2?1:-1)*(.55+.25*hash(j*33+twig)),
-     x=sx+Math.cos(a)*reach*t,z=sz+Math.sin(a)*reach*t,
-     y=h+(ey-h)*t;
+     root=primaryCurve.getPoint(t),x=root.x,y=root.y,z=root.z;
     const end=[x+Math.cos(a)*reach*.16-Math.sin(a)*spread,
-     y+.19+.09*twig,z+Math.sin(a)*reach*.16+Math.cos(a)*spread];
-    add(pathGeometry(THREE,[[x,y,z],end],[.055,.008],{sides:6}),wood,
+     y+.19+.09*twig,z+Math.sin(a)*reach*.16+Math.cos(a)*spread],
+     mid=[mix(x,end[0],.51)+.11*Math.sin(t*19+layer),
+      mix(y,end[1],.51)+.14,mix(z,end[2],.51)+.11*Math.cos(t*13+j)];
+    add(pathGeometry(THREE,[[x,y,z],mid,end],[.068,.041,.009],
+     {sides:11,seed:seed+layer*27+j*5+twig}),wood,
      'Hero pine / fork '+layer+'-'+j+'-'+twig,false);
     for(let k=0;k<4;k++){
      placements.push([mix(x,end[0],k/3),mix(y,end[1],k/3),mix(z,end[2],k/3),
@@ -216,7 +221,7 @@ export function createAncientPine(THREE,{seed=17,mapSize=1024,groundHeight=()=>0
   moss=new THREE.InstancedMesh(mossGeom,mossMaterial,patches);
  for(let i=0;i<patches;i++){
   const h=hash(i*39+21)*5.4,a=hash(i*75+1)*TAU;
-  const r=ancientPineTrunkRadius(h,a,seed)+.025;
+  const r=ancientPineTrunkRadius(h,a,seed,collars)+.025;
   o.position.set(Math.cos(a)*r,h,Math.sin(a)*r);
   o.rotation.set(hash(i*97)*TAU,hash(i*41)*TAU,hash(i*3)*TAU);
   const size=.025+hash(i*5+19)*.095;
@@ -231,7 +236,8 @@ export function createAncientPine(THREE,{seed=17,mapSize=1024,groundHeight=()=>0
  const merged=mergeBarkParts(THREE,woodyParts);
  for(const part of woodyParts)group.remove(part);
  add(merged,wood,'Hero pine / merged root and branch sculpture');
- group.userData.geometryCounts={branches:woodyParts.length-9,roots:9,needleTufts:placements.length,
+ group.userData.geometryCounts={sculptedWood:true,rootButtresses:9,
+  branchCollars:collars.length,branches:woodyParts.length-9,roots:9,needleTufts:placements.length,
   mossPatches:patches,height:28};
  return {group,maps,metadata:ANCIENT_PINE_METADATA,
   dispose(){group.parent?.remove(group);for(const g of geometries)g.dispose();
