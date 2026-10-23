@@ -4,7 +4,7 @@
 export const ART_LAB=Object.freeze({
  name:'Сад Каменного ветра',lon:2.42,lat:.22,radius:261,halfSize:17,
  materialNames:['Луговая почва','Лесная почва','Живой мох','Опавшая листва','Утоптанная тропа'],
- treeSites:Object.freeze([[.85,10.2],[-9.7,10.4],[10.8,-8.2],[-11.4,-7.8]]),
+ treeSites:Object.freeze([[.85,10.2],[-9.7,10.4],[10.8,-8.2],[-11.4,-7.8],[9.4,9.2]]),
  rockSites:Object.freeze([[6.0,-5.0],[-5.7,5.8],[10.9,2.1]])
 });
 const clamp=t=>Math.max(0,Math.min(1,t));

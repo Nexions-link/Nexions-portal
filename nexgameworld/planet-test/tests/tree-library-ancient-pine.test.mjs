@@ -50,7 +50,8 @@ test('pilot is isolated to the lab while legacy tree remains selectable',()=>{
  const viewer=readFileSync(new URL('../terrain-art-lab-view.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../terrain-art-lab.html',import.meta.url),'utf8');
  assert.match(viewer,/createAncientPine/);
- assert.match(viewer,/orient\(heroPine\.group,\.\.\.ART_LAB\.treeSites\[0\]\)/);
+ assert.match(viewer,/createForestLibraryTree/);
+ assert.match(viewer,/TREE_GALLERY_SITES/);
  assert.match(viewer,/treeRoots\.forEach\(\(r,i\)=>/);
  assert.match(html,/id="treeVariant"/);
  assert.match(html,/id="treeFocus"/);

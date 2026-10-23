@@ -15,7 +15,7 @@ const periodic = (x,y,px,py) => {
 };
 export const ANCIENT_PINE_ID='tree_pine_ancient';
 export const ANCIENT_PINE_METADATA=Object.freeze({
- id:ANCIENT_PINE_ID,version:'0.1.0',author:'NexGameWorld original',
+ id:ANCIENT_PINE_ID,name:'Древняя сосна',version:'0.1.1',author:'NexGameWorld original',
  height:28,collider:'none — art lab only',source:'deterministic Three.js meshes and maps',
  material:'bark_pine_old',view:'planet-test/terrain-art-lab.html'
 });

@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import {ART_LAB,artLabNormal,artLabWorldPoint,artLabBiomeHeight,
- artLabGroundDetails,artLabSurfaceQuality} from './terrain-art-lab.js';
+ artLabGroundDetails,artLabSurfaceQuality,artLabHeight} from './terrain-art-lab.js';
 import {createArtLabTextures} from './terrain-art-materials.js';
 import {createForestBarkTextures} from './forest-bark-texture.js';
-import {createAncientPine} from './tree-library-ancient-pine.js?v=1';
+import {createAncientPine} from './tree-library-ancient-pine.js?v=2';
+import {TREE_LIBRARY,TREE_GALLERY_SITES,createForestLibraryTree}
+ from './tree-library-forest-types.js?v=1';
 import {createWeatheredStoneGeometry} from './stone-surface.js';
 import {createStonewindShowcase} from './terrain-art-showcase.js?v=2';
 import {createDetailedCrownGeometry,createRidgedBarkSegment,mergeBarkParts,
@@ -87,7 +89,9 @@ terrain.name='original-art-lab-surface-no-collision';
 scene.add(terrain);
 const params=new URLSearchParams(location.search);
 let quality='balanced',finished=true,artEnabled=true,asset=null,pbr=null;
-let pineEnabled=params.get('tree')!=='before',dusk=params.get('light')==='dusk';
+let newTreesEnabled=params.get('tree')!=='before',dusk=params.get('light')==='dusk';
+let selectedTree=TREE_LIBRARY.findIndex(t=>t.id===params.get('species'));
+if(selectedTree<0)selectedTree=0;
 const grassData=artLabGroundDetails();
 const decorBatches=[];
 const tinted=(color,vertex=false)=>new THREE.MeshStandardMaterial({
@@ -157,9 +161,17 @@ for(let index=0;index<ART_LAB.treeSites.length;index++){
  group.add(stem,canopy);
  treeRoots.push(group);treeCrowns.push(canopy);
 }
-// T1: keep the original hero tree at the same spherical site for A/B comparison.
-const heroPine=createAncientPine(THREE,{seed:17,mapSize:1024});
-orient(heroPine.group,...ART_LAB.treeSites[0]);scene.add(heroPine.group);
+// T2: five independently authored, reproducible species. Gallery replaces
+// the art only; the original five trees remain to compare at identical sites.
+const gallery= TREE_LIBRARY.map((entry,i)=>{
+ const [x,z]=TREE_GALLERY_SITES[i];
+ const groundHeight=(dx,dz)=>artLabHeight(x+dx,z+dz)-artLabHeight(x,z);
+ const tree=i===0?createAncientPine(THREE,{seed:17,mapSize:1024}):
+  createForestLibraryTree(THREE,{id:entry.id,seed:17+i*9,mapSize:512,groundHeight});
+ orient(tree.group,x,z);scene.add(tree.group);
+ return tree;
+});
+const heroPine=gallery[0];
 const rockGeo=createDetailedRockGeometry(THREE);
 const stoneMat=tinted('#dad7cb',true);
 for(let i=0;i<ART_LAB.rockSites.length;i++){
@@ -248,7 +260,12 @@ const compass=new THREE.Mesh(new THREE.RingGeometry(.7,.79,30),
  new THREE.MeshBasicMaterial({color:'#a8d4ac',transparent:true,opacity:.38,side:THREE.DoubleSide}));
 compass.rotation.x=-PI/2;marker.add(compass);
 const move={x:0,z:0},pose={x:0,z:0,yaw:-.24,pitch:.33,zoom:11.8};
-if(params.get('view')==='pine'){pose.x=.85;pose.z=5.1;pose.yaw=0;pose.zoom=7.4;}
+function focusTree(zoom=7.4){
+ const [x,z]=TREE_GALLERY_SITES[selectedTree];
+ pose.x=clamp(x,-13,13);pose.z=clamp(z-4.9,-13,13);
+ pose.yaw=0;pose.pitch=.26;pose.zoom=zoom;
+}
+if(params.get('view')==='pine'||params.has('species'))focusTree();
 function qualityApply(){
  const q=artLabSurfaceQuality(quality);
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,q.dpr));
@@ -272,11 +289,11 @@ function qualityApply(){
   scene.background.set(dusk?'#263743':'#9aaea5');
   scene.fog.color.set(dusk?'#405a5b':'#a3b7a3');
   renderer.toneMappingExposure=quality==='high'?1.09:1.12;
-  heroPine.group.visible=artEnabled&&pineEnabled;
-  treeRoots.forEach((r,i)=>{r.visible=artEnabled&&(i!==0||!pineEnabled);
+  for(const item of gallery)item.group.visible=artEnabled&&newTreesEnabled;
+  treeRoots.forEach((r,i)=>{r.visible=artEnabled&&!newTreesEnabled;
    r.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh)o.castShadow=q.shadows&&quality==='high';});
   });
- $('treeVariant').textContent=pineEnabled?'Сосна T1 · показать до':'Сосна T1 · показать после';
+ $('treeVariant').textContent=newTreesEnabled?'Показать старые деревья':'Показать новую библиотеку';
   $('lightMode').textContent=dusk?'Дневное освещение':'Сумерки';
   $('qualityInfo').textContent=
   'Режим: '+quality+' · атлас '+(asset?.atlasSize||'…')+
@@ -305,11 +322,14 @@ async function loadAtlas(preset){
  materialApply();$('loading').hidden=true;
 }
 $('compare').addEventListener('click',()=>{artEnabled=!artEnabled;materialApply()});
-$('treeVariant').addEventListener('click',()=>{pineEnabled=!pineEnabled;qualityApply()});
-$('lightMode').addEventListener('click',()=>{dusk=!dusk;qualityApply()});
-$('treeFocus').addEventListener('click',()=>{
- pose.x=.85;pose.z=5.1;pose.yaw=0;pose.pitch=.26;pose.zoom=5.8;
+$('treeVariant').addEventListener('click',()=>{newTreesEnabled=!newTreesEnabled;qualityApply()});
+$('treeSelect').value=TREE_LIBRARY[selectedTree].id;
+$('treeSelect').addEventListener('change',e=>{
+ const id=TREE_LIBRARY.findIndex(t=>t.id===e.target.value);
+ if(id>=0){selectedTree=id;focusTree(6.9)}
 });
+$('lightMode').addEventListener('click',()=>{dusk=!dusk;qualityApply()});
+$('treeFocus').addEventListener('click',()=>focusTree(5.8));
 $('quality').addEventListener('change',async e=>{
  quality=e.target.value;
  try{await loadAtlas(quality);if(pbr)pbr.normalScale.set(quality==='high'?.95:.71)}catch(err){$('loading').textContent='Ошибка материалов: '+err.message;}

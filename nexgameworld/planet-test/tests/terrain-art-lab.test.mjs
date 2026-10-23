@@ -13,7 +13,7 @@ test('P2.4.1 art laboratory is a remote isolated sector of the existing planet',
  assert.ok(ART_LAB.lat>.1);
  assert.equal(ART_LAB.radius,261);
  assert.ok(ART_LAB.halfSize>=15);
- assert.equal(ART_LAB.treeSites.length,4);
+ assert.equal(ART_LAB.treeSites.length,5);
  const center=artLabNormal(0,0),len=Math.hypot(...center);
  assert.ok(Math.abs(len-1)<1e-12);
  const [x,y,z]=artLabWorldPoint(0,0,.2);
@@ -109,7 +109,7 @@ test('lab access is standalone and does not alter the authenticated hero or star
  assert.match(main,/href="\/nexgameworld\/planet-test\/terrain-art-lab.html"/);
  for(const id of ['labViewport','quality','compare','materials','fps','stick'])
   assert.match(html,new RegExp('id="'+id+'"'));
- assert.match(html,/import\('\.\/terrain-art-lab-view\.js\?v=5'\)/);
+ assert.match(html,/import\('\.\/terrain-art-lab-view\.js\?v=6'\)/);
  assert.match(viewer,/ART_LAB\.treeSites/);
  assert.match(viewer,/createArtLabTextures/);
  assert.doesNotMatch(viewer,/createSphericalPresence|setCharacterPosition|fetch\(|WebSocket|accountLaunch/);

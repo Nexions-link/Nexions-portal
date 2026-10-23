@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#1b2923">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>Сад Каменного ветра · Библиотека деревьев T1 · NexGameWorld</title>
+<title>Сад Каменного ветра · Библиотека деревьев T2 · NexGameWorld</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,Arial,sans-serif;color:#e8e7d9;
  --paper:rgba(18,30,26,.88);--line:rgba(181,202,159,.34);--gold:#dbbe87}
@@ -59,9 +59,9 @@ select{width:100%;font-size:13px;min-height:40px}
 <div id="labViewport"></div>
 <header class="top">
  <div class="panel">
-  <div class="eyebrow">NexGameWorld · T1 · библиотека деревьев</div>
+  <div class="eyebrow">NexGameWorld · T2 · библиотека деревьев</div>
   <h1>Сад Каменного ветра</h1>
-  <div class="caption">Сосна-эталон с рельефной корой, настоящими корнями и трёхмерной хвоей · 34 × 34 м.<br>
+  <div class="caption">Пять оригинальных пород: глубокая кора, мощные корни, индивидуальные кроны · 34 × 34 м.<br>
    Самостоятельная демонстрация графики. Сохранения не затрагиваются.</div>
  </div>
  <a class="back" href="/nexgameworld/">← В игру</a>
@@ -76,8 +76,16 @@ select{width:100%;font-size:13px;min-height:40px}
   <div id="materials"></div>
   <div id="qualityInfo"></div>
  </div>
+ <label for="treeSelect" class="eyebrow">Дерево для осмотра</label>
+ <select id="treeSelect" aria-label="Выбрать дерево библиотеки">
+  <option value="tree_pine_ancient">Древняя сосна</option>
+  <option value="tree_oak_whispering">Шепчущий дуб</option>
+  <option value="tree_dead_sentinel">Сухой страж</option>
+  <option value="tree_broadleaf_moss">Мшистое широколиственное</option>
+  <option value="tree_root_ancient">Древо корней</option>
+ </select>
  <div class="control-row">
-  <button type="button" id="treeVariant">Сосна T1 · показать до</button>
+  <button type="button" id="treeVariant">Показать старые деревья</button>
   <button type="button" id="treeFocus">К сосне</button>
  </div>
  <button type="button" id="lightMode">Сумерки</button>
@@ -94,7 +102,7 @@ select{width:100%;font-size:13px;min-height:40px}
 <div id="loading">Создаём оригинальные природные материалы NexGameWorld…</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
 <script type="module">
- import('./terrain-art-lab-view.js?v=5').catch(error=>{
+ import('./terrain-art-lab-view.js?v=6').catch(error=>{
   document.getElementById('loading').textContent='Не удалось открыть полигон: '+(error?.message||String(error));
   console.error('NexGameWorld art lab:',error);
  });
