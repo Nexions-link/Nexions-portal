@@ -53,9 +53,9 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
 .actions a:hover{transform:translateY(-2px)}
 .play{color:#142322;background:#e3c68f}
 .atlas{background:#152932;color:#e8d9b7;border-color:#5d726f!important}
-.support-link{position:fixed;z-index:6;left:max(18px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));display:inline-flex;align-items:center;justify-content:center;width:145px;min-height:34px;padding:7px 10px;border:1px solid rgba(185,161,113,.55);border-radius:6px;background:rgba(15,34,40,.84);color:#d6c7a9;text-align:center;text-decoration:none;font:550 11px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:.01em;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);transition:background .15s,border-color .15s}
-.support-link:hover{background:rgba(34,60,63,.94);border-color:#c8aa77}
-.support-link:focus-visible{outline:2px solid #edca84;outline-offset:3px}
+.about-link{position:fixed;z-index:6;left:max(18px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));display:inline-flex;align-items:center;justify-content:center;width:145px;min-height:34px;padding:7px 10px;border:1px solid rgba(185,161,113,.55);border-radius:6px;background:rgba(15,34,40,.84);color:#d6c7a9;text-align:center;text-decoration:none;font:550 11px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:.01em;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);transition:background .15s,border-color .15s}
+.about-link:hover{background:rgba(34,60,63,.94);border-color:#c8aa77}
+.about-link:focus-visible{outline:2px solid #edca84;outline-offset:3px}
 .release{position:fixed;z-index:5;right:max(18px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;pointer-events:none;font:500 11px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:.10em;color:#a6b3af;opacity:.49}
 .release span+span::before{content:"·";margin-right:8px}
 
@@ -65,7 +65,7 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
  .planet-wrap{width:min(95vw, min(54dvh,510px));margin:8px auto 3px}
  .actions{gap:10px}
  .actions a{min-width:142px;flex:1 1 40%;max-width:205px;padding:11px 12px;min-height:50px}
- .support-link{left:max(13px,env(safe-area-inset-left));bottom:max(10px,env(safe-area-inset-bottom));width:138px;min-height:34px;padding:7px 8px}
+ .about-link{left:max(13px,env(safe-area-inset-left));bottom:max(10px,env(safe-area-inset-bottom));width:138px;min-height:34px;padding:7px 8px}
 
  .release{font-size:10px;right:max(13px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom))}
 }
@@ -77,8 +77,8 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
  .actions a{min-width:120px;flex:1 1 140px}
  .release{position:fixed;right:10px;bottom:7px}
 }
-@media(max-width:350px){.support-link{width:124px;font-size:10px}}
-@media(prefers-reduced-motion:reduce){.actions a,.support-link{transition:none}}
+@media(max-width:350px){.about-link{width:124px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){.actions a,.about-link{transition:none}}
 </style>
 </head>
 <body>
@@ -101,7 +101,7 @@ h1::after{content:"";display:block;width:62px;height:1px;margin:10px auto 0;back
   <a class="atlas" href="/atlas">Открыть Атлас</a>
  </nav>
 </main>
-<a class="support-link" href="/support/" aria-label="Поддержать проект NexGameWorld">Поддержать проект</a>
+<a class="about-link" href="/support/" aria-label="О проекте NexGameWorld">О проекте</a>
 <footer class="release" aria-label="Статус и актуальная версия NexGameWorld">
  <span>ALPHA</span><span id="buildVersion" aria-live="polite">Версия —</span>
 </footer>
