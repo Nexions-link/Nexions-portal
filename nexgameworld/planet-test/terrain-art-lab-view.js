@@ -166,7 +166,7 @@ for(let index=0;index<ART_LAB.treeSites.length;index++){
 const gallery= TREE_LIBRARY.map((entry,i)=>{
  const [x,z]=TREE_GALLERY_SITES[i];
  const groundHeight=(dx,dz)=>artLabHeight(x+dx,z+dz)-artLabHeight(x,z);
- const tree=i===0?createAncientPine(THREE,{seed:17,mapSize:1024}):
+ const tree=i===0?createAncientPine(THREE,{seed:17,mapSize:1024,groundHeight}):
   createForestLibraryTree(THREE,{id:entry.id,seed:17+i*9,mapSize:512,groundHeight});
  orient(tree.group,x,z);scene.add(tree.group);
  return tree;

@@ -129,15 +129,15 @@ function createNeedleGeometry(THREE){
  g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.computeVertexNormals();
  return g;
 }
-export function createAncientPine(THREE,{seed=17,mapSize=1024}={}){
- if(!Number.isFinite(seed))throw new RangeError('Invalid pine seed');
+export function createAncientPine(THREE,{seed=17,mapSize=1024,groundHeight=()=>0}={}){
+ if(!Number.isFinite(seed)||typeof groundHeight!=='function')throw new RangeError('Invalid pine seed or terrain');
  const group=new THREE.Group();group.name='NGW hero ancient pine T1 — no collisions';
  group.userData.assetId=ANCIENT_PINE_ID;
  const maps=createOldPineMaps(THREE,{width:mapSize,height:mapSize*2});
  const wood=new THREE.MeshStandardMaterial({color:'#ffffff',map:maps.map,normalMap:maps.normalMap,
   normalScale:new THREE.Vector2(1.3,1.3),roughnessMap:maps.roughnessMap,
   roughness:1,metalness:0,bumpMap:maps.heightMap,bumpScale:.105,side:THREE.DoubleSide});
- const needle=new THREE.MeshStandardMaterial({color:'#718e69',roughness:1,metalness:0,
+ const needle=new THREE.MeshStandardMaterial({color:'#d2ddc9',roughness:1,metalness:0,
   vertexColors:true,side:THREE.DoubleSide});
  const mossMaterial=new THREE.MeshStandardMaterial({color:'#3d6549',roughness:1,metalness:0});
  const meshes=[],geometries=[],materials=[wood,needle,mossMaterial],textures=Object.values(maps);
@@ -163,7 +163,8 @@ export function createAncientPine(THREE,{seed=17,mapSize=1024}={}){
   const points=[],radii=[];
   for(let k=0;k<=12;k++){
    const t=k/12,rad=.69+reach*t,theta=angle+bend*t*t;
-   const y=.36*(1-t)+.20*Math.sin(Math.PI*t)-.30*t;
+   const surface=clamp(groundHeight(Math.cos(theta)*rad,Math.sin(theta)*rad),-1.5,1.5);
+   const y=mix(.36,surface-.05,t)+.20*Math.sin(Math.PI*t);
    points.push([Math.cos(theta)*rad,y,Math.sin(theta)*rad]);
    radii.push(Math.max(.018,mix(.49,.026,Math.pow(t,.77))*(1+.13*Math.sin(t*13+j))));
   }

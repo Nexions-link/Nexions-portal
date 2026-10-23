@@ -191,7 +191,7 @@ function leafClusterGeometry(THREE,id){
 }
 export function createForestLibraryTree(THREE,{id,seed=17,mapSize=512,
  groundHeight=()=>0}={}){
- if(id==='tree_pine_ancient')return createAncientPine(THREE,{seed,mapSize});
+ if(id==='tree_pine_ancient')return createAncientPine(THREE,{seed,mapSize,groundHeight});
  const st=STYLES[id];if(!st)throw new RangeError('Unknown library tree: '+id);
  if(!Number.isFinite(seed)||typeof groundHeight!=='function')throw new TypeError('Invalid tree parameters');
  const meta=TREE_LIBRARY.find(x=>x.id===id);
