@@ -12,7 +12,8 @@ import {createForestFloor} from './forest-floor.js?v=1';
 import {createForestGroundLife} from './forest-ground-life.js?v=2';
 import {createForestUnderstory} from './forest-understory.js?v=2';
 import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=2';
-import {createSurfaceMicrodetail} from './surface-microdetail.js?v=1';
+import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
+import {createSoilScatter} from './soil-scatter.js?v=2';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
 import {createForestEcology} from './forest-ecology.js?v=4';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
@@ -315,7 +316,9 @@ try {
   })();
   // Detailed native camp, lake and authentic procedural Tauren are isolated in start-zone.js.
   const startZone=createStartZone(THREE,scene,()=>R,heightAt);
-  const surfaceMicrodetail=isPortalPreview?null:createSurfaceMicrodetail(THREE,{scene,radius:R,heightAt});
+  // Construct expensive surface tiles only on a rich quality preset. Economy
+  // mode and portal first render should not bake a large microtexture at all.
+  let surfaceMicrodetail=null,soilScatter=null;
   const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
   const roadsideDetails=isPortalPreview?null:createRoadsideDetails(THREE,{scene,radius:R,heightAt,startRoute:ROUTES[1]});
   const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
@@ -364,6 +367,10 @@ try {
   let combatQualitySink=null;
   function applyGraphicsQuality(){
     const profile=GRAPHICS_PRESETS[qualityName];
+    if(!isPortalPreview&&qualityName!=='economy'){
+      if(!surfaceMicrodetail)surfaceMicrodetail=createSurfaceMicrodetail(THREE,{scene,radius:R,heightAt});
+      if(!soilScatter)soilScatter=createSoilScatter(THREE,{scene,radius:R,heightAt});
+    }
     const enabled=!isPortalPreview&&!state.orbit&&profile.shadowSize>0;
     renderer.setPixelRatio(effectivePixelRatio(qualityName,window.devicePixelRatio||1,isPortalPreview));
     renderer.toneMappingExposure=profile.exposure;
@@ -395,6 +402,7 @@ try {
     forestGroundLife?.setQuality(qualityName,isPortalPreview);
     forestUnderstory?.setQuality(qualityName,isPortalPreview);
     surfaceMicrodetail?.setQuality(qualityName,isPortalPreview);
+    soilScatter?.setQuality(qualityName,isPortalPreview);
     hero.visualDetails?.setQuality(isPortalPreview?.68:profile.detail);
     combatQualitySink?.(isPortalPreview?.15:profile.detail);
     if(qualityHelp)qualityHelp.textContent=

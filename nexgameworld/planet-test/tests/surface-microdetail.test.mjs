@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 import {SURFACE_DETAIL_TILE_SIZE,SURFACE_DETAIL_METRES,
- surfaceDetailPixel,buildSurfaceDetailPixels,surfaceDetailQuality,
+ surfaceDetailPixel,surfaceDetailWarp,surfaceDetailTint,buildSurfaceDetailPixels,surfaceDetailQuality,
  surfacePatchSample,createSurfaceMicrodetail}
  from '../surface-microdetail.js';
 import {forestColliders,forestTrailLatitude} from '../whispering-forest.js';
 import {lakeRadius} from '../start-zone.js';
 
 test('locally repeated texture retains fine grain and remains translucent',()=>{
- assert.equal(SURFACE_DETAIL_TILE_SIZE,256);
+ assert.equal(SURFACE_DETAIL_TILE_SIZE,512);
  assert.ok(SURFACE_DETAIL_METRES<=4);
  const a=surfaceDetailPixel(.34,.62),b=surfaceDetailPixel(.34,.62);
  assert.deepEqual(a,b);
@@ -60,8 +60,8 @@ test('new local meshes and tree contacts preserve original forest physics',()=>{
  assert.equal(scene.children.filter(o=>o.name.includes('decorative-no-collision')).length,3);
  assert.ok(polish.reliefGlobe.isDataTexture);
  assert.ok(polish.reliefVillage.isDataTexture);
- assert.equal(polish.reliefGlobe.repeat.x,460);
- assert.equal(polish.reliefVillage.repeat.x,54);
+ assert.equal(polish.reliefGlobe.repeat.x,409);
+ assert.equal(polish.reliefVillage.repeat.x,48);
  const terrain=scene.children.filter(o=>o.name.startsWith('surface-microdetail'));
  assert.ok(terrain.every(o=>o.geometry.getAttribute('uv').count>4500));
  const uv=terrain[0].geometry.getAttribute('uv');
@@ -82,4 +82,26 @@ test('existing globe stays an opaque unmodified standard material',()=>{
  assert.match(world,/surfaceMicrodetail\?\.setQuality\(qualityName,isPortalPreview\)/);
  assert.match(world,/surfaceMicrodetail\?\.reliefGlobe/);
  assert.doesNotMatch(world,/installForestGroundShader\(/);
+});
+
+test('warped UVs remain continuous while avoiding a repeated four-metre stamp',()=>{
+ const a=surfaceDetailWarp(0,19),b=surfaceDetailWarp(4,19);
+ assert.ok(Number.isFinite(a.u)&&Number.isFinite(a.v));
+ assert.ok(Number.isFinite(b.u)&&Number.isFinite(b.v));
+ assert.ok(Math.abs((b.u-a.u)-1)>.015,
+  'world-space domain warp must decorrelate identical adjacent tiles');
+ for(let x=-40;x<60;x+=.55){
+  const p=surfaceDetailWarp(x,17),q=surfaceDetailWarp(x+.01,17);
+  assert.ok(Math.hypot(p.u-q.u,p.v-q.v)<.02,
+   'smooth warped UV cannot jump or create visible patch seams');
+ }
+ assert.throws(()=>surfaceDetailWarp(NaN,1),RangeError);
+});
+test('microdetail coloration respects soil moisture and protects compacted roads',()=>{
+ const point=surfacePatchSample('forest',.5,.5);
+ const track=surfaceDetailTint('forest',point);
+ const off={...point,lat:point.lat+11/261};
+ const wood=surfaceDetailTint('forest',off);
+ assert.ok(track.alpha<wood.alpha,'needles should not obscure the trail');
+ assert.ok(wood.g>0&&wood.r>0&&wood.b>0);
 });

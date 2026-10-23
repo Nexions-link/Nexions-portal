@@ -4,6 +4,7 @@
 // one 256x256 grain/needle tile for sharp albedo and normal relief.
 // No shader replacement, external asset, interaction target or collider.
 import {forestTrailLatitude,createForestLayout} from './whispering-forest.js';
+import {pathWear} from './start-zone.js?v=50';
 
 const PI=Math.PI,TAU=2*PI,R=261;
 const clamp=(x)=>Math.max(0,Math.min(1,x));
@@ -21,35 +22,66 @@ function noise(u,v,cells){
  const p=(a,b)=>hash(wrap(i+a,cells),wrap(j+b,cells));
  return lerp(lerp(p(0,0),p(1,0),sx),lerp(p(0,1),p(1,1),sx),sy);
 }
-export const SURFACE_DETAIL_TILE_SIZE=256;
-export const SURFACE_DETAIL_METRES=3.5;
+export const SURFACE_DETAIL_TILE_SIZE=512;
+export const SURFACE_DETAIL_METRES=4.0;
 export function surfaceDetailPixel(u,v){
  u=wrap(u,1);v=wrap(v,1);
- const clump=noise(u,v,12),dirt=noise(u,v,32),grain=noise(u,v,72),
-  silt=noise(u,v,120),damp=noise(u+.17,v+.49,8);
- const broken=smooth(.55,.76,grain*.47+dirt*.37+silt*.16);
- const glitter=smooth(.72,.88,grain*.35+silt*.65);
- const organics=smooth(.59,.79,clump*.42+dirt*.58);
- // Very small tangled stem fragments in each 1/24th tile sector.
- const fx=u*24,fy=v*24,i=Math.floor(fx),j=Math.floor(fy);
- const w=hash(i,j),orientation=hash(i+29,j+43)*TAU;
- const dx=(fx-i-.5)*Math.cos(orientation)+(fy-j-.5)*Math.sin(orientation);
- const dy=(fy-j-.5)*Math.cos(orientation)-(fx-i-.5)*Math.sin(orientation);
- const needles=w>.55?Math.exp(-Math.pow(dx/.036,2))*smooth(.19,.32,Math.abs(dy))*
-  (1-smooth(.39,.49,Math.abs(dy))):0;
- const mineral=smooth(.72,.91,dirt*.44+grain*.56);
- const moss=smooth(.60,.82,damp*.6+clump*.4);
- const structure=broken*.42+glitter*.22+organics*.22+needles*.75+mineral*.42;
- // Alpha paints isolated flecks; it never covers the old colour zoning.
- const alpha=Math.round(clamp(.04+structure*.56)*190);
- const warm=organics*.60+needles*.44,wet=moss*.54;
- const r=Math.round(lerp(130,77,wet)+warm*19+glitter*31);
- const g=Math.round(lerp(117,108,wet)-warm*22+glitter*23);
- const b=Math.round(lerp(93,75,wet)-warm*12+glitter*20);
- // Bump is independent of alpha and has hard sub-metre grain for grazing light.
- const relief=Math.round(255*clamp(.33+.29*grain+.23*silt+.17*needles+
-  .1*broken-.22*organics));
+ const clump=noise(u,v,12),soil=noise(u,v,32),grain=noise(u,v,72),
+  silt=noise(u,v,120),moist=noise(u+.17,v+.49,8);
+ // Readable real material cues: scattered sand grains, split needle fibres,
+ // decomposing leaf flakes, soil pores and soft tiny moss nodules.
+ const fx=u*27,fy=v*27,i=Math.floor(fx),j=Math.floor(fy);
+ const seed=hash(i,j),direction=hash(i+29,j+43)*TAU;
+ const px=fx-i-.5,py=fy-j-.5;
+ const longitudinal=px*Math.cos(direction)+py*Math.sin(direction);
+ const transverse=py*Math.cos(direction)-px*Math.sin(direction);
+ const taper=1-smooth(.27,.41,Math.abs(longitudinal));
+ const pine=seed>.49?Math.exp(-Math.pow(transverse/.027,2))*taper:0;
+ const leaf=seed<.16?(1-smooth(.28,.37,Math.hypot(px,py*.72))):0;
+ const chip=leaf*smooth(.05,.19,Math.abs(longitudinal));
+ const kx=u*94,ky=v*94,ki=Math.floor(kx),kj=Math.floor(ky);
+ const h=hash(ki+7,kj-23);
+ const ax=kx-ki-(.20+.6*hash(ki,kj)),ay=ky-kj-(.20+.6*hash(ki+13,kj+5));
+ const mineral=h>.84?1-smooth(.04,.33,Math.hypot(ax,ay)):0;
+ const blackPore=h<.12?1-smooth(.03,.27,Math.hypot(ax,ay)):0;
+ const moss=smooth(.47,.69,moist*.64+clump*.36);
+ const mossSpeck=smooth(.61,.86,grain*.46+silt*.54)*moss;
+ const humus=smooth(.48,.72,clump*.49+soil*.51);
+ // Local fragments preserve the large warm/cool colour zoning underneath.
+ const bright=mineral*.80+pine*.09+mossSpeck*.23;
+ const dark=blackPore*.74+chip*.37+humus*.12;
+ const alpha=Math.round(Math.min(242,10+mineral*164+pine*135+
+  chip*113+blackPore*119+mossSpeck*57+humus*26));
+ const r=Math.round(Math.min(255,Math.max(0,143+bright*74-dark*93)));
+ const g=Math.round(Math.min(255,Math.max(0,130+bright*63-dark*91+mossSpeck*18)));
+ const b=Math.round(Math.min(255,Math.max(0,101+bright*47-dark*77)));
+ const relief=Math.round(255*clamp(.32+.16*soil+.15*grain+.09*silt+
+  .27*mineral+.15*pine-.21*blackPore-.10*chip+.04*moss));
  return {rgba:[r,g,b,alpha],relief};
+}
+export function surfaceDetailWarp(x,z){
+ if(!Number.isFinite(x)||!Number.isFinite(z))throw new RangeError('Invalid ground position');
+ // Low-frequency domain warp eliminates exact wallpaper repetition without
+ // changing the local texture density or breaking vertices at patch borders.
+ const sx=x/11.7,sz=z/13.9;
+ const dx=.81*Math.sin(sx+Math.cos(sz*.79)*1.18)+.34*Math.sin(sz*.37+sx*.87);
+ const dz=.73*Math.cos(sz+Math.sin(sx*.84)*1.01)+.39*Math.cos(sx*.53-sz*.64);
+ return {u:(x+dx)/SURFACE_DETAIL_METRES,v:(z+dz)/SURFACE_DETAIL_METRES};
+}
+export function surfaceDetailTint(kind,sample){
+ // No pine-litter decal over compacted roads: blend granular road texture
+ // gradually into moss/leaf fragments on both village and forest paths.
+ const road=kind==='forest'?1-smooth(2.0,5.4,
+   Math.abs(sample.lat-forestTrailLatitude(sample.lon))*261):
+  pathWear(sample.x,sample.z);
+ const moisture=.5+.5*Math.sin(sample.x*.071+Math.cos(sample.z*.084))*
+  Math.cos(sample.z*.063-sample.x*.033);
+ const moss=kind==='forest'?.35+.25*moisture:.15+.15*moisture;
+ const warmth=.10*road+ (kind==='forest'?.025:.10)*(1-road);
+ return {r:Math.min(1,.72+warmth+.09*(1-moisture)),
+  g:Math.min(1,.76+.05*moisture+.06*moss),
+  b:Math.min(1,.67+.10*moisture+.13*moss),
+  alpha:sample.fade*(1-.59*road)};
 }
 export function buildSurfaceDetailPixels(size=SURFACE_DETAIL_TILE_SIZE){
  if(!Number.isInteger(size)||size<32||size>512)throw new RangeError('invalid microdetail size');
@@ -113,8 +145,9 @@ function terrainGeometry(THREE,kind,radius,heightAt){
   // +.046: under the existing forest-floor leaf/fern artwork.
   const h=radius+heightAt(n)+(kind==='start'?.153:.046);
   xyz.push(n.x*h,n.y*h,n.z*h);
-  uv.push(s.x/SURFACE_DETAIL_METRES,s.z/SURFACE_DETAIL_METRES);
-  colors.push(1,1,1,s.fade);
+  const warp=surfaceDetailWarp(s.x,s.z),tint=surfaceDetailTint(kind,s);
+  uv.push(warp.u,warp.v);
+  colors.push(tint.r,tint.g,tint.b,tint.alpha);
  }
  for(let j=0;j<countY;j++)for(let i=0;i<countX;i++){
   const a=j*(countX+1)+i,b=a+countX+1;
@@ -178,9 +211,9 @@ export function createSurfaceMicrodetail(THREE,{scene,radius,heightAt}){
   // Two instances share the same bytes but use independent UV repeat rates.
   // On the globe UVs cover ~1640m by ~820m, vs the 190m village atlas.
   const reliefGlobe=textureFromData(THREE,data.relief,data.size,false);
-  reliefGlobe.repeat.set(460,230);
+  reliefGlobe.repeat.set(409,205);
   const reliefVillage=textureFromData(THREE,data.relief,data.size,false);
-  reliefVillage.repeat.set(54,54);
+  reliefVillage.repeat.set(48,48);
   textures.push(reliefGlobe,reliefVillage);
   for(const kind of ['start','forest']){
    const geometry=terrainGeometry(THREE,kind,radius,heightAt);
