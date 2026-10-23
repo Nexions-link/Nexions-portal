@@ -69,7 +69,7 @@ import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
 import {rollCreatureLoot} from './loot-tables.js?v=3';
 import {creatureByIndex,CREATURE_SPAWNS,BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_KILLS,BANDIT_QUEST_MIN_LEVEL,BANDIT_BOSS_SCALE} from './creature-registry.js?v=6';
-import {createForestWolfVisual} from './forest-wolf-visual.js?v=2';
+import {createForestWolfVisual} from './forest-wolf-visual.js?v=3';
 import {createBanditVisual} from './bandit-visual.js?v=2';
 import {rollCreatureCoins} from './creature-types.js?v=1';
 import {creatureTypeForMob,CREATURE_TYPE_LABELS,CORPSE_COIN_ID,isValidCorpseCoins} from './creature-types.js?v=1';
@@ -1216,6 +1216,7 @@ function resetCreatureImpact(mob){
   mob.visualHitSequence=0;
   mob.visualStrikeCue=0;mob.visualStrikeHitSequence=0;mob.visualStrikeWindupSeconds=.4;
   mob.hit=0;
+  mob.forestWolfVisual?.resetAttack();
   if(mob.banditGltf){
    const gltf=mob.banditGltf;
    gltf.mixer.stopAllAction();
@@ -1347,7 +1348,11 @@ function resetCreatureImpact(mob){
  function birdAnimation(mob,dt,moved=0){
   if(mob.forestWolfVisual){
    if(!mob.corpse)mob.forestWolfVisual.animate(clock,moved,mob.attackWindup>0?1:0,
-    mob.howlRemaining>0?Math.min(1,mob.howlRemaining*1.5):0,mob.hit||0);
+    mob.howlRemaining>0?Math.min(1,mob.howlRemaining*1.5):0,mob.hit||0,{
+     cueSequence:mob.visualStrikeCue||0,
+     hitSequence:mob.visualStrikeHitSequence||0,
+     windupDuration:mob.visualStrikeWindupSeconds||.4
+    });
    return;
   }
   if(mob.banditVisual){banditAnimation(mob,dt,moved);return;}
