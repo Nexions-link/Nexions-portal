@@ -189,6 +189,27 @@ function leafClusterGeometry(THREE,id){
  g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
  g.computeVertexNormals();g.computeBoundingSphere();return g;
 }
+// Each species follows a distinct growth response to age, weight and weather:
+// oak spreads horizontally, dead sentinel twists into fractured hooks,
+// wet broadleaf hangs under foliage mass, ancient root tree grows spirally.
+export function speciesBranchGesture(id,phase,f,branch,seed=17){
+ if(!STYLES[id])throw new RangeError('Unknown forest species');
+ const rag=.18*sin(branch*7.1+seed*.17)+.10*cos(branch*13.3);
+ const shape=sin(f*Math.PI),terminal=f*f;
+ if(id==='tree_oak_whispering')
+  return {turn:shape*(.16+.20*rag)+terminal*.15,
+   rise:1.25*shape-.74*terminal,gnarl:1.18,leafWeight:1};
+ if(id==='tree_dead_sentinel')
+  return {turn:shape*(rag*.7)+terminal*(.47*sin(branch*3.8)+.22),
+   rise:.42*shape+terminal*(1.2+.8*sin(branch*2.1)),
+   gnarl:1.6,leafWeight:0};
+ if(id==='tree_broadleaf_moss')
+  return {turn:shape*(.22+rag)+terminal*.18,
+   rise:.58*shape-terminal*(1.45+.75*(1-phase)),
+   gnarl:.79,leafWeight:1.24};
+ return {turn:terminal*(.68+rag*.7)+shape*.16*sin(branch*.79),
+  rise:.88*shape-terminal*(.62+phase*.6),gnarl:1.65,leafWeight:.75};
+}
 export function createForestLibraryTree(THREE,{id,seed=17,mapSize=512,
  groundHeight=()=>0}={}){
  if(id==='tree_pine_ancient')return createAncientPine(THREE,{seed,mapSize,groundHeight});
@@ -238,34 +259,40 @@ export function createForestLibraryTree(THREE,{id,seed=17,mapSize=512,
    jointR=forestTrunkRadius(id,t,ang,seed),
    originX=ox+cos(ang)*jointR*.74,originZ=oz+sin(ang)*jointR*.74,
    endX=ox+cos(ang)*reach,endZ=oz+sin(ang)*reach;
-  const droop=id==='tree_broadleaf_moss'?-1.65:id==='tree_dead_sentinel'?.55:-.35;
   const points=[],rads=[];
   for(let j=0;j<=20;j++){
-   const f=j/20,bend=f*f*(.38*sin(i*19+seed*.12)+.24*twist)+
-    .17*sin(f*5.8+i*1.77)*sin(Math.PI*f);
+   const f=j/20,gesture=speciesBranchGesture(id,phase,f,i,seed),
+    bend=gesture.turn+f*f*.26*sin(i*19+seed*.12)+
+     .13*sin(f*5.8+i*1.77)*sin(Math.PI*f),
+    asymmetry=1+.11*sin(f*13.7+i*.48);
    points.push([mix(originX,endX,f)+sin(ang)*bend,
-    level+(.82+.19*sin(i*6.8))*sin(f*Math.PI)+droop*f*f+
-     .17*Math.sin(f*4.1+i)*Math.sin(Math.PI*f),
+    level+gesture.rise+.16*sin(f*4.1+i)*sin(Math.PI*f),
     mix(originZ,endZ,f)+cos(ang)*bend]);
    rads.push(Math.max(.012,mix(.46*(1-phase*.65),.016,Math.pow(f,.84))*
-    (1+.12*Math.sin(f*14+i))));
+    asymmetry*gesture.gnarl));
   }
   segments.push(new THREE.Mesh(pathTube(THREE,points,rads,{sides:18,seed:seed+i*11}),bark));boughs++;
   for(let fork=0;fork<4;fork++){
-   const f=.43+fork*.13,r=reach*f,sp=(fork%2?1:-1)*(.75+.37*hash(i*13+fork)),
+   const f=.39+fork*.14,r=reach*f,sp=(fork%2?1:-1)*(.75+.37*hash(i*13+fork)),
+    gesture=speciesBranchGesture(id,phase,f,i,seed),
     start=points[Math.min(19,Math.floor(f*20))],
     tip=[start[0]+cos(ang)*reach*.16-sin(ang)*sp,
-     start[1]+.55+(fork%3)*.18+(droop<0?-.33*fork:0),
+     start[1]+.43+(fork%3)*.18+(gesture.rise<0?-.26*fork:.13*fork),
      start[2]+sin(ang)*reach*.16+cos(ang)*sp],
     mid=[mix(start[0],tip[0],.53)+.19*Math.sin(i+fork),
      mix(start[1],tip[1],.53)+.21,
      mix(start[2],tip[2],.53)+.19*Math.cos(i-fork)];
    segments.push(new THREE.Mesh(pathTube(THREE,[start,mid,tip],[.085,.048,.009],
     {sides:10,seed:seed+i*11+fork*3}),bark));
-   if(st.leaf)for(let n=0;n<8;n++){
-    const along=(n+.5)/8;
+   if(st.leaf)for(let n=0;n<10;n++){
+    // Branch-scale gaps: alternating open space allows silhouettes and light
+    // to penetrate. Randomness is deterministic, not copied leaf balls.
+    if(hash(i*19+fork*13+n+seed)<(.16+phase*.09))continue;
+    const along=(n+.48)/10,
+     weight=speciesBranchGesture(id,phase,along,i,seed).leafWeight;
     placements.push([mix(start[0],tip[0],along),mix(start[1],tip[1],along),
-     mix(start[2],tip[2],along),ang, .54+hash(i*19+fork*13+n)*.61]);
+     mix(start[2],tip[2],along),ang,
+     (.45+hash(i*19+fork*13+n)*.67)*weight]);
    }
   }
  }
@@ -312,7 +339,8 @@ export function createForestLibraryTree(THREE,{id,seed=17,mapSize=512,
   cavity.position.set(x,st.height*.82,z);cavity.name=id+' dark hollow interior';
   group.add(cavity);geometries.push(cavity.geometry);
  }
- group.userData.geometryCounts={sculptedWood:true,branchCollars:st.branches,
+ group.userData.geometryCounts={sculptedWood:true,biologicalBranchGesture:id,
+  branchCollars:st.branches,
   rootButtresses:st.roots,branches:boughs,roots:st.roots,
   leafClusters:placements.length,mossPatches:st.moss,height:st.height};
  return {group,maps:mats,metadata:meta,
