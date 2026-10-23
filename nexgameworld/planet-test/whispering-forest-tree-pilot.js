@@ -63,8 +63,7 @@ export function createWhisperingForestTreePilot(THREE,{
  scene,layout,radius,heightAt,trailLatitude
 }={}){
  const sites=selectForestPilotTrees(layout,trailLatitude),
-  replaced=new Set(),models=[],up=new THREE.Vector3(0,1,0),
-  v=new THREE.Vector3(),tmp=new THREE.Vector3();
+  replaced=new Set(),models=[],up=new THREE.Vector3(0,1,0),tmp=new THREE.Vector3();
  for(const {site,id,index} of sites){
   // The visual preview cannot break the existing game. If art construction
   // fails (e.g. lost WebGL resources), leave original tree visible.
@@ -75,21 +74,23 @@ export function createWhisperingForestTreePilot(THREE,{
     Math.sin(site.lat),Math.cos(site.lat)*Math.cos(site.lon));
    const base=radius+heightAt(n);
    const q=new THREE.Quaternion().setFromUnitVectors(up,n);
+   q.multiply(new THREE.Quaternion().setFromAxisAngle(up,site.yaw));
+   const masterHeight=id==='tree_pine_ancient'?28:
+    ({tree_oak_whispering:25,tree_dead_sentinel:20})[id];
+   const fit=forestTrunkFitScale(id,seed,site,masterHeight);
+   const basePoint=n.clone().multiplyScalar(base);
    const groundHeight=(x,z)=>{
-    tmp.set(x,0,z).applyQuaternion(q).addScaledVector(n,radius);
-    tmp.normalize();
+    tmp.set(x*fit.horizontal,0,z*fit.horizontal).applyQuaternion(q)
+     .addScaledVector(n,radius).normalize();
     const nearby=tmp.clone().multiplyScalar(radius+heightAt(tmp));
-    const center=n.clone().multiplyScalar(base);
-    return (nearby.sub(center)).dot(n);
+    return (nearby.sub(basePoint)).dot(n)/fit.vertical;
    };
-   const descriptor=id==='tree_pine_ancient'?null:null;
    asset=id==='tree_pine_ancient'?
     createAncientPine(THREE,{seed,mapSize:512,groundHeight}):
     createForestLibraryTree(THREE,{id,seed,mapSize:512,groundHeight});
-   const height=asset.metadata.height,fit=forestTrunkFitScale(id,seed,site,height);
+   if(asset.metadata.height!==masterHeight)throw Error('Tree catalog scale mismatch');
    asset.group.position.copy(n).multiplyScalar(base);
-   asset.group.quaternion.copy(q).multiply(new THREE.Quaternion()
-    .setFromAxisAngle(up,site.yaw));
+   asset.group.quaternion.copy(q);
    asset.group.scale.set(fit.horizontal,fit.vertical,fit.horizontal);
    asset.group.name='NGW T3 forest pilot '+id+' existing trunk '+forestTreeKey(site);
    asset.group.userData.forestPilot=true;

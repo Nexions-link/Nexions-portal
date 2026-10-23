@@ -6,7 +6,7 @@ import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=12';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=13';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
 import {createForestGroundLife} from './forest-ground-life.js?v=2';
@@ -319,7 +319,8 @@ try {
   // Construct expensive surface tiles only on a rich quality preset. Economy
   // mode and portal first render should not bake a large microtexture at all.
   let surfaceMicrodetail=null,soilScatter=null;
-  const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
+  const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt,
+    heroTrees:!isPortalPreview});
   const roadsideDetails=isPortalPreview?null:createRoadsideDetails(THREE,{scene,radius:R,heightAt,startRoute:ROUTES[1]});
   const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
   const forestLightPools=isPortalPreview?null:createForestLightPools(THREE,{scene,radius:R,heightAt});
