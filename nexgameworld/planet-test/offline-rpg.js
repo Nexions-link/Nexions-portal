@@ -70,6 +70,7 @@ import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canSto
 import {rollCreatureLoot} from './loot-tables.js?v=3';
 import {creatureByIndex,CREATURE_SPAWNS,BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_KILLS,BANDIT_QUEST_MIN_LEVEL,BANDIT_BOSS_SCALE} from './creature-registry.js?v=6';
 import {createForestWolfVisual} from './forest-wolf-visual.js?v=2';
+import {FOREST_WOLF_GLB,createForestWolfGltf} from './forest-wolf-glb.js?v=1';
 import {createBanditVisual} from './bandit-visual.js?v=2';
 import {rollCreatureCoins} from './creature-types.js?v=1';
 import {creatureTypeForMob,CREATURE_TYPE_LABELS,CORPSE_COIN_ID,isValidCorpseCoins} from './creature-types.js?v=1';
@@ -861,12 +862,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    mob.root.visible=remote.phase!=='hidden';
    if(mob.corpse&&!wasCorpse){
     clearLongstriderHeadPose(mob.birdVisual?.headRig);
+    mob.wolfGltf?.forceNear();
     mob.deathAnimation.begin(playerNormal());
     if(target===mob){target=null;autoplay=false;approach=null;timeline.clear();}
    }else if(remote.phase==='alive'&&(wasCorpse||wasHidden)){
     mob.deathAnimation.reset();if(mob.family==='dolgonog'||mob.family==='stormbeak')resetPlainstriderVisual(mob);
     resetCreatureImpact(mob);
     if(mob.pendingBanditAsset){attachBanditVisual(mob,mob.pendingBanditAsset);mob.pendingBanditAsset=null;}
+    if(mob.pendingWolfAssets){attachForestWolfGLB(mob,...mob.pendingWolfAssets);mob.pendingWolfAssets=null;}
     mob.loot=null;mob.lootKnown=false;mob.lootInspectAt=0;mob.navigation=null;
    }else if(remote.phase==='hidden'){
     mob.loot=null;if(pendingLoot===mob)closeWindow();
@@ -1208,6 +1211,37 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   mob.deathAnimation=createMobDeath({THREE,entity:mob,visual:container,getRadius,heightAt,mixer});
   banditAnimation(mob,0,0);
  }
+// Shared detailed and crowd GLBs are loaded exactly once for all forest wolves.
+// Until both arrive, the existing procedural wolf stays visible and interactive.
+ void (async()=>{
+  try{
+   const loader=await modelLoader;
+   if(!loader)throw Error('GLTFLoader unavailable');
+   const [near,far]=await Promise.all([
+    loader.loadAsync(FOREST_WOLF_GLB.near),loader.loadAsync(FOREST_WOLF_GLB.far)
+   ]);
+   for(const mob of mobs.filter(m=>m.family==='forestWolf')){
+    if(mob.corpse)mob.pendingWolfAssets=[near,far];
+    else attachForestWolfGLB(mob,near,far);
+   }
+  }catch(error){console.warn('Forest wolf GLB fallback:',error);}
+ })();
+ function attachForestWolfGLB(mob,near,far){
+  if(mob.wolfGltf){
+   mob.wolfGltf.mixer.stopAllAction();
+   mob.wolfGltf.container.removeFromParent();
+  }
+  const wolf=createForestWolfGltf(THREE,near,far);
+  mob.root.add(wolf.container);
+  mob.fallbackVisual.visible=false;
+  mob.wolfGltf=wolf;
+  // GLB animation pose is frozen at the exact hit frame by the common
+  // death system; the corpse is not downgraded to an unanimated LOD.
+  mob.deathAnimation=createMobDeath({
+   THREE,entity:mob,visual:wolf.container,getRadius,heightAt,mixer:wolf.mixer
+  });
+  wolf.update(1/60,0,{distance:0});
+ }
  function resetCreatureImpact(mob){
    resetLongstriderSnapshot(mob);
   // Death poses freeze the mixer; reset cosmetic state for a new life.
@@ -1215,6 +1249,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   mob.visualHitSequence=0;
   mob.visualStrikeCue=0;mob.visualStrikeHitSequence=0;mob.visualStrikeWindupSeconds=.4;
   mob.hit=0;
+  mob.wolfGltf?.reset();
   if(mob.banditGltf){
    const gltf=mob.banditGltf;
    gltf.mixer.stopAllAction();
@@ -1344,6 +1379,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  // Smooth original NexGame GLB Idle, Walk, Peck and hit reactions.
  function birdAnimation(mob,dt,moved=0){
+  if(mob.wolfGltf&&!mob.corpse){
+   mob.wolfGltf.update(dt,moved,{
+    distance:distance(mob),windup:mob.attackWindup||0,
+    hit:mob.hit||0,howl:mob.howlRemaining||0,
+    aggro:mob.aggro,targeted:mob===target
+   });
+   return;
+  }
   if(mob.forestWolfVisual){
    if(!mob.corpse)mob.forestWolfVisual.animate(clock,moved,mob.attackWindup>0?1:0,
     mob.howlRemaining>0?Math.min(1,mob.howlRemaining*1.5):0,mob.hit||0);
@@ -1698,7 +1741,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     target=null;autoplay=false;approach=null;swing=0;
     if(timeline.current?.target===enemy)timeline.clear();
    }
-   setModelAt(enemy);enemy.deathAnimation.begin(playerNormal());
+   setModelAt(enemy);enemy.wolfGltf?.forceNear();enemy.deathAnimation.begin(playerNormal());
    if(enemy.nameTag)enemy.nameTag.visible=false;
    enemy.loot=[...rollCreatureLoot(enemy.lootId),...rollCreatureCoins(enemy.creatureType,enemy.level)];
    updateLootMarker(enemy);
@@ -2897,6 +2940,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
      resetCreatureImpact(mob);
      if(mob.pendingBirdAsset){attachBirdVisual(mob,mob.pendingBirdAsset);mob.pendingBirdAsset=null;}
      if(mob.pendingBanditAsset){attachBanditVisual(mob,mob.pendingBanditAsset);mob.pendingBanditAsset=null;}
+    if(mob.pendingWolfAssets){attachForestWolfGLB(mob,...mob.pendingWolfAssets);mob.pendingWolfAssets=null;}
      updateLootMarker(mob);setModelAt(mob);}
     continue;
    }
