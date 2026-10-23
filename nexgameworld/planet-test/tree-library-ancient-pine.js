@@ -1,3 +1,4 @@
+import {mergeBarkParts} from './terrain-art-asset-polish.js';
 // NGW-ART-TREES-001 / T1. Original hero pine for the Stonewind art lab.
 // Procedural master: no extracted game materials, gameplay hooks or colliders.
 const TAU = Math.PI * 2;
@@ -223,7 +224,13 @@ export function createAncientPine(THREE,{seed=17,mapSize=1024}={}){
  }
  moss.instanceMatrix.needsUpdate=true;moss.frustumCulled=false;
  moss.name='Hero pine / volumetric moss growing on bark';group.add(moss);geometries.push(mossGeom);
- group.userData.geometryCounts={branches:meshes.length-10,roots:9,needleTufts:placements.length,
+ // Merge the full sculpted branch/root geometry into one draw call without
+ // reducing polygons or removing any detail. Prototype art stays lossless.
+ const woodyParts=meshes.slice(1);
+ const merged=mergeBarkParts(THREE,woodyParts);
+ for(const part of woodyParts)group.remove(part);
+ add(merged,wood,'Hero pine / merged root and branch sculpture');
+ group.userData.geometryCounts={branches:woodyParts.length-9,roots:9,needleTufts:placements.length,
   mossPatches:patches,height:28};
  return {group,maps,metadata:ANCIENT_PINE_METADATA,
   dispose(){group.parent?.remove(group);for(const g of geometries)g.dispose();
