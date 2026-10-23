@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#1b2923">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>Сад Каменного ветра · графический полигон NexGameWorld</title>
+<title>Сад Каменного ветра · Showcase P2.4.2 · NexGameWorld</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,Arial,sans-serif;color:#e8e7d9;
  --paper:rgba(18,30,26,.88);--line:rgba(181,202,159,.34);--gold:#dbbe87}
@@ -59,10 +59,10 @@ select{width:100%;font-size:13px;min-height:40px}
 <div id="labViewport"></div>
 <header class="top">
  <div class="panel">
-  <div class="eyebrow">NexGameWorld · P2.4.1 · художественный эксперимент</div>
+  <div class="eyebrow">NexGameWorld · P2.4.2 · художественная витрина</div>
   <h1>Сад Каменного ветра</h1>
-  <div class="caption">Отдельный природный сектор на сферической планете · 34 × 34 м.<br>
-   Игровые сохранения, персонаж и стартовая зона не меняются.</div>
+  <div class="caption">Древние кедры, лесная подстилка, папоротники и световые просветы · 34 × 34 м.<br>
+   Самостоятельная демонстрация графики. Сохранения не затрагиваются.</div>
  </div>
  <a class="back" href="/nexgameworld/">← В игру</a>
 </header>
@@ -77,11 +77,11 @@ select{width:100%;font-size:13px;min-height:40px}
   <div id="qualityInfo"></div>
  </div>
  <div class="control-row">
-  <button type="button" id="compare">Показать без отделки</button>
+  <button type="button" id="compare">Показать основу</button>
   <select id="quality" aria-label="Качество полигона">
    <option value="economy">Экономично</option>
    <option value="balanced" selected>Баланс</option>
-   <option value="high">Высокое</option>
+   <option value="high">Максимум</option>
   </select>
  </div>
  <div class="panel" id="fps" aria-live="off">FPS —</div>
@@ -89,7 +89,7 @@ select{width:100%;font-size:13px;min-height:40px}
 <div id="loading">Создаём оригинальные природные материалы NexGameWorld…</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
 <script type="module">
- import('./terrain-art-lab-view.js?v=1').catch(error=>{
+ import('./terrain-art-lab-view.js?v=3').catch(error=>{
   document.getElementById('loading').textContent='Не удалось открыть полигон: '+(error?.message||String(error));
   console.error('NexGameWorld art lab:',error);
  });

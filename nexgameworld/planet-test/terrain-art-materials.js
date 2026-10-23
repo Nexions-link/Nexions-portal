@@ -2,6 +2,7 @@
 // Five hand-designed procedural material families, not World of Warcraft
 // textures, models, silhouettes, brands or game resources.
 import {ART_LAB,artLabMaterialWeights,seededRandom} from './terrain-art-lab.js';
+const TAU=Math.PI*2;
 export const ART_MATERIALS=Object.freeze([
  Object.freeze({id:'meadow',name:'Луговая почва',base:'#746f49',high:'#9a9759',dark:'#454633',roughness:.89}),
  Object.freeze({id:'loam',name:'Лесная почва',base:'#544639',high:'#78624b',dark:'#302d28',roughness:.96}),
@@ -33,7 +34,7 @@ function tilePaint(kind,size,documentRef){
    rand()*Math.PI,0,Math.PI*2);g.fill()});
  }
  g.globalAlpha=1;
- const count=[215,170,290,180,120][kind];
+ const count=[285,270,440,310,175][kind];
  for(let i=0;i<count;i++){
   const x=rand()*size,y=rand()*size,scale=.5+rand()*1.6,angle=rand()*Math.PI*2;
   copies(x,y,()=>{
@@ -82,6 +83,23 @@ function tilePaint(kind,size,documentRef){
    }
   });
  }
+ // Art-directed fine botanical fibres that read at walking distance:
+ // rootlets in the dark loam, winding moss runners and small path scratches.
+ const lines=kind===1?115:kind===2?160:kind===4?90:40;
+ for(let i=0;i<lines;i++){
+  const x=rand()*size,y=rand()*size,angle=rand()*TAU,
+   length=(kind===2?6:kind===1?10:5)+rand()*12;
+  g.strokeStyle=kind===1?'#a29275':kind===2?'#b4c18b':
+   kind===4?'#d1bb93':'#a8ab78';
+  g.globalAlpha=kind===1?.25:kind===2?.33:.15;
+  copies(x,y,()=>{
+   g.save();g.rotate(angle);g.lineWidth=.4+rand()*.55;
+   g.beginPath();g.moveTo(-length/2,0);
+   g.quadraticCurveTo(0,1.2*rand(),length/2,-1.7*rand());
+   g.stroke();g.restore();
+  });
+ }
+ g.globalAlpha=1;
  // Fine silt specks, not a pseudo-photographic noisy raster.
  for(let i=0;i<620;i++){
   const x=rand()*size,y=rand()*size;
@@ -96,7 +114,7 @@ export function artLabTileLayout(){
 }
 export function createArtLabTextures(THREE,{size=768,documentRef=globalThis.document}={}){
  if(!documentRef?.createElement)throw Error('Canvas 2D is needed for art lab');
- if(![512,768,1024].includes(size))throw new RangeError('Unsupported atlas');
+ if(![512,768,896,1024,1536].includes(size))throw new RangeError('Unsupported atlas');
  const tileSize=256,tiles=ART_MATERIALS.map((_,i)=>tilePaint(i,tileSize,documentRef));
  const pixels=new Uint8Array(size*size*4),normals=new Uint8Array(pixels.length),
   rough=new Uint8Array(pixels.length),heights=new Uint8Array(size*size);

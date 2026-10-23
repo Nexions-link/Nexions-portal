@@ -4,23 +4,24 @@ import {ART_LAB,artLabNormal,artLabWorldPoint,artLabBiomeHeight,
 import {createArtLabTextures} from './terrain-art-materials.js';
 import {createForestBarkTextures} from './forest-bark-texture.js';
 import {createWeatheredStoneGeometry} from './stone-surface.js';
+import {createStonewindShowcase} from './terrain-art-showcase.js?v=1';
 
 const R=ART_LAB.radius,PI=Math.PI,TAU=PI*2;
 const $=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const scene=new THREE.Scene();scene.background=new THREE.Color('#acc2b6');
-scene.fog=new THREE.Fog('#acc2b6',90,270);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#9aaea5');
+scene.fog=new THREE.Fog('#a3b7a3',38,175);
 const camera=new THREE.PerspectiveCamera(63,1,.18,1000);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'default'});
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.15;
+renderer.toneMappingExposure=1.09;
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 $('labViewport').appendChild(renderer.domElement);
 renderer.domElement.setAttribute('aria-label','Сферический художественный полигон NexGameWorld');
 const UP=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
-const sun=new THREE.DirectionalLight('#fff0cc',2.45),hemi=new THREE.HemisphereLight('#e5e4c3','#506057',1.4),
- fill=new THREE.DirectionalLight('#accbd0',.42);
+const sun=new THREE.DirectionalLight('#ffe1a8',2.85),hemi=new THREE.HemisphereLight('#d7e4c9','#364d48',1.19),
+ fill=new THREE.DirectionalLight('#b7d4c6',.63);
 sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
 sun.shadow.camera.left=-24;sun.shadow.camera.right=24;
 sun.shadow.camera.top=24;sun.shadow.camera.bottom=-24;
@@ -106,24 +107,26 @@ const treeRoots=[];
 for(let index=0;index<ART_LAB.treeSites.length;index++){
  const [x,z]=ART_LAB.treeSites[index],group=orient(new THREE.Group(),x,z);
  group.name='Ancient original stonewind cedar '+index;scene.add(group);
- const h=9.8+index*.90;
- branch(group,[0,.25,0],[.32,h*.66,-.25],.62,.32);
- branch(group,[.32,h*.66,-.25],[.60,h,-.38],.33,.16);
- for(let j=0;j<5;j++){
-  const a=j*TAU/5+index*.19,reach=1.35+(j%2)*.55;
-  branch(group,[Math.sin(a)*.19,.28,Math.cos(a)*.19],
-   [Math.sin(a)*reach,.13,Math.cos(a)*reach],.30,.065);
+ const h=index===0?20.3:13.8+index*1.28;
+ branch(group,[0,.25,0],[.38,h*.61,-.32],index===0?1.08:.74,.47);
+ branch(group,[.38,h*.61,-.32],[.60,h,-.38],.49,.18);
+ for(let j=0;j<(index===0?11:8);j++){
+  const a=j*TAU/(index===0?11:8)+index*.19,reach=(index===0?2.8:1.9)+(j%3)*.47;
+  branch(group,[Math.sin(a)*.29,.28,Math.cos(a)*.29],
+   [Math.sin(a)*reach,.16,Math.cos(a)*reach],index===0?.43:.33,.075);
  }
- for(let j=0;j<7;j++){
-  const a=j*TAU/7+index*.4,ry=h*.70+(j%3)*1.05,
-   radius=1.5+(j%2)*.62;
+ for(let j=0;j<(index===0?23:13);j++){
+  const count=index===0?23:13;
+  const a=j*TAU/count+index*.4,ry=h*(.55+(j%5)*.093),
+   radius=(index===0?3.7:2.3)+(j%4)*.53;
   const canopy=new THREE.Mesh(canopyGeo,leafMaterials[(j+index)%4]);
   canopy.position.set(Math.sin(a)*radius,ry+.47,Math.cos(a)*radius);
-  canopy.scale.set(1.9+(j%3)*.37,1.5+(j%2)*.42,1.8+(j%3)*.25);
+  canopy.scale.set((index===0?2.8:2.04)+(j%3)*.38,
+   (index===0?2.30:1.65)+(j%2)*.48,(index===0?2.8:2.0)+(j%3)*.23);
   canopy.rotation.set(j*.2,j*.49,j*.18);
   canopy.castShadow=true;group.add(canopy);
-  if(j%2===0)branch(group,[.25,h*.67,-.2],
-    [canopy.position.x,ry,canopy.position.z],.16,.055);
+  if(j%3===0)branch(group,[.25,h*.63,-.2],
+    [canopy.position.x,ry,canopy.position.z],.19,.055);
  }
  treeRoots.push(group);
 }
@@ -198,6 +201,7 @@ scatterBatch('litter',grassData.leaves,fallenLeafGeometry(),
  ['#b48b58','#99734d','#715940','#aa8359'],.31);
 scatterBatch('stonechips',grassData.pebbles,rockGeo,
  ['#99927d','#938775','#696e63'],.34);
+const showcase=createStonewindShowcase(THREE,{scene});
 // A small character-scale observer exists only in this standalone visual test.
 const observer=new THREE.Group();scene.add(observer);
 const body=new THREE.Mesh(new THREE.CapsuleGeometry(.37,1.12,3,9),
@@ -206,11 +210,11 @@ const head=new THREE.Mesh(new THREE.SphereGeometry(.27,10,8),
  tinted('#c1ab8b'));head.position.y=2.05;head.castShadow=true;observer.add(head);
 const cloak=new THREE.Mesh(new THREE.ConeGeometry(.51,1.3,11),tinted('#455b51'));
 cloak.position.set(0,.88,-.24);cloak.rotation.x=-.16;observer.add(cloak);
-const marker=orient(new THREE.Group(),0,0,.08);scene.add(marker);
+const marker=orient(new THREE.Group(),0,0,.24);scene.add(marker);
 const compass=new THREE.Mesh(new THREE.RingGeometry(.7,.79,30),
  new THREE.MeshBasicMaterial({color:'#a8d4ac',transparent:true,opacity:.38,side:THREE.DoubleSide}));
 compass.rotation.x=-PI/2;marker.add(compass);
-const move={x:0,z:0},pose={x:0,z:0,yaw:0,pitch:.39,zoom:11.5};
+const move={x:0,z:0},pose={x:0,z:0,yaw:-.24,pitch:.33,zoom:11.8};
 function qualityApply(){
  const q=artLabSurfaceQuality(quality);
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,q.dpr));
@@ -220,17 +224,23 @@ function qualityApply(){
  for(const d of decorBatches){
   d.mesh.count=artEnabled?Math.floor(d.total*q.details):0;
  }
- treeRoots.forEach((r,i)=>{r.visible=artEnabled;r.traverse(o=>{
+ showcase.setQuality(quality,artEnabled);
+  scene.fog.near=quality==='high'?38:quality==='balanced'?32:24;
+  scene.fog.far=quality==='high'?175:quality==='balanced'?147:112;
+  sun.intensity=quality==='high'?2.85:quality==='balanced'?2.45:2.0;
+  renderer.toneMappingExposure=quality==='high'?1.09:1.12;
+  treeRoots.forEach((r,i)=>{r.visible=artEnabled;r.traverse(o=>{
   if(o.isMesh)o.castShadow=q.shadows&&quality==='high';
  })});
  $('qualityInfo').textContent=
   'Режим: '+quality+' · атлас '+(asset?.atlasSize||'…')+
-  ' px · оригинальные материалы · сектор '+ART_LAB.lon.toFixed(2)+'/'+ART_LAB.lat.toFixed(2);
+  ' px · '+(quality==='high'?'максимальная детализация':quality==='balanced'?'живой лес':'облегчённый лес')+
+   ' · сектор '+ART_LAB.lon.toFixed(2)+'/'+ART_LAB.lat.toFixed(2);
 }
 function materialApply(){
  terrain.material=artEnabled?(pbr||simpleLand):simpleLand;
  qualityApply();
- $('compare').textContent=artEnabled?'Показать без отделки':'Вернуть новую отделку';
+ $('compare').textContent=artEnabled?'Показать основу':'Вернуть живой лес';
 }
 async function loadAtlas(preset){
  const size=artLabSurfaceQuality(preset).atlas;
@@ -245,13 +255,13 @@ async function loadAtlas(preset){
   roughnessMap:data.roughnessMap,roughness:.94,metalness:0,
   vertexColors:true,transparent:true,depthWrite:false,
   side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2});
- pbr.normalScale.set(.57,.57);
+ pbr.normalScale.set(quality==='high'?.95:.71);
  materialApply();$('loading').hidden=true;
 }
 $('compare').addEventListener('click',()=>{artEnabled=!artEnabled;materialApply()});
 $('quality').addEventListener('change',async e=>{
  quality=e.target.value;
- try{await loadAtlas(quality)}catch(err){$('loading').textContent='Ошибка материалов: '+err.message;}
+ try{await loadAtlas(quality);if(pbr)pbr.normalScale.set(quality==='high'?.95:.71)}catch(err){$('loading').textContent='Ошибка материалов: '+err.message;}
  qualityApply();
 });
 $('materials').innerHTML=ART_LAB.materialNames.map((label,i)=>
@@ -343,7 +353,7 @@ function frame(){
   .addScaledVector(n,pose.zoom*Math.sin(pose.pitch)+1.4);
  camera.position.lerp(desired,1-Math.exp(-dt*9));
  camera.up.copy(n);camera.lookAt(camTarget);
- sun.position.copy(observer.position).addScaledVector(n,32).addScaledVector(east,21).addScaledVector(north,14);
+ sun.position.copy(observer.position).addScaledVector(n,35).addScaledVector(east,-32).addScaledVector(north,19);
  sun.target.position.copy(observer.position);sun.target.updateMatrixWorld();
  renderer.render(scene,camera);
  frames++;seconds+=dt;if(seconds>1.1){

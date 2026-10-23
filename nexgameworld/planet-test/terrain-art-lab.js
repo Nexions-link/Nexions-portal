@@ -4,7 +4,7 @@
 export const ART_LAB=Object.freeze({
  name:'Сад Каменного ветра',lon:2.42,lat:.22,radius:261,halfSize:17,
  materialNames:['Луговая почва','Лесная почва','Живой мох','Опавшая листва','Утоптанная тропа'],
- treeSites:Object.freeze([[9.4,8.7],[-9.7,10.4],[10.8,-8.2],[-11.4,-7.8]]),
+ treeSites:Object.freeze([[.85,10.2],[-9.7,10.4],[10.8,-8.2],[-11.4,-7.8]]),
  rockSites:Object.freeze([[6.0,-5.0],[-5.7,5.8],[10.9,2.1]])
 });
 const clamp=t=>Math.max(0,Math.min(1,t));
@@ -35,13 +35,26 @@ export function artLabBiomeHeight(n){
  const ice=smooth(.78,.94,Math.abs(n[1]))*2.5;
  return rough+mountain+dunes+ice;
 }
+// One continuous local displacement field: it fades before meeting the
+// unmodified global planet. Every stone, tree and ground mesh calls artLabHeight.
+export function artLabScenicRelief(x,z){
+ if(!Number.isFinite(x)||!Number.isFinite(z))throw new RangeError('Invalid terrain');
+ const d=Math.hypot(x,z),edge=1-smooth(11.8,17,d);
+ if(edge<=0)return 0;
+ const high=.86*Math.exp(-((x+9)*(x+9)/110+(z-8)*(z-8)/78));
+ const rocky=.81*Math.exp(-((x-8)*(x-8)/60+(z+8)*(z+8)/95));
+ const hummocks=.31*Math.sin(x*.26+z*.14)*Math.cos(z*.19-x*.09);
+ const hollow=-.52*Math.exp(-(x*x/64+(z-3.2)*(z-3.2)/24));
+ const road=1-smooth(.6,3.4,Math.abs(z-artLabPathZ(x)));
+ return (high+rocky+hummocks+hollow-.12*road)*edge;
+}
 export function artLabHeight(x,z){
  const n=artLabNormal(x,z);
  const base=artLabBiomeHeight(n);
  const xDetail=.085*Math.sin(x*.63+Math.cos(z*.47))*
   Math.sin(z*.61-x*.21);
  const smoothing=1-smooth(12,18,Math.hypot(x,z));
- return base+xDetail*smoothing;
+ return base+xDetail*smoothing+artLabScenicRelief(x,z);
 }
 export function artLabWorldPoint(x,z,offset=0){
  const n=artLabNormal(x,z),h=ART_LAB.radius+artLabHeight(x,z)+offset;
@@ -76,8 +89,8 @@ export function artLabMaterialWeights(x,z){
 }
 export function artLabSurfaceQuality(preset='balanced'){
  if(preset==='economy')return {atlas:512,dpr:1,details:.28,shadows:false};
- if(preset==='high')return {atlas:1024,dpr:1.65,details:1,shadows:true};
- return {atlas:768,dpr:1.3,details:.66,shadows:true};
+ if(preset==='high')return {atlas:1536,dpr:1.65,details:1,shadows:true};
+ return {atlas:896,dpr:1.3,details:.66,shadows:true};
 }
 export function seededRandom(seed=742033){
  let n=seed>>>0;
