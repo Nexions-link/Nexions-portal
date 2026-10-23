@@ -4,7 +4,9 @@ import {ART_LAB,artLabNormal,artLabWorldPoint,artLabBiomeHeight,
 import {createArtLabTextures} from './terrain-art-materials.js';
 import {createForestBarkTextures} from './forest-bark-texture.js';
 import {createWeatheredStoneGeometry} from './stone-surface.js';
-import {createStonewindShowcase} from './terrain-art-showcase.js?v=1';
+import {createStonewindShowcase} from './terrain-art-showcase.js?v=2';
+import {createDetailedCrownGeometry,createRidgedBarkSegment,mergeBarkParts,
+ createDetailedRockGeometry} from './terrain-art-asset-polish.js?v=1';
 
 const R=ART_LAB.radius,PI=Math.PI,TAU=PI*2;
 const $=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -88,22 +90,29 @@ const decorBatches=[];
 const tinted=(color,vertex=false)=>new THREE.MeshStandardMaterial({
  color,roughness:1,vertexColors:vertex,side:THREE.DoubleSide
 });
-const trunk=new THREE.MeshStandardMaterial({color:'#796449',roughness:1});
+// P2.4.3 — same four trees, now sculpted bark and leaf clusters.
+const trunk=new THREE.MeshStandardMaterial({
+ color:'#ad9a81',roughness:.98,metalness:0,vertexColors:true,side:THREE.DoubleSide
+});
 const bark=createForestBarkTextures(THREE);
-if(bark?.map)trunk.map=bark.map;
-const leafMaterials=['#576c4d','#7d8860','#3d604f','#8b9068'].map(c=>tinted(c));
-const branchGeo=new THREE.CylinderGeometry(.23,.40,1,8),rootGeo=new THREE.CylinderGeometry(.12,.27,1,6);
-const canopyGeo=new THREE.IcosahedronGeometry(1,1);
-function branch(group,a,b,rStart=.20,rEnd=.10,material=trunk){
+if(bark?.map){trunk.map=bark.map;trunk.bumpMap=bark.bumpMap;
+ trunk.bumpScale=.085;bark.map.repeat.set(1,3);bark.bumpMap.repeat.set(1,3);}
+const leafMaterial=new THREE.MeshStandardMaterial({
+ color:'#ffffff',roughness:1,metalness:0,vertexColors:true,side:THREE.DoubleSide
+});
+const crownNear=createDetailedCrownGeometry(THREE,{far:false}),
+ crownLow=createDetailedCrownGeometry(THREE,{far:true});
+const treeRoots=[],treeCrowns=[];
+function branch(group,a,b,rStart=.20,rEnd=.10){
  const start=new THREE.Vector3(...a),end=new THREE.Vector3(...b);
- const direction=end.clone().sub(start),len=direction.length();
- const geo=new THREE.CylinderGeometry(rEnd,rStart,len,7);
- const stem=new THREE.Mesh(geo,material);
- stem.position.copy(start).add(end).multiplyScalar(.5);
- stem.quaternion.setFromUnitVectors(UP,direction.normalize());
- stem.castShadow=true;stem.receiveShadow=true;group.add(stem);return stem;
+ const axis=end.clone().sub(start),len=axis.length();
+ const part=new THREE.Mesh(createRidgedBarkSegment(THREE,rStart,rEnd,len),trunk);
+ part.name='stonewind-original-ridged-branch-no-collision';
+ part.position.copy(start).add(end).multiplyScalar(.5);
+ part.quaternion.setFromUnitVectors(UP,axis.normalize());
+ part.userData.barkPart=true;group.add(part);return part;
 }
-const treeRoots=[];
+const leafTints=['#658162','#8b9e73','#5e8267','#9aa57c'];
 for(let index=0;index<ART_LAB.treeSites.length;index++){
  const [x,z]=ART_LAB.treeSites[index],group=orient(new THREE.Group(),x,z);
  group.name='Ancient original stonewind cedar '+index;scene.add(group);
@@ -111,35 +120,52 @@ for(let index=0;index<ART_LAB.treeSites.length;index++){
  branch(group,[0,.25,0],[.38,h*.61,-.32],index===0?1.08:.74,.47);
  branch(group,[.38,h*.61,-.32],[.60,h,-.38],.49,.18);
  for(let j=0;j<(index===0?11:8);j++){
-  const a=j*TAU/(index===0?11:8)+index*.19,reach=(index===0?2.8:1.9)+(j%3)*.47;
+  const a=j*TAU/(index===0?11:8)+index*.19;
+  const reach=(index===0?2.8:1.9)+(j%3)*.47;
   branch(group,[Math.sin(a)*.29,.28,Math.cos(a)*.29],
    [Math.sin(a)*reach,.16,Math.cos(a)*reach],index===0?.43:.33,.075);
  }
- for(let j=0;j<(index===0?23:13);j++){
-  const count=index===0?23:13;
-  const a=j*TAU/count+index*.4,ry=h*(.55+(j%5)*.093),
-   radius=(index===0?3.7:2.3)+(j%4)*.53;
-  const canopy=new THREE.Mesh(canopyGeo,leafMaterials[(j+index)%4]);
-  canopy.position.set(Math.sin(a)*radius,ry+.47,Math.cos(a)*radius);
-  canopy.scale.set((index===0?2.8:2.04)+(j%3)*.38,
-   (index===0?2.30:1.65)+(j%2)*.48,(index===0?2.8:2.0)+(j%3)*.23);
-  canopy.rotation.set(j*.2,j*.49,j*.18);
-  canopy.castShadow=true;group.add(canopy);
+ const count=index===0?23:13;
+ const canopy=new THREE.InstancedMesh(crownNear,leafMaterial,count);
+ canopy.name='stonewind-original-cedar-folded-leaf-crowns';
+ canopy.frustumCulled=false;canopy.castShadow=false;
+ const dummy=new THREE.Object3D(),tint=new THREE.Color();
+ for(let j=0;j<count;j++){
+  const angle=j*TAU/count+index*.4,ry=h*(.55+(j%5)*.093);
+  const radius=(index===0?3.7:2.3)+(j%4)*.53;
+  dummy.position.set(Math.sin(angle)*radius,ry+.47,Math.cos(angle)*radius);
+  dummy.scale.set((index===0?2.8:2.04)+(j%3)*.38,
+   (index===0?2.30:1.65)+(j%2)*.48,
+   (index===0?2.8:2.0)+(j%3)*.23);
+  dummy.rotation.set(j*.2,j*.49,j*.18);dummy.updateMatrix();
+  canopy.setMatrixAt(j,dummy.matrix);
+  canopy.setColorAt(j,tint.set(leafTints[(j+index)%leafTints.length]));
   if(j%3===0)branch(group,[.25,h*.63,-.2],
-    [canopy.position.x,ry,canopy.position.z],.19,.055);
+   [dummy.position.x,ry,dummy.position.z],.19,.055);
  }
- treeRoots.push(group);
+ canopy.instanceMatrix.needsUpdate=true;
+ if(canopy.instanceColor)canopy.instanceColor.needsUpdate=true;
+ const barkParts=group.children.filter(mesh=>mesh.userData?.barkPart);
+ const merged=mergeBarkParts(THREE,barkParts);
+ for(const part of barkParts){group.remove(part);part.geometry.dispose();}
+ const stem=new THREE.Mesh(merged,trunk);
+ stem.castShadow=true;stem.receiveShadow=true;
+ stem.name='stonewind-merged-bark-no-collision';
+ group.add(stem,canopy);
+ treeRoots.push(group);treeCrowns.push(canopy);
 }
-const rockGeo=createWeatheredStoneGeometry(THREE,'forest');
-const stoneMat=tinted('#a49d8a',true);
+const rockGeo=createDetailedRockGeometry(THREE);
+const stoneMat=tinted('#dad7cb',true);
 for(let i=0;i<ART_LAB.rockSites.length;i++){
  const [x,z]=ART_LAB.rockSites[i],cluster=orient(new THREE.Group(),x,z,.26);
  scene.add(cluster);
  for(let j=0;j<3;j++){
   const rock=new THREE.Mesh(rockGeo,stoneMat);
-  rock.position.set(Math.sin(j*2.48)*(.75+j*.18),.22+j*.12,Math.cos(j*2.48)*(.6+j*.21));
+  rock.position.set(Math.sin(j*2.48)*(.75+j*.18),.22+j*.12,
+   Math.cos(j*2.48)*(.6+j*.21));
   rock.scale.set(1.3-j*.15,.53+j*.23,1.15+j*.09);
-  rock.rotation.y=j*1.75;rock.castShadow=true;cluster.add(rock);
+  rock.rotation.y=j*1.75;rock.castShadow=true;rock.receiveShadow=true;
+  cluster.add(rock);
  }
 }
 function shapedLeafGeometry(){
@@ -199,7 +225,8 @@ scatterBatch('grass',grassData.grasses,shapedLeafGeometry(),
  ['#6a8552','#9ba264','#657c4a','#79966b'],.35);
 scatterBatch('litter',grassData.leaves,fallenLeafGeometry(),
  ['#b48b58','#99734d','#715940','#aa8359'],.31);
-scatterBatch('stonechips',grassData.pebbles,rockGeo,
+const pebbleGeo=createWeatheredStoneGeometry(THREE,'forest');
+scatterBatch('stonechips',grassData.pebbles,pebbleGeo,
  ['#99927d','#938775','#696e63'],.34);
 const showcase=createStonewindShowcase(THREE,{scene});
 // A small character-scale observer exists only in this standalone visual test.
@@ -225,13 +252,17 @@ function qualityApply(){
   d.mesh.count=artEnabled?Math.floor(d.total*q.details):0;
  }
  showcase.setQuality(quality,artEnabled);
+ for(const crown of treeCrowns)crown.geometry=quality==='high'?crownNear:crownLow;
+ trunk.bumpScale=quality==='high'?.105:quality==='balanced'?.061:0;
+ trunk.bumpMap=quality==='economy'?null:bark?.bumpMap||null;
+ trunk.needsUpdate=true;
   scene.fog.near=quality==='high'?38:quality==='balanced'?32:24;
   scene.fog.far=quality==='high'?175:quality==='balanced'?147:112;
   sun.intensity=quality==='high'?2.85:quality==='balanced'?2.45:2.0;
   renderer.toneMappingExposure=quality==='high'?1.09:1.12;
-  treeRoots.forEach((r,i)=>{r.visible=artEnabled;r.traverse(o=>{
-  if(o.isMesh)o.castShadow=q.shadows&&quality==='high';
- })});
+  treeRoots.forEach(r=>{r.visible=artEnabled;
+   r.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh)o.castShadow=q.shadows&&quality==='high';});
+  });
  $('qualityInfo').textContent=
   'Режим: '+quality+' · атлас '+(asset?.atlasSize||'…')+
   ' px · '+(quality==='high'?'максимальная детализация':quality==='balanced'?'живой лес':'облегчённый лес')+
