@@ -30,6 +30,14 @@ export function createForestWolfVisual(THREE,variant=0){
   part(head,sph,black,side*.38,.11,.56,.095,.075,.060);
   part(head,sph,teeth,side*.20,-.30,.81,.04,.09,.05);
  }
+ // Separate jaw pivot: growling and biting do not affect the collision root.
+ const jaw=new THREE.Group();jaw.position.set(0,-.22,.53);head.add(jaw);
+ part(jaw,sph,light,0,-.11,.18,.245,.115,.31);
+ for(const side of [-1,1]){
+  const fang=part(jaw,new THREE.ConeGeometry(.038,.16,5),teeth,side*.18,-.035,.37);
+  fang.rotation.x=Math.PI;
+ }
+ const strikeMotion={cueSeen:0,hitSeen:0,cueAt:-1,hitAt:-1};
  const ears=[];
  for(const s of [-1,1]){
   const ear=part(head,new THREE.ConeGeometry(.18,.55,6),mane,s*.29,.42,.12);
@@ -46,7 +54,26 @@ export function createForestWolfVisual(THREE,variant=0){
  const tail=part(tailPivot,new THREE.ConeGeometry(.25,1.06,7),fur,0,0,-.35);
  tail.rotation.x=-1.13;
  part(tailPivot,sph,mane,0,.13,-.74,.23,.23,.30);
- function animate(time,distance=0,attack=0,howl=0,hit=0){
+ function animate(time,distance=0,attack=0,howl=0,hit=0,strike={}){
+  // Server-confirmed telegraph starts the crouch; confirmed impact triggers the
+  // visible bite. Only the mesh moves, never the authoritative position/hitbox.
+  const cue=Number.isInteger(strike.cueSequence)?strike.cueSequence:0;
+  const impact=Number.isInteger(strike.hitSequence)?strike.hitSequence:0;
+  if(cue!==strikeMotion.cueSeen){
+   strikeMotion.cueSeen=cue;strikeMotion.cueAt=time;strikeMotion.hitAt=-1;
+  }
+  if(impact!==strikeMotion.hitSeen){
+   strikeMotion.hitSeen=impact;strikeMotion.hitAt=time;
+  }
+  const windupDuration=Math.max(.1,Math.min(1.2,strike.windupDuration||.4));
+  const windup=attack>0&&strikeMotion.cueAt>=0?
+   Math.min(1,Math.max(0,(time-strikeMotion.cueAt)/(windupDuration*.48))):0;
+  const elapsed=strikeMotion.hitAt>=0?time-strikeMotion.hitAt:Infinity;
+  const lunge=elapsed>=0&&elapsed<.22?
+   (elapsed<.06?elapsed/.06:Math.max(0,1-(elapsed-.06)/.16)):0;
+  const recovery=elapsed>=.18&&elapsed<.54?
+   Math.max(0,1-(elapsed-.18)/.36):0;
+  const combatPose=attack>0||lunge>0||recovery>0;
   const moving=Math.min(1,Math.max(0,distance*2.5)),idle=1-moving;
   const phase=time*7.3+variant,threat=attack>0;
   const sprint=Math.min(1,Math.max(0,distance*1.3));
@@ -55,22 +82,35 @@ export function createForestWolfVisual(THREE,variant=0){
   body.scale.y=1+.014*Math.sin(time*1.9+variant)*idle;
   for(let i=0;i<legs.length;i++){
    const stride=Math.sin(phase*(1+.35*sprint)+(i===0||i===3?0:Math.PI));
-   legs[i].rotation.x=stride*(.35+.18*sprint)*moving;
+   const front=i%2===1;
+   legs[i].rotation.x=stride*(.35+.18*sprint)*moving*(1-.8*windup)
+    +windup*(front?-.16:.14)+lunge*(front?.33:-.20);
   }
   // Visible warning: neck/head tilt upward, ears flare, howl before attack.
   const voice=Math.min(1,Math.max(0,howl));
-  head.rotation.x=voice?-.62*voice:threat?-.20:.07*Math.sin(time*.8+variant);
-  head.position.y=voice?1.48+.16*voice:1.48;
+  head.rotation.x=voice?-.62*voice:combatPose?
+   (-.20+.18*windup-.37*lunge+.10*recovery):.07*Math.sin(time*.8+variant);
+  head.position.y=1.48+.16*voice-.10*windup+.045*lunge;
+  jaw.rotation.x=.05+.40*windup+.62*lunge+.13*recovery;
+  jaw.visible=true;
   head.rotation.z=hit>0?.085*Math.sin(time*19+variant):0;
-  head.rotation.y=threat?0:Math.sin(time*.67+variant*.9)*.11*idle;
+  head.rotation.y=combatPose?0:Math.sin(time*.67+variant*.9)*.11*idle;
   for(let i=0;i<ears.length;i++){
    const side=i===0?-1:1;
-   ears[i].rotation.z=-side*.12+Math.sin(time*2.1+variant+i*1.7)*.035*idle;
+   ears[i].rotation.z=-side*.12+Math.sin(time*2.1+variant+i*1.7)*.035*idle
+    +side*(.24*windup+.38*lunge);
   }
-  body.position.y=Math.sin(phase*2)*(.045+.025*sprint)*moving+.08*voice;
-  body.rotation.x=-.035*sprint*Math.sin(phase*2)*moving;
+  body.position.y=Math.sin(phase*2)*(.045+.025*sprint)*moving+.08*voice
+   -.075*windup+.045*lunge;
+  body.position.z=-.085*windup+.30*lunge-.05*recovery;
+  body.rotation.x=-.035*sprint*Math.sin(phase*2)*moving+.13*windup-.21*lunge+.055*recovery;
   tailPivot.rotation.z=Math.sin(time*1.9+variant)*(threat?.06:.15);
   tailPivot.rotation.x=.08*Math.sin(time*1.1+variant);
  }
- return {root,animate};
+ function resetAttack(){
+  strikeMotion.cueSeen=0;strikeMotion.hitSeen=0;
+  strikeMotion.cueAt=-1;strikeMotion.hitAt=-1;
+  body.position.z=0;body.rotation.x=0;jaw.rotation.x=.05;
+ }
+ return {root,animate,resetAttack};
 }
