@@ -1,6 +1,6 @@
 import {createLandscapeMap} from '../landscape.js?v=0.6.43.96';
 import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=11';
-import {createSphericalMeadow} from './sphere-meadow.js?v=2';
+import {createSphericalMeadow} from './sphere-meadow.js?v=3';
 import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';
 import {createTaurenAnatomy} from './tauren-anatomy.js?v=3';
@@ -293,7 +293,8 @@ export function createStartZone(three,scene,getRadius,heightAt){
  terrainGeo.setAttribute('position',new THREE.BufferAttribute(verts,3));
  terrainGeo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
  terrainGeo.setAttribute('uv',new THREE.Float32BufferAttribute(tileUVs,2));
- const patch=new THREE.Mesh(terrainGeo,new THREE.MeshStandardMaterial({map:paintedMap,roughness:1,side:THREE.DoubleSide}));
+ const terrainMaterial=new THREE.MeshStandardMaterial({map:paintedMap,roughness:1,side:THREE.DoubleSide});
+ const patch=new THREE.Mesh(terrainGeo,terrainMaterial);
  patch.frustumCulled=false;scene.add(patch);
  // Water and shore geometries remain real-world metre sizes when the radius changes.
  function radialGeometry(radiusInner,radiusOuter,steps,segments,offsetMode){
@@ -403,6 +404,13 @@ export function createStartZone(three,scene,getRadius,heightAt){
   // Shadows are independent of whether the roof is translucent.
   for(const caster of shadowCasters)caster.castShadow=shadowsEnabled;
   patch.receiveShadow=shadowsEnabled;
+  // Standard Three.js bump shading reuses the colour atlas, so no second
+  // texture is needed on iPhone. The ground mesh never changes its shape.
+  const bump=(preset.detail??0)>=.60&&!preset.portal?paintedMap:null;
+  if(terrainMaterial.bumpMap!==bump){
+   terrainMaterial.bumpMap=bump;terrainMaterial.needsUpdate=true;
+  }
+  terrainMaterial.bumpScale=(preset.detail??0)>.9?.052:.024;
  }
  function updateInteriorView(x,z,dt=1/60){
   const inside=insideHouse(x,z);

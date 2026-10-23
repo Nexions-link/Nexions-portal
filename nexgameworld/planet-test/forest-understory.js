@@ -4,6 +4,7 @@
 import {createForestLayout,forestDistance,forestTrailLatitude,forestMoodAt,
  FOREST_CAMP,FOREST_SITE_CLEARINGS} from './whispering-forest.js';
 import {forestCanopyShadeAt} from './forest-lighting.js';
+import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 
 const TAU=Math.PI*2,R=261;
 export const FOREST_UNDERSTORY_CAPS=Object.freeze({
@@ -92,16 +93,31 @@ function geometryData(kind){
    }
   }
  }else if(kind==='leaves'){
-  // Several differently shaped curled oak/needle fragments per patch.
+  // Fallen oak leaf litter with independently curled lobes rather than
+  // repeated sharp paper triangles; tiny height variations catch glancing light.
   for(let j=0;j<10;j++){
-   const a=j*2.39996,dx=Math.cos(a),dz=Math.sin(a),
-    sx=-dz,sz=dx,dist=.23+.06*(j%4),z=dist+.025*(j%3);
-   const start=[dx*z,.014,dz*z],tip=[dx*(z+.36),.042+(j%3)*.011,dz*(z+.36)];
-   const width=.10+.035*(j%3),left=[dx*(z+.17)+sx*width,.07,dz*(z+.17)+sz*width],
-    right=[dx*(z+.17)-sx*width,.027,dz*(z+.17)-sz*width];
-   const gold=j%3===0?[.91,.70,.37]:j%3===1?[.75,.52,.30]:[.49,.41,.29];
-   triangle(start,left,tip,gold);
-   triangle(start,tip,right,gold);
+   const angle=j*2.39996,dx=Math.cos(angle),dz=Math.sin(angle);
+   const tx=-dz,tz=dx,radial=.18+.066*(j%4);
+   const start=[dx*radial,.014,dz*radial];
+   const y=.045+(j%3)*.018,length=.29+.058*(j%3);
+   const base=[dx*(radial+.09),.019,dz*(radial+.09)];
+   const mid=[dx*(radial+length*.48),y,dz*(radial+length*.48)];
+   const tip=[dx*(radial+length),.025,dz*(radial+length)];
+   const w=.10+.022*(j%3);
+   const a=[mid[0]+tx*w,mid[1],mid[2]+tz*w];
+   const b=[mid[0]-tx*w,mid[1]-.018,mid[2]-tz*w];
+   const l=[dx*(radial+length*.68)+tx*w*.81,.035,
+    dz*(radial+length*.68)+tz*w*.81];
+   const r=[dx*(radial+length*.68)-tx*w*.81,.017,
+    dz*(radial+length*.68)-tz*w*.81];
+   const dark=j%3===0?[.67,.43,.29]:j%3===1?[.55,.42,.30]:[.44,.38,.28];
+   const edge=j%3===0?[.90,.68,.39]:j%3===1?[.79,.57,.34]:[.65,.56,.38];
+   triangle(start,base,a,dark,dark,edge);
+   triangle(start,a,mid,dark,edge,edge);
+   triangle(start,mid,b,dark,edge,edge);
+   triangle(start,b,base,dark,edge,dark);
+   triangle(a,l,tip,edge,edge,dark);
+   triangle(b,tip,r,edge,dark,edge);
   }
  }else if(kind==='ivy'){
   // Creeping stems climb the lower bark and turn around its circumference.
@@ -150,21 +166,6 @@ export function createForestUnderstory(THREE,{scene,radius,heightAt}){
   geo.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
   geo.computeVertexNormals();return geo;
  }
- function stoneGeo(){
-  const geo=new THREE.IcosahedronGeometry(1,1);
-  // Static vertex colours put lichens on upper ridges without a second mesh.
-  const pos=geo.getAttribute('position'),colors=[];
-  for(let i=0;i<pos.count;i++){
-   const y=pos.getY(i),x=pos.getX(i),z=pos.getZ(i);
-   const patch=sCurve((y+.06+.22*Math.sin(x*9+z*7))/.65);
-   const shade=.73+.17*Math.sin(x*11+z*6+y*9);
-   colors.push((.66*(1-patch)+.33*patch)*shade,
-    (.69*(1-patch)+.52*patch)*shade,
-    (.66*(1-patch)+.33*patch)*shade);
-  }
-  geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-  return geo;
- }
  function add(kind,geo,lit=true){
   const rows=layout[kind],material=lit?
    new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
@@ -195,7 +196,7 @@ export function createForestUnderstory(THREE,{scene,radius,heightAt}){
  }
  add('ferns',createGeo(geometryData('ferns')));
  add('leaves',createGeo(geometryData('leaves')),false);
- add('boulders',stoneGeo());
+ add('boulders',createWeatheredStoneGeometry(THREE,'forest'));
  add('ivy',createGeo(geometryData('ivy')));
  function setQuality(quality='balanced',preview=false){
   const budget=forestUnderstoryBudget(quality,preview);

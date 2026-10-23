@@ -45,26 +45,33 @@ export function forestGroundLifeLayout(seed=706419){
  }
  return Object.freeze(Object.fromEntries(Object.entries(places).map(([k,v])=>[k,Object.freeze(v)])));
 }
-function grassMeshGeometry(THREE){
+export function forestCurvedGrassData(){
  const verts=[],colours=[],blades=7;
+ const append=(v,c)=>{verts.push(...v);colours.push(...c)};
+ const tri=(a,b,c,ca,cb,cc)=>{append(a,ca);append(b,cb);append(c,cc)};
  for(let i=0;i<blades;i++){
-  const a=i*TAU/blades+.1,dx=Math.cos(a),dz=Math.sin(a);
-  const px=-dz,pz=dx,extent=.25+(i%3)*.08,height=.64+(i%4)*.10,lean=.20;
+  const a=i*TAU/blades+.1,dx=Math.cos(a),dz=Math.sin(a),tx=-dz,tz=dx;
+  const extent=.14+(i%3)*.047,height=.72+(i%4)*.11,lean=.24+(i%2)*.09;
+  const w=.068+(i%3)*.01;
+  const root=[dx*.055,.02,dz*.055],
+   lowLeft=[root[0]+tx*w,.02,root[2]+tz*w],
+   lowRight=[root[0]-tx*w,.02,root[2]-tz*w];
+  const shoulder=[dx*extent,height*.52,dz*extent];
+  const left=[shoulder[0]+tx*w*.55,shoulder[1],shoulder[2]+tz*w*.55];
+  const right=[shoulder[0]-tx*w*.55,shoulder[1],shoulder[2]-tz*w*.55];
   const tip=[dx*(extent+lean),height,dz*(extent+lean)];
-  const mid=[dx*extent*.67,height*.58,dz*extent*.67];
-  const w=.077;
-  verts.push(0,0,0,mid[0]+px*w,mid[1],mid[2]+pz*w,...tip,
-   0,0,0,...tip,mid[0]-px*w,mid[1],mid[2]-pz*w);
-  for(let k=0;k<6;k++){
-   const y=k===2||k===4?1:k===1||k===5?.57:0;
-   colours.push(.56+.22*y,.66+.15*y,.45+.12*y);
-  }
+  const dark=[.43,.59,.37],mid=[.64,.77,.52],light=[.80,.88,.64];
+  tri(lowLeft,lowRight,left,dark,dark,mid);
+  tri(lowRight,right,left,dark,mid,mid);
+  tri(left,right,tip,mid,mid,light);
  }
- const g=new THREE.BufferGeometry();
- g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
- g.setAttribute('color',new THREE.Float32BufferAttribute(colours,3));
- g.computeVertexNormals();
- return g;
+ return {positions:verts,colors:colours,bladeCount:blades};
+}
+function grassMeshGeometry(THREE){
+ const data=forestCurvedGrassData(),g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
+ g.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
+ g.computeVertexNormals();return g;
 }
 function saplingGeometry(THREE){
  // A small branching crown, not another green rock/icosahedron.

@@ -9,11 +9,11 @@ import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=12';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
-import {createForestGroundLife} from './forest-ground-life.js?v=1';
-import {createForestUnderstory} from './forest-understory.js?v=1';
+import {createForestGroundLife} from './forest-ground-life.js?v=2';
+import {createForestUnderstory} from './forest-understory.js?v=2';
 import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=2';
-import {createRoadsideDetails} from './roadside-details.js?v=1';
-import {createForestEcology} from './forest-ecology.js?v=3';
+import {createRoadsideDetails} from './roadside-details.js?v=2';
+import {createForestEcology} from './forest-ecology.js?v=4';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
@@ -26,7 +26,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=48';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=49';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -378,7 +378,12 @@ try {
     const sceneryDensity=graphicsDensity(qualityName);
     // The portal shows the latest village art without costly shadows or high DPR.
     if(isPortalPreview)sceneryDensity.detail=.68;
-    startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,shadows:enabled});
+    startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,shadows:enabled,portal:isPortalPreview});
+    // The existing opaque forest map doubles as subtle material relief on
+    // richer presets, adding zero GPU texture memory or custom shaders.
+    const relief=!isPortalPreview&&qualityName!=='economy'?groundTexture:null;
+    if(groundMaterial.bumpMap!==relief){groundMaterial.bumpMap=relief;groundMaterial.needsUpdate=true;}
+    groundMaterial.bumpScale=qualityName==='high'?.046:.022;
     whisperingForest.setQuality(qualityName,isPortalPreview);
     roadsideDetails?.setQuality(qualityName,isPortalPreview);
     forestEcology?.setQuality(qualityName,isPortalPreview);

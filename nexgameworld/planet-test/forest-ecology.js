@@ -1,4 +1,5 @@
 // Deterministic visual-only forest ecology: does not create actual mobs or loot.
+import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestDistance,
  createForestLayout} from './whispering-forest.js';
 const TAU=Math.PI*2;
@@ -89,7 +90,7 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
   geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
   geometry.computeVertexNormals();return geometry;
  }
- const leaves=mat('#ffffff',{side:THREE.DoubleSide}),stones=mat('#ffffff',{flatShading:true});
+ const leaves=mat('#ffffff',{side:THREE.DoubleSide}),stones=mat('#ffffff',{flatShading:true,vertexColors:true});
  instance('forest-shrubs',layout.shrubs,shrubLeafGeometry(),leaves,
   p=>({x:p.size,y:p.size*1.20,z:p.size,h:.045}),
   p=>p.variation>.65?'#526b51':p.variation>.3?'#3d5b46':'#657453');
@@ -97,7 +98,7 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
   mat('#ffffff',{side:THREE.DoubleSide}),p=>({
    x:p.size*1.12,y:p.size*(.74+.25*p.variation),z:p.size*1.12,h:.035
   }),p=>p.variation>.7?'#31533c':p.variation>.34?'#496745':'#647756');
- instance('forest-stones',layout.rocks,new THREE.DodecahedronGeometry(1,0),stones,
+ instance('forest-stones',layout.rocks,createWeatheredStoneGeometry(THREE,'forest'),stones,
   p=>({x:p.size*.73,y:p.size*.29,z:p.size*.58,h:p.size*.24}),
   p=>p.variation>.65?'#5a6a5c':p.variation>.32?'#72786c':'#606f64');
  instance('forest-mushroom-stems',layout.fungi,new THREE.CylinderGeometry(.31,.39,1,6),

@@ -1,5 +1,6 @@
 // P2.3.12: tiny, instanced verge stones and dry grasses link the village
 // track to the tall forest. Decorative only: no collision, raycasts or physics.
+import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 import {forestTrailLatitude,forestDistance,FOREST_CAMP,FOREST_SITE_CLEARINGS}
  from './whispering-forest.js';
 const TAU=Math.PI*2,R=261;
@@ -78,7 +79,7 @@ export function createRoadsideDetails(THREE,{scene,radius,heightAt,startRoute}){
  function add(kind,geometry){
   const rows=layout[kind],isStone=kind==='stones';
   const mesh=new THREE.InstancedMesh(geometry,new THREE.MeshStandardMaterial({
-   color:'#ffffff',vertexColors:!isStone,roughness:1,
+   color:'#ffffff',vertexColors:true,roughness:1,
    side:THREE.DoubleSide,flatShading:isStone
   }),rows.length);
   mesh.name='road-'+kind+'-decorative-no-collision';
@@ -106,7 +107,7 @@ export function createRoadsideDetails(THREE,{scene,radius,heightAt,startRoute}){
   }
   mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);batches.push({kind,mesh});
  }
- add('stones',new THREE.DodecahedronGeometry(1,0));
+ add('stones',createWeatheredStoneGeometry(THREE,'trail'));
  add('tufts',grassGeo);
  function setQuality(quality='balanced',preview=false){
   const budget=roadsideBudget(quality,preview);
