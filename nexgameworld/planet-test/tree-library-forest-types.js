@@ -2,7 +2,7 @@
 // Every tree has real 3D roots, branches and botanical silhouettes. No game
 // logic, saved state, network APIs, external models, or invisible colliders.
 import {mergeBarkParts} from './terrain-art-asset-polish.js';
-import {createAncientPine,ANCIENT_PINE_METADATA} from './tree-library-ancient-pine.js';
+import {createAncientPine,ANCIENT_PINE_METADATA} from './tree-library-ancient-pine.js?v=3';
 const TAU=Math.PI*2,clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const mix=(a,b,t)=>a+(b-a)*t;
 const fract=x=>x-Math.floor(x);

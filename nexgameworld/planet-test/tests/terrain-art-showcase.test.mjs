@@ -88,7 +88,7 @@ test('the P2.4.2 scene is visually rich yet isolated from gameplay and resources
  assert.match(view,/showcase\.setQuality\(quality,artEnabled\)/);
  assert.match(view,/index===0\?20\.3/);
  assert.match(html,/библиотека деревьев|T1/i);
- assert.match(html,/import\('\.\/terrain-art-lab-view\.js\?v=6'\)/);
+ assert.match(html,/import\('\.\/terrain-art-lab-view\.js\?v=7'\)/);
  assert.match(materials,/\[512,768,896,1024,1536\]/);
  assert.doesNotMatch(world,/createStonewindShowcase|terrain-art-showcase/);
  for(const s of [view,html,materials]){
