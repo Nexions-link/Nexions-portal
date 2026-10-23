@@ -59,7 +59,7 @@ select{width:100%;font-size:13px;min-height:40px}
 <div id="labViewport"></div>
 <header class="top">
  <div class="panel">
-  <div class="eyebrow">NexGameWorld · T2 · библиотека деревьев</div>
+  <div class="eyebrow">NexGameWorld · T2.1 · скульптурные деревья</div>
   <h1>Сад Каменного ветра</h1>
   <div class="caption">Пять оригинальных пород: глубокая кора, мощные корни, индивидуальные кроны · 34 × 34 м.<br>
    Самостоятельная демонстрация графики. Сохранения не затрагиваются.</div>
@@ -109,7 +109,7 @@ select{width:100%;font-size:13px;min-height:40px}
 <div id="loading">Создаём оригинальные природные материалы NexGameWorld…</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
 <script type="module">
- import('./terrain-art-lab-view.js?v=7').catch(error=>{
+ import('./terrain-art-lab-view.js?v=8').catch(error=>{
   document.getElementById('loading').textContent='Не удалось открыть полигон: '+(error?.message||String(error));
   console.error('NexGameWorld art lab:',error);
  });
