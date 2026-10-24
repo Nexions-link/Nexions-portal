@@ -319,8 +319,7 @@ try {
   // Construct expensive surface tiles only on a rich quality preset. Economy
   // mode and portal first render should not bake a large microtexture at all.
   let surfaceMicrodetail=null,soilScatter=null;
-  const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt,
-    heroTrees:!isPortalPreview});
+  const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
   const roadsideDetails=isPortalPreview?null:createRoadsideDetails(THREE,{scene,radius:R,heightAt,startRoute:ROUTES[1]});
   const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
   const forestLightPools=isPortalPreview?null:createForestLightPools(THREE,{scene,radius:R,heightAt});

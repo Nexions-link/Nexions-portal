@@ -1,7 +1,6 @@
 // P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
 import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=1';
-import {createWhisperingForestTreePilot,forestTreeKey} from './whispering-forest-tree-pilot.js?v=3';
 import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=1';
 const TAU=Math.PI*2;
 // Match the blocker exactly to the visible trunk's maximum ground radius.
@@ -166,14 +165,10 @@ function fernGeometry(THREE){
  geo.computeVertexNormals();
  return geo;
 }
-export function createWhisperingForest(THREE,{scene,radius,heightAt,heroTrees=true}){
+export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  const layout=createForestLayout(),canopy=forestCanopyDetailLayout(layout),up=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
  const object=new THREE.Object3D(),twist=new THREE.Quaternion(),align=new THREE.Quaternion();
  const batches=[];
- const pilot=heroTrees?createWhisperingForestTreePilot(THREE,{
-  scene,layout,radius,heightAt,trailLatitude:forestTrailLatitude
- }):null;
- const replaced=pilot?.replaced||new Set();
  const normalAt=(lon,lat)=>normal.set(Math.cos(lat)*Math.sin(lon),Math.sin(lat),Math.cos(lat)*Math.cos(lon));
  function add(name,rows,geometry,material,options,shade,kind='tree'){
   if(!rows.length)return null;
@@ -189,10 +184,6 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,heroTrees=tr
    if(g.offsetAlongAxis)object.translateY(g.offsetAlongAxis);
    if(g.offsetX)object.translateX(g.offsetX);
    object.scale.set(g.sx,g.sy,g.sz);
-   // The original art stays at exactly the same coordinates in the layout;
-   // replace only these three client meshes (trunks, boughs, crowns, moss).
-   if((kind==='tree'||kind==='detail')&&replaced.has(forestTreeKey(p)))
-    object.scale.setScalar(.0000001);
    object.updateMatrix();
    mesh.setMatrixAt(i,object.matrix);
    if(shade)mesh.setColorAt(i,color.set(shade(p)));
@@ -393,13 +384,12 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,heroTrees=tr
     (portal?.12:q==='economy'?.35:q==='high'?1:.72));
    mesh.castShadow=!portal&&q==='high'&&kind==='tree';
   }
-  pilot?.setQuality(q,portal);
   campLight.visible=!portal&&q==='high';
   for(const item of smoke)item.visible=!portal&&q!=='economy';
  }
  setQuality('balanced');
  return {setQuality,animate,treeCount:layout.trees.length,
-  pilotTreeCount:pilot?.count||0,pilotSites:pilot?.sites||[],
+  pilotTreeCount:0,pilotSites:[],
   campLocation:{lon:FOREST_CAMP.lon,lat:FOREST_CAMP.lat},
   trailStart:FOREST_ENTRANCE_LONGITUDE};
 

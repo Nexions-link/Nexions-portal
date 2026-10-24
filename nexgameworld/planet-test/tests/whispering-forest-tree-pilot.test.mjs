@@ -41,38 +41,36 @@ test('trunk shell is scaled INSIDE pre-existing server collision cylinder',()=>{
  assert.throws(()=>forestTrunkFitScale('tree_oak_whispering',17,{radius:0},25),RangeError);
 });
 
-test('controlled scene hides only three original tree instancing matrices',()=>{
+test('all 400 original procedural trees remain visible at their original anchors',()=>{
  const scene=new THREE.Scene(),collidersBefore=forestColliders();
- const forest=createWhisperingForest(THREE,{
-  scene,radius:261,heightAt:()=>0,heroTrees:true
- });
- assert.equal(forest.pilotTreeCount,3);
+ const forest=createWhisperingForest(THREE,{scene,radius:261,heightAt:()=>0});
+ assert.equal(forest.pilotTreeCount,0);
+ assert.deepEqual(forest.pilotSites,[]);
  assert.equal(forest.treeCount,FOREST_TREE_CAP);
- const pilot=scene.children.filter(x=>x.userData.forestPilot===true);
- assert.equal(pilot.length,3);
- assert.ok(pilot.every(x=>x.children.length>2&&x.userData.modelBaseRadius<=
-  x.userData.originalColliderRadius));
+ assert.equal(scene.children.filter(x=>x.userData.forestPilot).length,0);
  const trunks=scene.children.find(x=>x.name==='forest-ancient-trunks');
- const sites=selectForestPilotTrees(layout,forestTrailLatitude);
- for(const {site} of sites){
-  const id=layout.trees.indexOf(site),matrix=new THREE.Matrix4();
-  trunks.getMatrixAt(id,matrix);
-  const scale=new THREE.Vector3();matrix.decompose(new THREE.Vector3(),
-   new THREE.Quaternion(),scale);
-  assert.ok(scale.length()<.00001,'the original art must not double-draw');
+ assert.ok(trunks?.isInstancedMesh);
+ assert.equal(trunks.count,400);
+ assert.ok(scene.children.filter(x=>x.name.startsWith('forest-'))
+  .every(x=>x.isInstancedMesh||x.isGroup));
+ const sizes=new THREE.Vector3(),matrix=new THREE.Matrix4();
+ for(let i=0;i<400;i++){
+  trunks.getMatrixAt(i,matrix);
+  matrix.decompose(new THREE.Vector3(),new THREE.Quaternion(),sizes);
+  assert.ok(sizes.x>.2&&sizes.y>10&&sizes.z>.2,
+   'previously replaced trunks must not be hidden '+i);
  }
  forest.setQuality('high',false);
- assert.ok(pilot.every(x=>x.visible));
- forest.setQuality('high',true);
- assert.ok(pilot.every(x=>!x.visible));
- assert.deepEqual(forestColliders(),collidersBefore,'authoritative physics unchanged');
+ forest.setQuality('economy',true);
+ assert.deepEqual(forestColliders(),collidersBefore);
 });
-
-test('the in-game forest is wired to sculptural preview only outside portal',()=>{
+test('heavy art gallery is fully isolated from gameplay module imports',()=>{
  const forest=readFileSync(new URL('../whispering-forest.js',import.meta.url),'utf8'),
   planet=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
- assert.match(forest,/createWhisperingForestTreePilot/);
- assert.match(forest,/replaced\.has\(forestTreeKey\(p\)\)/);
- assert.match(planet,/heroTrees:!isPortalPreview/);
- assert.doesNotMatch(forest,/FOREST_TREE_CAP\s*=\s*3/);
+ assert.doesNotMatch(forest,/createWhisperingForestTreePilot|forestTreeKey/);
+ assert.doesNotMatch(forest,/tree-library-forest-types|tree-library-ancient-pine/);
+ assert.doesNotMatch(planet,/heroTrees:!isPortalPreview/);
+ assert.match(planet,/createWhisperingForest\(THREE,\{scene,radius:R,heightAt\}\)/);
+ assert.equal(selectForestPilotTrees(layout,forestTrailLatitude).length,3,
+  'retained archived gallery anchors are data-only and not rendered');
 });

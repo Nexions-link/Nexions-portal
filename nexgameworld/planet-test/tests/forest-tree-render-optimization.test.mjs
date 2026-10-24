@@ -51,35 +51,18 @@ test('full artist geometry keeps its coordinates while redundant bump shaders ar
  assert.equal(trunk.material.bumpMap,null);
  oak.dispose();
 });
-test('pilot render uses one cheap shadow caster and NEVER casts master boughs',()=>{
- const oldPhysics=forestColliders();
- const scene=new THREE.Scene();
- const forest=createWhisperingForest(THREE,{scene,radius:261,heightAt:()=>0,heroTrees:true});
- const models=scene.children.filter(x=>x.userData.forestPilot);
- assert.equal(models.length,3);
- for(const group of models){
-  const opt=group.userData.rendererOptimizations;
-  assert.ok(opt.culledInstances>=(group.userData.assetId==='tree_dead_sentinel'?0:1));
-  assert.ok(opt.savedFragmentPasses>=1);
-  assert.ok(opt.shadowProxyTriangles<3000);
-  const shadows=[],geometry=[];
-  group.traverse(o=>{
-   if(!o.isMesh)return;
-   if(o.userData.cosmeticShadow)shadows.push(o);
-   else geometry.push(o);
-  });
-  assert.equal(shadows.length,1);
-  assert.ok(geometry.every(o=>o.castShadow===false));
-  assert.ok(geometry.some(o=>triangles(o.geometry)>shadows[0].userData.triangleCount*4));
-  assert.equal(shadows[0].visible,false);
-  assert.equal(shadows[0].material.colorWrite,false);
- }
+test('production renderer never allocates expensive gallery heroes',()=>{
+ const layout=createForestLayout(),scene=new THREE.Scene(),
+  oldPhysics=forestColliders();
+ const forest=createWhisperingForest(THREE,{scene,radius:261,heightAt:()=>0});
+ assert.equal(forest.treeCount,layout.trees.length);
+ assert.equal(forest.pilotTreeCount,0);
+ assert.equal(scene.children.filter(x=>x.userData.forestPilot).length,0);
+ assert.equal(scene.children.filter(x=>x.userData.cosmeticShadow).length,0);
+ const trunks=scene.children.find(o=>o.name==='forest-ancient-trunks');
+ assert.ok(trunks.isInstancedMesh&&trunks.count===layout.trees.length);
  forest.setQuality('high',false);
- assert.ok(models.every(group=>group.children.some(o=>o.userData.cosmeticShadow&&o.visible&&o.castShadow)));
- assert.ok(models.every(group=>group.children.filter(o=>!o.userData.cosmeticShadow)
-  .every(o=>o.castShadow===false)));
- forest.setQuality('high',true);
- assert.ok(models.every(group=>!group.visible));
  assert.deepEqual(forestColliders(),oldPhysics);
- assert.equal(selectForestPilotTrees(createForestLayout(),forestTrailLatitude).length,3);
+ assert.equal(selectForestPilotTrees(layout,forestTrailLatitude).length,3,
+  'gallery asset coordinates are kept separately without rendering');
 });
