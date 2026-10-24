@@ -134,6 +134,32 @@ export function proceduralForestTrunkSurface(y,angle){
   .80-.27*cracked+.09*vascular-.14*knot-.14*moss)));
  return {radial,shade,moss,cracked,knot};
 }
+// A shared, sculpted old-growth outline. It retains the existing 20x18
+// cylinder topology and one InstancedMesh for every tree. The root flare has
+// five local ridges aligned with the five existing buttress fins. The maximum
+// ground radius never exceeds FOREST_TRUNK_BASE_SCALE (.78): no new blockers.
+export function proceduralForestTrunkOutline(y,angle){
+ if(!Number.isFinite(y)||!Number.isFinite(angle))
+  throw new RangeError('Invalid trunk silhouette coordinates');
+ const t=clamp01(y+.5);
+ const relief=proceduralForestTrunkSurface(y,angle);
+ // Nonlinear taper makes the lower bole massive while the high stem is thin.
+ // Units are relative to each original tree.radius, not world metres.
+ const bole=.78-.56*Math.pow(t,.70);
+ // Roots grow outwards as five unequal toes, then merge into the same bole.
+ const twist=angle+.036*Math.sin(t*11+angle*2);
+ const ridges=Math.pow(.5+.5*Math.cos(5*twist+.16),5);
+ const flare=Math.exp(-Math.pow(t/.12,1.7));
+ const wood=.945+.055*relief.radial;
+ const foot=1-.085*(1-ridges)*flare;
+ const radius=Math.min(FOREST_TRUNK_BASE_SCALE*.997,bole*wood*foot);
+ // A centreline curve makes the trunk slightly wind-swept without changing
+ // any vertex count or altering the original base/collision position.
+ const curveX=.062*t*t*Math.sin(t*4.5+.50)+.012*t*Math.sin(t*9.2);
+ const curveZ=.053*t*t*Math.sin(t*4.0+2.20)-.015*t*Math.sin(t*7.3);
+ return {radius,curveX,curveZ,rootFlare:ridges*flare,
+  shade:relief.shade,moss:relief.moss};
+}
 // Used by browser movement, camera and the authoritative server without THREE.
 const collisionCache=new Map();
 function forestCollisionIndex(radius=261){
@@ -226,14 +252,18 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  const barkVertices=trunks.getAttribute('position'),barkColors=[];
  for(let i=0;i<barkVertices.count;i++){
   const x=barkVertices.getX(i),z=barkVertices.getZ(i),y=barkVertices.getY(i);
-  const angle=Math.atan2(z,x),surface=proceduralForestTrunkSurface(y,angle);
-  barkVertices.setXYZ(i,x*surface.radial,y,z*surface.radial);
-  barkColors.push(surface.shade*(1-.19*surface.moss),
-   surface.shade*(.91+.12*surface.moss),
-   surface.shade*(.83-.11*surface.moss));
+  const angle=Math.atan2(z,x),outline=proceduralForestTrunkOutline(y,angle);
+  // The source CylinderGeometry is only the indexed ring topology. Radius,
+  // roots and centreline are calculated once, before 400-way instancing.
+  barkVertices.setXYZ(i,Math.cos(angle)*outline.radius+outline.curveX,
+   y,Math.sin(angle)*outline.radius+outline.curveZ);
+  barkColors.push(outline.shade*(1-.19*outline.moss),
+   outline.shade*(.91+.12*outline.moss),
+   outline.shade*(.83-.11*outline.moss));
  }
  trunks.setAttribute('color',new THREE.Float32BufferAttribute(barkColors,3));
  barkVertices.needsUpdate=true;trunks.computeVertexNormals();
+ trunks.computeBoundingSphere();
  // Irregular branch whorls and individually lobed crowns replace the old
  // perfect cones and spheres, but keep exactly the same tree locations.
  const leafGeo=makeForestCrownGeometry(THREE,'deciduous',0);
@@ -264,10 +294,10 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   const point=(r,y,angle)=>[Math.cos(angle)*r,y,Math.sin(angle)*r];
   // Twisted, tapering buttresses grow from the same trunk silhouette.
   // The widest rendered solid remains below radius .78.
-  const summit=point(.49,.91+gnarl,a+.04);
-  const left=point(.66,.022,a-.20-gnarl);
-  const tip=point(.72,.018,a+.04+gnarl);
-  const right=point(.66,.022,a+.20+gnarl);
+  const summit=point(.49,.69+gnarl,a+.04);
+  const left=point(.63,.085,a-.25-gnarl);
+  const tip=point(.765,.008,a+.035+gnarl);
+  const right=point(.62,.087,a+.22+gnarl);
   ribs.push(...summit,...left,...tip,...summit,...tip,...right);
  }
  const rootGeo=new THREE.BufferGeometry();
