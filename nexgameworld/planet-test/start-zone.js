@@ -1,5 +1,5 @@
 import {createLandscapeMap} from '../landscape.js?v=0.6.43.96';
-import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=15';
+import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=16';
 import {createSphericalMeadow} from './sphere-meadow.js?v=3';
 import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';

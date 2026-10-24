@@ -6,7 +6,7 @@ import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=3';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=15';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=16';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
 import {createForestGroundLife} from './forest-ground-life.js?v=2';
@@ -28,7 +28,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=50';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=51';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
