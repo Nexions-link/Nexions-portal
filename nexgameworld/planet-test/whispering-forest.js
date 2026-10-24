@@ -109,6 +109,31 @@ export function forestCanopyDetailLayout(layout=createForestLayout()){
  }
  return {limbs,tufts};
 }
+// A single shared sculpted trunk (same 20 radial x 18 vertical segments).
+// All details are precomputed once: 400 instances and collider circles are
+// unchanged. This shape NEVER exceeds the .78 canonical ground radius.
+export function proceduralForestTrunkSurface(y,angle){
+ if(!Number.isFinite(y)||!Number.isFinite(angle))throw new RangeError('Invalid trunk coordinates');
+ const t=clamp01(y+.5);
+ const rootGrowth=Math.exp(-Math.pow(t/.17,2));
+ // Buttresses are continuous growth ridges, NOT extra draw calls or root meshes.
+ const azimuth=angle+.08*Math.sin(t*8.3+angle*2.2);
+ const buttress=Math.pow(.5+.5*Math.cos(5*azimuth+.27*Math.sin(t*9)),7);
+ const spiral=Math.sin(7*azimuth+4.1*t+.25*Math.cos(t*11.6));
+ const vascular=.50*Math.sin(3*angle-2.6*t)+
+  .31*Math.sin(7*azimuth+3.5*t)+.19*Math.cos(9*angle+6.4*t);
+ const gnarl=.5+.5*Math.sin(4*angle+5.6*t+Math.sin(7*angle)*.2);
+ const cracked=Math.pow(Math.max(0,.5+.5*Math.sin(7*azimuth+3.6*t)),6);
+ const knot=Math.exp(-Math.pow((t-.38)/.10,2))*
+  Math.exp(-Math.pow(Math.atan2(Math.sin(angle-1.28),Math.cos(angle-1.28))/.34,2));
+ const bump=.018*vascular+.024*spiral+.050*buttress*rootGrowth-
+  .060*cracked*(.50+.50*gnarl)-.033*knot;
+ const radial=clamp01(Math.max(.73,Math.min(.998,.932+bump)));
+ const moss=Math.max(0,1-t*9.5)*(.55+.45*gnarl);
+ const shade=clamp01(Math.max(.38,Math.min(.99,
+  .80-.27*cracked+.09*vascular-.14*knot-.14*moss)));
+ return {radial,shade,moss,cracked,knot};
+}
 // Used by browser movement, camera and the authoritative server without THREE.
 const collisionCache=new Map();
 function forestCollisionIndex(radius=261){
@@ -194,24 +219,18 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   batches.push({mesh,kind});
   return mesh;
  }
- // Fine, inward-only fluting: the ground ring remains exactly the collision radius.
- // Vertical fissures are carved inward; no visible bark can extend outside
- // the existing trunk collider. Vertex colours create mossy bases and scar lines.
+ // The existing 20x18 instanced trunk is re-sculpted ONCE.
+ // Same vertex/index count, same one forest trunk draw call, no added GPU mesh.
+ // Lower buttresses remain inside the current server-authoritative collider.
  const trunks=new THREE.CylinderGeometry(.52,FOREST_TRUNK_BASE_SCALE,1,20,18);
  const barkVertices=trunks.getAttribute('position'),barkColors=[];
  for(let i=0;i<barkVertices.count;i++){
   const x=barkVertices.getX(i),z=barkVertices.getZ(i),y=barkVertices.getY(i);
-  const angle=Math.atan2(z,x);
-  const grain=Math.sin(angle*13.2+Math.sin(y*12.4)*.22);
-  const knot=Math.sin(angle*5.3-y*22)*Math.sin(y*5.6+angle*9);
-  const crease=Math.pow(.5+.5*grain,5)*(.75+.25*Math.sin(y*28));
-  const carve=(.026+.085*crease)*(.57+.43*Math.min(1,(y+.5)*5));
-  barkVertices.setXYZ(i,x*(1-carve),y,z*(1-carve));
-  const shade=Math.max(.48,Math.min(1,.84-.30*crease+.075*knot));
-  const baseMoss=Math.max(0,1-Math.max(0,y+.5)*8);
-  barkColors.push(shade*(1-.20*baseMoss),
-   shade*(.92+.11*baseMoss),
-   shade*(.83-.13*baseMoss));
+  const angle=Math.atan2(z,x),surface=proceduralForestTrunkSurface(y,angle);
+  barkVertices.setXYZ(i,x*surface.radial,y,z*surface.radial);
+  barkColors.push(surface.shade*(1-.19*surface.moss),
+   surface.shade*(.91+.12*surface.moss),
+   surface.shade*(.83-.11*surface.moss));
  }
  trunks.setAttribute('color',new THREE.Float32BufferAttribute(barkColors,3));
  barkVertices.needsUpdate=true;trunks.computeVertexNormals();
@@ -241,10 +260,14 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  // of trunk radius vs .78 collision), so they cannot create invisible walls.
  const ribs=[],ribColors=[],ribCount=5;
  for(let j=0;j<ribCount;j++){
-  const a=j*TAU/ribCount;
+  const a=j*TAU/ribCount,gnarl=.05*Math.sin(j*4.7);
   const point=(r,y,angle)=>[Math.cos(angle)*r,y,Math.sin(angle)*r];
-  const summit=point(.51,1,a),left=point(.70,.025,a-.24);
-  const tip=point(.72,.03,a),right=point(.70,.025,a+.24);
+  // Twisted, tapering buttresses grow from the same trunk silhouette.
+  // The widest rendered solid remains below radius .78.
+  const summit=point(.49,.91+gnarl,a+.04);
+  const left=point(.66,.022,a-.20-gnarl);
+  const tip=point(.72,.018,a+.04+gnarl);
+  const right=point(.66,.022,a+.20+gnarl);
   ribs.push(...summit,...left,...tip,...summit,...tip,...right);
  }
  const rootGeo=new THREE.BufferGeometry();
