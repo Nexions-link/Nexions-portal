@@ -49,7 +49,12 @@ test('real tree silhouette tapers vertically and its five roots flare at ground'
  assert.ok(avg(lower)>avg(mid)*1.15);
  assert.ok(avg(mid)>avg(top)*1.65);
  assert.ok(avg(root)>avg(top)*2.8,'pronounced noncylindrical upward taper');
- assert.ok(Math.max(...root)-Math.min(...root)>.045,'five roots have real radial relief');
+ assert.ok(Math.max(...root)-Math.min(...root)>.15,
+  'five roots must form visibly separate broad toes and deep valleys');
+ const lowBole=circle(-.36),highBole=circle(-.20);
+ assert.ok(avg(lowBole)>avg(highBole)*1.12,
+  'lower 30 percent must retain a prominent heavy bole');
+ assert.ok(Math.max(...root)>.74,'radial root tips must approach existing blocker');
  assert.ok(Math.abs(proceduralForestTrunkOutline(.5,1.2).curveX)>.005,
   'the upper stem must have a curved centreline');
  assert.equal(proceduralForestTrunkOutline(-.5,1.2).curveX,0,

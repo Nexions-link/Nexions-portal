@@ -145,14 +145,23 @@ export function proceduralForestTrunkOutline(y,angle){
  const relief=proceduralForestTrunkSurface(y,angle);
  // Nonlinear taper makes the lower bole massive while the high stem is thin.
  // Units are relative to each original tree.radius, not world metres.
- const bole=.78-.56*Math.pow(t,.70);
- // Roots grow outwards as five unequal toes, then merge into the same bole.
- const twist=angle+.036*Math.sin(t*11+angle*2);
- const ridges=Math.pow(.5+.5*Math.cos(5*twist+.16),5);
- const flare=Math.exp(-Math.pow(t/.12,1.7));
- const wood=.945+.055*relief.radial;
- const foot=1-.085*(1-ridges)*flare;
- const radius=Math.min(FOREST_TRUNK_BASE_SCALE*.997,bole*wood*foot);
+ // A thick load-bearing bole persists well above the roots, then tapers
+ // strongly into the canopy. Three smooth, connected growth stages avoid
+ // the linear cone silhouette; no added triangles or separate root meshes.
+ const smoothstep=x=>{const v=clamp01(x);return v*v*(3-2*v);};
+ const lower=smoothstep(t/.32),upper=smoothstep((t-.32)/.68);
+ const bole=(.735-.16*lower)-.335*upper;
+ // Deep radial root valleys below 12% of tree height reveal five toes.
+ // Root direction matches the existing five instanced buttress fins.
+ const twist=angle+.035*Math.sin(t*8.8)+.008*Math.sin(3*angle);
+ const ridges=Math.pow(.5+.5*Math.cos(5*twist+.16),2);
+ const flare=Math.exp(-Math.pow(t/.115,1.45));
+ const rib=.145*ridges*flare;
+ const valley=-.17*Math.pow(1-ridges,6)*flare;
+ const bottomMass=.052*Math.exp(-Math.pow(t/.035,2));
+ const wood=.965+.035*relief.radial;
+ const radius=Math.min(FOREST_TRUNK_BASE_SCALE*.985,
+  Math.max(.12,bole*wood+rib+valley+bottomMass));
  // A centreline curve makes the trunk slightly wind-swept without changing
  // any vertex count or altering the original base/collision position.
  const curveX=.062*t*t*Math.sin(t*4.5+.50)+.012*t*Math.sin(t*9.2);
@@ -294,10 +303,12 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   const point=(r,y,angle)=>[Math.cos(angle)*r,y,Math.sin(angle)*r];
   // Twisted, tapering buttresses grow from the same trunk silhouette.
   // The widest rendered solid remains below radius .78.
-  const summit=point(.49,.69+gnarl,a+.04);
-  const left=point(.63,.085,a-.25-gnarl);
-  const tip=point(.765,.008,a+.035+gnarl);
-  const right=point(.62,.087,a+.22+gnarl);
+  const summit=point(.50,.94+gnarl,a+.04);
+  // The same original ten buttress triangles now reach the trunk's broad
+  // lower bole and sink outward into the forest ground. No extra draw pass.
+  const left=point(.54,.085,a-.27-gnarl);
+  const tip=point(.765,.004,a+.035+gnarl);
+  const right=point(.53,.085,a+.25+gnarl);
   ribs.push(...summit,...left,...tip,...summit,...tip,...right);
  }
  const rootGeo=new THREE.BufferGeometry();
