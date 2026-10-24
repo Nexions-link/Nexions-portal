@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 import {createForestLayout,forestColliders,createWhisperingForest,
- proceduralForestTrunkSurface,FOREST_TRUNK_BASE_SCALE,blocksForestAtLocal,
+ proceduralForestTrunkSurface,proceduralForestTrunkOutline,
+ FOREST_TRUNK_BASE_SCALE,blocksForestAtLocal,
  forestLocalPoint} from '../whispering-forest.js';
 import {deciduousCrownData,coniferCrownData,
  FOREST_CROWN_GEOMETRY_BUDGET} from '../forest-crown-geometry.js';
@@ -24,6 +25,37 @@ test('new procedural trunk is expressive while remaining inside old server footp
  assert.ok(Math.max(...moss)-Math.min(...moss)>.25,'ground moss growth fades upward');
  assert.throws(()=>proceduralForestTrunkSurface(NaN,0),RangeError);
 });
+test('real tree silhouette tapers vertically and its five roots flare at ground',()=>{
+ const circle=(y)=>{
+  const samples=[];
+  for(let i=0;i<100;i++){
+   const a=i*Math.PI*2/100;
+   const v=proceduralForestTrunkOutline(y,a);
+   assert.ok(v.radius>0&&v.radius<=FOREST_TRUNK_BASE_SCALE,
+    'sculpture must stay inside existing trunk blocker');
+   assert.ok(Number.isFinite(v.curveX+v.curveZ+v.shade));
+   const edge=Math.hypot(v.radius*Math.cos(a)+v.curveX,
+    v.radius*Math.sin(a)+v.curveZ);
+   // Higher portions bend very gently, but must never intrude beyond the
+   // original straight collision cylinder.
+   assert.ok(edge<=FOREST_TRUNK_BASE_SCALE+.00001);
+   samples.push(v.radius);
+  }
+  return samples;
+ };
+ const root=circle(-.5),lower=circle(-.42),mid=circle(0),top=circle(.5);
+ const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+ assert.ok(avg(root)>avg(lower));
+ assert.ok(avg(lower)>avg(mid)*1.15);
+ assert.ok(avg(mid)>avg(top)*1.65);
+ assert.ok(avg(root)>avg(top)*2.8,'pronounced noncylindrical upward taper');
+ assert.ok(Math.max(...root)-Math.min(...root)>.045,'five roots have real radial relief');
+ assert.ok(Math.abs(proceduralForestTrunkOutline(.5,1.2).curveX)>.005,
+  'the upper stem must have a curved centreline');
+ assert.equal(proceduralForestTrunkOutline(-.5,1.2).curveX,0,
+  'ground anchor must never shift away from original server collider');
+ assert.throws(()=>proceduralForestTrunkOutline(Infinity,0),RangeError);
+});
 test('zero extra tree draw batches and unchanged indexed geometry count',()=>{
  const before=forestColliders(),layout=createForestLayout();
  const scene=new THREE.Scene();
@@ -42,6 +74,20 @@ test('zero extra tree draw batches and unchanged indexed geometry count',()=>{
   assert.ok(Number.isFinite(position.getX(i)+position.getY(i)+position.getZ(i)));
   assert.ok(Number.isFinite(normal.getX(i)+normal.getY(i)+normal.getZ(i)));
  }
+ // The actual shared mesh must have a wide, root-flared base and a much
+ // slimmer upper stem. No additional mesh, triangles or collider.
+ const bottom=[],top=[];
+ for(let i=0;i<position.count;i++){
+  const y=position.getY(i);
+  const r=Math.hypot(position.getX(i),position.getZ(i));
+  if(y<-.49)bottom.push(r);
+  if(y>.49)top.push(r);
+ }
+ assert.ok(bottom.length>=20&&top.length>=20);
+ const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+ assert.ok(mean(bottom)>mean(top)*2.8);
+ assert.ok(Math.max(...bottom)<=FOREST_TRUNK_BASE_SCALE+.000001);
+ assert.ok(Math.max(...bottom)-Math.min(...bottom)>.035);
  for(let j=0;j<400;j++){
   const tree=layout.trees[j],p=forestLocalPoint(tree.lon,tree.lat);
   assert.equal(blocksForestAtLocal(p.x,p.z),true);
