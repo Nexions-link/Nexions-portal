@@ -1,11 +1,11 @@
 // Draw only the player's explicitly tracked active objective. All positions
 // are known spawn territories, not real-time enemy/resource detections.
-export function paintTrackedQuestOnMinimap(ctx,map,scale){
+export function paintTrackedQuestOnMinimap(ctx,map,scale,viewport=null){
  if(!ctx||!map||!Number.isFinite(scale)||scale<=0)return;
  // Older pinned quests render underneath the newest so sword targets stay
  // legible even if a gathering territory overlaps their spawn positions.
  for(const other of [...(map.overlays||[])].reverse())
-  paintTrackedQuestOnMinimap(ctx,{...other,overlays:[]},scale);
+  paintTrackedQuestOnMinimap(ctx,{...other,overlays:[]},scale,viewport);
  ctx.save();
  try{
   if(map.kind==='area'){
@@ -22,11 +22,35 @@ export function paintTrackedQuestOnMinimap(ctx,map,scale){
    ctx.moveTo(center.x*scale-3,center.z*scale);ctx.lineTo(center.x*scale+3,center.z*scale);
    ctx.moveTo(center.x*scale,center.z*scale-3);ctx.lineTo(center.x*scale,center.z*scale+3);
    ctx.stroke();
-  }else if(map.kind==='targets'||map.kind==='waypoint'){
+  }else if(map.kind==='targets'||map.kind==='waypoint'||map.kind==='landmarks'){
    for(const point of map.points||[]){
     if(!Number.isFinite(point?.x)||!Number.isFinite(point?.z))continue;
-    const x=point.x*scale,z=point.z*scale;
+    let x=point.x*scale,z=point.z*scale;
+    const landmark=map.kind==='landmarks';
+    if(landmark&&Number.isFinite(viewport?.center?.x)&&Number.isFinite(viewport?.center?.z)&&Number.isFinite(viewport?.size)){
+     const cx=viewport.center.x*scale,cz=viewport.center.z*scale;
+     const half=viewport.size/2-14,dx=x-cx,dz=z-cz;
+     if(Math.abs(dx)>half||Math.abs(dz)>half){
+      const factor=half/Math.max(Math.abs(dx),Math.abs(dz));
+      x=cx+dx*factor;z=cz+dz*factor;
+      const angle=Math.atan2(dz,dx);
+      ctx.save();ctx.translate(x,z);ctx.rotate(angle);
+      ctx.beginPath();ctx.moveTo(8,0);ctx.lineTo(-5,-6);ctx.lineTo(-2,0);
+      ctx.lineTo(-5,6);ctx.closePath();
+      ctx.fillStyle='#ffe7a1';ctx.strokeStyle='#30291c';ctx.lineWidth=1.6;
+      ctx.fill();ctx.stroke();ctx.restore();
+      continue;
+     }
+    }
     const enemy=map.kind==='targets';
+    if(landmark){
+     ctx.beginPath();ctx.arc(x-2,z-2,4,0,2*Math.PI);
+     ctx.fillStyle='rgba(46,38,25,.9)';ctx.fill();
+     ctx.strokeStyle='#ffe7a1';ctx.lineWidth=2;ctx.stroke();
+     ctx.beginPath();ctx.moveTo(x+1,z+1);ctx.lineTo(x+6,z+6);
+     ctx.strokeStyle='#ffe7a1';ctx.lineWidth=2.7;ctx.stroke();
+     continue;
+    }
     ctx.beginPath();ctx.arc(x,z,enemy?9:6,0,2*Math.PI);
     ctx.fillStyle=enemy?'rgba(63,29,23,.91)':'rgba(71,64,38,.87)';ctx.fill();
     ctx.lineWidth=1.2;ctx.strokeStyle=enemy?'#e2b08b':'#f0dc9a';ctx.stroke();

@@ -95,7 +95,7 @@ test('off map and UI uses only tracked accepted objective, buttons work by touch
  assert.match(style,/#quest\{display:none!important\}/);
  assert.match(html,/<aside id="quest" hidden>/);
  assert.match(html,/id="untrackQuest"/);
- assert.match(js,/paintTrackedQuestOnMinimap\(ctx,rpg.getQuestMapState\(\),scale\)/);
+ assert.match(js,/paintTrackedQuestOnMinimap\(ctx,rpg.getQuestMapState\(\),scale,\{center,size\}\)/);
 });
 
 // Never draw swords for a turn-in destination, even if it follows a kill quest.
@@ -118,4 +118,16 @@ test('three tracked map overlays retain 2 sword clusters and a gathering region'
  assert.equal(calls.filter(c=>c[0]==='fillText'&&c[1]==='⚔').length,3);
  assert.equal(calls.filter(c=>c[0]==='ellipse').length,1);
  assert.equal(calls.filter(c=>c[0]==='restore').length,3);
+});
+
+test('forest landmark magnifiers and off-map arrows',()=>{
+ const calls=[];
+ const ctx=new Proxy({}, {get:(o,k)=>k in o?o[k]:(...args)=>calls.push([k,...args]),
+  set:(o,k,v)=>{calls.push([k,v]);o[k]=v;return true}});
+ const s=state();s.expedition={stage:2,visited:[false,false,false]};
+ assert.equal(trackedQuestMap('expedition',s).kind,'landmarks');
+ paintTrackedQuestOnMinimap(ctx,{kind:'landmarks',points:[{x:3,z:3},{x:100,z:0}]},3.8,
+  {center:{x:0,z:0},size:240});
+ assert.equal(calls.filter(c=>c[0]==='rotate').length,1);
+ assert.ok(calls.some(c=>c[0]==='arc'&&c[3]===4));
 });

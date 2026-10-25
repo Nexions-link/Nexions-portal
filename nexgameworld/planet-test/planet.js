@@ -4,7 +4,7 @@ import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=17';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
-import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=3';
+import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=4';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=21';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
@@ -783,7 +783,7 @@ try {
     }
     // Quest overlays only exist for the chosen, accepted and enabled task.
     // The yellow NPC exclamation marks remain in the 3D world instead.
-    paintTrackedQuestOnMinimap(ctx,rpg.getQuestMapState(),scale);
+    paintTrackedQuestOnMinimap(ctx,rpg.getQuestMapState(),scale,{center,size});
     ctx.fillStyle='#8d6541';ctx.fillRect(-37*scale,-12*scale,20*scale,21*scale);
     ctx.restore();
     ctx.fillStyle='#fff2bb';ctx.strokeStyle='#342916';ctx.lineWidth=2;

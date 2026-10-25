@@ -155,7 +155,7 @@ export function trackedQuestMap(id,state,inventory=[],position={x:0,z:0}){
  }
  if(id==='expedition'){
   const q=readExpedition(state.expedition);
-  if(q.stage===2)return pointMap(EXPEDITION_SITES.filter(p=>!q.visited[p.index]),'Лесные ориентиры');
+  if(q.stage===2)return pointMap(EXPEDITION_SITES.filter(p=>!q.visited[p.index]),'Лесные ориентиры','landmarks');
   return pointMap([waypoint],waypoint.title);
  }
  if(id==='mentor'){
