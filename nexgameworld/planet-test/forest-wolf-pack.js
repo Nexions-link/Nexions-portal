@@ -4,7 +4,7 @@ export const WOLF_PACK_MAX_HELPERS=1;
 export const WOLF_PACK_HOWL_MS=1050;
 export const WOLF_PACK_LEASH_MARGIN=1.1;
 export const WOLF_PACK_COOLDOWN_MS=18000;
-export const wolfPairIndex=index=>Number.isInteger(index)&&index>=14&&index<20?
+export const wolfPairIndex=index=>Number.isInteger(index)&&index>=14&&index<26?
  Math.floor((index-14)/2):-1;
 export function eligibleWolfPackHelper(leader,helper,target,{radius=261,
  distance,clear,leash=23,now=0}={}){

@@ -4,11 +4,11 @@ import {FOREST_WOLF_SPAWNS,FOREST_WOLF_LEVELS} from '../forest-wolf-spawns.js';
 import {CREATURE_SPAWNS,creatureById,creatureByIndex} from '../creature-registry.js';
 import {blocksForestAtLocal,forestDistance,FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude} from '../whispering-forest.js';
 import {validateCreatureLootTables,rollCreatureLoot} from '../loot-tables.js';
-test('six server/client wolves have canonical levels and stable IDs',()=>{
- assert.equal(FOREST_WOLF_SPAWNS.length,6);
- assert.deepEqual([...FOREST_WOLF_LEVELS],[5,5,6,6,7,7]);
- assert.equal(CREATURE_SPAWNS.length,20);
- for(let i=0;i<6;i++){
+test('twelve server/client wolves have canonical levels and stable IDs',()=>{
+ assert.equal(FOREST_WOLF_SPAWNS.length,12);
+ assert.deepEqual([...FOREST_WOLF_LEVELS],[5,5,5,5,6,6,6,6,7,7,7,7]);
+ assert.equal(CREATURE_SPAWNS.length,26);
+ for(let i=0;i<12;i++){
   const mob=creatureById('forest-wolf-'+i);
   assert.equal(mob.index,14+i);assert.equal(creatureByIndex(mob.index),mob);
   assert.equal(mob.level,FOREST_WOLF_LEVELS[i]);

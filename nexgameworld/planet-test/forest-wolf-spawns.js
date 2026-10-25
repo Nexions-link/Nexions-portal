@@ -1,18 +1,18 @@
-// Six collision-safe spawn points shared by browser and authoritative server.
+// Twelve collision-safe spawn points shared by browser and authoritative server.
 import {mobSegmentClear} from './mob-navigation.js';
 import {canWalkCamp} from './sphere-physics.js';
 import {forestTrailLatitude,forestLocalPoint,blocksForestAtLocal,
  forestDistance,FOREST_CAMP,FOREST_SITE_CLEARINGS} from './whispering-forest.js';
-export const FOREST_WOLF_LEVELS=Object.freeze([5,5,6,6,7,7]);
+export const FOREST_WOLF_LEVELS=Object.freeze([5,5,5,5,6,6,6,6,7,7,7,7]);
 const locations=[];
 for(let i=0;i<FOREST_WOLF_LEVELS.length;i++){
- // Three two-wolf territories, each with an unobstructed communication path.
- const base=[.60,.675,.82,.895,1.17,1.245][i];
+ // Six two-wolf territories, each with an unobstructed communication path.
+ const base=[.60,.675,.82,.895,1.17,1.245,.53,.60,1.02,1.10,1.32,1.39][i];
  const side=Math.floor(i/2)%2?1:-1;
  let found=null;
- for(let k=0;k<180;k++){
-  const lon=base+(k%15-7)*.009;
-  const lat=forestTrailLatitude(lon)+side*(.18+Math.floor(k/15)*.009);
+ for(let k=0;k<510;k++){
+  const lon=base+(k%17-8)*.009;
+  const lat=forestTrailLatitude(lon)+side*(.18+Math.floor(k/17)*.009);
   if(lon<.52||lon>1.42)continue;
   const point=forestLocalPoint(lon,lat);
   if(blocksForestAtLocal(point.x,point.z,5.1))continue;
