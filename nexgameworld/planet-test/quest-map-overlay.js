@@ -31,8 +31,8 @@ export function paintTrackedQuestOnMinimap(ctx,map,scale,viewport=null){
      const cx=viewport.center.x*scale,cz=viewport.center.z*scale;
      const half=viewport.size/2-14,dx=x-cx,dz=z-cz;
      const rotation=Number.isFinite(viewport.rotation)?viewport.rotation:0;
-     const screenX=dx*Math.cos(rotation)-dz*Math.sin(rotation);
-     const screenZ=dx*Math.sin(rotation)+dz*Math.cos(rotation);
+     const screenX=dx*Math.cos(rotation)+dz*Math.sin(rotation);
+     const screenZ=dx*Math.sin(rotation)-dz*Math.cos(rotation);
      if(Math.hypot(screenX,screenZ)>half){
       const factor=half/Math.hypot(screenX,screenZ);
       x=cx+dx*factor;z=cz+dz*factor;

@@ -775,14 +775,15 @@ try {
     const center=normalToLocal(state.normal,R);
     ctx.clearRect(0,0,size,size);
     ctx.fillStyle='#263c31';ctx.fillRect(0,0,size,size);
-    const targetRotation=-Math.PI/2-state.heading;
+    const targetRotation=state.heading-Math.PI/2;
     if(minimapRotation===null)minimapRotation=targetRotation;
     else minimapRotation+=angleDelta(targetRotation,minimapRotation)*.18;
-    const compassAngle=minimapRotation+Math.PI/2;
+    const compassAngle=minimapRotation-Math.PI/2;
     ctx.save();
     ctx.beginPath();ctx.arc(size/2,size/2,size/2-3,0,TAU);ctx.clip();
     ctx.translate(size/2,size/2);
     ctx.rotate(minimapRotation);
+    ctx.scale(1,-1); // World north (+z) must point to screen north, not down.
     ctx.fillStyle='#798755';ctx.fillRect(-size*10,-size*10,size*20,size*20);
     ctx.translate(-center.x*scale,-center.z*scale);
     ctx.fillStyle='#59734c';
