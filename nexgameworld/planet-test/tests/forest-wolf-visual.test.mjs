@@ -73,3 +73,25 @@ test('respawn resets procedural wolf attack pose without changing its hitbox roo
  assert.equal(body.rotation.x,0);
  assert.deepEqual(visual.root.position.toArray(),[0,0,0]);
 });
+
+test('pack members display distinct noncombat scent, watch and resting gestures',()=>{
+ const first=createForestWolfVisual(THREE,0),second=createForestWolfVisual(THREE,1);
+ const pose=(visual,time)=>{
+  visual.animate(time,0,0,0,0);
+  const body=visual.root.children[0],head=body.children.find(o=>o.isGroup);
+  return [head.position.y,head.rotation.x,head.rotation.y,body.rotation.x];
+ };
+ const poses=[pose(first,0),pose(first,9.6),pose(first,19.1),pose(second,9.6)];
+ assert.ok(new Set(poses.map(p=>p.map(x=>x.toFixed(3)).join(','))).size>=3);
+ assert.deepEqual(first.root.position.toArray(),[0,0,0]);
+ assert.deepEqual(second.root.position.toArray(),[0,0,0]);
+});
+test('scent animation is suppressed by server-driven combat and howl',()=>{
+ const visual=createForestWolfVisual(THREE,1);
+ const head=visual.root.children[0].children.find(o=>o.isGroup);
+ visual.animate(9.6,0,1,0,0);
+ assert.equal(head.rotation.x,-.20);
+ visual.animate(9.6,0,0,1,0);
+ assert.equal(head.rotation.x,-.62);
+ assert.deepEqual(visual.root.position.toArray(),[0,0,0]);
+});

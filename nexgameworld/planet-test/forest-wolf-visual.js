@@ -77,11 +77,19 @@ export function createForestWolfVisual(THREE,variant=0){
   const moving=Math.min(1,Math.max(0,distance*2.5)),idle=1-moving;
   const phase=time*7.3+variant,threat=attack>0;
   const sprint=Math.min(1,Math.max(0,distance*1.3));
+  // Independent deterministic scent, vigilance and rest cycles. Reuse only
+  // existing pivots, so there are no extra draw calls or authoritative moves.
+  const cycle=((time*.105+variant*.37)%3+3)%3;
+  const calm=idle*(combatPose||howl>0?0:1);
+  const sniff=calm*Math.max(0,1-Math.abs(cycle-1)*3);
+  const watch=calm*Math.max(0,1-Math.abs(cycle-2)*2);
+  const rest=calm*Math.max(0,1-Math.abs(cycle)*2);
+  const stridePhase=time*7.3*(1+.35*sprint)+variant;
   // Small idle breaths, listening movements and ear twitches make a still
   // wolf readable in the undergrowth without changing its hitbox or position.
   body.scale.y=1+.014*Math.sin(time*1.9+variant)*idle;
   for(let i=0;i<legs.length;i++){
-   const stride=Math.sin(phase*(1+.35*sprint)+(i===0||i===3?0:Math.PI));
+   const stride=Math.sin(stridePhase+(i===0||i===3?0:Math.PI));
    const front=i%2===1;
    legs[i].rotation.x=stride*(.35+.18*sprint)*moving*(1-.8*windup)
     +windup*(front?-.16:.14)+lunge*(front?.33:-.20);
@@ -89,23 +97,24 @@ export function createForestWolfVisual(THREE,variant=0){
   // Visible warning: neck/head tilt upward, ears flare, howl before attack.
   const voice=Math.min(1,Math.max(0,howl));
   head.rotation.x=voice?-.62*voice:combatPose?
-   (-.20+.18*windup-.37*lunge+.10*recovery):.07*Math.sin(time*.8+variant);
-  head.position.y=1.48+.16*voice-.10*windup+.045*lunge;
-  jaw.rotation.x=.05+.40*windup+.62*lunge+.13*recovery;
+   (-.20+.18*windup-.37*lunge+.10*recovery):
+   .07*Math.sin(time*.8+variant)+.27*sniff-.10*watch+.085*rest;
+  head.position.y=1.48+.16*voice-.10*windup+.045*lunge-.17*sniff-.07*rest;
+  jaw.rotation.x=.05+.40*windup+.62*lunge+.13*recovery+.035*sniff*Math.sin(time*8);
   jaw.visible=true;
   head.rotation.z=hit>0?.085*Math.sin(time*19+variant):0;
-  head.rotation.y=combatPose?0:Math.sin(time*.67+variant*.9)*.11*idle;
+  head.rotation.y=combatPose?0:Math.sin(time*.67+variant*.9)*(.11+.25*watch)*idle;
   for(let i=0;i<ears.length;i++){
    const side=i===0?-1:1;
    ears[i].rotation.z=-side*.12+Math.sin(time*2.1+variant+i*1.7)*.035*idle
     +side*(.24*windup+.38*lunge);
   }
-  body.position.y=Math.sin(phase*2)*(.045+.025*sprint)*moving+.08*voice
+  body.position.y=Math.sin(stridePhase*2)*(.045+.025*sprint)*moving+.08*voice
    -.075*windup+.045*lunge;
   body.position.z=-.085*windup+.30*lunge-.05*recovery;
-  body.rotation.x=-.035*sprint*Math.sin(phase*2)*moving+.13*windup-.21*lunge+.055*recovery;
-  tailPivot.rotation.z=Math.sin(time*1.9+variant)*(threat?.06:.15);
-  tailPivot.rotation.x=.08*Math.sin(time*1.1+variant);
+  body.rotation.x=-.035*sprint*Math.sin(stridePhase*2)*moving+.13*windup-.21*lunge+.055*recovery;
+  tailPivot.rotation.z=Math.sin(time*(threat?1.9:1.3)+variant)*(threat?.06:.10+.11*watch)+.025*sniff;
+  tailPivot.rotation.x=.08*Math.sin(time*1.1+variant)-.13*rest+.10*watch;
  }
  function resetAttack(){
   strikeMotion.cueSeen=0;strikeMotion.hitSeen=0;
