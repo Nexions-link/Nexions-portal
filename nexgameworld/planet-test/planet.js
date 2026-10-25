@@ -4,7 +4,9 @@ import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=17';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
-import {paintTrackedQuestOnMinimap} from './quest-map-overlay.js?v=4';
+import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay.js?v=5';
+import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=6';
+import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=21';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
@@ -20,7 +22,7 @@ import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=152';
+import {createOfflineRpg} from './offline-rpg.js?v=153';
 import {createSphericalPresence} from './sphere-online.js?v=20';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=12';
@@ -783,7 +785,26 @@ try {
     }
     // Quest overlays only exist for the chosen, accepted and enabled task.
     // The yellow NPC exclamation marks remain in the 3D world instead.
-    paintTrackedQuestOnMinimap(ctx,rpg.getQuestMapState(),scale,{center,size});
+    const questState=rpg.state;
+    let trackedMap=rpg.getQuestMapState();
+    const expedition=readExpedition(questState.expedition);
+    // Preserve exploration guidance even when a previously saved tracking
+    // selection was cleared in an older client release.
+    if(expedition.stage===2){
+      const hasLandmarks=trackedMap?.kind==='landmarks'||trackedMap?.overlays?.some(m=>m.kind==='landmarks');
+      if(!hasLandmarks){
+        const landmarks=trackedQuestMap('expedition',questState);
+        if(landmarks)trackedMap=trackedMap?{...trackedMap,overlays:[...(trackedMap.overlays||[]),landmarks]}:landmarks;
+      }
+    }
+    paintTrackedQuestOnMinimap(ctx,trackedMap,scale,{center,size});
+    paintMinimapPlaces(ctx,{center,size,scale},[
+      {kind:'npc',...QUEST_GIVERS.mentor},
+      {kind:'npc',...QUEST_GIVERS.herbalist},
+      {kind:'npc',...QUEST_GIVERS.bandit},
+      {kind:'npc',...EXPEDITION_SCOUT},
+      {kind:'camp',...EXPEDITION_SCOUT}
+    ]);
     ctx.fillStyle='#8d6541';ctx.fillRect(-37*scale,-12*scale,20*scale,21*scale);
     ctx.restore();
     ctx.fillStyle='#fff2bb';ctx.strokeStyle='#342916';ctx.lineWidth=2;

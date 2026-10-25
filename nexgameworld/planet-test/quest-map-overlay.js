@@ -69,3 +69,29 @@ export function paintTrackedQuestOnMinimap(ctx,map,scale,viewport=null){
   }
  }finally{ctx.restore();}
 }
+
+/** Fixed-location NPCs and the forest scout camp on the tangent minimap.
+ * Places are only drawn within the minimap; quest arrows remain unambiguous.
+ */
+export function paintMinimapPlaces(ctx,viewport,places=[]){
+ if(!ctx||!viewport||!Number.isFinite(viewport.scale)||!Number.isFinite(viewport.size))return;
+ const {center,size,scale}=viewport;
+ if(!Number.isFinite(center?.x)||!Number.isFinite(center?.z))return;
+ const edge=size/2-12;
+ ctx.save();
+ try{
+  for(const point of places){
+   if(!Number.isFinite(point?.x)||!Number.isFinite(point?.z))continue;
+   const x=(point.x-center.x)*scale,z=(point.z-center.z)*scale;
+   if(Math.abs(x)>edge||Math.abs(z)>edge)continue;
+   ctx.save();ctx.translate(point.x*scale,point.z*scale);
+   ctx.beginPath();ctx.arc(0,0,point.kind==='camp'?7:6,0,Math.PI*2);
+   ctx.fillStyle=point.kind==='camp'?'#514632':'#233e40';
+   ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='#f6e2aa';ctx.stroke();
+   ctx.fillStyle='#ffe7b3';ctx.textAlign='center';ctx.textBaseline='middle';
+   ctx.font='bold 11px system-ui,sans-serif';
+   ctx.fillText(point.kind==='camp'?'⌂':'●',0,0);
+   ctx.restore();
+  }
+ }finally{ctx.restore();}
+}
