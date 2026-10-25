@@ -8,6 +8,7 @@ import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=6';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
+import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=21';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=21';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
@@ -767,21 +768,39 @@ try {
 
   // Original NexGame mini-map frame/canvas, now mapped to tangent metres on the sphere.
   const nativeMap=$('minimap'),nativeCtx=nativeMap.getContext('2d');
+  let minimapRotation=null;
   function drawNativeMinimap(){
     if(!nativeCtx)return;
     const ctx=nativeCtx,size=240,scale=3.8;
     const center=normalToLocal(state.normal,R);
     ctx.clearRect(0,0,size,size);
-    ctx.fillStyle='#798755';ctx.fillRect(0,0,size,size);
-    ctx.save();ctx.translate(size/2,size/2);
+    ctx.fillStyle='#263c31';ctx.fillRect(0,0,size,size);
+    const targetRotation=-Math.PI/2-state.heading;
+    if(minimapRotation===null)minimapRotation=targetRotation;
+    else minimapRotation+=angleDelta(targetRotation,minimapRotation)*.18;
+    const compassAngle=minimapRotation+Math.PI/2;
+    ctx.save();
+    ctx.beginPath();ctx.arc(size/2,size/2,size/2-3,0,TAU);ctx.clip();
+    ctx.translate(size/2,size/2);
+    ctx.rotate(minimapRotation);
+    ctx.fillStyle='#798755';ctx.fillRect(-size*10,-size*10,size*20,size*20);
     ctx.translate(-center.x*scale,-center.z*scale);
     ctx.fillStyle='#59734c';
     ctx.beginPath();ctx.ellipse(30*scale,26*scale,17.2*scale,12.5*scale,0,0,TAU);ctx.fill();
     ctx.fillStyle='#6098a5';
     ctx.beginPath();ctx.ellipse(30*scale,26*scale,16.4*scale,11.7*scale,0,0,TAU);ctx.fill();
-    ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#c0ab76';ctx.lineWidth=8;
-    for(const route of ROUTES){
-      ctx.beginPath();route.forEach(([x,z],i)=>i?ctx.lineTo(x*scale,z*scale):ctx.moveTo(x*scale,z*scale));ctx.stroke();
+    // Paths are rendered in two strokes to stay legible on grass and forest.
+    const forestRoute=Array.from({length:61},(_,i)=>{
+      const lon=FOREST_ENTRANCE_LONGITUDE+(FOREST_TRAIL_END-FOREST_ENTRANCE_LONGITUDE)*i/60;
+      const pt=forestLocalPoint(lon,forestTrailLatitude(lon),R);
+      return [pt.x,pt.z];
+    });
+    ctx.lineCap='round';ctx.lineJoin='round';
+    for(const route of [...ROUTES,forestRoute]){
+      ctx.beginPath();route.forEach(([x,z],i)=>i?ctx.lineTo(x*scale,z*scale):ctx.moveTo(x*scale,z*scale));
+      ctx.strokeStyle='#423d2d';ctx.lineWidth=15;ctx.stroke();
+      ctx.strokeStyle='#d5bd86';ctx.lineWidth=9;ctx.stroke();
+      ctx.strokeStyle='rgba(255,240,194,.45)';ctx.lineWidth=2;ctx.stroke();
     }
     // Quest overlays only exist for the chosen, accepted and enabled task.
     // The yellow NPC exclamation marks remain in the 3D world instead.
@@ -797,7 +816,7 @@ try {
         if(landmarks)trackedMap=trackedMap?{...trackedMap,overlays:[...(trackedMap.overlays||[]),landmarks]}:landmarks;
       }
     }
-    paintTrackedQuestOnMinimap(ctx,trackedMap,scale,{center,size});
+    paintTrackedQuestOnMinimap(ctx,trackedMap,scale,{center,size,rotation:minimapRotation});
     paintMinimapPlaces(ctx,{center,size,scale},[
       {kind:'npc',...QUEST_GIVERS.mentor},
       {kind:'npc',...QUEST_GIVERS.herbalist},
@@ -807,8 +826,16 @@ try {
     ]);
     ctx.fillStyle='#8d6541';ctx.fillRect(-37*scale,-12*scale,20*scale,21*scale);
     ctx.restore();
-    ctx.fillStyle='#fff2bb';ctx.strokeStyle='#342916';ctx.lineWidth=2;
-    ctx.beginPath();ctx.arc(size/2,size/2,6,0,TAU);ctx.fill();ctx.stroke();
+    ctx.save();ctx.translate(size/2,size/2);
+    ctx.fillStyle='#fff0bd';ctx.strokeStyle='#342916';ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.moveTo(0,-13);ctx.lineTo(7,8);ctx.lineTo(0,4);ctx.lineTo(-7,8);ctx.closePath();
+    ctx.fill();ctx.stroke();
+    const nx=Math.cos(compassAngle)*(size/2-17),ny=Math.sin(compassAngle)*(size/2-17);
+    ctx.beginPath();ctx.arc(nx,ny,10,0,TAU);
+    ctx.fillStyle='#272f26';ctx.fill();ctx.strokeStyle='#e9d5a1';ctx.stroke();
+    ctx.font='bold 12px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='#ffe2a0';ctx.fillText('С',nx,ny+.5);
+    ctx.restore();
     $('mapLabel').textContent=center.d<82?'Лагерь Нараче':'Сферический мир';
   }
   const globeCanvas = $('miniglobe');

@@ -95,7 +95,7 @@ test('off map and UI uses only tracked accepted objective, buttons work by touch
  assert.match(style,/#quest\{display:none!important\}/);
  assert.match(html,/<aside id="quest" hidden>/);
  assert.match(html,/id="untrackQuest"/);
- assert.match(js,/paintTrackedQuestOnMinimap\(ctx,trackedMap,scale,\{center,size\}\)/);
+ assert.match(js,/paintTrackedQuestOnMinimap\(ctx,trackedMap,scale,\{center,size,rotation:minimapRotation\}\)/);
 });
 
 // Never draw swords for a turn-in destination, even if it follows a kill quest.
