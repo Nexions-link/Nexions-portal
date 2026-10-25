@@ -159,9 +159,13 @@ export function proceduralForestTrunkOutline(y,angle){
  const rib=.145*ridges*flare;
  const valley=-.17*Math.pow(1-ridges,6)*flare;
  const bottomMass=.052*Math.exp(-Math.pow(t/.035,2));
- const wood=.965+.035*relief.radial;
+ // Strong but irregular cambium swelling: shared vertices, no extra geometry.
+ const wood=.955+.045*relief.radial;
+ const ageRidge=.020*Math.sin(3*angle-4*t)+.009*Math.sin(8*angle+9*t);
+ const lowGrowth=Math.exp(-Math.pow(t/.28,2));
  const radius=Math.min(FOREST_TRUNK_BASE_SCALE*.985,
-  Math.max(.12,bole*wood+rib+valley+bottomMass));
+  Math.max(.12,bole*wood+rib+valley+bottomMass+
+   ageRidge*lowGrowth));
  // A centreline curve makes the trunk slightly wind-swept without changing
  // any vertex count or altering the original base/collision position.
  const curveX=.062*t*t*Math.sin(t*4.5+.50)+.012*t*Math.sin(t*9.2);
@@ -376,6 +380,19 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   Math.sin(FOREST_CAMP.lat)*Math.cos(FOREST_CAMP.lon));
  const campFrame=new THREE.Matrix4().makeBasis(campEast,campNormal,campSouth);
  campRoot.quaternion.setFromRotationMatrix(campFrame);
+ // Tangent-space camp spans tens of metres on an uneven spherical planet.
+ // A single centre height makes outer tents float above the terrain.
+ // Sample the EXACT terrain surface at each existing camp-prop position.
+ const campOrigin=campRoot.position.clone();
+ const sampleNormal=new THREE.Vector3(),sampleWorld=new THREE.Vector3();
+ function campGroundOffset(dx,dz){
+  const at=forestCampPoint(dx,dz,radius);
+  sampleNormal.set(Math.cos(at.lat)*Math.sin(at.lon),
+   Math.sin(at.lat),Math.cos(at.lat)*Math.cos(at.lon));
+  sampleWorld.copy(sampleNormal).multiplyScalar(radius+heightAt(sampleNormal));
+  return sampleWorld.sub(campOrigin).dot(campNormal);
+ }
+
  const campWood=new THREE.MeshStandardMaterial({color:'#604932',roughness:1});
  const campWoodLight=new THREE.MeshStandardMaterial({color:'#8d714b',roughness:1});
  const campHide=new THREE.MeshStandardMaterial({color:'#b5a080',roughness:1,side:THREE.DoubleSide});
@@ -383,13 +400,17 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  const campStone=new THREE.MeshStandardMaterial({color:'#6f7469',roughness:1});
  const campFlame=new THREE.MeshStandardMaterial({color:'#ffb75e',emissive:'#f07825',emissiveIntensity:1.1});
  function mesh(geo,mat,x,y,z){
-  const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);campRoot.add(m);return m;
+  const m=new THREE.Mesh(geo,mat);
+  m.position.set(x,y+campGroundOffset(x,z),z);
+  campRoot.add(m);return m;
  }
  function pole(x,y,z,rad,length){return mesh(new THREE.CylinderGeometry(rad*.85,rad,length,6),campWood,x,y,z)}
  for(const p of FOREST_CAMP_PROPS){
   if(p.kind==='tent'){
    const {dx:x,dz:z,r}=p;
-   const short=mesh(new THREE.CylinderGeometry(r,r*.98,.65,9),campSeams,x,.34,z);
+   // Recess the skirt into the ground: small local slopes cannot expose air
+   // beneath the shelter, while its roof stays at the original eye-line.
+   const short=mesh(new THREE.CylinderGeometry(r,r*.98,1.13,9),campSeams,x,.19,z);
    const roof=mesh(new THREE.ConeGeometry(r,r*1.67,9),campHide,x,r*.835+.65,z);
    short.rotation.y=roof.rotation.y=.26;
    pole(x,r*.82,z,.14,r*1.92);
@@ -427,7 +448,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   flame.scale.y=.84+.16*Math.sin(time*8.7);flame.rotation.y=time*.5;
   for(let i=0;i<smoke.length;i++){
    const stage=(time*.17+i/3)%1;
-   smoke[i].position.y=1.8+stage*4.1;
+   smoke[i].position.y=campGroundOffset(smoke[i].position.x,smoke[i].position.z)+1.8+stage*4.1;
    smoke[i].position.x=Math.sin(stage*5+time*.5)*.45;
    smoke[i].scale.setScalar(.45+stage*.85);
    smoke[i].material.opacity=.12*(1-stage);
