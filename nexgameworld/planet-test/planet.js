@@ -601,7 +601,6 @@ try {
     const currentName=inStartingZone?'Стартовая зона NexGameWorld':forestName?'Шепчущий лес':NAMES[b];
     if(force||zoneName.textContent!==currentName){zoneName.textContent=currentName;zoneLabel.textContent=inStartingZone?'ЛАГЕРЬ · ОЗЕРО ТИХИХ ВОД':forestName?'ДРЕВНИЕ ДЕРЕВЬЯ · ЛЕСНАЯ ТРОПА':LABELS[b];$('area').textContent=inStartingZone?'Лагерь Нараче':currentName;}
     drawGlobe();
-    drawNativeMinimap();
   }
 
   const joystick=createPointerJoystick($('stick'),$('nub'));
@@ -768,16 +767,21 @@ try {
 
   // Original NexGame mini-map frame/canvas, now mapped to tangent metres on the sphere.
   const nativeMap=$('minimap'),nativeCtx=nativeMap.getContext('2d');
-  let minimapRotation=null;
+  // Re-use static roads on every rendered frame instead of rebuilding them.
+  const minimapForestRoute=Array.from({length:61},(_,i)=>{
+    const lon=FOREST_ENTRANCE_LONGITUDE+(FOREST_TRAIL_END-FOREST_ENTRANCE_LONGITUDE)*i/60;
+    const pt=forestLocalPoint(lon,forestTrailLatitude(lon),R);
+    return [pt.x,pt.z];
+  });
   function drawNativeMinimap(){
     if(!nativeCtx)return;
     const ctx=nativeCtx,size=240,scale=3.8;
     const center=normalToLocal(state.normal,R);
     ctx.clearRect(0,0,size,size);
     ctx.fillStyle='#263c31';ctx.fillRect(0,0,size,size);
-    const targetRotation=state.heading-Math.PI/2;
-    if(minimapRotation===null)minimapRotation=targetRotation;
-    else minimapRotation+=angleDelta(targetRotation,minimapRotation)*.18;
+    // Follow current simulated heading exactly; the animation loop already
+    // smooths character turns, so filtering again causes visible map lag.
+    const minimapRotation=state.heading-Math.PI/2;
     const compassAngle=minimapRotation-Math.PI/2;
     ctx.save();
     ctx.beginPath();ctx.arc(size/2,size/2,size/2-3,0,TAU);ctx.clip();
@@ -791,13 +795,8 @@ try {
     ctx.fillStyle='#6098a5';
     ctx.beginPath();ctx.ellipse(30*scale,26*scale,16.4*scale,11.7*scale,0,0,TAU);ctx.fill();
     // Paths are rendered in two strokes to stay legible on grass and forest.
-    const forestRoute=Array.from({length:61},(_,i)=>{
-      const lon=FOREST_ENTRANCE_LONGITUDE+(FOREST_TRAIL_END-FOREST_ENTRANCE_LONGITUDE)*i/60;
-      const pt=forestLocalPoint(lon,forestTrailLatitude(lon),R);
-      return [pt.x,pt.z];
-    });
     ctx.lineCap='round';ctx.lineJoin='round';
-    for(const route of [...ROUTES,forestRoute]){
+    for(const route of [...ROUTES,minimapForestRoute]){
       ctx.beginPath();route.forEach(([x,z],i)=>i?ctx.lineTo(x*scale,z*scale):ctx.moveTo(x*scale,z*scale));
       ctx.strokeStyle='#423d2d';ctx.lineWidth=15;ctx.stroke();
       ctx.strokeStyle='#d5bd86';ctx.lineWidth=9;ctx.stroke();
@@ -1098,6 +1097,7 @@ try {
         .addScaledVector(tangentEast,27).addScaledVector(tangentNorth,20);
       sun.target.updateMatrixWorld();
     }
+    drawNativeMinimap();
     renderer.render(scene,camera);
     if(measureFrames){
       const sceneName=selectFrameScene({orbit:state.orbit,combat:rpg.combatActive,
