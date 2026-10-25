@@ -3,7 +3,7 @@
 import {DOLGONOG_LEVELS,DOLGONOG_SPAWNS,DOLGONOG_BOSS_INDEX,
  mobBaseExperience,monsterMaxHealth} from './mob-levels.js';
 import {CREATURE_TYPE_BEAST,CREATURE_TYPE_HUMANOID} from './creature-types.js';
-import {FOREST_WOLF_SPAWNS} from './forest-wolf-spawns.js';
+import {FOREST_WOLF_SPAWNS} from './forest-wolf-spawns.js?v=2';
 export const BANDIT_CAMP=Object.freeze({x:-68,z:2});
 export const BANDIT_QUEST_GIVER=Object.freeze({x:-20,z:13,range:4.7});
 export const BANDIT_SPAWNS=Object.freeze([[-50,-17],[-73,-18],[-55,15],[-72,33]].map(p=>Object.freeze(p)));
