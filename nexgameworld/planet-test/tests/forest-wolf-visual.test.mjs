@@ -95,3 +95,22 @@ test('scent animation is suppressed by server-driven combat and howl',()=>{
  assert.equal(head.rotation.x,-.62);
  assert.deepEqual(visual.root.position.toArray(),[0,0,0]);
 });
+
+test('walking cycle accumulates rendered distance and smooths leg transitions',()=>{
+ const visual=createForestWolfVisual(THREE,0);
+ const body=visual.root.children[0];
+ const legs=body.children.filter(x=>x.geometry?.type==='CylinderGeometry');
+ assert.equal(legs.length,4);
+ visual.animate(1,0,0);
+ const pose0=legs.map(x=>x.rotation.x);
+ visual.animate(1.016,.038,0);
+ const pose1=legs.map(x=>x.rotation.x);
+ visual.animate(1.032,.038,0);
+ const pose2=legs.map(x=>x.rotation.x);
+ assert.ok(pose1.some((v,i)=>Math.abs(v-pose0[i])>0));
+ assert.ok(pose2.every((v,i)=>Math.abs(v-pose1[i])<.3));
+ visual.animate(1.048,0,0);
+ assert.deepEqual(visual.root.position.toArray(),[0,0,0]);
+ visual.resetAttack();
+ assert.ok(legs.every(x=>x.rotation.x===0));
+});

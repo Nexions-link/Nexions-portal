@@ -38,6 +38,7 @@ export function createForestWolfVisual(THREE,variant=0){
   fang.rotation.x=Math.PI;
  }
  const strikeMotion={cueSeen:0,hitSeen:0,cueAt:-1,hitAt:-1};
+ const gait={lastTime:null,phase:variant,blend:0,velocity:0};
  const ears=[];
  for(const s of [-1,1]){
   const ear=part(head,new THREE.ConeGeometry(.18,.55,6),mane,s*.29,.42,.12);
@@ -74,9 +75,17 @@ export function createForestWolfVisual(THREE,variant=0){
   const recovery=elapsed>=.18&&elapsed<.54?
    Math.max(0,1-(elapsed-.18)/.36):0;
   const combatPose=attack>0||lunge>0||recovery>0;
-  const moving=Math.min(1,Math.max(0,distance*2.5)),idle=1-moving;
-  const phase=time*7.3+variant,threat=attack>0;
-  const sprint=Math.min(1,Math.max(0,distance*1.3));
+  // Advance gait from actual rendered travel, not free-running clock time.
+  const dt=gait.lastTime===null?1/60:Math.max(0,Math.min(.085,time-gait.lastTime));
+  gait.lastTime=time;
+  const desired=Math.max(0,Math.min(1,distance/Math.max(dt,.016)/4.4));
+  const response=1-Math.exp(-dt*7);
+  gait.velocity+=(desired-gait.velocity)*response;
+  gait.blend+=(Math.min(1,gait.velocity*2.25)-gait.blend)*(1-Math.exp(-dt*9));
+  const moving=gait.blend,idle=1-moving;
+  const sprint=Math.min(1,gait.velocity*1.35),threat=attack>0;
+  gait.phase+=Math.min(.65,Math.max(0,distance)*2.9)*(moving>.015?1:0);
+  const stridePhase=gait.phase;
   // Independent deterministic scent, vigilance and rest cycles. Reuse only
   // existing pivots, so there are no extra draw calls or authoritative moves.
   const cycle=((time*.105+variant*.37)%3+3)%3;
@@ -84,15 +93,20 @@ export function createForestWolfVisual(THREE,variant=0){
   const sniff=calm*Math.max(0,1-Math.abs(cycle-1)*3);
   const watch=calm*Math.max(0,1-Math.abs(cycle-2)*2);
   const rest=calm*Math.max(0,1-Math.abs(cycle)*2);
-  const stridePhase=time*7.3*(1+.35*sprint)+variant;
+  // Four limbs share a smooth phase, blending a walking sequence into a trot.
   // Small idle breaths, listening movements and ear twitches make a still
   // wolf readable in the undergrowth without changing its hitbox or position.
-  body.scale.y=1+.014*Math.sin(time*1.9+variant)*idle;
+  body.scale.y=1+.014*Math.sin(time*1.9+variant)*idle*(combatPose?0:1);
   for(let i=0;i<legs.length;i++){
-   const stride=Math.sin(stridePhase+(i===0||i===3?0:Math.PI));
    const front=i%2===1;
-   legs[i].rotation.x=stride*(.35+.18*sprint)*moving*(1-.8*windup)
+   const walkOffset=[0,Math.PI*.5,Math.PI,Math.PI*1.5][i];
+   const trotOffset=(i===0||i===3)?0:Math.PI;
+   const walk=Math.sin(stridePhase+walkOffset);
+   const trot=Math.sin(stridePhase+trotOffset);
+   const stride=walk*(1-sprint)+trot*sprint;
+   const goal=stride*(.28+.15*sprint)*moving*(1-.8*windup)
     +windup*(front?-.16:.14)+lunge*(front?.33:-.20);
+   legs[i].rotation.x+=(goal-legs[i].rotation.x)*(1-Math.exp(-dt*16));
   }
   // Visible warning: neck/head tilt upward, ears flare, howl before attack.
   const voice=Math.min(1,Math.max(0,howl));
@@ -109,7 +123,7 @@ export function createForestWolfVisual(THREE,variant=0){
    ears[i].rotation.z=-side*.12+Math.sin(time*2.1+variant+i*1.7)*.035*idle
     +side*(.24*windup+.38*lunge);
   }
-  body.position.y=Math.sin(stridePhase*2)*(.045+.025*sprint)*moving+.08*voice
+  body.position.y=Math.sin(stridePhase*2)*(.025+.02*sprint)*moving+.08*voice
    -.075*windup+.045*lunge;
   body.position.z=-.085*windup+.30*lunge-.05*recovery;
   body.rotation.x=-.035*sprint*Math.sin(stridePhase*2)*moving+.13*windup-.21*lunge+.055*recovery;
@@ -120,6 +134,8 @@ export function createForestWolfVisual(THREE,variant=0){
   strikeMotion.cueSeen=0;strikeMotion.hitSeen=0;
   strikeMotion.cueAt=-1;strikeMotion.hitAt=-1;
   body.position.z=0;body.rotation.x=0;jaw.rotation.x=.05;
+  gait.lastTime=null;gait.phase=variant;gait.blend=0;gait.velocity=0;
+  for(const leg of legs)leg.rotation.x=0;
  }
  return {root,animate,resetAttack};
 }
