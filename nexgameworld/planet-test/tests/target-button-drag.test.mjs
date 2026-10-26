@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TARGET_POSITION_KEY,SPELLBOOK_POSITION_KEY,targetButtonBounds,clampTargetPoint,normalizeTargetPoint,restoreTargetPoint,installDraggableTargetButton,installDraggableHudButton} from '../target-button-drag.js';
+import {TARGET_POSITION_KEY,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY,targetButtonBounds,clampTargetPoint,normalizeTargetPoint,restoreTargetPoint,installDraggableTargetButton,installDraggableHudButton} from '../target-button-drag.js';
 import {readFileSync} from 'node:fs';
 
 test('button stays within safe edges even on narrow portrait screens',()=>{
@@ -127,4 +127,41 @@ test('spellbook button renders the symbol only and registers separate drag handl
  assert.doesNotMatch(markup[1],/Книга/);
  assert.match(html,/#hotbarUtilities #spellbookButton.is-floating/);
  assert.match(planet,/installDraggableHudButton\(document.getElementById\('spellbookButton'\),\{storageKey:SPELLBOOK_POSITION_KEY\}\)/);
+});
+
+test('mount button moves independently and long hold never summons or dismounts',()=>{
+ const storage=new Map();
+ const target=sandbox({storage,key:TARGET_POSITION_KEY});
+ const book=sandbox({storage,key:SPELLBOOK_POSITION_KEY,rect:{left:328,top:620,width:46,height:42}});
+ const wolf=sandbox({storage,key:MOUNT_POSITION_KEY,rect:{left:220,top:620,width:60,height:46}});
+ wolf.emit('pointerdown',{clientX:235,clientY:641});
+ wolf.emit('pointerup',{clientX:235,clientY:641});
+ wolf.emit('click');
+ assert.equal(wolf.clicked(),1,'short tap must continue summoning/dismounting');
+ wolf.emit('pointerdown',{clientX:235,clientY:641});
+ wolf.flush();
+ wolf.emit('pointermove',{clientX:130,clientY:350});
+ wolf.emit('pointerup',{clientX:130,clientY:350});
+ assert.equal(wolf.emit('click').prevented,true,'drag must not activate mount');
+ assert.equal(wolf.clicked(),1,'long press did not send a second summon/dismount');
+ assert.ok(storage.has(MOUNT_POSITION_KEY),'mount position must be saved locally');
+ assert.equal(storage.has(TARGET_POSITION_KEY),false);
+ assert.equal(storage.has(SPELLBOOK_POSITION_KEY),false);
+ wolf.api.reset();
+ assert.equal(storage.has(MOUNT_POSITION_KEY),false);
+ target.emit('pointerdown');target.flush();target.emit('pointerup');
+ book.emit('pointerdown');book.flush();book.emit('pointerup');
+ assert.equal(target.clicked(),0);assert.equal(book.clicked(),0);
+});
+
+test('mount button works on iPhone with a visible-size restore, safe touch gestures and unique storage',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const planet=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
+ const mountCSS=readFileSync(new URL('../mount-controls.css',import.meta.url),'utf8');
+ assert.match(html,/id="mountButton"[^>]+hidden/);
+ assert.match(planet,/installDraggableHudButton\(document\.getElementById\('mountButton'\),\{storageKey:MOUNT_POSITION_KEY\}\)/);
+ assert.match(planet,/mountButtonDrag\?\.restore\(\)/);
+ assert.match(planet,/target-button-drag\.js\?v=3/);
+ assert.match(mountCSS,/#hotbarUtilities #mountButton\{[^}]*touch-action:none/s);
+ assert.match(html,/#hotbarUtilities #mountButton\.is-floating/);
 });

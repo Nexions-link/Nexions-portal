@@ -120,8 +120,8 @@ test('authenticated menu shows character selection and settings, without resetti
  const h=harness({authenticatedProfile:{nickname:'Герой',level:10,health:80,inventory:[],equipment:{}}});
  h.get('pause').click();
  const menuButtons=descendants(h.get('mbody')).filter(node=>node.className==='ngw-menu-action');
- assert.equal(menuButtons.length,2);
- assert.deepEqual(menuButtons.map(node=>node.children[0].textContent),['Выбор персонажа','Настройки']);
+ assert.equal(menuButtons.length,3);
+ assert.deepEqual(menuButtons.map(node=>node.children[0].textContent),['Выбор персонажа','Маунты','Настройки']);
  assert.equal(descendants(h.get('mbody')).some(node=>node.textContent==='Сбросить прогресс'),false);
  h.get('modalClose').click();
 });

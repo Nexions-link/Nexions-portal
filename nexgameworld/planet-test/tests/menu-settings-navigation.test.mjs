@@ -13,17 +13,18 @@ test('character selection drops only the selected hero, not authentication',()=>
  assert.equal(map.has(ACTIVE_CHARACTER_KEY),false);
  assert.equal(map.get('ngw-alpha-session'),'test-session');
 });
-test('the new pause menu has exactly two actions, and settings are separate',()=>{
+test('the pause menu includes mount collection and keeps settings separate',()=>{
  const h=harness();
  h.get('pause').click();
  const menu=h.get('mbody');
  const actions=descendants(menu).filter(node=>node.className==='ngw-menu-action');
- assert.equal(actions.length,2);
+ assert.equal(actions.length,3);
  assert.equal(actions[0].children[0].textContent,'Выбор персонажа');
- assert.equal(actions[1].children[0].textContent,'Настройки');
+ assert.equal(actions[1].children[0].textContent,'Маунты');
+ assert.equal(actions[2].children[0].textContent,'Настройки');
  assert.equal(h.get('cameraControl').hidden,true);
  assert.equal(h.get('graphicsControl').hidden,true);
- actions[1].click();
+ actions[2].click();
  assert.equal(h.get('modal').dataset.kind,'settings');
  assert.equal(h.get('cameraControl').hidden,false);
  assert.equal(h.get('graphicsControl').hidden,false);

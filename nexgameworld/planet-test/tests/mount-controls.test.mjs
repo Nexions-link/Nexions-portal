@@ -1,9 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMountControls,mountCastProgress,MOUNT_ERROR_MESSAGES} from '../mount-controls.js';
+import {createMountControls,mountCastProgress,mountCastBottom,MOUNT_CAST_HOTBAR_GAP,MOUNT_ERROR_MESSAGES} from '../mount-controls.js';
 
-function fixture(){
+function fixture({hotbarTop=null,viewportHeight=844}={}){
  const nodes={};
+ const viewHandlers=new Map();
+ const view={
+  innerHeight:viewportHeight,
+  addEventListener:(name,cb)=>viewHandlers.set(name,cb),
+  removeEventListener:name=>viewHandlers.delete(name)
+ };
+ let hotbarY=hotbarTop;
+ if(hotbarY!==null)nodes.actionsBar={getBoundingClientRect:()=>({top:hotbarY})};
  for(const id of ['mountButton','mountButtonLabel','mountCast','mountCastFill','mountCastTime']){
   const classes=new Set(),handlers=new Map();
   nodes[id]={
@@ -20,12 +28,16 @@ function fixture(){
  }
  let now=100,summons=0,dismounts=0;const notices=[];
  const controls=createMountControls({
-  document:{getElementById:id=>nodes[id]||null},clock:()=>now,
+  document:{getElementById:id=>nodes[id]||null,defaultView:view,
+   documentElement:{clientHeight:viewportHeight}},clock:()=>now,
   onSummon:()=>{summons++;return true},onDismount:()=>{dismounts++;return true},
   onNotice:message=>notices.push(message)
  });
  return {nodes,controls,notices,get summons(){return summons},get dismounts(){return dismounts},
-  setTime:value=>{now=value}};
+  setTime:value=>{now=value},
+  resize:(height,top)=>{view.innerHeight=height;hotbarY=top;viewHandlers.get('resize')?.()},
+  orientation:(height,top)=>{view.innerHeight=height;hotbarY=top;viewHandlers.get('orientationchange')?.()},
+  get activeListeners(){return viewHandlers.size}};
 }
 test('locked until level 10, quest unlock is server owned',()=>{
  const f=fixture(),b=f.nodes.mountButton;
@@ -46,7 +58,7 @@ test('authoritative two second cast and cancellation',()=>{
  f.controls.setMount({mountState:'foot',owned:true});
  f.controls.beginCast({durationMs:2000});
  assert.equal(mountCast.hidden,false);
- assert.equal(mountButton.attributes['aria-label'],'Отменить призыв');
+ assert.match(mountButton.attributes['aria-label'],/^Отменить призыв/);
  f.setTime(1100);f.controls.tick();
  assert.equal(mountCastFill.style.width,'50.0%');
  assert.equal(mountCast.attributes['aria-valuenow'],'50');
@@ -92,4 +104,43 @@ test('progress is clamped and cannot complete mounting locally',()=>{
  f.setTime(3100);f.controls.tick();
  assert.equal(f.controls.state,'casting','animation timer is not authoritative');
  assert.equal(f.nodes.mountCastTime.textContent,'Подтверждение…');
+});
+
+test('cast border stays exactly 20px above measured ability bar',()=>{
+ assert.equal(MOUNT_CAST_HOTBAR_GAP,20);
+ for(const [height,hotbarTop] of [[844,755],[667,585],[390,309],[1024,935]]){
+  const f=fixture({hotbarTop,viewportHeight:height});
+  f.controls.setLevel(10);f.controls.setConnected(true);
+  f.controls.beginCast({durationMs:2000});
+  const cssBottom=Number.parseFloat(f.nodes.mountCast.style.bottom);
+  assert.equal(cssBottom,mountCastBottom(height,hotbarTop));
+  assert.equal(hotbarTop-(height-cssBottom),20,'exact gap at '+height+'px height');
+  f.controls.dispose();
+  assert.equal(f.activeListeners,0);
+ }
+});
+test('cast follows hotbar after resize and rotation, without changing mount state',()=>{
+ const f=fixture({viewportHeight:844,hotbarTop:750});
+ f.controls.setLevel(10);f.controls.setConnected(true);
+ f.controls.beginCast({durationMs:2000});
+ assert.equal(f.nodes.mountCast.style.bottom,'114px');
+ f.resize(780,702);
+ assert.equal(f.nodes.mountCast.style.bottom,'98px');
+ f.orientation(390,305);
+ assert.equal(f.nodes.mountCast.style.bottom,'105px');
+ assert.equal(f.controls.state,'casting');
+ f.controls.dispose();
+ assert.equal(f.activeListeners,0);
+});
+test('invalid or missing geometry does not destroy the summon HUD',()=>{
+ for(const top of [NaN,-10,Infinity,850]){
+  assert.equal(mountCastBottom(844,top),null);
+ }
+ assert.equal(mountCastBottom(0,20),null);
+ assert.equal(mountCastBottom(844,800),64);
+ const f=fixture();
+ f.controls.setLevel(10);f.controls.setConnected(true);
+ f.controls.beginCast({durationMs:2000});
+ assert.equal(f.controls.state,'casting');
+ assert.equal(f.nodes.mountCast.style.bottom,undefined);
 });
