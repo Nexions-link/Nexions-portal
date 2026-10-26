@@ -1,6 +1,6 @@
 // NGW M1.2 — first original ground mount, using the active procedural wolf rig.
 // Visual-only: authoritative position, heading, hitboxes and equipment stay unchanged.
-import {createForestWolfVisual} from './forest-wolf-visual.js?v=7';
+import {createForestWolfVisual} from './forest-wolf-visual.js?v=8';
 export const FIRST_MOUNT_VISUAL_ID='forest_wolf';
 export const RIDER_RAISE=1.04;
 export const WOLF_MOUNT_SCALE=1.3;
