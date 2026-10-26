@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {screenMoveVector,turnTowardsAngle} from '../movement-controls.js?v=0.3.7.0';
 import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction,createCameraProbe,isInLonghouse,canWalkCamp} from './sphere-physics.js?v=17';
+import {settleCameraLook} from './camera-look-smoothing.js?v=1';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay.js?v=5';
@@ -1133,14 +1134,9 @@ try {
     // Smooth only the look-at target; keep network position, collision tests
     // and the 3D hero transform entirely authoritative and immediate.
     const desiredLook=hasWindowFocus?windowFocus:focus;
-    if(!hasCameraLookTarget||lastLookOrbit!==state.orbit){
-      cameraLookTarget.copy(desiredLook);
-      hasCameraLookTarget=true;lastLookOrbit=state.orbit;
-    }else{
-      // Exponential damping is framerate independent and catches up during
-      // ordinary movement; abrupt corrections are rendered as a short glide.
-      cameraLookTarget.lerp(desiredLook,1-Math.exp(-Math.min(dt,.1)*12));
-    }
+    const snapLook=!hasCameraLookTarget||lastLookOrbit!==state.orbit;
+    settleCameraLook(cameraLookTarget,desiredLook,dt,{snap:snapLook});
+    hasCameraLookTarget=true;lastLookOrbit=state.orbit;
     camera.lookAt(cameraLookTarget);
     rpg.updateQuestMarkers();
     const redrawShadows=shadowBudget.next(dt,{enabled:shadowActive,quality:qualityName});
