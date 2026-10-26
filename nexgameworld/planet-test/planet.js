@@ -21,12 +21,12 @@ import {createRoadsideDetails} from './roadside-details.js?v=2';
 import {createForestEcology} from './forest-ecology.js?v=4';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
-import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
+import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=156';
 import {createSphericalPresence} from './sphere-online.js?v=21';
 import {syncForestWolfMount} from './mount-visual.js?v=1';
-import {createMountControls} from './mount-controls.js?v=1';
+import {createMountControls} from './mount-controls.js?v=2';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=12';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
@@ -42,6 +42,7 @@ const planetViewport=document.getElementById('viewport');
 installTouchButtons(document);
 installDraggableHudButton(document.getElementById('targetNext'));
 installDraggableHudButton(document.getElementById('spellbookButton'),{storageKey:SPELLBOOK_POSITION_KEY});
+const mountButtonDrag=installDraggableHudButton(document.getElementById('mountButton'),{storageKey:MOUNT_POSITION_KEY});
 installSurfaceZoomGuard(document,planetViewport);
 planetViewport.addEventListener('selectstart',event=>event.preventDefault());
 planetViewport.addEventListener('contextmenu',event=>event.preventDefault());
@@ -474,6 +475,8 @@ try {
    onNotice:message=>rpg.onPartyNotice({message})
   });
   mountControls.setLevel(accountProfile?.level??1);
+  // The mount button begins hidden on iPhone: restore with its visible size.
+  if(!document.getElementById('mountButton')?.hidden)mountButtonDrag?.restore();
   rpg.setMountControls(mountControls);
   const onlinePresence=isPortalPreview?null:createSphericalPresence({
     THREE,scene,
@@ -492,6 +495,7 @@ try {
     onVerifiedProgress:(progress,source)=>{
       rpg.applyServerProgress(progress,source);
       mountControls.setLevel(progress?.level);
+      if(!document.getElementById('mountButton')?.hidden)mountButtonDrag?.restore();
      },
      onMountChange:mount=>{
       mountState=mount.mountState==='riding'?'riding':'foot';
