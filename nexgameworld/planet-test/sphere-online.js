@@ -58,7 +58,7 @@ export function createSphericalPresence({
  onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
  onChestState,onChestStatus,onChestResult,onCombatRejected,onChargeAccepted,onDisconnect,
  onVerifiedProgress,onAuthRejected,onEconomyResult,onPositionCorrection,
- onMountChange=null,onMountRejected=null,
+ onMountChange=null,onMountRejected=null,onMountCast=null,
  auth=null,url=WORLD_URL,loadBattlefuryScene=null
 }){
  let socket=null,closed=false,selfId=null,synced=false,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null,lastCorrection=0,onlineCount=1,reconnectAttempts=0,lastServerMessageAt=Date.now();
@@ -66,9 +66,14 @@ export function createSphericalPresence({
  let weaponLoaderPromise=null;
  let selfMount={mountState:'foot',mountId:null,owned:false};
  const applyMount=mount=>{
-  const state=mount?.mountState==='riding'&&mount.mountId==='forest_wolf'?'riding':'foot';
-  selfMount={...selfMount,...mount,mountState:state,mountId:state==='riding'?'forest_wolf':null};
-  onMountChange?.(selfMount);
+  const validId=mount?.mountId==='forest_wolf';
+  const state=validId&&mount.mountState==='riding'?'riding':
+   validId&&mount.mountState==='casting'?'casting':'foot';
+  const owned=typeof mount?.owned==='boolean'?mount.owned:selfMount.owned;
+  if(state===selfMount.mountState&&
+    (state==='foot'?null:'forest_wolf')===selfMount.mountId&&owned===selfMount.owned)return;
+  selfMount={mountState:state,mountId:state==='foot'?null:'forest_wolf',owned};
+  onMountChange?.({...selfMount});
  };
  const fetchWeaponScene=loadBattlefuryScene||(async()=>{
   if(!weaponLoaderPromise)weaponLoaderPromise=import(
@@ -253,7 +258,11 @@ export function createSphericalPresence({
       onPositionCorrection?.({normal:own.normal,heading:own.heading,reason:'snapshot'});
      }
     }
-    }else if(m.type==='mountChanged')applyMount(m);
+     }else if(m.type==='mountCasting'){
+     applyMount({mountState:'casting',mountId:m.mountId});
+     onMountCast?.(m);
+    }
+    else if(m.type==='mountChanged')applyMount(m);
     else if(m.type==='mountRejected')onMountRejected?.(m.reason);
     else if(m.type==='positionCorrection'&&validNormal(m.normal)){
     lastCorrection=Date.now();
@@ -295,6 +304,7 @@ export function createSphericalPresence({
   ws.onclose=event=>{
    if(socket!==ws)return;
    socket=null;selfId=null;synced=false;joinedRadius=null;pendingChestOpen=null;
+   applyMount({mountState:'foot',mountId:null,owned:false});
    clearInterval(sendLoop);sendLoop=null;
    stopPeers();
    onPlayers?.([]);onMobs?.(null);onDisconnect?.();
