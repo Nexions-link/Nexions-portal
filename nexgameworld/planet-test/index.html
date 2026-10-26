@@ -47,7 +47,7 @@
 <link rel="stylesheet" href="./xp-feedback.css?v=1">
 <link rel="stylesheet" href="./level-up-feedback.css?v=2">
 <link rel="stylesheet" href="./quest-tracking.css?v=4">
-<link rel="stylesheet" href="./mount-controls.css?v=4">
+<link rel="stylesheet" href="./mount-controls.css?v=5">
 <link rel="stylesheet" href="./mount-collection.css?v=1">
 <style id="ngw-connection-guard">
 #connectionBanner[hidden]{display:none!important}
@@ -583,7 +583,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.45.20" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.45.21" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -680,7 +680,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=228').catch(error=>{
+  import('./planet.js?v=229').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');
