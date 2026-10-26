@@ -119,7 +119,7 @@ export function createForestWolfVisual(THREE,variant=0){
   jaw.rotation.x=.05+.40*windup+.62*lunge+.13*recovery+.035*sniff*Math.sin(time*8);
   jaw.visible=true;
   head.rotation.z=hit>0?.085*Math.sin(time*19+variant):0;
-  head.rotation.y=combatPose?0:Math.sin(time*.67+variant*.9)*(.11+.25*watch)*idle;
+  head.rotation.y=combatPose?0:Math.sin(time*.67+variant*.9)*(.11+.25*watch)*idle-pose.yaw*.55;
   for(let i=0;i<ears.length;i++){
    const side=i===0?-1:1;
    ears[i].rotation.z=-side*.12+Math.sin(time*2.1+variant+i*1.7)*.035*idle
@@ -129,7 +129,8 @@ export function createForestWolfVisual(THREE,variant=0){
   body.position.z=-.085*windup+.30*lunge-.05*recovery;
   body.rotation.x=pose.pitch+.13*windup-.21*lunge+.055*recovery;
   body.rotation.z=pose.roll;
-  tailPivot.rotation.z=Math.sin(time*(threat?1.9:1.3)+variant)*(threat?.06:.10+.11*watch)+.025*sniff;
+  body.rotation.y=pose.yaw;
+  tailPivot.rotation.z=Math.sin(time*(threat?1.9:1.3)+variant)*(threat?.06:.10+.11*watch)+.025*sniff-pose.bank*.14;
   tailPivot.rotation.x=.08*Math.sin(time*1.1+variant)-.13*rest+.10*watch;
   return pose;
  }
@@ -138,7 +139,8 @@ export function createForestWolfVisual(THREE,variant=0){
   strikeMotion.cueAt=-1;strikeMotion.hitAt=-1;
   body.position.z=0;body.rotation.x=0;jaw.rotation.x=.05;
   gait.lastTime=null;gait.phase=variant*.37;gait.blend=0;gait.velocity=0;
-  body.rotation.z=0;body.position.y=0;body.scale.y=1;
+  body.rotation.z=0;body.rotation.y=0;body.position.y=0;body.scale.y=1;
+  gait.turn=0;
   for(const leg of legs){leg.hip.rotation.x=0;leg.hock.rotation.x=0;leg.paw.rotation.x=0;}
  }
  return {root,body,legs,animate,resetAttack};

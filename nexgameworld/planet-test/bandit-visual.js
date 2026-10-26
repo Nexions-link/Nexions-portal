@@ -1,4 +1,5 @@
 // Original low-poly fantasy raider for NexGameWorld, no borrowed character assets.
+import {createBanditGaitState,advanceBanditGait} from './bandit-gait.js?v=1';
 // Units: ground at y=0, facing +Z; arm/leg joints animate with the shared PvE pose.
 export function createBanditVisual(THREE){
  const root=new THREE.Group();root.name='dust-trail-raider';
@@ -36,10 +37,13 @@ export function createBanditVisual(THREE){
  const buckle=shape(new THREE.BoxGeometry(.19,.13,.07),brass,root,0,1.30,.395);
  const legs=[],arms=[];
  for(const sign of [-1,1]){
-  const leg=new THREE.Group();leg.position.set(sign*.20,1.10,0);root.add(leg);
-  sphere(leg,dark,0,-.42,0,.21,.49,.23);
-  sphere(leg,leather,0,-.75,.10,.23,.25,.29);
-  legs.push(leg);
+  const hip=new THREE.Group();hip.position.set(sign*.20,1.10,0);root.add(hip);
+  sphere(hip,dark,0,-.25,0,.21,.30,.23);
+  const knee=new THREE.Group();knee.position.set(0,-.53,0);hip.add(knee);
+  sphere(knee,dark,0,-.23,.02,.19,.29,.21);
+  const foot=new THREE.Group();foot.position.set(0,-.42,.08);knee.add(foot);
+  sphere(foot,leather,0,-.01,.14,.23,.15,.34);
+  legs.push({hip,knee,foot});
   const arm=new THREE.Group();arm.position.set(sign*.52,1.98,0);root.add(arm);
   sphere(arm,hood,sign*.11,-.32,0,.19,.40,.21);
   sphere(arm,skin,sign*.14,-.68,.02,.18,.18,.17);
@@ -55,12 +59,23 @@ export function createBanditVisual(THREE){
  const cape=shape(new THREE.ConeGeometry(.49,1.25,9,1,true),hood,root,0,1.55,-.23);
  cape.rotation.x=.12;
  root.userData.banditMaterials={leather,iron,hood};
- return {root,animate:(clock,step=0,attack=0)=>{
-  const stride=Math.min(1,Math.max(0,step*18));
-  const wave=Math.sin(clock*8.8)*stride;
-  legs[0].rotation.x=wave*.34;legs[1].rotation.x=-wave*.34;
-  arms[0].rotation.x=-wave*.22;arms[1].rotation.x=wave*.22-attack*.65;
-  root.rotation.z=Math.sin(clock*1.85)*.012;
-  cape.rotation.x=.12+Math.sin(clock*3.6)*.025+stride*.10;
- }};
+ const gait=createBanditGaitState();
+ function animate(clock,step=0,attack=0,turn=0){
+  const pose=advanceBanditGait(gait,clock,step,{attacking:attack>0,turn});
+  const strength=1-Math.exp(-pose.dt*17);
+  for(let i=0;i<2;i++){
+   const leg=legs[i],target=pose.legs[i];
+   leg.hip.rotation.x+=(target.hip-leg.hip.rotation.x)*strength;
+   leg.knee.rotation.x+=(target.knee-leg.knee.rotation.x)*strength;
+   leg.foot.rotation.x+=(target.foot-leg.foot.rotation.x)*strength;
+  }
+  const wave=(pose.legs[0].hip-pose.legs[1].hip)*.32;
+  arms[0].rotation.x+=( -wave*.68-arms[0].rotation.x)*strength;
+  arms[1].rotation.x+=( wave*.68-attack*.65-arms[1].rotation.x)*strength;
+  root.rotation.z=pose.torsoRoll;
+  root.rotation.x=pose.torsoPitch;
+  cape.rotation.x=pose.cape+.025*Math.sin(clock*1.7);
+  return pose;
+ }
+ return {root,legs,animate};
 }
