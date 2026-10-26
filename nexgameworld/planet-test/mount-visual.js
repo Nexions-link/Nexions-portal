@@ -43,7 +43,8 @@ export function syncForestWolfMount(THREE,actor,{riding=false,time=0,travelled=0
    visual.root.visible=false;
    if(visual.wasRiding){
     for(let i=0;i<actor.legs.length;i++)
-     actor.legs[i].hip.position.x=visual.originalHipX[i];
+     {actor.legs[i].hip.position.x=visual.originalHipX[i];
+      actor.legs[i].hip.rotation.z=0;}
    }
    visual.wasRiding=false;
   }
