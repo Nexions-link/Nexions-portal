@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {screenMoveVector,turnTowardsAngle} from '../movement-controls.js?v=0.3.7.0';
 import {readPlanetView,writePlanetView} from './world-save.js?v=3';
-import {cameraObstruction,createCameraProbe,isInLonghouse} from './sphere-physics.js?v=17';
+import {cameraObstruction,createCameraProbe,isInLonghouse,canWalkCamp} from './sphere-physics.js?v=17';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay.js?v=5';
@@ -591,6 +591,10 @@ try {
   const actorForward=new THREE.Vector3();
   const cameraWorldRadius=()=>R;
   const focus = new THREE.Vector3();
+  // Rendering-only smoothed look target. Authoritative player position is
+  // never interpolated here; network corrections cannot snap the whole view.
+  const cameraLookTarget=new THREE.Vector3();
+  let hasCameraLookTarget=false,lastLookOrbit=null;
   const camForward = new THREE.Vector3();
   const tangentEast = new THREE.Vector3();
   const tangentNorth = new THREE.Vector3();
@@ -992,7 +996,11 @@ try {
       const step = Math.max(0,Math.min(WALK_SPEED*(mountState==='riding'?1.6:1)*dt*power,remaining-3.2));
       const move=sphericalSlideStep({
         THREE,normal:state.normal,travel,step,radius:R,toLocal:normalToLocal,
-        canStep:(x,z,d)=>(d>=82||canWadeAtLocal(x,z))&&rpg.canMoveTo(x,z)
+        // Match the authoritative collision radius (mount .62m / foot .42m).
+        // Otherwise a wolf clips a tight edge locally, the server rejects it,
+        // and the resulting position correction shakes the whole view.
+        canStep:(x,z,d)=>(d>=82||canWadeAtLocal(x,z))&&
+          canWalkCamp(x,z,mountState==='riding'?.62:.42,R)&&rpg.canMoveTo(x,z)
       });
       if(move.travelled<=0){
         if(approach)rpg.stopAutoApproach();
@@ -1121,7 +1129,19 @@ try {
     }
     if(windowOffset>.1)camera.setViewOffset(innerWidth,innerHeight,0,windowOffset,innerWidth,innerHeight);
     else if(camera.view?.enabled)camera.clearViewOffset();
-    camera.lookAt(hasWindowFocus?windowFocus:focus);
+    // Camera and avatar must react differently to server corrections.
+    // Smooth only the look-at target; keep network position, collision tests
+    // and the 3D hero transform entirely authoritative and immediate.
+    const desiredLook=hasWindowFocus?windowFocus:focus;
+    if(!hasCameraLookTarget||lastLookOrbit!==state.orbit){
+      cameraLookTarget.copy(desiredLook);
+      hasCameraLookTarget=true;lastLookOrbit=state.orbit;
+    }else{
+      // Exponential damping is framerate independent and catches up during
+      // ordinary movement; abrupt corrections are rendered as a short glide.
+      cameraLookTarget.lerp(desiredLook,1-Math.exp(-Math.min(dt,.1)*12));
+    }
+    camera.lookAt(cameraLookTarget);
     rpg.updateQuestMarkers();
     const redrawShadows=shadowBudget.next(dt,{enabled:shadowActive,quality:qualityName});
     renderer.shadowMap.needsUpdate=redrawShadows;
