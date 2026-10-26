@@ -2,15 +2,15 @@ import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=7';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
-import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=7';
-import {createQuestTracking} from './quest-tracking-state.js?v=2';
+import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=8';
+import {createQuestTracking} from './quest-tracking-state.js?v=3';
 import {forestMoodAt} from './whispering-forest.js';
 import {createForestAmbience} from './forest-ambience.js?v=1';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,EXPEDITION_LEVEL,EXPEDITION_REWARD,readExpedition,expeditionJournal} from './expedition-quest.js?v=1';
 import {FOREST_DEN_SITES,FOREST_HUNT_KILLS,FOREST_HUNT_REWARD,readForestHunt,forestHuntJournal,forestHuntAvailable} from './forest-hunt-quest.js?v=1';
 import {readMountQuest,mountQuestOffer,mountQuestJournal} from './mount-quest.js?v=1';
 import {forestCampPoint,forestLocalPoint} from './whispering-forest.js';
-import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=4';
+import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=5';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=3';

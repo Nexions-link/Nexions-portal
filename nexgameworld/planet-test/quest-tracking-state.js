@@ -1,5 +1,5 @@
 // Client-side presentation only. Never alters server-authoritative quest state.
-import {acceptedQuestIds} from './starter-quest-guidance.js';
+import {acceptedQuestIds} from './starter-quest-guidance.js?v=8';
 export const MAX_TRACKED_QUESTS=3;
 export function createQuestTracking({state,storage,key}){
  let accepted=new Set(acceptedQuestIds(state)),tracked=[];
