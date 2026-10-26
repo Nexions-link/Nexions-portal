@@ -1,4 +1,5 @@
-// Original low-poly wolf: lightweight mobile quadruped with procedural gait.
+// Original procedural wolf: shared articulated gait rig for creatures and mounts.
+import {createWolfGaitState,advanceWolfGait} from './wolf-gait.js?v=1';
 export function createForestWolfVisual(THREE,variant=0){
  const root=new THREE.Group(),body=new THREE.Group();root.add(body);
  const mat=hex=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
@@ -38,7 +39,7 @@ export function createForestWolfVisual(THREE,variant=0){
   fang.rotation.x=Math.PI;
  }
  const strikeMotion={cueSeen:0,hitSeen:0,cueAt:-1,hitAt:-1};
- const gait={lastTime:null,phase:variant,blend:0,velocity:0};
+ const gait=createWolfGaitState(variant);
  const ears=[];
  for(const s of [-1,1]){
   const ear=part(head,new THREE.ConeGeometry(.18,.55,6),mane,s*.29,.42,.12);
@@ -46,16 +47,25 @@ export function createForestWolfVisual(THREE,variant=0){
   part(head,new THREE.ConeGeometry(.095,.32,5),inner,s*.29,.43,.205).rotation.z=-s*.12;
   part(head,sph,iris,s*.37,.10,.51,.062,.053,.055);
  }
- const legs=[];
+ // Joint hierarchy places the foot under the wolf instead of swinging an
+ // entire cylinder about its midpoint. Shared geometries keep allocations low.
+ const legs=[],upperGeo=new THREE.CylinderGeometry(.15,.18,.49,7),
+  lowerGeo=new THREE.CylinderGeometry(.12,.15,.43,7);
  for(const side of [-1,1])for(const z of [-1,1]){
-  const l=part(body,new THREE.CylinderGeometry(.13,.17,.77,6),fur,side*.40,.47,z*.67);
-  part(body,sph,mane,side*.40,.10,z*.73,.22,.14,.29);legs.push(l);
+  const hip=new THREE.Group();hip.position.set(side*.40,.94,z*.67);
+  hip.name=(z>0?'fore':'hind')+(side<0?'Left':'Right')+'Hip';body.add(hip);
+  part(hip,upperGeo,fur,0,-.245,0);
+  const hock=new THREE.Group();hock.position.y=-.47;hip.add(hock);
+  part(hock,lowerGeo,fur,0,-.215,0);
+  const paw=new THREE.Group();paw.position.set(0,-.43,.09);hock.add(paw);
+  part(paw,sph,mane,0,0,.12,.205,.12,.31);
+  legs.push({hip,hock,paw});
  }
  const tailPivot=new THREE.Group();tailPivot.position.set(0,1.31,-1.12);body.add(tailPivot);
  const tail=part(tailPivot,new THREE.ConeGeometry(.25,1.06,7),fur,0,0,-.35);
  tail.rotation.x=-1.13;
  part(tailPivot,sph,mane,0,.13,-.74,.23,.23,.30);
- function animate(time,distance=0,attack=0,howl=0,hit=0,strike={}){
+ function animate(time,distance=0,attack=0,howl=0,hit=0,strike={},gaitOptions={}){
   // Server-confirmed telegraph starts the crouch; confirmed impact triggers the
   // visible bite. Only the mesh moves, never the authoritative position/hitbox.
   const cue=Number.isInteger(strike.cueSequence)?strike.cueSequence:0;
@@ -75,17 +85,9 @@ export function createForestWolfVisual(THREE,variant=0){
   const recovery=elapsed>=.18&&elapsed<.54?
    Math.max(0,1-(elapsed-.18)/.36):0;
   const combatPose=attack>0||lunge>0||recovery>0;
-  // Advance gait from actual rendered travel, not free-running clock time.
-  const dt=gait.lastTime===null?1/60:Math.max(0,Math.min(.085,time-gait.lastTime));
-  gait.lastTime=time;
-  const desired=Math.max(0,Math.min(1,distance/Math.max(dt,.016)/4.4));
-  const response=1-Math.exp(-dt*7);
-  gait.velocity+=(desired-gait.velocity)*response;
-  gait.blend+=(Math.min(1,gait.velocity*2.25)-gait.blend)*(1-Math.exp(-dt*9));
-  const moving=gait.blend,idle=1-moving;
-  const sprint=Math.min(1,gait.velocity*1.35),threat=attack>0;
-  gait.phase+=Math.min(.65,Math.max(0,distance)*2.9)*(moving>.015?1:0);
-  const stridePhase=gait.phase;
+  const pose=advanceWolfGait(gait,time,distance,gaitOptions);
+  const {dt,phase:stridePhase,moving}=pose,idle=1-moving;
+  const sprint=pose.gallop,threat=attack>0;
   // Independent deterministic scent, vigilance and rest cycles. Reuse only
   // existing pivots, so there are no extra draw calls or authoritative moves.
   const cycle=((time*.105+variant*.37)%3+3)%3;
@@ -93,20 +95,19 @@ export function createForestWolfVisual(THREE,variant=0){
   const sniff=calm*Math.max(0,1-Math.abs(cycle-1)*3);
   const watch=calm*Math.max(0,1-Math.abs(cycle-2)*2);
   const rest=calm*Math.max(0,1-Math.abs(cycle)*2);
-  // Four limbs share a smooth phase, blending a walking sequence into a trot.
-  // Small idle breaths, listening movements and ear twitches make a still
-  // wolf readable in the undergrowth without changing its hitbox or position.
+  // Four individual articulated joints with grounded recovery phases:
+  // walk -> diagonal trot -> paired-suspension gallop. Combat offsets remain
+  // separate so the server-confirmed bite cannot be lost inside the stride.
   body.scale.y=1+.014*Math.sin(time*1.9+variant)*idle*(combatPose?0:1);
+  const legResponse=1-Math.exp(-dt*18);
   for(let i=0;i<legs.length;i++){
-   const front=i%2===1;
-   const walkOffset=[0,Math.PI*.5,Math.PI,Math.PI*1.5][i];
-   const trotOffset=(i===0||i===3)?0:Math.PI;
-   const walk=Math.sin(stridePhase+walkOffset);
-   const trot=Math.sin(stridePhase+trotOffset);
-   const stride=walk*(1-sprint)+trot*sprint;
-   const goal=stride*(.28+.15*sprint)*moving*(1-.8*windup)
-    +windup*(front?-.16:.14)+lunge*(front?.33:-.20);
-   legs[i].rotation.x+=(goal-legs[i].rotation.x)*(1-Math.exp(-dt*16));
+   const {hip,hock,paw}=legs[i],front=i%2===1,step=pose.legs[i];
+   const strikeTilt=windup*(front?-.16:.14)+lunge*(front?.33:-.20);
+   const targetHip=step.hip*(1-.8*windup)+strikeTilt;
+   const targetHock=step.hock*(1-.75*windup);
+   hip.rotation.x+=(targetHip-hip.rotation.x)*legResponse;
+   hock.rotation.x+=(targetHock-hock.rotation.x)*legResponse;
+   paw.rotation.x+=(step.ankle-paw.rotation.x)*legResponse;
   }
   // Visible warning: neck/head tilt upward, ears flare, howl before attack.
   const voice=Math.min(1,Math.max(0,howl));
@@ -123,19 +124,21 @@ export function createForestWolfVisual(THREE,variant=0){
    ears[i].rotation.z=-side*.12+Math.sin(time*2.1+variant+i*1.7)*.035*idle
     +side*(.24*windup+.38*lunge);
   }
-  body.position.y=Math.sin(stridePhase*2)*(.025+.02*sprint)*moving+.08*voice
-   -.075*windup+.045*lunge;
+  body.position.y=pose.bounce+.08*voice-.075*windup+.045*lunge;
   body.position.z=-.085*windup+.30*lunge-.05*recovery;
-  body.rotation.x=-.035*sprint*Math.sin(stridePhase*2)*moving+.13*windup-.21*lunge+.055*recovery;
+  body.rotation.x=pose.pitch+.13*windup-.21*lunge+.055*recovery;
+  body.rotation.z=pose.roll;
   tailPivot.rotation.z=Math.sin(time*(threat?1.9:1.3)+variant)*(threat?.06:.10+.11*watch)+.025*sniff;
   tailPivot.rotation.x=.08*Math.sin(time*1.1+variant)-.13*rest+.10*watch;
+  return pose;
  }
  function resetAttack(){
   strikeMotion.cueSeen=0;strikeMotion.hitSeen=0;
   strikeMotion.cueAt=-1;strikeMotion.hitAt=-1;
   body.position.z=0;body.rotation.x=0;jaw.rotation.x=.05;
-  gait.lastTime=null;gait.phase=variant;gait.blend=0;gait.velocity=0;
-  for(const leg of legs)leg.rotation.x=0;
+  gait.lastTime=null;gait.phase=variant*.37;gait.blend=0;gait.velocity=0;
+  body.rotation.z=0;body.position.y=0;body.scale.y=1;
+  for(const leg of legs){leg.hip.rotation.x=0;leg.hock.rotation.x=0;leg.paw.rotation.x=0;}
  }
- return {root,animate,resetAttack};
+ return {root,body,legs,animate,resetAttack};
 }

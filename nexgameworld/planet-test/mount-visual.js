@@ -1,10 +1,14 @@
 // NGW M1.2 — first original ground mount, using the active procedural wolf rig.
 // Visual-only: authoritative position, heading, hitboxes and equipment stay unchanged.
-import {createForestWolfVisual} from './forest-wolf-visual.js?v=5';
+import {createForestWolfVisual} from './forest-wolf-visual.js?v=6';
 export const FIRST_MOUNT_VISUAL_ID='forest_wolf';
 export const RIDER_RAISE=1.04;
 export const WOLF_MOUNT_SCALE=1.3;
-export function mountRiderOffset(time=0,travelled=0){
+export function mountRiderOffset(time=0,travelled=0,gaitPose=null){
+ // During riding, follow the actual wolf's spine suspension, not a separate
+ // timer: the saddle and passenger must rise and settle on the same stride.
+ if(Number.isFinite(gaitPose?.bounce))
+  return RIDER_RAISE+gaitPose.bounce*WOLF_MOUNT_SCALE*.88;
  const motion=Math.min(1,Math.max(0,Number.isFinite(travelled)?travelled/.13:0));
  return RIDER_RAISE+Math.sin((Number.isFinite(time)?time:0)*9)*.023*motion;
 }
@@ -22,7 +26,7 @@ function createVisual(THREE,actor){
   parent.add(mesh);return mesh;
  };
  // Saddle follows the wolf's back without changing its combat rig.
- const tack=new THREE.Group();tack.name='SaddleAndHarness';wolf.root.add(tack);
+ const tack=new THREE.Group();tack.name='SaddleAndHarness';wolf.body.add(tack);
  block(tack,1.06,.17,1.07,0,1.74,-.18,brown);
  block(tack,1.15,.065,.20,0,1.85,.30,trim);
  block(tack,1.18,.065,.18,0,1.85,-.65,trim);
@@ -57,8 +61,8 @@ export function syncForestWolfMount(THREE,actor,{riding=false,time=0,travelled=0
  visual.root.visible=true;
  visual.wasRiding=true;
  // Call after animateSphericalTauren: override only mounted joint poses.
- visual.wolf.animate(time,travelled);
- const offset=mountRiderOffset(time,travelled);
+ const gaitPose=visual.wolf.animate(time,travelled,0,0,0,{}, {mounted:true});
+ const offset=mountRiderOffset(time,travelled,gaitPose);
  actor.body.position.y+=offset;
  for(let i=0;i<actor.legs.length;i++){
   const leg=actor.legs[i],sign=i===0?-1:1;
@@ -71,7 +75,8 @@ export function syncForestWolfMount(THREE,actor,{riding=false,time=0,travelled=0
   leg.foot.rotation.z=0;
  }
  // The seated silhouette tilts forward into the saddle while the wolf runs.
- actor.body.rotation.x+=.075;
+ actor.body.rotation.x+=.075+(gaitPose?.pitch||0)*.40;
+ actor.body.rotation.z+=(gaitPose?.roll||0)*.48;
  for(const arm of actor.arms||[]){
   arm.shoulder.rotation.x-=.30;
   arm.elbow.rotation.x-=.17;
