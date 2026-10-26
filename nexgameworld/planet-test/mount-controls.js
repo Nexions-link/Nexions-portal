@@ -10,6 +10,13 @@ export const MOUNT_ERROR_MESSAGES=Object.freeze({
  busy:'Призыв уже выполняется.',
  dead:'Нельзя призвать маунта, пока персонаж мёртв.'
 });
+// Exact 20 CSS pixels between the cast frame's lower border and the hotbar's top.
+export const MOUNT_CAST_HOTBAR_GAP=20;
+export function mountCastBottom(viewportHeight,hotbarTop){
+ if(!Number.isFinite(viewportHeight)||viewportHeight<=0||
+    !Number.isFinite(hotbarTop)||hotbarTop<0||hotbarTop>viewportHeight)return null;
+ return viewportHeight-hotbarTop+MOUNT_CAST_HOTBAR_GAP;
+}
 export const mountCastProgress=(now,startedAt,durationMs)=>{
  if(!Number.isFinite(now)||!Number.isFinite(startedAt)||!Number.isFinite(durationMs)||durationMs<=0)return 0;
  return Math.max(0,Math.min(1,(now-startedAt)/durationMs));
@@ -21,11 +28,20 @@ export function createMountControls({document,clock=()=>performance.now(),onSumm
  const cast=document?.getElementById('mountCast');
  const fill=document?.getElementById('mountCastFill');
  const time=document?.getElementById('mountCastTime');
+ const hotbar=document?.getElementById('actionsBar');
+ const view=document?.defaultView;
  if(!button||!label||!cast||!fill||!time)
   return {setLevel(){},setConnected(){},setMount(){},beginCast(){},reject(){},tick(){},
    cancelForMovement(){},activate(){},dispose(){}};
  let level=1,owned=false,connected=false,state='foot',duration=2000,started=0,requested=false;
  let moveCancelSent=false;
+ const positionCast=()=>{
+  if(cast.hidden||!hotbar?.getBoundingClientRect)return;
+  const rect=hotbar.getBoundingClientRect();
+  const viewportHeight=view?.innerHeight||document?.documentElement?.clientHeight;
+  const bottom=mountCastBottom(viewportHeight,rect.top);
+  if(bottom!==null)cast.style.bottom=bottom+'px';
+ };
  const render=()=>{
   button.hidden=level<10;
   const casting=state==='casting',riding=state==='riding';
@@ -41,6 +57,7 @@ export function createMountControls({document,clock=()=>performance.now(),onSumm
   button.setAttribute('aria-label',title+'. Для перемещения удерживайте и перетащите');
   button.setAttribute('aria-pressed',String(riding));
   cast.hidden=!casting;
+  if(casting)positionCast();
  };
  const setLevel=value=>{if(Number.isInteger(value)&&value>=1){level=value;render()}};
  const setConnected=value=>{
@@ -98,8 +115,14 @@ export function createMountControls({document,clock=()=>performance.now(),onSumm
   time.textContent=p>=1?'Подтверждение…':((1-p)*duration/1000).toFixed(1)+' с';
  };
  button.addEventListener('click',activate);
+ view?.addEventListener?.('resize',positionCast);
+ view?.addEventListener?.('orientationchange',positionCast);
  render();
  return {setLevel,setConnected,setMount,beginCast,reject,tick,cancelForMovement,activate,
-  dispose:()=>button.removeEventListener('click',activate),
+  dispose:()=>{
+   button.removeEventListener('click',activate);
+   view?.removeEventListener?.('resize',positionCast);
+   view?.removeEventListener?.('orientationchange',positionCast);
+  },
   get state(){return state},get owned(){return owned},get connected(){return connected}};
 }
