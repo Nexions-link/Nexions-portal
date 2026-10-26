@@ -14,8 +14,8 @@
  box-shadow:0 0 12px #d5b87066
 }
 #hotbarUtilities #mountButton[hidden],#mountCast[hidden]{display:none!important}
-/* Compact cast indicator. Keep it above the eight-slot hotbar and the
-   utility row; the offset on phones clears the raised movement joystick. */
+/* Compact cast indicator. Precisely align its center with the eight-slot
+   action bar at 50vw. Keep the frame directly above the utility row. */
 #mountCast{
  position:fixed;
  z-index:25;
@@ -65,7 +65,7 @@
  #mountCast{
   /* 140px places the frame just above the 91px + 40px utility row. */
   bottom:calc(140px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
-  left:calc(50% + 40px);
+  left:50%;
   width:min(220px,66vw);
   padding:6px 9px 7px;
  }
@@ -76,7 +76,7 @@
 @media(max-width:360px){
  #mountCast{
   bottom:calc(132px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
-  left:calc(50% + 45px);
+  left:50%;
   width:min(210px,62vw);
  }
 }
