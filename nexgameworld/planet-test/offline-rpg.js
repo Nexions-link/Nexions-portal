@@ -9,6 +9,7 @@ import {createForestAmbience} from './forest-ambience.js?v=1';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,EXPEDITION_LEVEL,EXPEDITION_REWARD,readExpedition,expeditionJournal} from './expedition-quest.js?v=1';
 import {FOREST_DEN_SITES,FOREST_HUNT_KILLS,FOREST_HUNT_REWARD,readForestHunt,forestHuntJournal,forestHuntAvailable} from './forest-hunt-quest.js?v=1';
 import {readMountQuest,mountQuestOffer,mountQuestJournal} from './mount-quest.js?v=1';
+import {renderMountCollection} from './mount-collection.js?v=1';
 import {forestCampPoint,forestLocalPoint} from './whispering-forest.js';
 import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=5';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
@@ -300,6 +301,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const up=new THREE.Vector3(...UP_AXIS),anchorQuat=new THREE.Quaternion(),spinQuat=new THREE.Quaternion();
  const mobs=[],entities=[],citizens=[];
  let multiplayer=null,partyState={groupId:null,leaderId:null,members:[]},onlinePlayers=[],onlineChest=null;
+ let mountControlsRef=null,mountCollectionFilter='all',mountCollectionSnapshot=null;
  let selectedAllyId=null;
  const chatHistory=[];
  // Refresh the live party and nearby-player list without touching the chat input.
@@ -739,7 +741,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   state.hotbar=normalizeHotbar(progress.actionBar?.length?progress.actionBar:DEFAULT_HOTBAR,'warrior',state.level);
   void updateEquipmentVisuals();
   draw();
-  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','banditQuest','expedition'].includes(modal.dataset.kind))renderModal();
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','banditQuest','expedition','mounts'].includes(modal.dataset.kind))renderModal();
   // Every server-verified reward uses the same level curve, including quests.
   // Checkpoints, logins and duplicate broadcasts must not trigger fake popups.
   const newXp=earnedExperienceSince(previousLevel,previousXp,state.level,state.xp);
@@ -1598,6 +1600,7 @@ function resetCreatureImpact(mob){
   if(kind==='banditQuest'&&(modal.hidden||modal.dataset.kind!=='banditQuest')){
    chiefRewardSelection=null;chiefRewardSubmitting=false;chiefRewardRenderSnapshot=null;
   }
+  if(kind==='mounts'&&(modal.hidden||modal.dataset.kind!=='mounts'))mountCollectionFilter='all';
   if(kind==='bag'&&(modal.hidden||modal.dataset.kind!=='bag')){
    selectedBagSlot=-1;selectedBagItemId=null;bagRenderSnapshot=null;
   }
@@ -2003,6 +2006,13 @@ function resetCreatureImpact(mob){
   // children are destroyed, even if scrollTop is restored synchronously.
   // Skip all DOM replacement when actual bag and equipment data are unchanged.
   // A checkpoint, combat HUD redraw or server ping must not scroll the sheet.
+  if(kind==='mounts'){
+   const c=mountControlsRef;
+   const snapshot=JSON.stringify([state.level,state.mountQuest,state.mounts,
+    mountCollectionFilter,c?.state,c?.owned,c?.connected]);
+   if(snapshot===mountCollectionSnapshot&&body.querySelector('.ngw-mount-grid'))return;
+   mountCollectionSnapshot=snapshot;
+  }
   if(kind==='battlefuryTuner'&&body.querySelector('.battlefury-tuner'))return;
   if(kind==='bag'){
    const snapshot=JSON.stringify([state.inventory,state.equipment,state.level,state.gold]);
@@ -2035,6 +2045,7 @@ function resetCreatureImpact(mob){
   modal.classList.toggle('world-sheet',kind==='chest');
   $('panel').classList.toggle('chest-sheet',kind==='chest');
   $('panel').classList.toggle('character-modal',kind==='character');
+  $('panel').classList.toggle('ngw-mount-modal',kind==='mounts');
   $('panel').classList.toggle('inventory-modal',kind==='bag');
   $('panel').classList.toggle('battlefury-modal',kind==='battlefuryTuner');
   $('msub').textContent=isOnline()?'NEXGAMEWORLD · ОБЩИЙ МИР':'NEXGAMEWORLD · ЛОКАЛЬНЫЙ РЕЖИМ';
@@ -2044,7 +2055,7 @@ function resetCreatureImpact(mob){
   $('graphicsControl').hidden=kind!=='settings';
   $('panel').classList.toggle('settings-modal',kind==='settings');
   $('panel').classList.toggle('game-menu-modal',kind==='menu');
-  title.textContent=({bag:'Рюкзак',character:'Персонаж',quests:'Журнал заданий',
+  title.textContent=({bag:'Рюкзак',character:'Персонаж',mounts:'Коллекция маунтов',quests:'Журнал заданий',
    merchant:'Торговец',loot:'Обыск тела',menu:'Меню',settings:'Настройки',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',expedition:'Следопыт Дальний Ветер',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
   body.replaceChildren();
   const line=(label,caption,actions=[])=>{
@@ -2054,6 +2065,27 @@ function resetCreatureImpact(mob){
    row.append(name);for(const [caption,fn] of actions){const b=document.createElement('button');b.type='button';b.textContent=caption;b.addEventListener('click',fn);row.append(b);}
    body.append(row);
   };
+  if(kind==='mounts'){
+   const current=mountControlsRef;
+   renderMountCollection(document,body,{
+    ownedMountIds:authenticatedProfile?state.mounts:[],
+    level:state.level,mountQuest:state.mountQuest,
+    connected:!!authenticatedProfile&&!!isOnline()&&!!current?.connected,
+    mountState:current?.state||'foot',
+    activeMountId:current?.state&&current.state!=='foot'?'forest_wolf':null,
+    filter:mountCollectionFilter,
+    onFilter:next=>{mountCollectionFilter=next;renderModal();},
+    onToggle:mountId=>{
+     if(mountId!=='forest_wolf'||!current?.owned||!isOnline())return;
+     if(current.activate())closeWindow();
+    },
+    onQuest:()=>{
+     journalTab=readMountQuest(state.mountQuest).stage>=1?'current':'available';
+     openWindow('quests');
+    }
+   });
+   return;
+  }
   if(kind==='battlefuryTuner'){
    if(state.equipment.weapon?.id!==BATTLEFURY_ITEM_ID){
     line('Топор не экипирован','Надень «Боевой гнев», чтобы настроить его модель.');return;
@@ -2337,6 +2369,7 @@ function resetCreatureImpact(mob){
    };
    item('Выбор персонажа','Вернуться к своим героям или создать нового',
     ()=>goToCharacterSelection(globalThis.sessionStorage,globalThis.location));
+   item('Маунты','Коллекция ездовых животных и призыв',()=>openWindow('mounts'));
    item('Настройки','Камера, следование, графика и счётчик FPS',
     ()=>openWindow('settings'));
    body.append(actions);
@@ -2488,6 +2521,11 @@ function resetCreatureImpact(mob){
       finishEquipmentChange(slot);
      }
     });
+    const mountsButton=document.createElement('button');
+    mountsButton.type='button';mountsButton.className='choice ngw-open-mounts';
+    mountsButton.textContent='Ездовые животные · коллекция';
+    mountsButton.addEventListener('click',()=>openWindow('mounts'));
+    body.append(mountsButton);
     body.scrollTop=characterScroll;
   }else if(kind==='quests'){
    const tabs=document.createElement('div');tabs.className='planet-journal-tabs';tabs.setAttribute('role','tablist');
@@ -2716,6 +2754,7 @@ function resetCreatureImpact(mob){
  const actions=[
   ['targetNext',()=>targetNearest(1)],['interact',interact],
   ['bag',()=>openWindow('bag')],['character',()=>openWindow('character')],
+  ['mountCollectionOpen',()=>openWindow('mounts')],
   ['journal',()=>openWindow('quests')],['questJournalOpen',()=>openWindow('quests')],
   ['untrackQuest',()=>{setTrackedQuest(null);draw(false);} ],
   ['spellbookButton',toggleSpellbook],
@@ -2735,7 +2774,7 @@ function resetCreatureImpact(mob){
   if(key==='escape'&&!modal.hidden){closeWindow();e.preventDefault();return;}
   if(!modal.hidden)return;
   if(key==='b'&&!e.repeat){toggleSpellbook();e.preventDefault();return;}
-  const shortcut={i:'bag',c:'character',j:'quests'};
+  const shortcut={i:'bag',c:'character',j:'quests',n:'mounts'};
   if(shortcut[key]&&!e.repeat){openWindow(shortcut[key]);e.preventDefault();}
   if(key==='tab'){if(!e.repeat)targetNearest(e.shiftKey?-1:1);e.preventDefault();}
   if(key==='e'){interact();e.preventDefault();}
@@ -3092,6 +3131,10 @@ function resetCreatureImpact(mob){
  }
  persist();draw();void updateEquipmentVisuals();
  return {update,targetNearest,interact,resetWorldTransforms,canMoveTo,onRespawn,onResetProgress,handleSlotKey,getApproachTarget,stopAutoApproach,cancelAutoApproach,
+  setMountControls(controller){mountControlsRef=controller},
+  refreshMountCollection(){
+   if(!modal.hidden&&modal.dataset.kind==='mounts')renderModal();
+  },
   setMultiplayer,onNetworkDisconnect,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
   onVitals,onCombatEvent,onChargeAccepted,onChargeRejected,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobStrike,onMobTelegraph,onMobHowl,onNetworkRespawn,onMobSnapshot,
   // Only the active owner's cosmetic pose is sent; item entitlement remains on server.
