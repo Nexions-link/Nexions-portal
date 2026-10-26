@@ -47,7 +47,7 @@
 <link rel="stylesheet" href="./xp-feedback.css?v=1">
 <link rel="stylesheet" href="./level-up-feedback.css?v=2">
 <link rel="stylesheet" href="./quest-tracking.css?v=4">
-<link rel="stylesheet" href="./mount-controls.css?v=1">
+<link rel="stylesheet" href="./mount-controls.css?v=2">
 <link rel="stylesheet" href="./mount-collection.css?v=1">
 <style id="ngw-connection-guard">
 #connectionBanner[hidden]{display:none!important}
@@ -216,9 +216,11 @@
 /* The target button leaves the utility row only after a deliberate long-press drag.
    Fixed coordinates stay inside the viewport, with the spellbook anchored. */
 #hotbarUtilities #targetNext.is-floating,
-#hotbarUtilities #spellbookButton.is-floating{position:fixed;right:auto;bottom:auto;z-index:12;touch-action:none}
+#hotbarUtilities #spellbookButton.is-floating,
+#hotbarUtilities #mountButton.is-floating{position:fixed;right:auto;bottom:auto;z-index:12;touch-action:none}
 #hotbarUtilities #targetNext.is-dragging,
-#hotbarUtilities #spellbookButton.is-dragging{cursor:grabbing;border-color:#f6d88b;
+#hotbarUtilities #spellbookButton.is-dragging,
+#hotbarUtilities #mountButton.is-dragging{cursor:grabbing;border-color:#f6d88b;
  box-shadow:0 0 0 2px #e2bf70aa,0 0 16px #f2ce7288;filter:brightness(1.13)}
 /* The book is an icon-only, independently movable 44px touch control. */
 #hotbarUtilities #spellbookButton{width:46px;min-width:46px;padding:5px}
@@ -581,7 +583,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.45.17" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.45.18" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -612,7 +614,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <div id="hotbarUtilities">
  <button type="button" class="quick-tool" id="targetNext" aria-label="Выбрать цель. Для перемещения удерживайте кнопку и перетащите" title="Нажатие — выбрать цель · Удержание — переместить"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke="#e9c479" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#f5e3ad" stroke-width="3"/><path d="M24 1V13M24 35V47M1 24H13M35 24H47" stroke="#dcb66f" stroke-width="2.8"/></svg><span>Цель</span></button>
  <button type="button" id="spellbookButton" class="quick-tool" aria-label="Открыть книгу заклинаний. Для перемещения удерживайте и перетащите" title="Нажатие — книга заклинаний · Удержание — переместить (B)"><span class="quick-tool-emoji" aria-hidden="true">📖</span></button>
- <button type="button" id="mountButton" class="quick-tool" aria-label="Призвать ездовое животное" aria-pressed="false" title="Ездовое животное (M)" hidden><span class="quick-tool-emoji" aria-hidden="true">🐺</span><span id="mountButtonLabel">Маунт</span></button>
+ <button type="button" id="mountButton" class="quick-tool" aria-label="Призвать ездовое животное" aria-pressed="false" title="Ездовое животное (M) · Удержание — переместить" hidden><span class="quick-tool-emoji" aria-hidden="true">🐺</span><span id="mountButtonLabel">Маунт</span></button>
 </div>
 <div id="mountCast" role="progressbar" aria-label="Призыв ездового животного" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
  <div class="mount-cast-head"><span>Призыв лесного волка</span><strong id="mountCastTime">2,0 с</strong></div>
@@ -678,7 +680,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=227').catch(error=>{
+  import('./planet.js?v=228').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');
