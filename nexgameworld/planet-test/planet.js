@@ -1052,7 +1052,7 @@ try {
       dt,time:elapsed,walk:poseWalk,turn:poseTurn,phase:state.legCycle,
       terrainFeet,charge:chargePose,...rpg.getAnimationState()
     });
-    syncForestWolfMount(THREE,hero,{riding:mountState==='riding',time:elapsed,travelled});
+    syncForestWolfMount(THREE,hero,{riding:mountState==='riding',time:elapsed,travelled,heading:state.heading});
 
     const windowView=rpg.getWindowView();
     if (state.orbit) {

@@ -37,9 +37,9 @@ function createVisual(THREE,actor){
  }
  // A separate mount body only; never reparent the original player's model.
  const originalHipX=actor.legs.map(leg=>leg.hip.position.x);
- return {wolf,originalHipX,wasRiding:false,root:wolf.root};
+ return {wolf,originalHipX,wasRiding:false,root:wolf.root,lastHeading:null,lastTime:null};
 }
-export function syncForestWolfMount(THREE,actor,{riding=false,time=0,travelled=0}={}){
+export function syncForestWolfMount(THREE,actor,{riding=false,time=0,travelled=0,heading=null}={}){
  if(!actor?.root||!actor?.body||!Array.isArray(actor.legs))return;
  let visual=actor.root.userData.ngwMountVisual;
  if(!riding){
@@ -50,7 +50,7 @@ export function syncForestWolfMount(THREE,actor,{riding=false,time=0,travelled=0
      {actor.legs[i].hip.position.x=visual.originalHipX[i];
       actor.legs[i].hip.rotation.z=0;}
    }
-   visual.wasRiding=false;
+   visual.wasRiding=false;visual.lastHeading=null;visual.lastTime=null;
   }
   return;
  }
@@ -61,7 +61,14 @@ export function syncForestWolfMount(THREE,actor,{riding=false,time=0,travelled=0
  visual.root.visible=true;
  visual.wasRiding=true;
  // Call after animateSphericalTauren: override only mounted joint poses.
- const gaitPose=visual.wolf.animate(time,travelled,0,0,0,{}, {mounted:true});
+ // Steer from actual angular progress and ignore teleports/reconnect snaps.
+ const elapsed=Number.isFinite(visual.lastTime)?Math.max(.016,Math.min(.2,time-visual.lastTime)):1/60;
+ const difference=Number.isFinite(heading)&&Number.isFinite(visual.lastHeading)?
+  Math.atan2(Math.sin(heading-visual.lastHeading),Math.cos(heading-visual.lastHeading)):0;
+ const turn=Math.abs(difference)>1?0:Math.max(-1,Math.min(1,difference/(elapsed*2.5)));
+ visual.lastHeading=Number.isFinite(heading)?heading:null;
+ visual.lastTime=time;
+ const gaitPose=visual.wolf.animate(time,travelled,0,0,0,{}, {mounted:true,turn});
  const offset=mountRiderOffset(time,travelled,gaitPose);
  actor.body.position.y+=offset;
  for(let i=0;i<actor.legs.length;i++){
