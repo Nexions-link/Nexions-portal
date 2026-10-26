@@ -60,8 +60,12 @@ jobs:
           for attempt in $(seq 1 16); do
             site_html="$(curl --fail --silent --show-error --location --retry 2 --max-time 20 \
                  "https://nexions.ru/nexgameworld/?p01_audit=$(date +%s)-$attempt")" || site_html=""
-            if grep -Fq 'mirrorCommitOutdated' <<< "$site_html"; then
-              echo "Production launcher includes the P0.1 exact-commit version gate."
+            # The launcher no longer blocks on stale GitHub commit markers.
+            # Require its actual client-version gate and automatic retry logic.
+            if grep -Fq 'verifiedLocalVersion' <<< "$site_html" &&
+               grep -Fq 'isNewer(newest,verifiedLocalVersion)' <<< "$site_html" &&
+               grep -Fq 'scheduleRetry' <<< "$site_html"; then
+              echo "Production launcher verifies the playable client version and retries during publishing."
               exit 0
             fi
             echo "Waiting for the new launcher to be visible on nexions.ru (attempt $attempt/16)"
