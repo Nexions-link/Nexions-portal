@@ -39,3 +39,20 @@ test('mounted pose has bounded deterministic bob',()=>{
  assert.ok(Math.abs(mountRiderOffset(1,.2)-RIDER_RAISE)<=.023);
  assert.ok(Number.isFinite(mountRiderOffset(NaN,Infinity)));
 });
+
+test('saddle follows spine, and rider shares mounted gait suspension',()=>{
+ const a=actor();
+ syncForestWolfMount(THREE,a,{riding:true,time:1,travelled:0});
+ const visual=a.root.userData.ngwMountVisual;
+ const saddle=visual.root.getObjectByName('SaddleAndHarness');
+ assert.equal(saddle.parent,visual.wolf.body,'saddle follows the animated back, not a fixed root');
+ const idleY=a.body.position.y;
+ a.body.position.y=1.4;
+ syncForestWolfMount(THREE,a,{riding:true,time:1+1/60,travelled:.13});
+ assert.ok(Number.isFinite(a.body.position.y));
+ assert.ok(Math.abs(a.body.position.y-idleY)<.2,'rider height changes with controlled suspension');
+ assert.equal(visual.root.visible,true);
+ const bob=mountRiderOffset(1,.13,{bounce:.06,pitch:.05});
+ assert.ok(Math.abs(bob-(RIDER_RAISE+.06*WOLF_MOUNT_SCALE*.88))<1e-10);
+ assert.ok(Math.abs(mountRiderOffset(1,.13,{bounce:0})-RIDER_RAISE)<1e-10);
+});

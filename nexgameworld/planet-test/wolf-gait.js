@@ -15,12 +15,13 @@ export function createWolfGaitState(variant=0){
 // distance-driven phase, so wolves do not step in lockstep at a standstill.
 export function advanceWolfGait(state,time,travelled=0,{mounted=false}={}){
  const now=Number.isFinite(time)?time:state.lastTime??0;
- const dt=state.lastTime===null?1/60:clamp(now-state.lastTime,0,.085);
+ const elapsed=state.lastTime===null?1/60:clamp(now-state.lastTime,0,.6);
+ const dt=clamp(elapsed,0,.085);
  state.lastTime=now;
- const distance=Number.isFinite(travelled)?clamp(travelled,0,.85):0;
- // Animation is driven by real rendered travel, never by a held joystick or
- // by a network request rejected against an obstacle.
- const rawSpeed=dt>.0001?Math.min(distance/dt,12):0;
+ const distance=Number.isFinite(travelled)?clamp(travelled,0,2.2):0;
+ // Distant remote players animate less often. Calculate their speed over the
+ // real elapsed interval, while bounding pose smoothing independently.
+ const rawSpeed=elapsed>.0001?Math.min(distance/elapsed,12):0;
  const follow=1-Math.exp(-dt*11);
  state.velocity+=(rawSpeed-state.velocity)*follow;
  const speed=state.velocity;

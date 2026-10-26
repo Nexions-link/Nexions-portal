@@ -1,5 +1,5 @@
 import {consumeAnimationTime} from './animation-budget.js?v=1';
-import {syncForestWolfMount} from './mount-visual.js?v=1';
+import {syncForestWolfMount} from './mount-visual.js?v=2';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
@@ -427,10 +427,14 @@ export function createSphericalPresence({
    const poseTurn=turnStrength(previousHeading,visual.heading,dt);
    // Always interpolate the remote actor transform; throttle only the bone
    // pose for distant avatars that cannot be the local combatant.
+   // Distant actors animate at a lower rate. Retain their accumulated
+   // visual travel so the mount does not lose strides between animation ticks.
+   visual.mountTravel=(visual.mountTravel||0)+visualMetres;
    const animationDt=consumeAnimationTime(visual,dt,distance);
    if(animationDt>0){
     animateAvatar(visual.actor,{dt:animationDt,time,walk:poseWalk,turn:poseTurn,phase:visual.phase,charge:chargePose});
-    syncForestWolfMount(THREE,visual.actor,{riding:peer.mountState==='riding'&&peer.mountId==='forest_wolf',time,travelled:visualMetres});
+    syncForestWolfMount(THREE,visual.actor,{riding:peer.mountState==='riding'&&peer.mountId==='forest_wolf',time,travelled:visual.mountTravel});
+    visual.mountTravel=0;
    }
   }
  }
