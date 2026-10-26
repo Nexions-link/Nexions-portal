@@ -2,7 +2,8 @@
 #hotbarUtilities #mountButton{
  min-width:68px;width:76px;padding:3px 5px;display:flex;flex-direction:column;
  gap:1px;align-items:center;justify-content:center;
- border-color:#b7a06e;touch-action:manipulation
+ border-color:#b7a06e;touch-action:none;-webkit-touch-callout:none;
+ user-select:none;-webkit-user-select:none
 }
 #mountButtonLabel{font:700 10px/1.1 system-ui,sans-serif;white-space:nowrap}
 #hotbarUtilities #mountButton .quick-tool-emoji{font-size:23px;line-height:1}
