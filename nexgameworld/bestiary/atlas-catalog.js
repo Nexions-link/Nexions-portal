@@ -1,15 +1,16 @@
 // Unified expandable NexGameWorld asset registry. Add new entries here.
-export const ATLAS_VERSION='0.3.1';
+export const ATLAS_VERSION='0.3.2';
 export const ATLAS_CATEGORIES=Object.freeze([
  {id:'creatures',name:'Существа',icon:'◈'},
  {id:'weapons',name:'Оружие',icon:'⚒'},
  {id:'armor',name:'Броня',icon:'◇'},
  {id:'items',name:'Предметы',icon:'▣'},
- {id:'world',name:'Мир',icon:'⌖'}
+ {id:'world',name:'Мир',icon:'⌖'},
+ {id:'candidates',name:'Возможные модели',icon:'✧'}
 ]);
 export const ATLAS_ENTRIES=Object.freeze([
  {id:'dolgonog',category:'creatures',number:'C001',name:'Долгоног',subtitle:'Равнинная птица',version:'0.1',asset:'./models/dolgonog-v0.1.glb',description:'Высокая равнинная птица с сильными ногами, охристым оперением и терракотовым хохолком.',facts:[['Обитание','Равнины Мулгора'],['Тип','Существо'],['Анимации','Idle · Walk · Peck']],animations:['Idle','Walk','Peck']},
- {id:'wild-boar',category:'creatures',number:'C002',name:'Дикий кабан',subtitle:'Коренастый степной зверь',version:'0.1',asset:'./models/wild-boar-v0.1.glb',description:'Массивный дикий кабан с тёмно-коричневым корпусом, почти чёрной щетиной по хребту, более светлой мордой и розовым пятачком, крупными изогнутыми клыками и раздвоенными копытами. Внешность соответствует утверждённому образцу NexGame.',facts:[['Статус','Только бестиарий · в игру не добавлен'],['Тип','Дикий зверь'],['Геометрия','22 998 треугольников · 21 меш'],['Формат','GLB'],['Анимации','Idle · Walk · Attack']],animations:['Idle','Walk','Attack']},
+ {id:'wild-boar',category:'candidates',number:'C002',name:'Дикий кабан',subtitle:'Кандидат · пока не добавлен в игру',version:'0.1',asset:'./models/wild-boar-v0.1.glb',description:'Массивный дикий кабан с тёмно-коричневым корпусом, почти чёрной щетиной по хребту, более светлой мордой и розовым пятачком, крупными изогнутыми клыками и раздвоенными копытами. Внешность соответствует утверждённому образцу NexGame.',facts:[['Статус','Кандидат · в игру не добавлен'],['Тип','Дикий зверь'],['Геометрия','22 998 треугольников · 21 меш'],['Формат','GLB'],['Анимации','Idle · Walk · Attack']],animations:['Idle','Walk','Attack']},
  {id:'stormbeak',category:'creatures',number:'C003',name:'Грозоклюв',subtitle:'Элитный долгоног · босс',version:'0.1',asset:'./models/dolgonog-v0.1.glb',previewScale:1.8,description:'Могучий исполин из дальней части равнин. Отличается повышенной выносливостью и собственной таблицей добычи.',facts:[['Тип','Элитное существо'],['Обитание','Дальние равнины'],['Анимации','Idle · Walk · Peck']],animations:['Idle','Walk','Peck']},
  {id:'bandit',category:'creatures',number:'C004',name:'Разбойник Пыльной тропы',subtitle:'Гуманоид · уровни 2–3 · используется в игре',version:'0.3',asset:'./models/dust-trail-raider-v0.3.glb',description:'Улучшенная модель разбойника: цельный тканевый плащ без отсоединённых деталей, выраженный нос и подбородок, проработанные брови, кожаная поясная сумка, крепления на плечах, ремни на сапогах и гранёный клинок. Пять анимаций сохранены. Единая модель используется в Атласе и в NexGameWorld вместо старого игрового прототипа.',facts:[['Тип','Гуманоид'],['Уровень','2–3'],['Обитание','Западная тропа, Мулгор'],['Статус','В игре и Атласе используется GLB v0.3'],['Геометрия','6 525 треугольников · 22 материала'],['Формат','GLB · 3D'],['Анимации','Idle · Walk · Attack · Hurt · Death'],['В игре','Разбойники Пыльной тропы · v0.3']],animations:['Idle','Walk','Attack','Hurt','Death']},
  {id:'tauren-axe',category:'weapons',number:'W001',name:'Топор странника',subtitle:'Одноручный топор',version:'0.1',asset:'../assets/weapons/tauren-axe-v0.1.glb',description:'Простой боевой топор с деревянной рукоятью, кожаной обмоткой и металлическим лезвием. Первая самостоятельная модель оружия.',facts:[['Тип','Одноручный топор'],['Формат','GLB'],['Использование','Экипировка персонажа']],animations:[]},

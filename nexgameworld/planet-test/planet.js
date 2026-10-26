@@ -24,9 +24,9 @@ import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=157';
-import {createSphericalPresence} from './sphere-online.js?v=22';
-import {syncForestWolfMount} from './mount-visual.js?v=2';
+import {createOfflineRpg} from './offline-rpg.js?v=158';
+import {createSphericalPresence} from './sphere-online.js?v=23';
+import {syncForestWolfMount} from './mount-visual.js?v=3';
 import {createMountControls} from './mount-controls.js?v=3';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=12';

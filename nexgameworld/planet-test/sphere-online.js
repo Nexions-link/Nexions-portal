@@ -1,5 +1,5 @@
 import {consumeAnimationTime} from './animation-budget.js?v=1';
-import {syncForestWolfMount} from './mount-visual.js?v=2';
+import {syncForestWolfMount} from './mount-visual.js?v=3';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';

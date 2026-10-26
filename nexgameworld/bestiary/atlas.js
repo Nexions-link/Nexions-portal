@@ -41,7 +41,7 @@ function paintCategories(){
   const count=c.id==='all'?ATLAS_ENTRIES.length:ATLAS_ENTRIES.filter(e=>e.category===c.id).length;
   button.innerHTML='<span></span><strong></strong><span class="count"></span>';
   button.children[0].textContent=c.icon;button.children[1].textContent=c.name;button.children[2].textContent=count;
-  button.onclick=()=>{category=c.id;paintCategories();paintEntries()};
+  button.onclick=()=>{category=c.id;paintCategories();paintEntries();const visible=filterAtlasEntries(category,$('search').value);if(visible.length&&!visible.some(e=>e.id===activeId))selectEntry(visible[0].id)};
   $('categories').append(button);
  }
 }
@@ -103,7 +103,7 @@ function setAnimation(name){
 }
 async function selectEntry(id){
  const entry=ATLAS_ENTRIES.find(e=>e.id===id);if(!entry)return;activeId=id;paintEntries();
- $('entryNumber').textContent='№ '+entry.number;$('entryVersion').textContent='ОРИГИНАЛ · v'+entry.version;
+ $('entryNumber').textContent='№ '+entry.number;$('entryVersion').textContent=(entry.category==='candidates'?'КАНДИДАТ · ВНЕ ИГРЫ':'ОРИГИНАЛ')+' · v'+entry.version;
  $('entryName').textContent=entry.name;$('entrySubtitle').textContent=entry.subtitle;
  $('entryDescription').textContent=entry.description;
  paintCreatureLoot(entry);

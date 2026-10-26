@@ -53,8 +53,8 @@ export function advanceWolfGait(state,time,travelled=0,{mounted=false}={}){
  // Gallop: a soft paired suspension, walk: modest diagonally shifting weight.
  const suspension=Math.max(0,Math.sin(phase*2-.45));
  const bounce=moving*((.012+.013*trot)*Math.sin(phase*2)+
-   .085*gallop*(suspension-.32));
- const pitch=moving*(.012*Math.cos(phase)+.069*gallop*Math.sin(phase-.35));
+   .05*gallop*(suspension-.32));
+ const pitch=moving*(.012*Math.cos(phase)+.042*gallop*Math.sin(phase-.35));
  const roll=moving*(.014*(1-gallop)*Math.sin(phase));
  return {dt,phase,speed,moving,trot,gallop,legs,bounce,pitch,roll,mounted};
 }
