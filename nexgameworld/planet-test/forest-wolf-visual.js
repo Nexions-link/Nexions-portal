@@ -91,7 +91,8 @@ export function createForestWolfVisual(THREE,variant=0){
   // Independent deterministic scent, vigilance and rest cycles. Reuse only
   // existing pivots, so there are no extra draw calls or authoritative moves.
   const cycle=((time*.105+variant*.37)%3+3)%3;
-  const calm=idle*(combatPose||howl>0?0:1);
+  // Wild pack members sniff the ground; a saddled, commanded wolf keeps its head up.
+  const calm=idle*(combatPose||howl>0||gaitOptions?.mounted?0:1);
   const sniff=calm*Math.max(0,1-Math.abs(cycle-1)*3);
   const watch=calm*Math.max(0,1-Math.abs(cycle-2)*2);
   const rest=calm*Math.max(0,1-Math.abs(cycle)*2);
