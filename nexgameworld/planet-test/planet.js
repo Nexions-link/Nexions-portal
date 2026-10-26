@@ -23,7 +23,7 @@ import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=155';
+import {createOfflineRpg} from './offline-rpg.js?v=156';
 import {createSphericalPresence} from './sphere-online.js?v=21';
 import {syncForestWolfMount} from './mount-visual.js?v=1';
 import {createMountControls} from './mount-controls.js?v=1';
@@ -474,6 +474,7 @@ try {
    onNotice:message=>rpg.onPartyNotice({message})
   });
   mountControls.setLevel(accountProfile?.level??1);
+  rpg.setMountControls(mountControls);
   const onlinePresence=isPortalPreview?null:createSphericalPresence({
     THREE,scene,
     createAvatar:options=>createTauren(THREE,scene,options),
@@ -495,9 +496,10 @@ try {
      onMountChange:mount=>{
       mountState=mount.mountState==='riding'?'riding':'foot';
       mountControls.setMount(mount);
+      rpg.refreshMountCollection();
      },
-     onMountCast:event=>mountControls.beginCast(event),
-     onMountRejected:reason=>mountControls.reject(reason),
+     onMountCast:event=>{mountControls.beginCast(event);rpg.refreshMountCollection();},
+     onMountRejected:reason=>{mountControls.reject(reason);rpg.refreshMountCollection();},
     onChargeAccepted:message=>{
       if(!rpg.onChargeAccepted(message)||!Array.isArray(message.normal)||
          message.normal.length!==3||!message.normal.every(Number.isFinite))return;
@@ -542,11 +544,16 @@ try {
     onDisconnect:()=>{
       chargeMotion=null;chargeRecovery=0;chargeLandingCorrection=null;presenceMoving=false;mountState='foot';
       mountControls.setConnected(false);
+      rpg.refreshMountCollection();
       rpg.onNetworkDisconnect();
       rpg.onPartyState({groupId:null,leaderId:null,members:[]});
     },
     onStatus:(value,count)=>{
-      mountControls.setConnected(value==='online');
+      const mountOnline=value==='online';
+      if(mountControls.connected!==mountOnline){
+       mountControls.setConnected(mountOnline);
+       rpg.refreshMountCollection();
+      }
       const element=$('onlineStatus');
       if(element)element.textContent=value==='online'?'В мире: '+count+' игрок'+(count===1?'':count>=2&&count<=4?'а':'ов'):
         value==='connecting'?'Подключение к миру…':
