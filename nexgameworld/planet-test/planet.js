@@ -26,6 +26,7 @@ import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=
 import {createOfflineRpg} from './offline-rpg.js?v=153';
 import {createSphericalPresence} from './sphere-online.js?v=21';
 import {syncForestWolfMount} from './mount-visual.js?v=1';
+import {createMountControls} from './mount-controls.js?v=1';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=12';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
@@ -467,6 +468,12 @@ try {
    updateActor();
   }
   const connectionBanner=$('connectionBanner');
+  const mountControls=createMountControls({document,
+   onSummon:()=>onlinePresence?.summonMount(),
+   onDismount:()=>onlinePresence?.dismount(),
+   onNotice:message=>rpg.onPartyNotice({message})
+  });
+  mountControls.setLevel(accountProfile?.level??1);
   const onlinePresence=isPortalPreview?null:createSphericalPresence({
     THREE,scene,
     createAvatar:options=>createTauren(THREE,scene,options),
@@ -481,8 +488,16 @@ try {
     onVitals:msg=>rpg.onVitals(msg),
     onCombat:(msg,selfId)=>rpg.onCombatEvent(msg,selfId),
     onKillCredit:msg=>rpg.onKillCredit(msg),
-    onVerifiedProgress:(progress,source)=>rpg.applyServerProgress(progress,source),
-     onMountChange:mount=>{mountState=mount.mountState==='riding'?'riding':'foot'},
+    onVerifiedProgress:(progress,source)=>{
+      rpg.applyServerProgress(progress,source);
+      mountControls.setLevel(progress?.level);
+     },
+     onMountChange:mount=>{
+      mountState=mount.mountState==='riding'?'riding':'foot';
+      mountControls.setMount(mount);
+     },
+     onMountCast:event=>mountControls.beginCast(event),
+     onMountRejected:reason=>mountControls.reject(reason),
     onChargeAccepted:message=>{
       if(!rpg.onChargeAccepted(message)||!Array.isArray(message.normal)||
          message.normal.length!==3||!message.normal.every(Number.isFinite))return;
@@ -526,10 +541,12 @@ try {
     onCombatRejected:msg=>rpg.onChargeRejected(msg),
     onDisconnect:()=>{
       chargeMotion=null;chargeRecovery=0;chargeLandingCorrection=null;presenceMoving=false;mountState='foot';
+      mountControls.setConnected(false);
       rpg.onNetworkDisconnect();
       rpg.onPartyState({groupId:null,leaderId:null,members:[]});
     },
     onStatus:(value,count)=>{
+      mountControls.setConnected(value==='online');
       const element=$('onlineStatus');
       if(element)element.textContent=value==='online'?'В мире: '+count+' игрок'+(count===1?'':count>=2&&count<=4?'а':'ов'):
         value==='connecting'?'Подключение к миру…':
@@ -552,7 +569,7 @@ try {
     }
   });
   rpg.setMultiplayer(onlinePresence);
-  window.addEventListener('pagehide',()=>onlinePresence?.close());
+  window.addEventListener('pagehide',()=>{mountControls.dispose();onlinePresence?.close();});
   let prevHeading = 0;
   // Initialize before restoring orbital view or entering landing-page preview.
   let cameraSnap = true,windowOffset=0,chestCameraOffset=null;
@@ -617,6 +634,7 @@ try {
     if(isEditableTarget(e.target)||isEditableTarget(document.activeElement)||
        e.altKey||e.ctrlKey||e.metaKey)return;
     const k=String(e.key||'').toLowerCase();
+    if(k==='m'&&!e.repeat&&$('modal')?.hidden){e.preventDefault();mountControls.activate();return;}
     if(/^[1-8]$/.test(k)&&!e.repeat&&$('modal')?.hidden){
       e.preventDefault();rpg.handleSlotKey(k);
     }
@@ -910,6 +928,7 @@ try {
     // The same deadzone, analog strength and camera-relative stick used by NexGame.
     // The spherical tangent basis maps flat X -> East and flat Z -> -North.
     const input=screenMoveVector(horizontal, -forward, state.cameraHeading-Math.PI/2);
+    mountControls.cancelForMovement(input.strength>.11||!!chargeMotion);
     if(input.strength>.11&&!chargeMotion)rpg.cancelAutoApproach();
     const previousHeading=state.heading;
     let travelled=0,chargePose=null;
@@ -997,6 +1016,7 @@ try {
     presenceMoving=poseWalk>.11;
     updateActor();
     onlinePresence?.tick(dt,elapsed);
+    mountControls.tick();
     startZone.animate(elapsed);
     whisperingForest.animate(elapsed);
     forestEcology?.animate(elapsed);

@@ -1,0 +1,41 @@
+/* NGW M1.3: compact wolf-mount control, independent of the 8-slot combat bar. */
+#hotbarUtilities #mountButton{
+ min-width:68px;width:76px;padding:3px 5px;display:flex;flex-direction:column;
+ gap:1px;align-items:center;justify-content:center;
+ border-color:#b7a06e;touch-action:manipulation
+}
+#mountButtonLabel{font:700 10px/1.1 system-ui,sans-serif;white-space:nowrap}
+#hotbarUtilities #mountButton .quick-tool-emoji{font-size:23px;line-height:1}
+#hotbarUtilities #mountButton.is-locked{filter:grayscale(.85);opacity:.68}
+#hotbarUtilities #mountButton.is-casting{border-color:#e0c87e;background:linear-gradient(#665a37,#323021)}
+#hotbarUtilities #mountButton.is-riding{
+ border-color:#d9c379;background:linear-gradient(#77613b,#314934);
+ box-shadow:0 0 12px #d5b87066
+}
+#hotbarUtilities #mountButton[hidden],#mountCast[hidden]{display:none!important}
+#mountCast{
+ position:fixed;z-index:25;left:50%;transform:translateX(-50%);
+ bottom:calc(177px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+ width:min(308px,82vw);box-sizing:border-box;padding:9px 12px 11px;
+ border:2px ridge #c9aa70;border-radius:7px;background:#202a22ef;
+ box-shadow:0 4px 18px #070b09c0;color:#f4e0b8;pointer-events:none;
+}
+#mountCast .mount-cast-head{display:flex;align-items:center;justify-content:space-between;
+ gap:8px;font:700 12px/1.45 system-ui,sans-serif}
+#mountCastTime{font-variant-numeric:tabular-nums;color:#e2c87f;white-space:nowrap}
+#mountCast .mount-cast-track{
+ height:10px;overflow:hidden;margin-top:6px;border:1px solid #b7a075;
+ border-radius:4px;background:#101b18
+}
+#mountCastFill{width:0;height:100%;background:linear-gradient(90deg,#6f8468,#e3c77c)}
+@media(max-width:760px){
+ #hotbarUtilities #mountButton{min-width:54px;width:60px;padding:3px 2px}
+ #hotbarUtilities #mountButton .quick-tool-emoji{font-size:20px}
+ #mountButtonLabel{font-size:9px}
+ #mountCast{bottom:calc(156px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+  width:min(280px,78vw)}
+}
+@media(max-height:510px) and (min-width:600px){
+ #mountCast{bottom:calc(94px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+  left:46%;width:min(250px,45vw)}
+}

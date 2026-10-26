@@ -47,6 +47,7 @@
 <link rel="stylesheet" href="./xp-feedback.css?v=1">
 <link rel="stylesheet" href="./level-up-feedback.css?v=2">
 <link rel="stylesheet" href="./quest-tracking.css?v=4">
+<link rel="stylesheet" href="./mount-controls.css?v=1">
 <style id="ngw-connection-guard">
 #connectionBanner[hidden]{display:none!important}
 #connectionBanner{
@@ -607,6 +608,11 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <div id="hotbarUtilities">
  <button type="button" class="quick-tool" id="targetNext" aria-label="Выбрать цель. Для перемещения удерживайте кнопку и перетащите" title="Нажатие — выбрать цель · Удержание — переместить"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke="#e9c479" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#f5e3ad" stroke-width="3"/><path d="M24 1V13M24 35V47M1 24H13M35 24H47" stroke="#dcb66f" stroke-width="2.8"/></svg><span>Цель</span></button>
  <button type="button" id="spellbookButton" class="quick-tool" aria-label="Открыть книгу заклинаний. Для перемещения удерживайте и перетащите" title="Нажатие — книга заклинаний · Удержание — переместить (B)"><span class="quick-tool-emoji" aria-hidden="true">📖</span></button>
+ <button type="button" id="mountButton" class="quick-tool" aria-label="Призвать ездовое животное" aria-pressed="false" title="Ездовое животное (M)" hidden><span class="quick-tool-emoji" aria-hidden="true">🐺</span><span id="mountButtonLabel">Маунт</span></button>
+</div>
+<div id="mountCast" role="progressbar" aria-label="Призыв ездового животного" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+ <div class="mount-cast-head"><span>Призыв лесного волка</span><strong id="mountCastTime">2,0 с</strong></div>
+ <div class="mount-cast-track"><div id="mountCastFill"></div></div>
 </div>
 <section id="spellbookPopover" class="ngw-spellbook-popover" aria-label="Книга способностей" hidden>
  <header class="ngw-spellbook-header">
@@ -620,7 +626,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <div id="actionsBar" role="toolbar" aria-label="Панель из восьми настраиваемых ячеек"></div>
 <div id="xpWrap"><div id="xpFill"></div><span id="xpText">Опыт 0 / 100</span></div>
 
-<div id="help">1–8 — способности · Вращение планеты — свайп · Книга — умения · Цель — выбрать<span class="desktop-control-hint"> · ПК: WASD/стрелки — движение, мышь — камера, Tab — цель, E — действие, I — сумка, C — персонаж</span></div>
+<div id="help">1–8 — способности · Вращение планеты — свайп · Книга — умения · Цель — выбрать<span class="desktop-control-hint"> · ПК: WASD/стрелки — движение, мышь — камера, Tab — цель, E — действие, I — сумка, C — персонаж, M — маунт</span></div>
 <aside id="connectionBanner" role="status" aria-live="polite" hidden></aside>
 <div id="build"><span id="fpsCounter" hidden aria-label="Частота кадров">FPS —</span><span id="onlineStatus" aria-live="polite">Локальный режим · 1 игрок</span><span>NexGameWorld · Alpha</span></div>
 <div id="combatError" role="status" aria-live="polite"></div><div id="toast" role="status"></div>
