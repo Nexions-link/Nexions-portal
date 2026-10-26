@@ -37,8 +37,8 @@ export function createMountControls({document,clock=()=>performance.now(),onSumm
   const title=!connected?'Нет связи с игровым сервером':
    casting?'Отменить призыв':riding?'Спешиться':
    owned?'Призвать лесного волка (M)':MOUNT_ERROR_MESSAGES.not_owned;
-  button.title=title;
-  button.setAttribute('aria-label',title);
+  button.title=title+' · Удержание — переместить';
+  button.setAttribute('aria-label',title+'. Для перемещения удерживайте и перетащите');
   button.setAttribute('aria-pressed',String(riding));
   cast.hidden=!casting;
  };
