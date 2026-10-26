@@ -13,7 +13,11 @@ export function advanceLongstriderHead(state,dt,{
  const step=clamp(finite(dt),0,.12),target=clamp(finite(stepWeight)*finite(motion),0,1)*(attacking?.14:1);
  state.walk=finite(state.walk)+(target-finite(state.walk))*(1-Math.exp(-9*step));
  state.time=finite(state.time)+step;
- const w=state.walk,c=finite(phase),turnLag=clamp(finite(turn),-1,1);
+ // On a turn, the head anticipates the body very briefly then settles.
+ // Smooth network snapshot yaw to avoid instant head whips after a correction.
+ const desiredTurn=clamp(finite(turn),-1,1)*(attacking?.2:1);
+ state.turn=finite(state.turn)+(desiredTurn-finite(state.turn))*(1-Math.exp(-10*step));
+ const w=state.walk,c=finite(phase),turnLag=state.turn;
  const nod=Math.sin(2*c-.35),stride=Math.sin(c);
  return {neckX:-.018*w+.044*w*nod+.010*(1-w)*Math.sin(state.time*1.45),
   neckY:-.045*turnLag-.013*w*stride,

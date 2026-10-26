@@ -433,7 +433,7 @@ export function createSphericalPresence({
    const animationDt=consumeAnimationTime(visual,dt,distance);
    if(animationDt>0){
     animateAvatar(visual.actor,{dt:animationDt,time,walk:poseWalk,turn:poseTurn,phase:visual.phase,charge:chargePose});
-    syncForestWolfMount(THREE,visual.actor,{riding:peer.mountState==='riding'&&peer.mountId==='forest_wolf',time,travelled:visual.mountTravel});
+    syncForestWolfMount(THREE,visual.actor,{riding:peer.mountState==='riding'&&peer.mountId==='forest_wolf',time,travelled:visual.mountTravel,heading:peer.heading});
     visual.mountTravel=0;
    }
   }
