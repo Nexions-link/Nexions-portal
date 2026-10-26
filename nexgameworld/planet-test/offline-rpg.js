@@ -1254,9 +1254,19 @@ function resetCreatureImpact(mob){
    resetCreatureSecondary(bird.secondary,bird.motionPivot);
   }
  }
+ // Use the rendered yaw, not target-heading intent: blocked creatures should
+ // never bank as if they had completed a turn. Large teleports are ignored.
+ function creatureSteering(visual,mob,dt){
+  const yaw=mob.renderYaw??mob.yaw,prev=visual?.lastVisualYaw;
+  if(visual)visual.lastVisualYaw=yaw;
+  if(!Number.isFinite(yaw)||!Number.isFinite(prev)||!Number.isFinite(dt)||dt<=0)return 0;
+  const delta=Math.atan2(Math.sin(yaw-prev),Math.cos(yaw-prev));
+  return Math.abs(delta)>1?0:clamp(delta/(Math.max(.016,dt)*2.5),-1,1);
+ }
  function banditAnimation(mob,dt,moved=0){
   const gltf=mob.banditGltf;
-  if(!gltf)return mob.banditVisual?.animate(clock,moved,mob.attackWindup>0?1:0);
+  if(!gltf)return mob.banditVisual?.animate(clock,moved,mob.attackWindup>0?1:0,
+   creatureSteering(mob.banditVisual,mob,dt));
   if(mob.corpse)return;
   const delta=Math.min(Math.max(0,dt),.12);
   // Animate from the actual rendered movement; network pauses retain a brief
@@ -1367,7 +1377,7 @@ function resetCreatureImpact(mob){
      cueSequence:mob.visualStrikeCue||0,
      hitSequence:mob.visualStrikeHitSequence||0,
      windupDuration:mob.visualStrikeWindupSeconds||.4
-    });
+    },{turn:creatureSteering(mob.forestWolfVisual,mob,dt)});
    return;
   }
   if(mob.banditVisual){banditAnimation(mob,dt,moved);return;}
