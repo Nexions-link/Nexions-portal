@@ -1,4 +1,5 @@
 import {consumeAnimationTime} from './animation-budget.js?v=1';
+import {syncForestWolfMount} from './mount-visual.js?v=1';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
@@ -57,11 +58,18 @@ export function createSphericalPresence({
  onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
  onChestState,onChestStatus,onChestResult,onCombatRejected,onChargeAccepted,onDisconnect,
  onVerifiedProgress,onAuthRejected,onEconomyResult,onPositionCorrection,
+ onMountChange=null,onMountRejected=null,
  auth=null,url=WORLD_URL,loadBattlefuryScene=null
 }){
  let socket=null,closed=false,selfId=null,synced=false,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null,lastCorrection=0,onlineCount=1,reconnectAttempts=0,lastServerMessageAt=Date.now();
  const peers=new Map(),visuals=new Map(),chargeEvents=new Map();
  let weaponLoaderPromise=null;
+ let selfMount={mountState:'foot',mountId:null,owned:false};
+ const applyMount=mount=>{
+  const state=mount?.mountState==='riding'&&mount.mountId==='forest_wolf'?'riding':'foot';
+  selfMount={...selfMount,...mount,mountState:state,mountId:state==='riding'?'forest_wolf':null};
+  onMountChange?.(selfMount);
+ };
  const fetchWeaponScene=loadBattlefuryScene||(async()=>{
   if(!weaponLoaderPromise)weaponLoaderPromise=import(
    'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js'
@@ -228,6 +236,7 @@ export function createSphericalPresence({
      }
     }
     selfId=m.id;synced=true;reconnectAttempts=0;
+    applyMount(m.mount||{mountState:'foot',mountId:null,owned:false});
     onSnapshot(Array.isArray(m.players)?m.players:[],m.onlineCount);
     if(Array.isArray(m.mobs))onMobs?.(m.mobs);
     onVitals?.(m);
@@ -236,6 +245,7 @@ export function createSphericalPresence({
     if(Array.isArray(m.mobs))onMobs?.(m.mobs);
     const own=m.players?.find(player=>player.id===selfId);
     if(own){
+     if(own.mountState!==undefined)applyMount(own);
      onVitals?.(own);
      const deviation=greatCircleDistance(p.normal,own.normal,p.radius);
      if(validNormal(own.normal)&&deviation>2.2&&Date.now()-lastCorrection>800){
@@ -243,7 +253,9 @@ export function createSphericalPresence({
       onPositionCorrection?.({normal:own.normal,heading:own.heading,reason:'snapshot'});
      }
     }
-    }else if(m.type==='positionCorrection'&&validNormal(m.normal)){
+    }else if(m.type==='mountChanged')applyMount(m);
+    else if(m.type==='mountRejected')onMountRejected?.(m.reason);
+    else if(m.type==='positionCorrection'&&validNormal(m.normal)){
     lastCorrection=Date.now();
     onPositionCorrection?.(m);
    }else if(m.type==='leave'&&typeof m.id==='string'){
@@ -406,8 +418,10 @@ export function createSphericalPresence({
    // Always interpolate the remote actor transform; throttle only the bone
    // pose for distant avatars that cannot be the local combatant.
    const animationDt=consumeAnimationTime(visual,dt,distance);
-   if(animationDt>0)
+   if(animationDt>0){
     animateAvatar(visual.actor,{dt:animationDt,time,walk:poseWalk,turn:poseTurn,phase:visual.phase,charge:chargePose});
+    syncForestWolfMount(THREE,visual.actor,{riding:peer.mountState==='riding'&&peer.mountId==='forest_wolf',time,travelled:visualMetres});
+   }
   }
  }
  function pickPlayer(raycaster,maxDistance=100){
@@ -442,6 +456,9 @@ export function createSphericalPresence({
   sendAttack:(abilityId,mobId=null)=>send({type:'attack',abilityId,mobId}),
   sendCharge:mobId=>send({type:'charge',mobId}),
   sendHeal:()=>send({type:'heal'}),
+   summonMount:()=>send({type:'mountSummon'}),
+   dismount:()=>send({type:'mountDismount'}),
+   get mount(){return {...selfMount}},
   rename:name=>send({type:'rename',name}),
   invite:targetId=>send({type:'partyInvite',targetId}),
   respondInvite:(fromId,accept)=>send({type:'partyRespond',fromId,accept}),

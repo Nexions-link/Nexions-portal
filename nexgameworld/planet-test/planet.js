@@ -24,7 +24,8 @@ import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from 
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=153';
-import {createSphericalPresence} from './sphere-online.js?v=20';
+import {createSphericalPresence} from './sphere-online.js?v=21';
+import {syncForestWolfMount} from './mount-visual.js?v=1';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
 import {animateSphericalTauren} from './tauren-animation.js?v=12';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
@@ -453,6 +454,7 @@ try {
   combatQualitySink=rpg.setVisualQuality;
   combatQualitySink(isPortalPreview?.15:GRAPHICS_PRESETS[qualityName].detail);
   let presenceMoving=false,chargeMotion=null,chargeRecovery=0,chargeLandingCorrection=null;
+   let mountState='foot';
   function applyChargeLandingCorrection(event){
    if(!Array.isArray(event?.normal)||event.normal.length!==3||
       !event.normal.every(Number.isFinite))return;
@@ -480,6 +482,7 @@ try {
     onCombat:(msg,selfId)=>rpg.onCombatEvent(msg,selfId),
     onKillCredit:msg=>rpg.onKillCredit(msg),
     onVerifiedProgress:(progress,source)=>rpg.applyServerProgress(progress,source),
+     onMountChange:mount=>{mountState=mount.mountState==='riding'?'riding':'foot'},
     onChargeAccepted:message=>{
       if(!rpg.onChargeAccepted(message)||!Array.isArray(message.normal)||
          message.normal.length!==3||!message.normal.every(Number.isFinite))return;
@@ -522,7 +525,7 @@ try {
     onChestResult:msg=>rpg.onChestResult(msg),
     onCombatRejected:msg=>rpg.onChargeRejected(msg),
     onDisconnect:()=>{
-      chargeMotion=null;chargeRecovery=0;chargeLandingCorrection=null;presenceMoving=false;
+      chargeMotion=null;chargeRecovery=0;chargeLandingCorrection=null;presenceMoving=false;mountState='foot';
       rpg.onNetworkDisconnect();
       rpg.onPartyState({groupId:null,leaderId:null,members:[]});
     },
@@ -956,7 +959,7 @@ try {
       axis.crossVectors(state.normal,travel).normalize();
       const currentLocal=approach?normalToLocal(state.normal,R):null;
       const remaining=approach?Math.hypot(approach.x-currentLocal.x,approach.z-currentLocal.z):Infinity;
-      const step = Math.max(0,Math.min(WALK_SPEED*dt*power,remaining-3.2));
+      const step = Math.max(0,Math.min(WALK_SPEED*(mountState==='riding'?1.6:1)*dt*power,remaining-3.2));
       const move=sphericalSlideStep({
         THREE,normal:state.normal,travel,step,radius:R,toLocal:normalToLocal,
         canStep:(x,z,d)=>(d>=82||canWadeAtLocal(x,z))&&rpg.canMoveTo(x,z)
@@ -982,7 +985,8 @@ try {
       chargeRecovery=Math.max(0,chargeRecovery-dt);
       if(!chargePose)chargePose={drive:0,landing:chargeRecovery/.15*.52};
     }
-    const poseWalk=chargePose?Math.max(chargePose.drive,.2):movementStrength(travelled,dt,WALK_SPEED);
+    const poseWalk=chargePose?Math.max(chargePose.drive,.2):movementStrength(travelled,dt,
+     WALK_SPEED*(mountState==='riding'?1.6:1));
     const poseTurn=turnStrength(previousHeading,state.heading,dt);
     followCooldown=Math.max(0,followCooldown-dt);
     // Spherical analogue of native followCameraYaw: tangent heading is the
@@ -1008,6 +1012,7 @@ try {
       dt,time:elapsed,walk:poseWalk,turn:poseTurn,phase:state.legCycle,
       terrainFeet,charge:chargePose,...rpg.getAnimationState()
     });
+    syncForestWolfMount(THREE,hero,{riding:mountState==='riding',time:elapsed,travelled});
 
     const windowView=rpg.getWindowView();
     if (state.orbit) {
