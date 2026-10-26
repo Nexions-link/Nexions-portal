@@ -23,7 +23,7 @@ import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY} from './target-button-drag.js?v=2';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=153';
+import {createOfflineRpg} from './offline-rpg.js?v=154';
 import {createSphericalPresence} from './sphere-online.js?v=21';
 import {syncForestWolfMount} from './mount-visual.js?v=1';
 import {createMountControls} from './mount-controls.js?v=1';
