@@ -2,6 +2,7 @@
 // User preference is device-local, not bound to a character/server position.
 export const TARGET_POSITION_KEY='ngw-target-button-position-v1';
 export const SPELLBOOK_POSITION_KEY='ngw-spellbook-button-position-v1';
+export const MOUNT_POSITION_KEY='ngw-mount-button-position-v1';
 const margin=8;
 const limit=(value,min,max)=>Math.min(max,Math.max(min,value));
 export function targetButtonBounds(viewport,button,insets={}){
