@@ -14,29 +14,76 @@
  box-shadow:0 0 12px #d5b87066
 }
 #hotbarUtilities #mountButton[hidden],#mountCast[hidden]{display:none!important}
+/* Compact cast indicator. Keep it above the eight-slot hotbar and the
+   utility row; the offset on phones clears the raised movement joystick. */
 #mountCast{
- position:fixed;z-index:25;left:50%;transform:translateX(-50%);
- bottom:calc(177px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
- width:min(308px,82vw);box-sizing:border-box;padding:9px 12px 11px;
- border:2px ridge #c9aa70;border-radius:7px;background:#202a22ef;
- box-shadow:0 4px 18px #070b09c0;color:#f4e0b8;pointer-events:none;
+ position:fixed;
+ z-index:25;
+ left:50%;
+ transform:translateX(-50%);
+ bottom:calc(156px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+ width:min(236px,68vw);
+ box-sizing:border-box;
+ padding:7px 10px 8px;
+ border:1px solid #bfa26a;
+ border-radius:8px;
+ background:linear-gradient(180deg,#1d251fef,#18201bef);
+ box-shadow:0 3px 10px #00000055;
+ color:#f4e0b8;
+ pointer-events:none;
 }
-#mountCast .mount-cast-head{display:flex;align-items:center;justify-content:space-between;
- gap:8px;font:700 12px/1.45 system-ui,sans-serif}
-#mountCastTime{font-variant-numeric:tabular-nums;color:#e2c87f;white-space:nowrap}
+#mountCast .mount-cast-head{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:6px;
+ font:700 11px/1.3 system-ui,sans-serif;
+}
+#mountCastTime{
+ font-variant-numeric:tabular-nums;
+ color:#e2c87f;
+ white-space:nowrap;
+ font-size:11px;
+}
 #mountCast .mount-cast-track{
- height:10px;overflow:hidden;margin-top:6px;border:1px solid #b7a075;
- border-radius:4px;background:#101b18
+ height:7px;
+ overflow:hidden;
+ margin-top:5px;
+ border:1px solid #9f8961;
+ border-radius:999px;
+ background:#101814;
 }
-#mountCastFill{width:0;height:100%;background:linear-gradient(90deg,#6f8468,#e3c77c)}
+#mountCastFill{
+ width:0;
+ height:100%;
+ background:linear-gradient(90deg,#6f8468,#e3c77c);
+}
 @media(max-width:760px){
  #hotbarUtilities #mountButton{min-width:54px;width:60px;padding:3px 2px}
  #hotbarUtilities #mountButton .quick-tool-emoji{font-size:20px}
  #mountButtonLabel{font-size:9px}
- #mountCast{bottom:calc(156px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
-  width:min(280px,78vw)}
+ #mountCast{
+  /* 140px places the frame just above the 91px + 40px utility row. */
+  bottom:calc(140px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+  left:calc(50% + 40px);
+  width:min(220px,66vw);
+  padding:6px 9px 7px;
+ }
+ #mountCast .mount-cast-head{font-size:10px}
+ #mountCastTime{font-size:10px}
+ #mountCast .mount-cast-track{height:6px}
+}
+@media(max-width:360px){
+ #mountCast{
+  bottom:calc(132px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+  left:calc(50% + 45px);
+  width:min(210px,62vw);
+ }
 }
 @media(max-height:510px) and (min-width:600px){
- #mountCast{bottom:calc(94px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
-  left:46%;width:min(250px,45vw)}
+ #mountCast{
+  bottom:calc(128px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+  left:50%;
+  width:min(210px,38vw);
+ }
 }
