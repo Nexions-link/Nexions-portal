@@ -7,6 +7,7 @@ import {BANDIT_WEAPON_LOCATIONS,BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED} from 
 import {RELIC_POSITION,SCOUT_POSITION,BOSS_POSITION} from './mentor-chain.js';
 import {readExpedition,expeditionNextPoint,EXPEDITION_SITES} from './expedition-quest.js';
 import {readForestHunt,forestHuntNextPoint,FOREST_DEN_SITES} from './forest-hunt-quest.js';
+import {readMountQuest,mountQuestWaypoint,MOUNT_QUEST_SITES} from './mount-quest.js';
 import {FOREST_WOLF_SPAWNS} from './forest-wolf-spawns.js';
 export const QUEST_GIVERS=Object.freeze({
  mentor:Object.freeze({x:-1.5,z:-5}),herbalist:Object.freeze({x:8,z:1}),
@@ -26,6 +27,15 @@ const closest=(points,position)=>{
 };
 export function questWaypoint(id,state,inventory=[],position={x:0,z:0}){
  const mentor=state.quest,bandit=state.banditQuest?.stage??0;
+ if(id==='forest-wolf'){
+  const q=readMountQuest(state.mountQuest),point=mountQuestWaypoint(q);
+  return point?arrived(q.stage===1?point.title:'Следопыт Дальний Ветер',point):null;
+ }
+ if(id==='forest-wolf'){
+  const q=readMountQuest(state.mountQuest);
+  if(q.stage===1)return pointMap(MOUNT_QUEST_SITES.filter(site=>!q.traces[site.index]),'Волчьи следы','landmarks');
+  return pointMap([waypoint],waypoint.title);
+ }
  if(id==='forest-hunt'){
   const q=readForestHunt(state.forestHunt);
   if(q.stage<1||q.stage>4)return null;
@@ -111,7 +121,7 @@ export function preferredQuestId(state,inventory=[]){
 // An offer is NOT an active objective. Only accepted quests can be pinned.
 // This predicate is client-only; gameplay rewards remain server authoritative.
 export function acceptedQuestIds(state){
- const ids=['mentor','gather-'+(state?.gatherStage??0),'bandit-trail','bandit-weapons','bandit-chief','expedition','forest-hunt'];
+ const ids=['mentor','gather-'+(state?.gatherStage??0),'bandit-trail','bandit-weapons','bandit-chief','expedition','forest-hunt','forest-wolf'];
  return ids.filter(id=>isAcceptedQuest(id,state));
 }
 export function isAcceptedQuest(id,state){
@@ -120,6 +130,7 @@ export function isAcceptedQuest(id,state){
  if(id==='mentor')return [1,2,4,5,7,8,10,11].includes(mentor);
  if(id==='expedition'){const stage=readExpedition(state?.expedition).stage;return stage>=1&&stage<=3;}
  if(id==='forest-hunt'){const stage=readForestHunt(state?.forestHunt).stage;return stage>=1&&stage<=4;}
+ if(id==='forest-wolf'){const stage=readMountQuest(state?.mountQuest).stage;return stage===1||stage===2;}
  if(id==='bandit-trail')return bandit===1||bandit===2;
  if(id==='bandit-weapons')return bandit===3&&weapons===1;
  if(id==='bandit-chief')return bandit===3&&weapons===2&&(chief===1||chief===2);

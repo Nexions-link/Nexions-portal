@@ -8,6 +8,7 @@ import {forestMoodAt} from './whispering-forest.js';
 import {createForestAmbience} from './forest-ambience.js?v=1';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,EXPEDITION_LEVEL,EXPEDITION_REWARD,readExpedition,expeditionJournal} from './expedition-quest.js?v=1';
 import {FOREST_DEN_SITES,FOREST_HUNT_KILLS,FOREST_HUNT_REWARD,readForestHunt,forestHuntJournal,forestHuntAvailable} from './forest-hunt-quest.js?v=1';
+import {readMountQuest,mountQuestOffer,mountQuestJournal} from './mount-quest.js?v=1';
 import {forestCampPoint,forestLocalPoint} from './whispering-forest.js';
 import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=3';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
@@ -130,6 +131,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   safe.banditChiefQuest=row.quests?.banditChief||{stage:0};
   safe.expedition=readExpedition(row.quests?.expedition);
   safe.forestHunt=readForestHunt(row.quests?.forestHunt);
+  safe.mountQuest=readMountQuest(row.quests?.mountQuest);
+  safe.mounts=Array.isArray(row.quests?.mounts)?[...row.quests.mounts]:[];
   safe.banditWeaponsQuest=row.quests?.banditWeapons||{stage:row.quests?.banditChief?.stage>0?2:0};
   safe.hotbar=normalizeHotbar(row.actionBar?.length?row.actionBar:DEFAULT_HOTBAR,'warrior',safe.level);
   return safe;
@@ -608,7 +611,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     stale_revision:'Сохранение обновилось. Повтори действие',
     corpse_unavailable:'Тело уже исчезло или недоступно',corpse_empty:'Тело уже обыскано',
     corpse_not_owned:'Эта добыча принадлежит другому персонажу',
-    equipment_requirements_not_met:'Это снаряжение пока нельзя надеть'
+    equipment_requirements_not_met:'Это снаряжение пока нельзя надеть',
+    mount_quest_locked:'Нужен 10-й уровень и завершённая охота на волков.',
+    mount_tracks_unavailable:'Эти следы уже изучены или задание не активно.',
+    invalid_mount_tracks:'Следы не найдены.',
+    mount_quest_not_ready:'Изучи два волчьих следа и вернись к следопыту.',
+    mount_quest_already_paid:'Лесной волк уже получен.'
    };
    msg(labels[event.reason]||'Сервер отклонил действие: '+(event.reason||'ошибка'));
    return;
@@ -641,7 +649,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    gatherTurnIn:'Награда за сбор получена',mentorAccept:'Испытание принято',
    mentorInteract:'Цель задания выполнена',mentorTurnIn:'Награда наставника получена',
    equip:'Предмет экипирован',unequip:'Предмет снят',
-   usePotion:'Зелье использовано и сохранено'
+   usePotion:'Зелье использовано и сохранено',
+   mountQuestAccept:'Задание «Верность леса» принято!',
+   mountQuestInspect:'Волчьи следы изучены.',
+   mountQuestTurnIn:'Лесной волк получен! Теперь доступен его призыв.'
   };
   if(event.kind==='banditChiefTurnIn'){
    chiefRewardSubmitting=false;
@@ -649,7 +660,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    chiefRewardRenderSnapshot=null;
   }
   if(labels[event.kind])msg(labels[event.kind],2.2);
-  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','banditQuest'].includes(modal.dataset.kind))
+  if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','banditQuest','expedition'].includes(modal.dataset.kind))
    renderModal();
  }
  function onChargeAccepted(event){
@@ -715,6 +726,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(progress.quests?.bandit)state.banditQuest={...progress.quests.bandit};
   state.expedition=readExpedition(progress.quests?.expedition);
   state.forestHunt=readForestHunt(progress.quests?.forestHunt);
+  state.mountQuest=readMountQuest(progress.quests?.mountQuest);
+  state.mounts=Array.isArray(progress.quests?.mounts)?[...progress.quests.mounts]:[];
   if(progress.quests?.banditChief)state.banditChiefQuest={...progress.quests.banditChief};
   state.banditWeaponsQuest=progress.quests?.banditWeapons?{...progress.quests.banditWeapons}:
    {stage:progress.quests?.banditChief?.stage>0?2:0};
@@ -1650,7 +1663,16 @@ function resetCreatureImpact(mob){
     sendAccountAction('mentorInteract',{interaction:nearby.kind});return;
    }
    if(nearby.kind==='mob')return showCorpseLoot(nearby);
-   if(nearby.kind==='forestDen'){sendAccountAction('forestHuntInspect',{index:nearby.index});return}
+   if(nearby.kind==='forestDen'){
+    const mount=readMountQuest(state.mountQuest),hunt=readForestHunt(state.forestHunt);
+    if(mount.stage===1&&!mount.traces[nearby.index]){
+     sendAccountAction('mountQuestInspect',{index:nearby.index});return;
+    }
+    if(hunt.stage===3&&!hunt.traces[nearby.index]){
+     sendAccountAction('forestHuntInspect',{index:nearby.index});return;
+    }
+    return msg('Следы уже изучены');
+   }
    if(nearby.kind==='expeditionSite'){sendAccountAction('expeditionDiscover',{index:nearby.index});return}
    if(nearby.kind==='expedition'){openWindow('expedition');return}
    if(nearby.kind==='mentor'){openWindow('mentor');return}
@@ -1842,14 +1864,16 @@ function resetCreatureImpact(mob){
    child.visible=child.userData.glyph===(glyph||
     (authenticatedProfile&&readExpedition(state.expedition).stage===0&&state.level>=EXPEDITION_LEVEL?'!':null));
   if(expeditionScout){
-   const q=readExpedition(state.expedition),hunt=readForestHunt(state.forestHunt);
-   const mark=hunt.stage===0&&forestHuntAvailable(state)?'!':
+   const q=readExpedition(state.expedition),hunt=readForestHunt(state.forestHunt),mount=readMountQuest(state.mountQuest);
+   const mark=mount.stage===0&&mountQuestOffer(state)?'!':mount.stage===2?'?':mount.stage===1?'·':
+    hunt.stage===0&&forestHuntAvailable(state)?'!':
     hunt.stage===2||hunt.stage===4?'?':
     q.stage===1?'!':q.stage===2?'·':q.stage===3?'?':
     hunt.stage===1||hunt.stage===3?'·':null;
    for(const child of expeditionScout.root.children)if(child.userData.questMarker)child.visible=child.userData.glyph===mark;
    for(const site of expeditionSites)site.root.visible=q.stage>=1&&q.stage<4&&!q.visited[site.index];
-   for(const site of forestDenSites)site.root.visible=hunt.stage===3&&!hunt.traces[site.index];
+   for(const site of forestDenSites)site.root.visible=
+    hunt.stage===3&&!hunt.traces[site.index]||mount.stage===1&&!mount.traces[site.index];
    if(forestCampUpgrade)forestCampUpgrade.visible=hunt.stage===5;
   }
   const banditStage=state.banditQuest?.stage??0;
@@ -1995,7 +2019,7 @@ function resetCreatureImpact(mob){
    questTracking.sync();
    const snapshot=JSON.stringify([journalTab,questTracking.trackedIds,state.quest,state.kills,state.level,
     state.gatherStage,state.gatherAvailable,state.banditQuest,state.banditWeaponsQuest,
-    state.banditChiefQuest,state.expedition,state.forestHunt,state.inventory]);
+    state.banditChiefQuest,state.expedition,state.forestHunt,state.mountQuest,state.mounts,state.inventory]);
    if(journalRenderSnapshot===snapshot&&body.querySelector('.planet-journal-tabs'))return;
    journalRenderSnapshot=snapshot;
   }
@@ -2208,6 +2232,19 @@ function resetCreatureImpact(mob){
      [['Сдать разведку',()=>sendAccountAction('forestHuntTurnIn')]]);
    else if(hunt.stage===5)
     line('Стоянка укреплена','Провизия сложена под навесом. Спасибо за защиту лагеря!');
+   const mount=readMountQuest(state.mountQuest);
+   if(mount.stage===0&&mountQuestOffer(state))
+    line('Верность леса · ур. 10',
+     'Ты защитил наш лагерь. В чаще ждёт молодой лесной волк, готовый принять всадника. Изучи два волчьих следа и вернись ко мне.',
+     [['Принять задание',()=>sendAccountAction('mountQuestAccept')]]);
+   else if(mount.stage===1)
+    line('Верность леса','Найдено следов: '+mount.traces.filter(Boolean).length+
+     ' / 2. Ищи отметки в Шепчущем лесу. Они показаны на миникарте.');
+   else if(mount.stage===2)
+    line('Верность леса','Ты нашёл оба следа. Лесной волк ждёт тебя. Получи право ездить верхом!',
+     [['Получить лесного волка',()=>sendAccountAction('mountQuestTurnIn')]]);
+   else if(mount.stage===3)
+    line('Верность леса завершена','Лесной волк теперь твой. Призывай его кнопкой маунта или клавишей M.');
    return;
   }
   if(authenticatedProfile&&kind==='mentor'){
@@ -2476,6 +2513,8 @@ function resetCreatureImpact(mob){
     if(forestJournal.status!=='locked')entries.push({...forestJournal,
       reward:FOREST_HUNT_REWARD.xp+' опыта · '+FOREST_HUNT_REWARD.gold+' монеты',
       npc:'Следопыт Дальний Ветер'});
+    const mountJournal=mountQuestJournal(state.mountQuest,state);
+    if(mountJournal.status!=='locked')entries.push({...mountJournal,npc:'Следопыт Дальний Ветер'});
     const q=state.banditQuest||{stage:0,kills:0};
     entries.push({id:'bandit-trail',
      status:q.stage===0?(state.level>=BANDIT_QUEST_MIN_LEVEL?'available':'locked'):q.stage===3?'completed':'current',
