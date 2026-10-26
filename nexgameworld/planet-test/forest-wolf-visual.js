@@ -1,5 +1,5 @@
 // Original procedural wolf: shared articulated gait rig for creatures and mounts.
-import {createWolfGaitState,advanceWolfGait} from './wolf-gait.js?v=2';
+import {createWolfGaitState,advanceWolfGait} from './wolf-gait.js?v=3';
 export function createForestWolfVisual(THREE,variant=0){
  const root=new THREE.Group(),body=new THREE.Group();root.add(body);
  const mat=hex=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});

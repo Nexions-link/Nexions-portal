@@ -56,3 +56,21 @@ test('saddle follows spine, and rider shares mounted gait suspension',()=>{
  assert.ok(Math.abs(bob-(RIDER_RAISE+.06*WOLF_MOUNT_SCALE*.88))<1e-10);
  assert.ok(Math.abs(mountRiderOffset(1,.13,{bounce:0})-RIDER_RAISE)<1e-10);
 });
+
+
+test('riding turns use actual heading changes and never move the root or camera',()=>{
+ const a=actor();
+ a.root.position.set(4,8,12);
+ syncForestWolfMount(THREE,a,{riding:true,time:1,travelled:.06,heading:0});
+ const m=a.root.userData.ngwMountVisual;
+ let lean=0;
+ for(let i=1;i<60;i++){
+  syncForestWolfMount(THREE,a,{riding:true,time:1+i/60,travelled:.06,heading:i*.015});
+  lean=Math.max(lean,Math.abs(m.wolf.body.rotation.z));
+ }
+ assert.ok(lean>.005,'wolf subtly banks into the turn');
+ assert.deepEqual(a.root.position.toArray(),[4,8,12],'visuals never move player root');
+ syncForestWolfMount(THREE,a,{riding:false});
+ syncForestWolfMount(THREE,a,{riding:true,time:3,travelled:0,heading:2.5});
+ assert.ok(Math.abs(m.wolf.body.rotation.z)<.04,'remount heading starts without a snap');
+});

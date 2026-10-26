@@ -64,3 +64,16 @@ test('peck dampens head wobble; malformed dt never generates NaN',()=>{
   assert.ok(Object.values(bad).every(Number.isFinite));
  }
 });
+
+
+test('longstrider smoothly leans its neck into a turn then relaxes',()=>{
+ const s={};let start,turn,rest;
+ start=advanceLongstriderHead(s,1/60,{turn:0,stepWeight:1,motion:1});
+ turn=advanceLongstriderHead(s,1/60,{turn:1,stepWeight:1,motion:1});
+ assert.ok(Math.abs(turn.headY)<.02,'no instant head snap on one frame');
+ for(let i=0;i<60;i++)turn=advanceLongstriderHead(s,1/60,{turn:1,stepWeight:1,motion:1});
+ assert.ok(turn.headY<-.035);
+ for(let i=0;i<80;i++)rest=advanceLongstriderHead(s,1/60,{turn:0,stepWeight:0,motion:0});
+ assert.ok(Math.abs(rest.headY)<.002,'settles after stopping');
+ assert.ok(Number.isFinite(start.headX));
+});

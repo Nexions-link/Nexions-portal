@@ -64,3 +64,15 @@ test('walk cadence differs across animals without adding meshes at rest',()=>{
  assert.notEqual(a.phase,pose.phase);
  assert.equal(a.legs.length,4);
 });
+
+
+test('turns transfer weight smoothly to wolf spine without moving its hitbox',()=>{
+ const gait=createWolfGaitState();let moving;
+ for(let i=0;i<65;i++)moving=advanceWolfGait(gait,i/60,.045,{mounted:false,turn:.65});
+ assert.ok(moving.bank>.4);
+ assert.ok(moving.roll<-.009);
+ assert.ok(Math.abs(moving.yaw)>.01);
+ for(let i=65;i<140;i++)moving=advanceWolfGait(gait,i/60,.045,{turn:0});
+ assert.ok(Math.abs(moving.bank)<.005,'steering settles after the turn');
+ assert.ok(Number.isFinite(moving.legs[0].hip));
+});
