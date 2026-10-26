@@ -14,14 +14,15 @@
  box-shadow:0 0 12px #d5b87066
 }
 #hotbarUtilities #mountButton[hidden],#mountCast[hidden]{display:none!important}
-/* Compact cast indicator. Precisely align its center with the eight-slot
-   action bar at 50vw. Keep the frame directly above the utility row. */
+/* Compact cast indicator, centered on the eight-slot ability bar.
+   The JS controller pins its lower edge 20px above the measured hotbar top;
+   these CSS offsets are fallbacks until the first layout measurement. */
 #mountCast{
  position:fixed;
  z-index:25;
  left:50%;
  transform:translateX(-50%);
- bottom:calc(156px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+ bottom:calc(115px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
  width:min(236px,68vw);
  box-sizing:border-box;
  padding:7px 10px 8px;
@@ -63,8 +64,7 @@
  #hotbarUtilities #mountButton .quick-tool-emoji{font-size:20px}
  #mountButtonLabel{font-size:9px}
  #mountCast{
-  /* 140px places the frame just above the 91px + 40px utility row. */
-  bottom:calc(140px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+  bottom:calc(104px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
   left:50%;
   width:min(220px,66vw);
   padding:6px 9px 7px;
@@ -75,14 +75,14 @@
 }
 @media(max-width:360px){
  #mountCast{
-  bottom:calc(132px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+  bottom:calc(97px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
   left:50%;
   width:min(210px,62vw);
  }
 }
 @media(max-height:510px) and (min-width:600px){
  #mountCast{
-  bottom:calc(128px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
+  bottom:calc(99px + var(--safe-bottom,env(safe-area-inset-bottom,0px)));
   left:50%;
   width:min(210px,38vw);
  }
