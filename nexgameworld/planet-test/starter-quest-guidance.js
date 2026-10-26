@@ -31,11 +31,6 @@ export function questWaypoint(id,state,inventory=[],position={x:0,z:0}){
   const q=readMountQuest(state.mountQuest),point=mountQuestWaypoint(q);
   return point?arrived(q.stage===1?point.title:'Следопыт Дальний Ветер',point):null;
  }
- if(id==='forest-wolf'){
-  const q=readMountQuest(state.mountQuest);
-  if(q.stage===1)return pointMap(MOUNT_QUEST_SITES.filter(site=>!q.traces[site.index]),'Волчьи следы','landmarks');
-  return pointMap([waypoint],waypoint.title);
- }
  if(id==='forest-hunt'){
   const q=readForestHunt(state.forestHunt);
   if(q.stage<1||q.stage>4)return null;
@@ -158,6 +153,11 @@ export function trackedQuestMap(id,state,inventory=[],position={x:0,z:0}){
  if(!isAcceptedQuest(id,state))return null;
  const waypoint=questWaypoint(id,state,inventory,position);
  if(!waypoint)return null;
+ if(id==='forest-wolf'){
+  const q=readMountQuest(state.mountQuest);
+  if(q.stage===1)return pointMap(MOUNT_QUEST_SITES.filter(site=>!q.traces[site.index]),'Волчьи следы','landmarks');
+  return pointMap([waypoint],waypoint.title);
+ }
  if(id==='forest-hunt'){
   const q=readForestHunt(state.forestHunt);
   if(q.stage===1)return pointMap(FOREST_WOLF_SPAWNS,'Лесные волки','targets');
