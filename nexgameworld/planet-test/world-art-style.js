@@ -47,6 +47,14 @@ export const WORLD_ART_PALETTE=Object.freeze({
   barkRoughness:1,stoneRoughness:1,metalness:0
  })
 });
+export const WORLD_ART_VERTEX=Object.freeze({
+ meadow:rgb(.37,.50,.28),meadowTrail:rgb(.63,.49,.29),
+ meadowSand:rgb(.68,.62,.43),meadowSilt:rgb(.20,.43,.47),
+ grassDark:rgb(.39,.64,.36),grassMid:rgb(.61,.77,.44),grassTip:rgb(.78,.88,.61),
+ shrubDark:rgb(.37,.56,.35),shrubMid:rgb(.56,.74,.45),shrubTip:rgb(.78,.87,.59),
+ painterLeafDark:rgb(.31,.51,.26),painterLeafLight:rgb(.77,.91,.51),
+ flowerBlue:rgb(.44,.61,.96),flowerWhite:rgb(.97,.97,.83)
+});
 export const ART_MATERIAL_SWATCHES=Object.freeze([
  Object.freeze({id:'meadow',name:'Луговая почва',hex:'#5e7242',group:'terrain',roughness:.94,
   detail:'Мягкие травяные островки и тёплая земля, не сплошная ровная зелень'}),
