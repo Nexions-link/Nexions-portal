@@ -443,12 +443,21 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
   // Shadows are independent of whether the roof is translucent.
   for(const caster of shadowCasters)caster.castShadow=shadowsEnabled;
   patch.receiveShadow=shadowsEnabled;
-  // Standard Three.js bump shading reuses the colour atlas, so no second
-  // texture is needed on iPhone. The ground mesh never changes its shape.
-  const bump=(preset.detail??0)>=.60&&!preset.portal?(preset.microBump||paintedMap):null;
-  if(terrainMaterial.bumpMap!==bump){
-   terrainMaterial.bumpMap=bump;terrainMaterial.needsUpdate=true;
+  // G-07: native tangent-space normals and per-pixel roughness. Keep the
+  // original baked bump option for graphics mode without a normal texture.
+  const detailed=(preset.detail??0)>=.60&&!preset.portal;
+  const normal=detailed?(preset.microNormal||null):null;
+  const roughness=detailed?(preset.microRoughness||null):null;
+  const bump=detailed&&!normal?(preset.microBump||paintedMap):null;
+  if(terrainMaterial.normalMap!==normal||
+     terrainMaterial.roughnessMap!==roughness||terrainMaterial.bumpMap!==bump){
+   terrainMaterial.normalMap=normal;
+   terrainMaterial.roughnessMap=roughness;
+   terrainMaterial.bumpMap=bump;
+   terrainMaterial.needsUpdate=true;
   }
+  terrainMaterial.normalScale.set((preset.detail??0)>.9?.40:.22,
+   (preset.detail??0)>.9?.40:.22);
   terrainMaterial.bumpScale=(preset.detail??0)>.9?.052:.024;
  }
  function updateInteriorView(x,z,dt=1/60){

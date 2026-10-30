@@ -459,11 +459,28 @@ try {
     const sceneryDensity=graphicsDensity(qualityName);
     // The portal shows the latest village art without costly shadows or high DPR.
     if(isPortalPreview)sceneryDensity.detail=.68;
-    startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,shadows:enabled,portal:isPortalPreview,microBump:artEnabled?artSafety.getLayer('microdetail')?.reliefVillage:null});
-    // The existing opaque forest map doubles as subtle material relief on
-    // richer presets, adding zero GPU texture memory or custom shaders.
-    const relief=artEnabled&&!isPortalPreview&&qualityName!=='economy'?(artSafety.getLayer('microdetail')?.reliefGlobe||groundTexture):null;
-    if(groundMaterial.bumpMap!==relief){groundMaterial.bumpMap=relief;groundMaterial.needsUpdate=true;}
+    const detail=artEnabled&&!isPortalPreview&&qualityName!=='economy'?
+     artSafety.getLayer('microdetail'):null;
+    startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,
+     shadows:enabled,portal:isPortalPreview,
+     microBump:detail?.reliefVillage||null,
+     microNormal:detail?.normalVillage||null,
+     microRoughness:detail?.roughnessVillage||null});
+    // Use actual PBR maps on the existing opaque globe. A failed optional
+    // layer leaves native low-cost bump and the core sphere intact.
+    const normal=detail?.normalGlobe||null;
+    const roughness=detail?.roughnessGlobe||null;
+    const relief=!normal&&artEnabled&&!isPortalPreview&&qualityName!=='economy'?
+     (detail?.reliefGlobe||groundTexture):null;
+    if(groundMaterial.bumpMap!==relief||groundMaterial.normalMap!==normal||
+       groundMaterial.roughnessMap!==roughness){
+     groundMaterial.bumpMap=relief;
+     groundMaterial.normalMap=normal;
+     groundMaterial.roughnessMap=roughness;
+     groundMaterial.needsUpdate=true;
+    }
+    groundMaterial.normalScale.set(qualityName==='high'?.40:.22,
+     qualityName==='high'?.40:.22);
     groundMaterial.bumpScale=qualityName==='high'?.074:.043;
     whisperingForest.setQuality(qualityName,isPortalPreview);
     // Optional scenery presets are protected by artSafety.update above.

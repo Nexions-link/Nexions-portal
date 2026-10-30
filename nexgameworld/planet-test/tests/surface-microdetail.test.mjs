@@ -81,7 +81,9 @@ test('existing globe stays an opaque unmodified standard material',()=>{
  assert.match(world,/transparent:false,depthWrite:true,side:THREE.FrontSide/);
  assert.match(world,/artSafety\.register\('microdetail'/);
  assert.match(world,/artSafety\.update\(qualityName,isPortalPreview\)/);
- assert.match(world,/artSafety\.getLayer\('microdetail'\)\?\.reliefGlobe/);
+ assert.match(world,/artSafety\.getLayer\('microdetail'\)/);
+ assert.match(world,/detail\?\.normalGlobe/);
+ assert.match(world,/groundMaterial\.roughnessMap=roughness/);
  assert.doesNotMatch(world,/installForestGroundShader\(/);
 });
 
