@@ -1,5 +1,7 @@
 // NexGameWorld: deterministic baked meadow soil and organically feathered trails.
 // All surface changes are visual only: no new geometry, height or collision.
+import {WORLD_ART_PALETTE as ART} from './planet-test/world-art-style.js';
+const T=ART.terrain;
 const clamp01=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp01((v-a)/(b-a));return t*t*(3-2*t)};
 const mix=(a,b,t)=>a+(b-a)*clamp01(t);
@@ -26,14 +28,14 @@ export function landscapeGroundPixel(x,z,preparedRoutes=[]){
  const moss=smooth(.38,.75,moisture*.45+broad*.32+(1-mineral)*.23);
  // Character-sized patches of living grass, decomposing leaf litter and
  // ochre mineral soil. Small colour variation is baked, never alpha-blended.
- let r=mix(93,127,dry),g=mix(112,123,dry),b=mix(61,66,dry);
+ let r=mix(T.meadowShade[0],T.meadowSun[0],dry),g=mix(T.meadowShade[1],T.meadowSun[1],dry),b=mix(T.meadowShade[2],T.meadowSun[2],dry);
  const soil=.16+.58*earth*(1-.22*moss);
- r=mix(r,132,soil);g=mix(g,94,soil);b=mix(b,65,soil);
+ r=mix(r,T.meadowSoil[0],soil);g=mix(g,T.meadowSoil[1],soil);b=mix(b,T.meadowSoil[2],soil);
  const wetMoss=.37*moss*(1-.42*earth);
- r=mix(r,74,wetMoss);g=mix(g,105,wetMoss);b=mix(b,61,wetMoss);
+ r=mix(r,T.meadowMoss[0],wetMoss);g=mix(g,T.meadowMoss[1],wetMoss);b=mix(b,T.meadowMoss[2],wetMoss);
  const faded=(clump*.6+mineral*.4);
  const litter=smooth(.54,.8,faded)*(.16+.26*dry);
- r=mix(r,145,litter);g=mix(g,103,litter);b=mix(b,62,litter);
+ r=mix(r,T.forestLitter[0],litter);g=mix(g,T.forestLitter[1],litter);b=mix(b,T.forestLitter[2],litter);
  // Tangled grass tips and rough soil micro-grain.
  const grain=(flecks-.5)*16+(grit-.5)*11;
  r+=grain;g+=grain*.83;b+=grain*.63;
@@ -56,12 +58,12 @@ export function landscapeGroundPixel(x,z,preparedRoutes=[]){
   // A walked-down middle, a pair of faint wheel/rain ruts, dry shoulders.
   const pairedRuts=Math.exp(-Math.pow((roadEdge-1.14)/.24,2))*.11;
   const midWear=(1-smooth(0,1.1,roadEdge))*.085;
-  const roadDry=mix(129,159,dusty)+gravel-midWear*28-pairedRuts*32;
-  const roadGreen=mix(106,132,dusty)+gravel*.76-midWear*19-pairedRuts*21;
-  const roadBlue=mix(73,92,dusty)+gravel*.54-midWear*12-pairedRuts*14;
+  const roadDry=mix(T.trailShade[0],T.trailSun[0],dusty)+gravel-midWear*28-pairedRuts*32;
+  const roadGreen=mix(T.trailShade[1],T.trailSun[1],dusty)+gravel*.76-midWear*19-pairedRuts*21;
+  const roadBlue=mix(T.trailShade[2],T.trailSun[2],dusty)+gravel*.54-midWear*12-pairedRuts*14;
   const darkMud=worn*mud*.21;
   r=mix(r,roadDry,worn);g=mix(g,roadGreen,worn);b=mix(b,roadBlue,worn);
-  r=mix(r,78,darkMud);g=mix(g,76,darkMud);b=mix(b,62,darkMud);
+  r=mix(r,T.wetRuts[0],darkMud);g=mix(g,T.wetRuts[1],darkMud);b=mix(b,T.wetRuts[2],darkMud);
   const pebble=worn*smooth(.915,.992,hash(Math.floor(x*3.8),Math.floor(z*3.8)));
   r+=pebble*23;g+=pebble*23;b+=pebble*19;
  }

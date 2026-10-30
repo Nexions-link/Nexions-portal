@@ -19,6 +19,7 @@ import {createForestGroundTexture,forestTextureMask} from './forest-ground-textu
 import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
 import {createSoilScatter} from './soil-scatter.js?v=2';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
+import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
 import {createPainterlyBiome} from './painterly-biome.js?v=2';
 import {VISUAL_REFERENCE_VIEWS,getVisualReferenceView,referenceViewPose} from './reference-viewpoints.js?v=1';
 import {captureVisualWebGLFrame,createVisualCaptureStore,makeVisualSnapshotMeta,compareVisualSnapshotMeta} from './visual-capture.js?v=1';
@@ -140,7 +141,7 @@ function colorAt(n, h) {
 
 try {
   const scene = new THREE.Scene();
-  const skyDay = new THREE.Color('#a1ccd5');
+  const skyDay = new THREE.Color(ART.light.sky);
   const skyNight = new THREE.Color('#101c32');
   scene.background = skyDay;
   // Improved near/far clipping for mobile depth buffer precision.
@@ -158,9 +159,9 @@ try {
   renderer.toneMappingExposure = 1.15;
   viewport.appendChild(renderer.domElement);
   const canvas = renderer.domElement;
-  const skyFill=new THREE.HemisphereLight('#f7e6c6', '#486b70', 1.95);
+  const skyFill=new THREE.HemisphereLight(ART.light.ambientSky,ART.light.ambientGround,1.95);
   scene.add(skyFill);
-  const sun = new THREE.DirectionalLight('#ffebba', 2.50);
+  const sun = new THREE.DirectionalLight(ART.light.sun,2.50);
   sun.position.set(130, 225, 155);
   scene.add(sun);
   const fill = new THREE.DirectionalLight('#b4dbe9', .62);

@@ -1,6 +1,7 @@
 // Procedural tree-bark atlas, shared by every instanced forest trunk, high
 // branch and fallen log. Uses stock Three.js materials, never a custom shader.
 // UVs tile on the source CylinderGeometry, and zero new physics meshes are added.
+import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
 const TAU=Math.PI*2;
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
 const smooth=t=>{const x=clamp(t);return x*x*(3-2*x)};
@@ -37,7 +38,7 @@ export function forestBarkPixel(u,v){
  const light=clamp(ridge-.13*knot+.08*knot*curved+fleck,.23,1);
  // A neutral-grey / cool brown albedo multiplies each tree's individual tint.
  // All alpha values are 255: close-up bark cannot make the tree transparent.
- const color=[Math.round(229*light),Math.round(217*light),Math.round(199*light),255];
+ const color=[Math.round(ART.wood.albedo[0]*light),Math.round(ART.wood.albedo[1]*light),Math.round(ART.wood.albedo[2]*light),255];
  // Independent monochrome relief for high-quality built-in bump mapping.
  const relief=Math.round(255*clamp(.42+.28*medium+.20*fibers-.36*fissure-.12*knot,.05,.95));
  return {color,relief};

@@ -18,6 +18,7 @@ import {BANDIT_CAMP,BANDIT_CHIEF_PATH} from './bandit-camp-data.js?v=2';
 // Spherical NexGame starting zone prototype.
 // Layout, terrain, village and character geometry derived from the actual main-game
 // start zone, copied into this isolated module. No main game imports or networking.
+import {WORLD_ART_VERTEX as V} from './world-art-style.js?v=1';
 export const START_RADIUS=261;
 const TAU=Math.PI*2;
 const smooth=(a,b,v)=>{const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)};
@@ -60,12 +61,12 @@ export function pathWear(x,z){
 }
 export function startColorAt(x,z){
  const near=lakeRadius(x,z),worn=pathWear(x,z);
- let c=[.37,.50,.28];const grain=.075*Math.sin(x*.37+z*.13)*Math.cos(z*.23-x*.17);
+ let c=V.meadow;const grain=.075*Math.sin(x*.37+z*.13)*Math.cos(z*.23-x*.17);
  c=c.map((v,i)=>v+grain*(i===1?.85:1));
- if(worn>.001)c=c.map((v,i)=>v+( [ .63,.49,.29][i]-v)*worn);
+ if(worn>.001)c=c.map((v,i)=>v+( V.meadowTrail[i]-v)*worn);
  if(near<1.24){const sand=1-smooth(1.02,1.24,near),silt=1-smooth(.65,.99,near);
-   c=c.map((v,i)=>v+([.68,.62,.43][i]-v)*sand);
-   c=c.map((v,i)=>v+([.20,.43,.47][i]-v)*silt*.82);
+   c=c.map((v,i)=>v+(V.meadowSand[i]-v)*sand);
+   c=c.map((v,i)=>v+(V.meadowSilt[i]-v)*silt*.82);
  }
  return c;
 }

@@ -2,6 +2,7 @@
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestDistance,
  createForestLayout} from './whispering-forest.js';
+import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
 const TAU=Math.PI*2;
 export function forestEcologyLayout(seed=97431){
  let s=seed>>>0;
@@ -93,14 +94,14 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
  const leaves=mat('#ffffff',{side:THREE.DoubleSide}),stones=mat('#ffffff',{flatShading:true,vertexColors:true});
  instance('forest-shrubs',layout.shrubs,shrubLeafGeometry(),leaves,
   p=>({x:p.size,y:p.size*1.20,z:p.size,h:.045}),
-  p=>p.variation>.65?'#526b51':p.variation>.3?'#3d5b46':'#657453');
+  p=>p.variation>.65?ART.canopy.understory[0]:p.variation>.3?ART.canopy.understory[1]:ART.canopy.understory[2]);
  instance('forest-deep-bracken',layout.bracken,brackenGeometry(),
   mat('#ffffff',{side:THREE.DoubleSide}),p=>({
    x:p.size*1.12,y:p.size*(.74+.25*p.variation),z:p.size*1.12,h:.035
   }),p=>p.variation>.7?'#31533c':p.variation>.34?'#496745':'#647756');
  instance('forest-stones',layout.rocks,createWeatheredStoneGeometry(THREE,'forest'),stones,
   p=>({x:p.size*.73,y:p.size*.29,z:p.size*.58,h:p.size*.24}),
-  p=>p.variation>.65?'#5a6a5c':p.variation>.32?'#72786c':'#606f64');
+  p=>p.variation>.65?ART.stone.shade[0]:p.variation>.32?ART.stone.shade[1]:ART.stone.shade[2]);
  instance('forest-mushroom-stems',layout.fungi,new THREE.CylinderGeometry(.31,.39,1,6),
   mat('#ae9c7d'),p=>({x:p.size*.28,y:p.size*.48,z:p.size*.28,h:p.size*.28}));
  instance('forest-mushroom-caps',layout.fungi,new THREE.ConeGeometry(1,.72,7),mat('#ffffff'),

@@ -2,13 +2,14 @@
 // Five hand-designed procedural material families, not World of Warcraft
 // textures, models, silhouettes, brands or game resources.
 import {ART_LAB,artLabMaterialWeights,seededRandom} from './terrain-art-lab.js';
+import {ART_MATERIAL_SWATCHES as SWATCHES} from './world-art-style.js?v=1';
 const TAU=Math.PI*2;
 export const ART_MATERIALS=Object.freeze([
- Object.freeze({id:'meadow',name:'Луговая почва',base:'#746f49',high:'#9a9759',dark:'#454633',roughness:.89}),
- Object.freeze({id:'loam',name:'Лесная почва',base:'#544639',high:'#78624b',dark:'#302d28',roughness:.96}),
- Object.freeze({id:'moss',name:'Живой мох',base:'#445e39',high:'#83a269',dark:'#263e35',roughness:.98}),
+ Object.freeze({id:'meadow',name:'Луговая почва',base:SWATCHES[0].hex,high:'#9a9759',dark:'#454633',roughness:.89}),
+ Object.freeze({id:'loam',name:'Лесная почва',base:SWATCHES[1].hex,high:'#78624b',dark:'#302d28',roughness:.96}),
+ Object.freeze({id:'moss',name:'Живой мох',base:SWATCHES[2].hex,high:'#83a269',dark:'#263e35',roughness:.98}),
  Object.freeze({id:'litter',name:'Опавшая листва',base:'#604638',high:'#b18352',dark:'#39322d',roughness:.94}),
- Object.freeze({id:'trail',name:'Утоптанная тропа',base:'#78674e',high:'#c1a279',dark:'#4c4237',roughness:.86})
+ Object.freeze({id:'trail',name:'Утоптанная тропа',base:SWATCHES[3].hex,high:'#c1a279',dark:'#4c4237',roughness:.86})
 ]);
 const clamp=v=>Math.max(0,Math.min(1,v));
 function tilePaint(kind,size,documentRef){

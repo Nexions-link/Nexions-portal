@@ -4,6 +4,7 @@
 import {pathWear,lakeRadius} from './start-zone.js?v=52';
 import {forestTrailLatitude,forestDistance,FOREST_CAMP,FOREST_SITE_CLEARINGS,
  createForestLayout} from './whispering-forest.js?v=22';
+import {WORLD_ART_PALETTE as ART,WORLD_ART_VERTEX as V} from './world-art-style.js?v=1';
 const TAU=Math.PI*2,R=261;
 const clamp=x=>Math.max(0,Math.min(1,x));
 function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);}
@@ -77,7 +78,7 @@ export function painterlyPlantGeometryData(kind){
    const a=j*TAU/count+(j%3)*.035;
    const h=(kind==='ferns'?.75:.36)*(1+.16*(j%3));
    const reach=(kind==='ferns'?.95:.58)*(1+.15*(j%4));
-   const base=[.31,.51,.26],hi=[.77,.91,.51];
+   const base=V.painterLeafDark,hi=V.painterLeafLight;
    petal(a,h,reach,kind==='ferns'?.13:.18,0,0,hi,base);
    if(kind==='ferns'){
     const sideA=a+.33,sideB=a-.29;
@@ -150,12 +151,12 @@ export function createPainterlyBiome(THREE,{scene,radius,heightAt}){
  const n=new THREE.Vector3(),align=new THREE.Quaternion(),rotation=new THREE.Quaternion();
  const obj=new THREE.Object3D(),color=new THREE.Color();
  const palette={
-  groundcover:['#527744','#6b924f','#416e43','#89a765'],
-  ferns:['#4d774b','#668c54','#356347','#78985d'],
-  daisies:['#ffffff','#f7efd1','#e2f4cf','#f6f6ee'],
-  bluebells:['#ffffff','#f0f2ff','#e3efff','#dae2ff'],
+  groundcover:ART.canopy.meadowGrass,
+  ferns:ART.canopy.fern,
+  daisies:ART.flowers.white,
+  bluebells:ART.flowers.blue,
   mushrooms:['#ffffff','#ead9bd','#bba58c','#d7bba0'],
-  sunflecks:['#ffe2aa','#f9e6b9','#fff0c4','#eed097']
+  sunflecks:ART.light.sunflecks
  };
  for(const kind of Object.keys(CAPS)){
   const data=painterlyPlantGeometryData(kind);

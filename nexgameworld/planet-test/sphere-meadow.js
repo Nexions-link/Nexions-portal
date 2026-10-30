@@ -2,6 +2,7 @@
 // Instanced draw calls: grass, three blossom colors, shrubs and small stones.
 import {scatterMeadow} from '../meadow.js?v=0.3.7.1';
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
+import {WORLD_ART_VERTEX as V} from './world-art-style.js?v=1';
 export function meadowGrassBladeData(){
  const positions=[],colors=[],bladeCount=6;
  const emit=(v,c)=>{positions.push(...v);colors.push(...c)};
@@ -16,7 +17,7 @@ export function meadowGrassBladeData(){
    right=[low[0]-tx*w,0,low[2]-tz*w],
    shoulder=[dx*spread,height*.57,dz*spread],
    tip=[dx*(spread+.24),height,dz*(spread+.24)];
-  const light=[.78,.88,.61],dark=[.39,.64,.36],mid=[.61,.77,.44];
+  const light=V.grassTip,dark=V.grassDark,mid=V.grassMid;
   const l=[shoulder[0]+tx*w*.56,shoulder[1],shoulder[2]+tz*w*.56];
   const r=[shoulder[0]-tx*w*.56,shoulder[1],shoulder[2]-tz*w*.56];
   tri(left,right,l,dark,dark,mid);
@@ -44,7 +45,7 @@ export function meadowShrubLeafData(){
   const width=.15+(i%3)*.017;
   const left=[m[0]+tx*width,m[1],m[2]+tz*width];
   const right=[m[0]-tx*width,m[1],m[2]-tz*width];
-  const dark=[.37,.56,.35],mid=[.56,.74,.45],tip=[.78,.87,.59];
+  const dark=V.shrubDark,mid=V.shrubMid,tip=V.shrubTip;
   face(base,left,point,dark,mid,tip);
   face(base,point,right,dark,tip,mid);
   // A second bent leaf on every other branch fills the middle without
