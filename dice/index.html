@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1c2630"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="Красивый виртуальный кубик для настольной игры: бросай и получай случайное число от 1 до 6.">
+<title>Кубик воспоминаний</title>
+<style>
+:root{color-scheme:dark;--size:clamp(128px,36vw,178px)}
+*{box-sizing:border-box}
+html{height:100%;background:#1c2630;-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100svh;color:#f9f3e5;font-family:Georgia,"Times New Roman",serif;-webkit-tap-highlight-color:transparent;background:radial-gradient(ellipse at 50% 26%,#465063 0%,#2c3743 36%,#17232b 88%);overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.25;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.app{position:relative;min-height:100svh;display:flex;flex-direction:column;align-items:center;text-align:center;padding:max(env(safe-area-inset-top),24px) 20px max(env(safe-area-inset-bottom),24px)}
+.top{display:flex;align-items:center;gap:12px;width:min(360px,100%);margin-top:clamp(8px,3vh,24px);font:600 10px/1.4 system-ui,sans-serif;letter-spacing:3.8px;text-transform:uppercase;color:#ddb87d}
+.top:before,.top:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#c6a479aa)}.top:after{transform:scaleX(-1)}
+header{margin-top:28px}
+h1{font-size:clamp(31px,8.4vw,45px);font-weight:normal;letter-spacing:-1px;line-height:1.1;margin:0;text-shadow:0 2px 20px #10151a88}
+.subtitle{font-size:14px;color:#c6b7a0;margin:14px 0 0;letter-spacing:.3px}
+.table{display:flex;align-items:center;justify-content:center;flex:1;min-height:285px;width:min(520px,100%);position:relative;padding:14px 0}
+.halo{position:absolute;width:min(420px,95vw);height:min(420px,95vw);border:1px solid #bc94602e;border-radius:50%;background:radial-gradient(circle,#ddb57a12 5%,transparent 60%);box-shadow:inset 0 0 0 32px #b88b5408,inset 0 0 0 34px #d4b08218;pointer-events:none}
+.halo:before,.halo:after{content:"✦";position:absolute;left:50%;transform:translateX(-50%);color:#d4b08288;font-size:16px}.halo:before{top:8%}.halo:after{bottom:8%}
+.floor{position:absolute;width:220px;height:42px;border-radius:50%;background:#0b1018b6;filter:blur(21px);transform:translateY(calc(var(--size)*.74));pointer-events:none}
+.dice-btn{position:relative;z-index:2;display:grid;place-items:center;width:calc(var(--size) + 76px);height:calc(var(--size) + 76px);padding:0;border:0;background:transparent;cursor:pointer;touch-action:manipulation}
+.dice-btn:focus-visible{outline:2px solid #ddb87d;border-radius:20px}
+.scene{width:var(--size);height:var(--size);perspective:850px;pointer-events:none;transform-style:preserve-3d;transform:rotate(-7deg) rotateX(-11deg) rotateY(-14deg)}
+.cube{position:relative;width:100%;height:100%;transform-style:preserve-3d;transform:rotateX(-18deg) rotateY(-24deg);transition:transform 1250ms cubic-bezier(.17,.77,.2,1)}
+.face{position:absolute;inset:0;border-radius:clamp(15px,4vw,25px);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:18%;border:2px solid #fff8eb;box-shadow:inset 0 0 12px #fff9,inset 0 0 34px #85745a50,0 1px 8px #16161644;background:linear-gradient(138deg,#fffefa 0%,#f4e7ca 48%,#ddc6a3 100%);backface-visibility:hidden}
+.face:before{content:"";position:absolute;inset:7px;border-radius:clamp(11px,3vw,19px);border:1px solid #b9a27a5f;pointer-events:none}
+.face:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(145deg,#fff9,transparent 42%,#8d6e4d25);pointer-events:none}
+.face:nth-child(1){transform:translateZ(calc(var(--size)/2))}
+.face:nth-child(2){transform:rotateX(90deg) translateZ(calc(var(--size)/2))}
+.face:nth-child(3){transform:rotateY(90deg) translateZ(calc(var(--size)/2))}
+.face:nth-child(4){transform:rotateY(-90deg) translateZ(calc(var(--size)/2))}
+.face:nth-child(5){transform:rotateX(-90deg) translateZ(calc(var(--size)/2))}
+.face:nth-child(6){transform:rotateY(180deg) translateZ(calc(var(--size)/2))}
+.pip{width:65%;height:65%;align-self:center;justify-self:center;border-radius:50%;background:radial-gradient(circle at 38% 29%,#89704c,#65442a 69%,#3e281c 100%);box-shadow:inset 0 2px 4px #2c1d19b0,0 1px 0 #fff9}
+.p1{grid-area:1/1}.p2{grid-area:1/3}.p3{grid-area:2/1}.p4{grid-area:2/2}.p5{grid-area:2/3}.p6{grid-area:3/1}.p7{grid-area:3/3}
+.face[data-n="1"] .pip:not(.p4),.face[data-n="2"] .pip:not(.p1,.p7),.face[data-n="3"] .pip:not(.p1,.p4,.p7),.face[data-n="4"] .pip:not(.p1,.p2,.p6,.p7),.face[data-n="5"] .pip:not(.p1,.p2,.p4,.p6,.p7),.face[data-n="6"] .pip:not(.p1,.p2,.p3,.p5,.p6,.p7){display:none}
+.result-wrap{min-height:70px;display:flex;flex-direction:column;justify-content:center;align-items:center;margin-top:4px}
+.result-label{font:500 11px/1.4 system-ui,sans-serif;letter-spacing:2.6px;text-transform:uppercase;color:#c6b7a0;margin:0 0 3px}
+.result{font-size:46px;line-height:1;color:#f9e9c9;min-height:46px;font-variant-numeric:lining-nums}
+.result.pop{animation:pop .36s ease-out}
+@keyframes pop{0%{transform:translateY(10px) scale(.75);opacity:.3}60%{transform:translateY(-4px) scale(1.13)}100%{transform:none;opacity:1}}
+.buttons{width:min(360px,100%);margin:16px 0 0}
+.roll{width:100%;min-height:62px;border:1px solid #f7dfaf;border-radius:18px;background:linear-gradient(180deg,#ecd4a3 0%,#d5ad72 90%);box-shadow:0 5px 0 #6d5033,0 12px 22px #0005,inset 0 1px #fff8;color:#33291e;font:bold 17px/1.2 system-ui,sans-serif;letter-spacing:.3px;cursor:pointer;touch-action:manipulation;transition:transform .15s,box-shadow .15s}
+.roll:active{transform:translateY(4px);box-shadow:0 1px 0 #6d5033,0 5px 9px #0005}.roll:disabled{opacity:.8;cursor:default}
+.hint{font:12px/1.5 system-ui,sans-serif;color:#d3c8b5a8;margin:18px 0 0}
+footer{color:#c2b4a070;font:10px/1.4 system-ui,sans-serif;letter-spacing:1.4px;text-transform:uppercase;margin-top:14px}
+@media(max-height:700px){header{margin-top:15px}.table{min-height:245px}.halo{width:min(310px,84vw);height:min(310px,84vw)}.hint{margin-top:10px}.buttons{margin-top:6px}.top{margin-top:0}}
+@media(prefers-reduced-motion:reduce){.cube{transition-duration:0ms}.result.pop{animation:none}.roll{transition:none}}
+</style></head>
+<body><main class="app">
+<div class="top">Игра начинается</div>
+<header><h1>Кубик воспоминаний</h1><p class="subtitle">Один бросок — одна история</p></header>
+<section class="table" aria-label="Игральный кубик">
+<div class="halo" aria-hidden="true"></div><div class="floor" aria-hidden="true"></div>
+<button class="dice-btn" id="dieButton" type="button" aria-label="Бросить кубик">
+<div class="scene" aria-hidden="true"><div class="cube" id="cube">
+<div class="face" data-n="1"></div><div class="face" data-n="2"></div><div class="face" data-n="3"></div><div class="face" data-n="4"></div><div class="face" data-n="5"></div><div class="face" data-n="6"></div>
+</div></div></button></section>
+<div class="result-wrap" role="status" aria-live="polite" aria-atomic="true"><p class="result-label" id="resultLabel">Готов к броску</p><div class="result" id="result">–</div></div>
+<div class="buttons"><button class="roll" id="rollButton" type="button">✦ &nbsp; Бросить кубик</button><p class="hint">Нажми на кубик или кнопку, чтобы бросить ещё раз</p></div>
+<footer>Числа от 1 до 6 · Случайный результат</footer>
+</main>
+<script>
+(function(){
+'use strict';
+const cells=['p1','p2','p3','p4','p5','p6','p7'];
+document.querySelectorAll('.face').forEach(function(face){face.innerHTML=cells.map(function(p){return '<i class="pip '+p+'"></i>'}).join('')});
+const cube=document.getElementById('cube'),dieButton=document.getElementById('dieButton'),rollButton=document.getElementById('rollButton'),label=document.getElementById('resultLabel'),result=document.getElementById('result');
+const orientation={1:[0,0],2:[-90,0],3:[0,-90],4:[0,90],5:[90,0],6:[0,180]};
+let cycle=0,rolling=false,completionTimer=0;
+function randomFace(){
+ if(window.crypto && window.crypto.getRandomValues){
+  const buf=new Uint32Array(1),max=4294967292;
+  do{window.crypto.getRandomValues(buf)}while(buf[0]>=max);
+  return (buf[0]%6)+1;
+ }
+ return Math.floor(Math.random()*6)+1;
+}
+function roll(){
+ if(rolling)return;
+ rolling=true;cycle++;
+ const value=randomFace(),xy=orientation[value],turn=cycle*720;
+ label.textContent='Кубик вращается';result.textContent='· · ·';result.classList.remove('pop');
+ rollButton.disabled=true;dieButton.disabled=true;rollButton.textContent='Бросаем…';
+ cube.style.transform='rotateX('+(turn+xy[0])+'deg) rotateY('+(turn+xy[1])+'deg)';
+ const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ clearTimeout(completionTimer);
+ completionTimer=setTimeout(function(){
+  label.textContent='Выпало';result.textContent=String(value);
+  result.classList.remove('pop');void result.offsetWidth;result.classList.add('pop');
+  rolling=false;rollButton.disabled=false;dieButton.disabled=false;
+  rollButton.textContent='✦  Бросить ещё раз';
+  if(navigator.vibrate)navigator.vibrate(12);
+ },reduce?20:1280);
+}
+rollButton.addEventListener('click',roll);dieButton.addEventListener('click',roll);
+})();
+</script></body></html>
