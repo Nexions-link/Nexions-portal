@@ -1,5 +1,5 @@
-import {createLandscapeMap} from '../landscape.js?v=0.6.45.27';
-import {forestGroundPixel,forestTextureMask} from './forest-ground-texture.js?v=3';
+import {createLandscapeMap} from '../landscape.js?v=0.6.45.33';
+import {forestGroundPixel,forestTextureMask} from './forest-ground-texture.js?v=4';
 import {createGlobeSurfaceSampler,seamRadius,seamAlpha,SEAM_MESH_EXTENT,SEAM_MESH_GRID,SEAM_INNER_RADIUS} from './terrain-seam.js?v=1';
 import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=22';
 import {createSphericalMeadow} from './sphere-meadow.js?v=3';
@@ -315,7 +315,10 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
    width:ri===4?2.25:ri===1?3.25:3.5
   }));
  });
- const paintedMap=createLandscapeMap(THREE,routeSegments,1280,{blendPixel:blendBiomeSoilAt});
+ const paintedMap=createLandscapeMap(THREE,routeSegments,1280,{
+  blendPixel:blendBiomeSoilAt,
+  shoreAt:(x,z)=>1-smooth(1.015,1.42,lakeRadius(x,z))
+ });
  const tileUVs=[];
  for(let i=0;i<points.length;i+=2)tileUVs.push((points[i]+95)/190,1-(points[i+1]+95)/190);
  const verts=new Float32Array(points.length/2*3);
