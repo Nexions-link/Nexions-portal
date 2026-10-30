@@ -509,7 +509,46 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </script>
 </head>
 <body>
+<style id="ngw-g01-reference-style">
+ #referenceViewBar[hidden]{display:none!important}
+ #referenceViewBar{position:fixed;z-index:36;bottom:calc(env(safe-area-inset-bottom,0px) + 162px);
+ left:50%;transform:translateX(-50%);width:min(440px,calc(100vw - 22px));
+ max-height:min(36dvh,265px);overflow:auto;-webkit-overflow-scrolling:touch;
+ box-sizing:border-box;border:1px solid #b99d69;border-radius:10px;padding:10px 12px;
+ background:#211f19ed;color:#f3e5cb;box-shadow:0 8px 24px #0009;
+ font:12px/1.36 system-ui,sans-serif;touch-action:pan-y}
+ #referenceViewBar strong{font-size:13px;color:#fae1a9}
+ #referenceViewBar p{margin:5px 0}
+ #referenceViewBar small{color:#cabd9e;font-size:10px;display:block}
+ #referenceViewBar .ngw-ref-buttons{display:flex;gap:7px;margin-top:8px}
+ #referenceViewBar button,#referenceViewSetup button{min-height:35px;flex:1;border:1px solid #b19464;
+ border-radius:6px;background:#4a3f2a;color:#fae7b8;padding:5px 9px;touch-action:manipulation;font:700 12px system-ui,sans-serif}
+ #referenceViewBar button:last-child{background:#624035}
+ #referenceViewBar details{margin-top:6px;border-top:1px solid #ffffff25;padding-top:6px}
+ #referenceViewBar summary{cursor:pointer;color:#f2d7a1;font-size:11px}
+ #referenceViewSetup{margin:12px 0 2px;padding:10px;border:1px solid #877b61;
+ border-radius:8px;background:#292b22;color:#ebdcba;display:grid;gap:7px}
+ #referenceViewSetup select{width:100%;padding:9px;color:#f5e1b6;background:#303322;
+ border:1px solid #a08c5f;border-radius:6px;font-size:13px}
+ #referenceViewSetup small{font-size:11px;line-height:1.5;color:#c8c9ae}
+ @media(max-width:400px){#referenceViewBar{bottom:calc(env(safe-area-inset-bottom,0px) + 136px);padding:8px 9px}}
+ </style>
 <main id="viewport" aria-label="Сферический мир NexGameWorld"></main>
+<aside id="referenceViewBar" hidden aria-label="Эталонный ракурс R1">
+ <strong id="referenceViewTitle">R1 · Эталонный ракурс</strong>
+ <p id="referenceViewDetails"></p>
+ <details><summary>Контрольный список сравнения с R1</summary>
+ <p id="referenceViewChecklist"></p>
+ <small id="referenceViewMetrics"></small>
+ <p>Эталон R1 — исходный пользовательский кадр 864×1536 от 30.10.2026.
+ Сравнивай с ним реальное изображение игры. Это художественная проверка, не автоматический процент совпадения.</p>
+ </details>
+ <div class="ngw-ref-buttons">
+  <button id="referenceViewPrev" type="button" aria-label="Предыдущий ракурс">←</button>
+  <button id="referenceViewNext" type="button" aria-label="Следующий ракурс">Следующий</button>
+  <button id="referenceViewExit" type="button">В игру</button>
+ </div>
+</aside>
 <div id="combatFeedback" aria-hidden="true"></div>
 <div id="xpFeedback" aria-live="polite" aria-atomic="false" aria-label="Полученный опыт"></div>
 <div id="levelUpFeedback" aria-live="polite" aria-label="Повышение уровня"></div>
@@ -653,6 +692,15 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
    <option value="high">Высокое</option>
   </select>
   <small id="qualityHelp" class="settings-help">Баланс чёткости, динамических теней и нагрузки.</small>
+  <section id="referenceViewSetup" aria-label="Эталонные ракурсы R1">
+   <strong>G-01 · Эталонные ракурсы R1</strong>
+   <small>Четыре фиксированных ракурса для сравнения с художественным образцом.
+   Только камера: персонаж остаётся на сервере в прежней точке, прогресс не меняется.
+   Для точного сравнения выбери «Высокое» и портретный экран.</small>
+   <label for="referenceViewSelect">Контрольная позиция</label>
+   <select id="referenceViewSelect" aria-label="Выбор эталонного ракурса"></select>
+   <button type="button" id="referenceViewEnter">Открыть ракурс R1</button>
+  </section>
   <label class="camera-follow-row" for="showFps"><input id="showFps" type="checkbox" role="switch" aria-describedby="fpsHelp"><span>Показывать FPS</span></label>
   <small id="fpsHelp" class="settings-help">FPS, P95 времени кадра и просадки измеряются локально. Для сравнения проверь поворот камеры, бой и дом.</small>
   <div class="fps-diagnostics-actions"><button type="button" id="copyFpsReport">Скопировать FPS-отчёт</button><button type="button" id="resetFpsReport">Сбросить замеры</button></div>

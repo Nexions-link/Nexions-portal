@@ -20,6 +20,7 @@ import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
 import {createSoilScatter} from './soil-scatter.js?v=2';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
 import {createPainterlyBiome} from './painterly-biome.js?v=2';
+import {VISUAL_REFERENCE_VIEWS,getVisualReferenceView,referenceViewPose} from './reference-viewpoints.js?v=1';
 import {createForestEcology} from './forest-ecology.js?v=4';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
@@ -588,6 +589,7 @@ try {
   let prevHeading = 0;
   // Initialize before restoring orbital view or entering landing-page preview.
   let cameraSnap = true,windowOffset=0,chestCameraOffset=null;
+  let referenceView=null,referencePose=null,referenceRestoreOrbit=false;
   const cameraGoal = new THREE.Vector3();
   const cameraProbe=createCameraProbe(THREE);
   const cameraRadial=new THREE.Vector3(),cameraCandidate=new THREE.Vector3();
@@ -675,6 +677,7 @@ try {
   canvas.addEventListener('pointermove', e => {
     if (!touches.has(e.pointerId)) return;
     e.preventDefault();
+    if(referencePose){touches.set(e.pointerId,{x:e.clientX,y:e.clientY});return;}
     const last = touches.get(e.pointerId);
     if (touches.size === 1) {
       if (state.orbit) {
@@ -706,12 +709,18 @@ try {
   canvas.addEventListener('pointercancel', untrack);
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
+    if(referencePose)return;
     if (state.orbit) state.orbitDistance = clamp(state.orbitDistance + e.deltaY * .002, 1.6, 5.5);
     else {state.zoom = clamp(state.zoom + e.deltaY * .015, 6, 44); updateZoomLabel();}
     saveWorld();
   }, {passive:false});
   const minimapToggle = $('minimapFrame');
   function togglePlanetView() {
+    if(referenceView){
+      referenceView=null;referencePose=null;referenceRestoreOrbit=false;
+      const bar=$('referenceViewBar');if(bar)bar.hidden=true;
+      hasCameraLookTarget=false;
+    }
     state.orbit = !state.orbit;
     stars.visible = state.orbit;
     atmosphere.visible = state.orbit;
@@ -752,6 +761,60 @@ try {
     updateZoomLabel();saveWorld();
   });
   updateZoomLabel();
+  const referenceSelect=$('referenceViewSelect'),referenceBar=$('referenceViewBar');
+  const referenceTitle=$('referenceViewTitle'),referenceDetails=$('referenceViewDetails');
+  const referenceChecklist=$('referenceViewChecklist'),referenceMetrics=$('referenceViewMetrics');
+  if(referenceSelect){
+    for(const view of VISUAL_REFERENCE_VIEWS){
+      const option=document.createElement('option');
+      option.value=view.id;option.textContent=view.label;
+      referenceSelect.appendChild(option);
+    }
+  }
+  function activateReferenceView(id){
+    if(isPortalPreview)return;
+    const view=getVisualReferenceView(id);
+    if(!view)return;
+    if(!referenceView){
+      referenceRestoreOrbit=state.orbit;
+      if(state.orbit)togglePlanetView();
+    }
+    referenceView=view;
+    referencePose=referenceViewPose(THREE,view,{radius:R,heightAt});
+    if(referenceSelect)referenceSelect.value=view.id;
+    if(referenceTitle)referenceTitle.textContent='R1 · '+view.label+' · '+view.zone;
+    if(referenceDetails)referenceDetails.textContent='Было: '+view.baseline+' Цель: '+view.target;
+    if(referenceChecklist)referenceChecklist.textContent=view.check;
+    if(referenceMetrics){
+      referenceMetrics.textContent='Нормаль '+referencePose.normal.toArray().map(v=>v.toFixed(4)).join(', ')+
+       ' · курс '+view.heading.toFixed(2)+' рад · наклон '+view.pitch.toFixed(2)+
+       ' рад · дистанция '+view.zoom+' м · FOV 58°';
+    }
+    if(referenceBar)referenceBar.hidden=false;
+    cameraSnap=true;hasCameraLookTarget=false;
+    shadowBudget.reset();
+    $('modalClose')?.click();
+  }
+  function leaveReferenceView(){
+    if(!referenceView)return;
+    referenceView=null;referencePose=null;
+    if(referenceBar)referenceBar.hidden=true;
+    cameraSnap=true;hasCameraLookTarget=false;
+    shadowBudget.reset();
+    const restore=referenceRestoreOrbit;
+    referenceRestoreOrbit=false;
+    if(restore&&!state.orbit)togglePlanetView();
+  }
+  function cycleReferenceView(delta){
+    const index=VISUAL_REFERENCE_VIEWS.findIndex(v=>v.id===referenceView?.id);
+    const count=VISUAL_REFERENCE_VIEWS.length;
+    activateReferenceView(VISUAL_REFERENCE_VIEWS[(index+delta+count)%count].id);
+  }
+  $('referenceViewEnter')?.addEventListener('click',()=>
+    activateReferenceView(referenceSelect?.value||VISUAL_REFERENCE_VIEWS[0].id));
+  $('referenceViewPrev')?.addEventListener('click',()=>cycleReferenceView(-1));
+  $('referenceViewNext')?.addEventListener('click',()=>cycleReferenceView(1));
+  $('referenceViewExit')?.addEventListener('click',leaveReferenceView);
   const footer = $('footer');
   function updateWorldMetrics() {
     const length = TAU * R;
@@ -916,8 +979,9 @@ try {
     const dt = Math.min(rawDt, .05);
     elapsed += dt; uiClock += dt; introClock += dt;
     // A gradual forest microclimate: darker distant silhouettes, not a jump cut.
-    const forestLongitude=Math.atan2(state.normal.x,state.normal.z);
-    const forestLatitude=Math.asin(clamp(state.normal.y,-1,1));
+    const lightingNormal=referencePose?.normal||state.normal;
+    const forestLongitude=Math.atan2(lightingNormal.x,lightingNormal.z);
+    const forestLatitude=Math.asin(clamp(lightingNormal.y,-1,1));
     const desiredForestFog=isPortalPreview?0:forestMoodAt(forestLongitude,forestLatitude);
     forestFogBlend+=(desiredForestFog-forestFogBlend)*Math.min(1,dt*1.3);
     const desiredShade=isPortalPreview?0:forestCanopyShadeAt(forestLongitude,forestLatitude);
@@ -944,6 +1008,7 @@ try {
     const desktop=keyboard.read();
     let horizontal = joystick.x + desktop.x;
     let forward = -joystick.y - desktop.y;
+    if(referencePose){horizontal=0;forward=0;}
     // The same deadzone, analog strength and camera-relative stick used by NexGame.
     // The spherical tangent basis maps flat X -> East and flat Z -> -North.
     const input=screenMoveVector(horizontal, -forward, state.cameraHeading-Math.PI/2);
@@ -1058,7 +1123,11 @@ try {
     syncForestWolfMount(THREE,hero,{riding:mountState==='riding',time:elapsed,travelled,heading:state.heading});
 
     const windowView=rpg.getWindowView();
-    if (state.orbit) {
+    if(referencePose){
+      focus.copy(referencePose.focus);
+      cameraGoal.copy(referencePose.position);
+      camera.up.copy(referencePose.normal);
+    }else if (state.orbit) {
       const r = R * state.orbitDistance;
       const horizontalRadius = r * Math.cos(state.orbitElevation);
       cameraGoal.set(Math.sin(state.orbitAngle) * horizontalRadius,
@@ -1078,7 +1147,7 @@ try {
       camera.up.copy(state.normal);
     }
     const cameraPlayerLocal=!state.orbit?normalToLocal(state.normal,R):null;
-    if(windowView?.focus&&!state.orbit){
+    if(windowView?.focus&&!state.orbit&&!referencePose){
       // View the lid from beside the player rather than through their back.
       focus.copy(windowView.focus);
       if(chestCameraOffset===null){
@@ -1102,15 +1171,18 @@ try {
     }else chestCameraOffset=null;
     if(!state.orbit){
       startZone.updateInteriorView(cameraPlayerLocal.x,cameraPlayerLocal.z,dt);
+      if(!referencePose){
       const hit=cameraObstruction(THREE,{
        start:focus,desired:cameraGoal,getRadius:cameraWorldRadius,toLocal:normalToLocal,
        heightAt,heroLocal:cameraPlayerLocal,clearance:.82
       },cameraProbe);
       if(hit)cameraGoal.copy(hit);
+      }
     }
-    if (cameraSnap) {camera.position.copy(cameraGoal);cameraSnap=false;}
+    if(referencePose){camera.position.copy(cameraGoal);cameraSnap=false;}
+    else if (cameraSnap) {camera.position.copy(cameraGoal);cameraSnap=false;}
     else camera.position.lerp(cameraGoal,1-Math.exp(-dt * (state.orbit&&touches.size===1?24:8.5)));
-    if(!state.orbit){
+    if(!state.orbit&&!referencePose){
       // A lerp can sweep a safe target through a tent, building or cliff.
       // Validate the *actual* camera, not merely its target.
       const sweptHit=cameraObstruction(THREE,{
@@ -1123,8 +1195,8 @@ try {
       if(camera.position.length()<min)camera.position.copy(n.multiplyScalar(min));
     }
     // Lift the scene above the sheet without changing saved camera settings.
-    windowOffset+=((windowView?.height||0)/2-windowOffset)*(1-Math.exp(-dt*10));
-    if(windowView?.focus){
+    windowOffset+=(((referencePose?0:windowView?.height)||0)/2-windowOffset)*(1-Math.exp(-dt*10));
+    if(windowView?.focus&&!referencePose){
       if(!hasWindowFocus)windowFocus.copy(focus);
       windowFocus.lerp(windowView.focus,1-Math.exp(-dt*8));hasWindowFocus=true;
     }else if(hasWindowFocus){
@@ -1136,7 +1208,7 @@ try {
     // Camera and avatar must react differently to server corrections.
     // Smooth only the look-at target; keep network position, collision tests
     // and the 3D hero transform entirely authoritative and immediate.
-    const desiredLook=hasWindowFocus?windowFocus:focus;
+    const desiredLook=referencePose?referencePose.focus:hasWindowFocus?windowFocus:focus;
     const snapLook=!hasCameraLookTarget||lastLookOrbit!==state.orbit;
     settleCameraLook(cameraLookTarget,desiredLook,dt,{snap:snapLook});
     hasCameraLookTarget=true;lastLookOrbit=state.orbit;
@@ -1146,9 +1218,11 @@ try {
     renderer.shadowMap.needsUpdate=redrawShadows;
     if(redrawShadows){
       // Keep the 62-metre shadow frustum centred around the active character.
-      tangentBasis(state.normal);
-      sun.target.position.copy(actor.position);
-      sun.position.copy(actor.position).addScaledVector(state.normal,44)
+      const shadowNormal=referencePose?.normal||state.normal;
+      const shadowFocus=referencePose?.focus||actor.position;
+      tangentBasis(shadowNormal);
+      sun.target.position.copy(shadowFocus);
+      sun.position.copy(shadowFocus).addScaledVector(shadowNormal,44)
         .addScaledVector(tangentEast,27).addScaledVector(tangentNorth,20);
       sun.target.updateMatrixWorld();
     }
