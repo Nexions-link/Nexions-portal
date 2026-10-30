@@ -1,13 +1,13 @@
 // NexGameWorld painterly scene pass: original 3D botanical shapes and soft
 // canopy sun flecks spanning both biomes. Cosmetic instancing only; no physics,
 // NPCs, account state, server messages or foreign image/texture assets.
-import {pathWear,lakeRadius} from './start-zone.js?v=51';
+import {pathWear,lakeRadius} from './start-zone.js?v=52';
 import {forestTrailLatitude,forestDistance,FOREST_CAMP,FOREST_SITE_CLEARINGS,
- createForestLayout} from './whispering-forest.js?v=21';
+ createForestLayout} from './whispering-forest.js?v=22';
 const TAU=Math.PI*2,R=261;
 const clamp=x=>Math.max(0,Math.min(1,x));
 function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);}
-const CAPS=Object.freeze({groundcover:1550,ferns:640,daisies:710,bluebells:490,mushrooms:270,sunflecks:110});
+const CAPS=Object.freeze({groundcover:4300,ferns:1350,daisies:1650,bluebells:1200,mushrooms:420,sunflecks:120});
 export const PAINTERLY_BIOME_CAPS=CAPS;
 export function painterlyBiomeBudget(preset='balanced',preview=false){
  const factor=preview?0:preset==='economy'?.22:preset==='high'?1:.70;
@@ -33,7 +33,7 @@ export function painterlyBiomeLayout(seed=149023){
   }
   const lon=.19+rand()*1.26;
   const side=rand()<.5?-1:1;
-  const away=(kind==='sunflecks'?1.2:3.8)+Math.pow(rand(),1.3)*42;
+  const away=(kind==='sunflecks'?1.2:3.8)+Math.pow(rand(),1.3)*24;
   const lat=forestTrailLatitude(lon)+side*away/R;
   if(forestDistance(lon,lat,FOREST_CAMP.lon,FOREST_CAMP.lat)<
      FOREST_CAMP.clearingRadius+5)return null;
