@@ -37,7 +37,7 @@ export function paintedTrailProfile(x,z,signedDistance,halfWidth=3.5){
  const gravel=smooth(.885,.985,hash(Math.floor(x*4.7),Math.floor(z*4.7)))*
   wear*(.28+.72*noise(x*.84+17,z*.84+7));
  const flecks=smooth(.85,.986,hash(Math.floor(x*2.55+37),Math.floor(z*2.55-13)))*
-  (.20+.80*verge);
+  (.28*wear+.72*verge);
  const wet=clamp(noise(x*.115-14,z*.115+24)*.66+
   noise(x*.37+3,z*.37-17)*.34);
  const footsteps=wear*core*(.4+.6*noise(x*.9+4,z*.9+13));

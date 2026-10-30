@@ -15,7 +15,7 @@ import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=22';
 
 
 
-import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=4';
+import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=5';
 
 
 
@@ -39,7 +39,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=53';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=54';
 initStartZoneMath(THREE);
 
 // Optional visuals must never prevent core world modules from loading. A

@@ -3,6 +3,7 @@
 import {forestTrailLatitude} from './whispering-forest.js?v=22';
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
 import {groundMaterialPixel} from './ground-material-library.js?v=1';
+import {paintedTrailProfile,paintTrailSurface} from './trail-art.js?v=1';
 const T=ART.terrain;
 const PI=Math.PI,TAU=PI*2;
 const clamp=v=>Math.max(0,Math.min(1,v));
@@ -23,16 +24,10 @@ export function forestTextureMask(lon,lat){
 export function forestRoadProfile(lon,lat){
  if(!Number.isFinite(lon)||!Number.isFinite(lat))return {wear:0,ruts:0,edge:0,dist:Infinity};
  const x=261*lon*Math.cos(lat),z=261*lat;
- const dist=Math.abs(lat-forestTrailLatitude(lon))*261;
- const nibble=noise(x*.22+21,z*.22-44)-.5;
- const fine=noise(x*.69-8,z*.69+47)-.5;
- // Narrow compacted core, soft eroded shoulders and two uneven worn grooves.
- const rough=dist+nibble*1.34+fine*.39;
- const wear=1-smooth(1.36,5.50,rough);
- const ruts=Math.exp(-Math.pow((dist-1.02-nibble*.19)/.34,2))*
-  (.4+.6*noise(x*.12,z*.12));
- const edge=smooth(2.0,3.4,rough)*(1-smooth(4.0,5.65,rough));
- return {wear,ruts,edge,dist};
+ const signedDistance=(lat-forestTrailLatitude(lon))*261;
+ // Match the meadow's original route and the forest's cleared 7.2m corridor.
+ const art=paintedTrailProfile(x,z,signedDistance,3.65);
+ return {...art,edge:art.verge,dist:Math.abs(signedDistance)};
 }
 export function forestGroundPixel(lon,lat){
  const mask=forestTextureMask(lon,lat);
@@ -81,6 +76,7 @@ export function forestGroundPixel(lon,lat){
  const material=groundMaterialPixel(x,z,{biome:'forest',earth,
   moisture:wet,moss,leaves,dry,roadWear:road.wear,roadRuts:road.ruts});
  r=mix(r,material[0],.86);g=mix(g,material[1],.86);b=mix(b,material[2],.86);
+ [r,g,b]=paintTrailSurface([r,g,b],road,x,z);
  return [Math.round(mix(255,clamp(r/255)*255,mask)),
   Math.round(mix(255,clamp(g/255)*255,mask)),
   Math.round(mix(255,clamp(b/255)*255,mask)),255];

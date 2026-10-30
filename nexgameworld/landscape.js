@@ -2,6 +2,7 @@
 // All surface changes are visual only: no new geometry, height or collision.
 import {WORLD_ART_PALETTE as ART} from './planet-test/world-art-style.js';
 import {groundMaterialPixel} from './planet-test/ground-material-library.js';
+import {paintedTrailProfile,paintTrailSurface} from './planet-test/trail-art.js';
 const T=ART.terrain;
 const clamp01=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp01((v-a)/(b-a));return t*t*(3-2*t)};
@@ -40,17 +41,18 @@ export function landscapeGroundPixel(x,z,preparedRoutes=[],environment={}){
  // Tangled grass tips and rough soil micro-grain.
  const grain=(flecks-.5)*16+(grit-.5)*11;
  r+=grain;g+=grain*.83;b+=grain*.63;
- let worn=0,roadEdge=0;
+ let worn=0,roadEdge=0,roadArt=null;
  for(const seg of preparedRoutes){
   // Bounding-box rejection keeps startup cheap even with smoothed roads.
   if(x<seg.minX||x>seg.maxX||z<seg.minZ||z>seg.maxZ)continue;
   const t=clamp01(((x-seg.ax)*seg.dx+(z-seg.az)*seg.dz)/seg.length2);
   const d=Math.hypot(x-seg.ax-seg.dx*t,z-seg.az-seg.dz*t);
-  // Eroded, scalloped verges replace the old uniform strip width.
-  const edge=(clump-.5)*.95+(mineral-.5)*.42+
-   (flecks-.5)*.17;
-  const path=1-smooth(seg.width*.32,seg.width*.99,d+edge);
-  if(path>worn){worn=path;roadEdge=d;}
+  // G-08: common real-metre path profile for this smoothed route segment.
+  // This only changes baked pigment, never the actual centreline or physics.
+  const cross=(x-seg.ax)*seg.dz-(z-seg.az)*seg.dx;
+  const signed=d*(cross<0?-1:1);
+  const art=paintedTrailProfile(x,z,signed,seg.width);
+  if(art.wear>worn){worn=art.wear;roadEdge=d;roadArt=art;}
  }
  if(worn>.001){
   const dusty=smooth(.30,.8,mineral*.51+(1-moisture)*.49);
@@ -73,6 +75,9 @@ export function landscapeGroundPixel(x,z,preparedRoutes=[],environment={}){
  const next=groundMaterialPixel(x,z,{biome:'meadow',earth,moisture,
   moss,leaves:litter,dry,roadWear:worn,shore:environment.shore??0});
  r=mix(r,next[0],.86);g=mix(g,next[1],.86);b=mix(b,next[2],.86);
+ // Ochre compression, softly scalloped shoulders, separate narrow rain ruts,
+ // gravel and leaf specks. No mesh/ribbon drawn above the spherical terrain.
+ if(roadArt&&roadArt.wear>.001)[r,g,b]=paintTrailSurface([r,g,b],roadArt,x,z);
  return [Math.round(Math.max(0,Math.min(255,r))),
   Math.round(Math.max(0,Math.min(255,g))),
   Math.round(Math.max(0,Math.min(255,b))),255];
