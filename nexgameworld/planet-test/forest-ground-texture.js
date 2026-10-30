@@ -2,6 +2,7 @@
 // No WebGL shader overrides, extra meshes, height changes or colliders.
 import {forestTrailLatitude} from './whispering-forest.js?v=22';
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
+import {groundMaterialPixel} from './ground-material-library.js?v=1';
 const T=ART.terrain;
 const PI=Math.PI,TAU=PI*2;
 const clamp=v=>Math.max(0,Math.min(1,v));
@@ -75,6 +76,11 @@ export function forestGroundPixel(lon,lat){
  r=r*surface+leafFibers*(1-road.wear)+stone*31;
  g=g*surface+leafFibers*.76*(1-road.wear)+stone*27;
  b=b*surface+leafFibers*.55*(1-road.wear)+stone*20;
+ // G-06: both biomes share real original soil families, not just
+ // matching green pigments. Keep the pre-existing road ruts and mask.
+ const material=groundMaterialPixel(x,z,{biome:'forest',earth,
+  moisture:wet,moss,leaves,dry,roadWear:road.wear,roadRuts:road.ruts});
+ r=mix(r,material[0],.86);g=mix(g,material[1],.86);b=mix(b,material[2],.86);
  return [Math.round(mix(255,clamp(r/255)*255,mask)),
   Math.round(mix(255,clamp(g/255)*255,mask)),
   Math.round(mix(255,clamp(b/255)*255,mask)),255];

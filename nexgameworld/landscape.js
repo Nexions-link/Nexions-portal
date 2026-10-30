@@ -1,6 +1,7 @@
 // NexGameWorld: deterministic baked meadow soil and organically feathered trails.
 // All surface changes are visual only: no new geometry, height or collision.
 import {WORLD_ART_PALETTE as ART} from './planet-test/world-art-style.js';
+import {groundMaterialPixel} from './planet-test/ground-material-library.js';
 const T=ART.terrain;
 const clamp01=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp01((v-a)/(b-a));return t*t*(3-2*t)};
@@ -16,7 +17,7 @@ export function prepareLandscapeRoutes(segments=[]){
   minZ:Math.min(s.az,s.bz)-6,maxZ:Math.max(s.az,s.bz)+6
  }));
 }
-export function landscapeGroundPixel(x,z,preparedRoutes=[]){
+export function landscapeGroundPixel(x,z,preparedRoutes=[],environment={}){
  // World-space frequencies, so quality remains consistent when map resolution
  // changes and the old grass/earth colour bands never repeat like a tiled rug.
  const broad=noise(x*.057,z*.057),clump=noise(x*.18+31,z*.18-17);
@@ -67,17 +68,22 @@ export function landscapeGroundPixel(x,z,preparedRoutes=[]){
   const pebble=worn*smooth(.915,.992,hash(Math.floor(x*3.8),Math.floor(z*3.8)));
   r+=pebble*23;g+=pebble*23;b+=pebble*19;
  }
+ // G-06: shared six-way material blend with exactly the same world-space
+ // pigment as Whispering Forest. Existing geometry, routes and lake remain.
+ const next=groundMaterialPixel(x,z,{biome:'meadow',earth,moisture,
+  moss,leaves:litter,dry,roadWear:worn,shore:environment.shore??0});
+ r=mix(r,next[0],.86);g=mix(g,next[1],.86);b=mix(b,next[2],.86);
  return [Math.round(Math.max(0,Math.min(255,r))),
   Math.round(Math.max(0,Math.min(255,g))),
   Math.round(Math.max(0,Math.min(255,b))),255];
 }
-export function createLandscapeMap(THREE,segments,size=1024,{blendPixel=null}={}){
+export function createLandscapeMap(THREE,segments,size=1024,{blendPixel=null,shoreAt=null}={}){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
  const context=canvas.getContext('2d'),image=context.createImageData(size,size),pixels=image.data;
  const prepared=prepareLandscapeRoutes(segments);
  for(let py=0;py<size;py++)for(let px=0;px<size;px++){
   const x=(px+.5)/size*190-95,z=(py+.5)/size*190-95;
-  const base=landscapeGroundPixel(x,z,prepared);
+  const base=landscapeGroundPixel(x,z,prepared,{shore:shoreAt?shoreAt(x,z):0});
   pixels.set(blendPixel?blendPixel(x,z,base):base,(py*size+px)*4);
  }
  context.putImageData(image,0,0);
