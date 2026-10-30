@@ -533,6 +533,30 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
  #referenceViewSetup select{width:100%;padding:9px;color:#f5e1b6;background:#303322;
  border:1px solid #a08c5f;border-radius:6px;font-size:13px}
  #referenceViewSetup small{font-size:11px;line-height:1.5;color:#c8c9ae}
+
+ #referenceViewBar .ngw-ref-capture{display:grid;gap:5px;margin-top:8px;padding-top:7px;border-top:1px solid #ffffff29}
+ #referenceViewBar .ngw-ref-capture button{font-size:11px;min-height:33px}
+ #referenceCaptureStatus{font:11px/1.35 system-ui,sans-serif;color:#e2d4b8}
+ #referenceCompareOverlay[hidden]{display:none!important}
+ #referenceCompareOverlay{position:fixed;inset:0;z-index:95;
+ background:#141813f7;color:#f4e5c5;overflow:auto;-webkit-overflow-scrolling:touch;
+ box-sizing:border-box;padding:max(14px,env(safe-area-inset-top,0px)) 13px max(18px,env(safe-area-inset-bottom,0px));
+ font:12px/1.4 system-ui,sans-serif;touch-action:pan-y}
+ #referenceCompareOverlay .ngw-compare-head{max-width:630px;margin:auto;display:flex;gap:8px;align-items:center;justify-content:space-between}
+ #referenceCompareOverlay strong{font-size:15px}
+ #referenceCompareOverlay button{border:1px solid #b69964;background:#493e2b;color:#f8e4b6;border-radius:7px;padding:8px 13px;min-height:40px}
+ #referenceCompareOverlay .ngw-compare-photos{max-width:min(630px,98vw);margin:10px auto 8px;position:relative;
+ background:#222a21;border:1px solid #a3916c;border-radius:6px;overflow:hidden;
+ width:100%;aspect-ratio:9/16;max-height:58dvh}
+ #referenceCompareOverlay .ngw-compare-photos img{position:absolute;inset:0;width:100%;height:100%;
+ object-fit:contain;display:block}
+ #referenceCompareOverlay #referenceCompareCurrent{clip-path:inset(0 50% 0 0)}
+ #referenceCompareOverlay #referenceCompareDivider{position:absolute;left:50%;top:0;bottom:0;width:2px;background:#ffe0a1;box-shadow:0 0 4px #000d}
+ #referenceCompareOverlay #referenceCompareRange{display:block;width:min(610px,94vw);margin:10px auto;accent-color:#dcb977}
+ #referenceCompareOverlay #referenceCompareInfo{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:630px;margin:auto;font-size:11px}
+ #referenceCompareOverlay #referenceCompareInfo p{margin:0;border:1px solid #877d5b;padding:7px;border-radius:5px;white-space:pre-line}
+ #referenceCompareOverlay #referenceCompareWarnings{margin:9px auto;max-width:630px;color:#f2cc8c}
+ 
  @media(max-width:400px){#referenceViewBar{bottom:calc(env(safe-area-inset-bottom,0px) + 136px);padding:8px 9px}}
  </style>
 <main id="viewport" aria-label="Сферический мир NexGameWorld"></main>
@@ -551,7 +575,34 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
   <button id="referenceViewNext" type="button" aria-label="Следующий ракурс">Следующий</button>
   <button id="referenceViewExit" type="button">В игру</button>
  </div>
+ <div class="ngw-ref-capture">
+  <small>G-02 · снимки настоящей 3D-сцены без HUD, хранятся только на устройстве</small>
+  <div class="ngw-ref-buttons">
+   <button id="referenceCaptureBaseline" type="button">Сохранить «До»</button>
+   <button id="referenceCaptureCurrent" type="button">Сохранить «После»</button>
+  </div>
+  <button id="referenceCaptureCompare" type="button">Сравнить кадры «До / После»</button>
+  <span id="referenceCaptureStatus" role="status" aria-live="polite">Выберите ракурс и снимите два кадра.</span>
+ </div>
 </aside>
+<section id="referenceCompareOverlay" role="dialog" aria-modal="true" aria-label="Сравнение кадров NexGameWorld" hidden>
+ <div class="ngw-compare-head"><strong id="referenceCompareTitle">R1 · Сравнение кадров</strong>
+  <button type="button" id="referenceCompareExit">Закрыть</button>
+ </div>
+ <p style="max-width:630px;margin:8px auto">Слева — новая сборка («После»), справа — сохранённая («До»).
+  Перемещайте разделитель для сравнения. Положение штатной камеры не изменяется.</p>
+ <div class="ngw-compare-photos" id="referenceComparePhotos">
+  <img id="referenceCompareBase" alt="Снимок предыдущей версии игры">
+  <img id="referenceCompareCurrent" alt="Снимок новой версии игры">
+  <div id="referenceCompareDivider" aria-hidden="true"></div>
+ </div>
+ <input id="referenceCompareRange" type="range" min="0" max="100" value="50"
+  aria-label="Положение разделителя сравнения кадров">
+ <div id="referenceCompareWarnings" role="status"></div>
+ <div id="referenceCompareInfo">
+  <p id="referenceCompareBaseInfo"></p><p id="referenceCompareCurrentInfo"></p>
+ </div>
+</section>
 <div id="combatFeedback" aria-hidden="true"></div>
 <div id="xpFeedback" aria-live="polite" aria-atomic="false" aria-label="Полученный опыт"></div>
 <div id="levelUpFeedback" aria-live="polite" aria-label="Повышение уровня"></div>

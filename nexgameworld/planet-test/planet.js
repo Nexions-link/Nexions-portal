@@ -21,6 +21,7 @@ import {createSoilScatter} from './soil-scatter.js?v=2';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
 import {createPainterlyBiome} from './painterly-biome.js?v=2';
 import {VISUAL_REFERENCE_VIEWS,getVisualReferenceView,referenceViewPose} from './reference-viewpoints.js?v=1';
+import {captureVisualWebGLFrame,createVisualCaptureStore,makeVisualSnapshotMeta,compareVisualSnapshotMeta} from './visual-capture.js?v=1';
 import {createForestEcology} from './forest-ecology.js?v=4';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
@@ -818,6 +819,111 @@ try {
   $('referenceViewPrev')?.addEventListener('click',()=>cycleReferenceView(-1));
   $('referenceViewNext')?.addEventListener('click',()=>cycleReferenceView(1));
   $('referenceViewExit')?.addEventListener('click',leaveReferenceView);
+  // G-02: voluntary local snapshots of the REAL Three.js scene. Never send
+  // images or camera coordinates to the game server or change player state.
+  let pendingVisualShot=null,visualShotBusy=false,visualUrls=[];
+  let visualStore=null;
+  const snapshotStatus=$('referenceCaptureStatus');
+  const snapshotButtons=[$('referenceCaptureBaseline'),$('referenceCaptureCurrent')];
+  function reportSnapshotStatus(message){
+    if(snapshotStatus)snapshotStatus.textContent=message;
+  }
+  function getVisualStore(){
+    if(!visualStore)visualStore=createVisualCaptureStore();
+    return visualStore;
+  }
+  function captureShot(slot){
+    if(visualShotBusy||!referencePose||!referenceView||isPortalPreview)return;
+    visualShotBusy=true;
+    for(const button of snapshotButtons)if(button)button.disabled=true;
+    reportSnapshotStatus('Снимаем реальный кадр игрового мира…');
+    // Consumed during the next rendered animation frame (no blank WebGL buffer).
+    pendingVisualShot={slot,view:referenceView,pose:referencePose};
+  }
+  $('referenceCaptureBaseline')?.addEventListener('click',()=>captureShot('baseline'));
+  $('referenceCaptureCurrent')?.addEventListener('click',()=>captureShot('current'));
+  const visualCompare=$('referenceCompareOverlay'),visualSlider=$('referenceCompareRange');
+  function closeVisualCompare(){
+    if(visualCompare)visualCompare.hidden=true;
+    for(const url of visualUrls)URL.revokeObjectURL(url);
+    visualUrls=[];
+    for(const id of ['referenceCompareBase','referenceCompareCurrent']){
+      const img=$(id);if(img)img.removeAttribute('src');
+    }
+  }
+  $('referenceCompareExit')?.addEventListener('click',closeVisualCompare);
+  const setVisualSplit=()=>{
+    const percent=Number(visualSlider?.value??50);
+    if($('referenceCompareCurrent'))$('referenceCompareCurrent').style.clipPath=
+      'inset(0 '+(100-percent)+'% 0 0)';
+    if($('referenceCompareDivider'))$('referenceCompareDivider').style.left=percent+'%';
+  };
+  visualSlider?.addEventListener('input',setVisualSplit);
+  const snapshotDescription=(label,row)=>{
+    const m=row.metadata,location=m.location||'—';
+    return label+' · Alpha '+m.version+'\n'+location+
+      '\nГрафика: '+m.quality+' · '+m.screen.width+' × '+m.screen.height+
+      ' · DPR '+m.screen.pixelRatio+'\nКамера: FOV '+m.camera.fov+'°'+
+      '\nFPS: '+(m.fps??'—')+' · P95: '+(m.p95Ms??'—')+' мс'+
+      '\n'+m.timestamp;
+  };
+  async function openVisualCompare(){
+    if(!referenceView||visualShotBusy)return;
+    try{
+      const store=getVisualStore(),id=referenceView.id;
+      const [baseline,current]=await Promise.all([store.get(id,'baseline'),store.get(id,'current')]);
+      if(!baseline||!current){
+        reportSnapshotStatus('Для сравнения сначала снимите «До» и «После» этого ракурса.');
+        return;
+      }
+      closeVisualCompare();
+      const a=URL.createObjectURL(baseline.blob),b=URL.createObjectURL(current.blob);
+      visualUrls=[a,b];
+      $('referenceCompareBase').src=a;$('referenceCompareCurrent').src=b;
+      const photos=$('referenceComparePhotos');
+      if(photos)photos.style.aspectRatio=baseline.width+'/'+baseline.height;
+      const warnings=compareVisualSnapshotMeta(baseline.metadata,current.metadata);
+      if(photos)photos.style.borderColor=warnings.length?'#d59469':'#a3916c';
+      $('referenceCompareWarnings').textContent=warnings.length?
+       'Параметры отличаются: '+warnings.join('; '):
+       'Ракурс и условия сравнения совпадают. Изображения — реальный рендер WebGL, без HUD.';
+      $('referenceCompareBaseInfo').textContent=snapshotDescription('ДО',baseline);
+      $('referenceCompareCurrentInfo').textContent=snapshotDescription('ПОСЛЕ',current);
+      $('referenceCompareTitle').textContent='G-02 · '+referenceView.label+' · сравнение';
+      if(visualSlider)visualSlider.value='50';
+      setVisualSplit();
+      if(visualCompare)visualCompare.hidden=false;
+    }catch(error){
+      reportSnapshotStatus('Сравнение недоступно: '+(error?.message||String(error)));
+    }
+  }
+  $('referenceCaptureCompare')?.addEventListener('click',openVisualCompare);
+  async function performVisualShot(request){
+    try{
+      if(!referencePose||referenceView?.id!==request.view.id)
+        throw new Error('Ракурс изменился до создания снимка');
+      const stats=frameProfiler.stats('world');
+      const metadata=makeVisualSnapshotMeta({
+        version:$('planetBuildWidget')?.dataset.build||'unknown',
+        view:request.view,quality:qualityName,
+        normal:request.pose.normal.toArray(),
+        position:camera.position.toArray(),focus:request.pose.focus.toArray(),
+        fov:camera.fov,screenWidth:innerWidth,screenHeight:innerHeight,
+        pixelRatio:renderer.getPixelRatio(),stats
+      });
+      const shot=await captureVisualWebGLFrame(THREE,renderer,scene,camera);
+      await getVisualStore().put(request.view.id,request.slot,{
+        blob:shot.blob,width:shot.width,height:shot.height,metadata
+      });
+      reportSnapshotStatus('Сохранён '+(request.slot==='baseline'?'кадр «До»':'кадр «После»')+
+       ': Alpha '+metadata.version+' · '+shot.width+' × '+shot.height+'. Хранится только на устройстве.');
+    }catch(error){
+      reportSnapshotStatus('Не удалось сохранить: '+(error?.message||String(error)));
+    }finally{
+      visualShotBusy=false;
+      for(const button of snapshotButtons)if(button)button.disabled=false;
+    }
+  }
   const footer = $('footer');
   function updateWorldMetrics() {
     const length = TAU * R;
@@ -976,7 +1082,7 @@ try {
   let fpsSeconds=0,fpsFrames=0;
   function animate() {
     requestAnimationFrame(animate);
-    const measureFrames=!!fpsCounter&&!fpsCounter.hidden&&!document.hidden;
+    const measureFrames=!!fpsCounter&&(!fpsCounter.hidden||!!referencePose)&&!document.hidden;
     const frameStart=measureFrames?performance.now():0;
     const rawDt=clock.getDelta();
     const dt = Math.min(rawDt, .05);
@@ -1231,6 +1337,12 @@ try {
     }
     drawNativeMinimap();
     renderer.render(scene,camera);
+    if(pendingVisualShot){
+      const shot=pendingVisualShot;pendingVisualShot=null;
+      // Call synchronously after the real frame; WebGL target is restored by
+      // captureVisualWebGLFrame before the next animation frame.
+      void performVisualShot(shot);
+    }
     if(measureFrames){
       const sceneName=selectFrameScene({orbit:state.orbit,combat:rpg.combatActive,
        house:!!cameraPlayerLocal&&isInLonghouse(cameraPlayerLocal.x,cameraPlayerLocal.z),
