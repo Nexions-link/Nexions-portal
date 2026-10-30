@@ -309,7 +309,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function paintPartyRoster(roster){
   if(!roster)return;
   const snapshot=JSON.stringify([partyState.groupId,partyState.leaderId,
-   partyState.members.map(member=>[member.id,member.name,member.level]),
+   partyState.members.map(member=>[member.id,member.name,member.level,member.online]),
    onlinePlayers.map(peer=>[peer.id,peer.name,peer.level])]);
   if(roster.dataset.snapshot===snapshot)return;
   roster.dataset.snapshot=snapshot;
@@ -333,13 +333,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    const actions=[];
    if(onlinePlayers.some(peer=>peer.id===member.id))
     actions.push(['Выбрать',()=>{selectAlly(member.id);closeWindow()}]);
-   if(partyState.leaderId===multiplayer?.selfId&&member.id!==multiplayer?.selfId)
+   if(partyState.leaderId===multiplayer?.selfId&&member.id!==multiplayer?.selfId&&member.online!==false)
     actions.push(['Назначить лидером',()=>{
      if(window.confirm('Передать лидерство игроку '+(member.name||'Игрок')+'?'))
       multiplayer?.promoteParty(member.id);
     }]);
    row(member.name||'Игрок',
-    (member.id===partyState.leaderId?'Лидер · ':'')+'Уровень '+(member.level||1),
+    (member.id===partyState.leaderId?'Лидер · ':'')+'Уровень '+(member.level||1)+
+     (member.online===false?' · Переподключается':''),
     actions);
   }
   if((!partyState.groupId||partyState.leaderId===multiplayer?.selfId)
@@ -408,8 +409,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function onNetworkDisconnect(){
   if(!authenticatedProfile)return;
   pendingBagDiscard=false;
-  // A reconnect creates a NEW world socket and group identity. Never display
-  // old membership/leader controls until the server publishes fresh state.
+  // A reconnect creates a new socket; authenticated membership can be restored.
+  // Never display stale party controls until the server publishes fresh state.
   onPartyState({groupId:null,leaderId:null,members:[]});
   selectedAllyId=null;
   autoplay=false;approach=null;chargeRequestedAt=0;timeline.clear();

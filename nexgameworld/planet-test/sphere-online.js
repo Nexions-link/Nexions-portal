@@ -1,6 +1,7 @@
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {syncForestWolfMount} from './mount-visual.js?v=4';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
+import {beginPlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
 // NexGameWorld Stage 1: spherical WebSocket presence and visual-only remote avatars.
@@ -62,7 +63,7 @@ export function createSphericalPresence({
  auth=null,url=WORLD_URL,loadBattlefuryScene=null
 }){
  let socket=null,closed=false,selfId=null,synced=false,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null,lastCorrection=0,onlineCount=1,reconnectAttempts=0,lastServerMessageAt=Date.now();
- const peers=new Map(),visuals=new Map(),chargeEvents=new Map();
+ const peers=new Map(),visuals=new Map(),chargeEvents=new Map(),remoteAttacks=new Map();
  let weaponLoaderPromise=null;
  let selfMount={mountState:'foot',mountId:null,owned:false};
  const applyMount=mount=>{
@@ -143,7 +144,7 @@ export function createSphericalPresence({
  const east=new THREE.Vector3(),north=new THREE.Vector3(),fwd=new THREE.Vector3(),
   right=new THREE.Vector3(),matrix=new THREE.Matrix4();
  const stopPeers=()=>{for(const peer of visuals.values())disposeActor(peer.actor.root);
-  visuals.clear();peers.clear();chargeEvents.clear();};
+  visuals.clear();peers.clear();chargeEvents.clear();remoteAttacks.clear();};
  const status=(value,count=null)=>{
   onStatus?.(value,count);
  };
@@ -277,10 +278,23 @@ export function createSphericalPresence({
    }else if(m.type==='chargeVisual'&&typeof m.id==='string'&&m.id!==selfId&&
      validNormal(m.normal)&&validNormal(m.fromNormal)){
     chargeEvents.set(m.id,m);
-   }else if(m.type==='combat')onCombat?.(m,selfId);
+   }else if(m.type==='combat'){
+    // Only authoritative combat events can animate an observer's avatar.
+    if(typeof m.fromId==='string'&&m.fromId!==selfId&&
+       ['autoAttack','heavyStrike','thunderStomp'].includes(m.abilityId))
+     remoteAttacks.set(m.fromId,{at:Date.now(),abilityId:m.abilityId});
+    onCombat?.(m,selfId);
+   }
    else if(m.type==='killCredit')onKillCredit?.(m);
    else if(m.type==='mobAttack')onMobAttack?.(m);
-   else if(m.type==='mobStrike')onMobStrike?.(m,selfId);
+   else if(m.type==='mobStrike'){
+    if(typeof m.targetId==='string'&&m.targetId!==selfId){
+     const victim=visuals.get(m.targetId);
+     if(victim)beginPlayerHitReaction(victim.actor.root.userData,{
+      blocked:m.blocked===true,damage:m.blocked===true?0:1});
+    }
+    onMobStrike?.(m,selfId);
+   }
    else if(m.type==='mobTelegraph')onMobTelegraph?.(m);
    else if(m.type==='mobHowl')onMobHowl?.(m);
    else if(m.type==='respawnAccepted')onRespawn?.(m);
@@ -422,6 +436,15 @@ export function createSphericalPresence({
    visual.actor.root.quaternion.setFromRotationMatrix(matrix);
    visual.actor.root.position.copy(normal).multiplyScalar(getRadius()+heightAt(normal)+.06);
    visual.phase=advanceStridePhase(visual.phase,visualMetres);
+   const recentAttack=remoteAttacks.get(peer.id);
+   const attackAge=recentAttack?(Date.now()-recentAttack.at)/1000:Infinity;
+   if(attackAge>=.9&&recentAttack)remoteAttacks.delete(peer.id);
+   const attackPhase=attackAge>=0&&attackAge<.8?attackAge/.8:-1;
+   const combatAttack=recentAttack?.abilityId==='thunderStomp'
+    ?{attack:-1,stomp:attackPhase}:{attack:attackPhase,stomp:-1};
+   const weaponId=String(peer.equipment?.weapon||'').toLowerCase();
+   const weaponKind=/dagger|knife/.test(weaponId)?'dagger':
+    /sword|blade/.test(weaponId)?'sword':'axe';
    const poseWalk=chargePose?Math.max(chargePose.drive,.2):
     Math.max(movementStrength(visualMetres,dt,4.05),peer.moving?.55:0);
    const poseTurn=turnStrength(previousHeading,visual.heading,dt);
@@ -432,7 +455,10 @@ export function createSphericalPresence({
    visual.mountTravel=(visual.mountTravel||0)+visualMetres;
    const animationDt=consumeAnimationTime(visual,dt,distance);
    if(animationDt>0){
-    animateAvatar(visual.actor,{dt:animationDt,time,walk:poseWalk,turn:poseTurn,phase:visual.phase,charge:chargePose});
+    animateAvatar(visual.actor,{dt:animationDt,time,walk:poseWalk,turn:poseTurn,
+     phase:visual.phase,charge:chargePose,
+     combat:attackPhase>=0||!!visual.actor.root.userData.incomingCombatHit,
+     ...combatAttack,weaponKind});
     syncForestWolfMount(THREE,visual.actor,{riding:peer.mountState==='riding'&&peer.mountId==='forest_wolf',time,travelled:visual.mountTravel,heading:peer.heading});
     visual.mountTravel=0;
    }
