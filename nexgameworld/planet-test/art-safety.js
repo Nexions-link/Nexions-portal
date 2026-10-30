@@ -104,6 +104,7 @@ export function createArtSafetyController({scene,storage=null,preview=false,onCh
  }
  function onContextRestored(){contextLost=false;notify()}
  return {register,update,setMode,animate,renderError,onContextLost,onContextRestored,
+  getLayer:name=>mode===ART_MODES.enhanced&&!contextLost?layers.get(name)?.handle||null:null,
   get mode(){return mode},get fault(){return lastFault},
   get isContextLost(){return contextLost},get layerCount(){return layers.size}};
 }
