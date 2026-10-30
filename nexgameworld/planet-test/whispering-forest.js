@@ -323,10 +323,10 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   p=>({y:.01,sx:p.radius,sy:2.3+p.radius*.36,sz:p.radius}),
   p=>p.tint>.52?'#483d35':'#5b4c3d');
  add('forest-ancient-trunks',layout.trees,trunks,detailedBark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
- add('forest-pine-lower',ever,pineGeo,pine,p=>({y:p.height*.69,sx:p.radius*3.2*(.93+.14*p.tint),sy:p.height*.48,sz:p.radius*3.2*(1.07-.14*p.tint)}),p=>p.tint>.5?'#3c5a48':'#344d41');
- add('forest-pine-crown',ever,pineUpperGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?'#526d55':'#3d5f50');
- add('forest-oak-crown',broad,leafGeo,leaves,p=>({y:p.height*.79,sx:p.radius*3.9*(.94+.13*p.tint),sy:p.height*.21,sz:p.radius*3.8*(1.05-.12*p.tint)}),p=>p.tint>.52?'#42624b':'#526a4b');
- add('forest-oak-upper-crown',broad,upperLeafGeo,leaves,p=>({y:p.height*.94,sx:p.radius*3.1,sy:p.height*.17,sz:p.radius*3.2}),p=>p.tint>.52?'#547557':'#42634d');
+ add('forest-pine-lower',ever,pineGeo,pine,p=>({y:p.height*.69,sx:p.radius*3.2*(.93+.14*p.tint),sy:p.height*.48,sz:p.radius*3.2*(1.07-.14*p.tint)}),p=>p.tint>.5?'#487c58':'#315c48');
+ add('forest-pine-crown',ever,pineUpperGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?'#618b61':'#44735a');
+ add('forest-oak-crown',broad,leafGeo,leaves,p=>({y:p.height*.79,sx:p.radius*3.9*(.94+.13*p.tint),sy:p.height*.21,sz:p.radius*3.8*(1.05-.12*p.tint)}),p=>p.tint>.52?'#547e4a':'#63864a');
+ add('forest-oak-upper-crown',broad,upperLeafGeo,leaves,p=>({y:p.height*.94,sx:p.radius*3.1,sy:p.height*.17,sz:p.radius*3.2}),p=>p.tint>.52?'#789c53':'#587a4d');
  // Instanced elevated boughs and small outer foliage masses make the crowns
  // feel multi-layered without hundreds of independent draw calls.
  const limbGeo=new THREE.CylinderGeometry(.43,.72,1,7,2);
@@ -337,7 +337,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  add('forest-crown-silhouettes',canopy.tufts,outerTuftGeo,leaves,p=>({
   y:p.branchHeight,sx:p.bulge*1.35,sy:p.bulge*.58,sz:p.bulge*1.16,
   offsetX:p.spread
- }),p=>p.tint>.5?'#416047':'#587150','detail');
+ }),p=>p.tint>.5?'#56784e':'#739153','detail');
  // Hanging moss reinforces the enormous vertical scale, entirely visual.
  const mossGeo=new THREE.BufferGeometry(),mossVerts=[];
  for(let k=0;k<5;k++){
