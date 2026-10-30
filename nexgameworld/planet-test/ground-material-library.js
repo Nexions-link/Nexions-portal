@@ -85,8 +85,13 @@ export function groundMaterialPixel(x,z,signals){
  const pebble=(fleck>.977?12:0)*(road*.7+.3);
  const litter=(coarse>.83&&fine<.28?7:0)*leaves*(1-road);
  const mossHighlights=(fine>.88?4:0)*moss*(1-road);
+ // Slight independent ochre/olive variation avoids grayscale-like repeated
+ // value strips while staying inside the single R1 palette family.
+ const olive=(coarse-.5)*10+(fine-.5)*7;
+ const warm=(fleck-.5)*10-(coarse-.5)*4;
  const color=channels.map((v,i)=>Math.round(Math.max(0,Math.min(255,
-  v+pebble*(i===0?1:.82)-litter*(i===0?1:.8)+mossHighlights*(i===1?1:.6)))));
+  v+pebble*(i===0?1:.82)-litter*(i===0?1:.8)+mossHighlights*(i===1?1:.6)+
+  (i===0?warm:i===1?olive:-olive*.45-warm*.25)))));
  return [color[0],color[1],color[2],255];
 }
 export function groundMaterialRoughness(signals){
