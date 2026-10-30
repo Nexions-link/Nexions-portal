@@ -1,6 +1,6 @@
 // Safe P2.3.8-B: baked sRGB texture for the existing sphere material.
 // No WebGL shader overrides, extra meshes, height changes or colliders.
-import {forestTrailLatitude} from './whispering-forest.js';
+import {forestTrailLatitude} from './whispering-forest.js?v=22';
 const PI=Math.PI,TAU=PI*2;
 const clamp=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t)};

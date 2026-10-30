@@ -9,17 +9,17 @@ import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=21';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=21';
+import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=22';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=22';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
 import {createForestGroundLife} from './forest-ground-life.js?v=2';
 import {createForestUnderstory} from './forest-understory.js?v=2';
-import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=2';
+import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=3';
 import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
 import {createSoilScatter} from './soil-scatter.js?v=2';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
-import {createPainterlyBiome} from './painterly-biome.js?v=1';
+import {createPainterlyBiome} from './painterly-biome.js?v=2';
 import {createForestEcology} from './forest-ecology.js?v=4';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
@@ -35,7 +35,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=51';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=52';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
