@@ -510,7 +510,9 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </head>
 <body>
 <style id="ngw-g01-reference-style">
- #referenceViewBar[hidden]{display:none!important}
+ #referenceViewSurface[hidden],#referenceViewBar[hidden]{display:none!important}
+ #referenceViewSurface{position:fixed;inset:0;z-index:34;background:transparent;
+ touch-action:none;user-select:none}
  #referenceViewBar{position:fixed;z-index:36;bottom:calc(env(safe-area-inset-bottom,0px) + 162px);
  left:50%;transform:translateX(-50%);width:min(440px,calc(100vw - 22px));
  max-height:min(36dvh,265px);overflow:auto;-webkit-overflow-scrolling:touch;
@@ -534,6 +536,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
  @media(max-width:400px){#referenceViewBar{bottom:calc(env(safe-area-inset-bottom,0px) + 136px);padding:8px 9px}}
  </style>
 <main id="viewport" aria-label="Сферический мир NexGameWorld"></main>
+<div id="referenceViewSurface" hidden aria-hidden="true"></div>
 <aside id="referenceViewBar" hidden aria-label="Эталонный ракурс R1">
  <strong id="referenceViewTitle">R1 · Эталонный ракурс</strong>
  <p id="referenceViewDetails"></p>

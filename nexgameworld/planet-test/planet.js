@@ -719,6 +719,7 @@ try {
     if(referenceView){
       referenceView=null;referencePose=null;referenceRestoreOrbit=false;
       const bar=$('referenceViewBar');if(bar)bar.hidden=true;
+      const shield=$('referenceViewSurface');if(shield)shield.hidden=true;
       hasCameraLookTarget=false;
     }
     state.orbit = !state.orbit;
@@ -791,6 +792,7 @@ try {
        ' рад · дистанция '+view.zoom+' м · FOV 58°';
     }
     if(referenceBar)referenceBar.hidden=false;
+    const shield=$('referenceViewSurface');if(shield)shield.hidden=false;
     cameraSnap=true;hasCameraLookTarget=false;
     shadowBudget.reset();
     $('modalClose')?.click();
@@ -799,6 +801,7 @@ try {
     if(!referenceView)return;
     referenceView=null;referencePose=null;
     if(referenceBar)referenceBar.hidden=true;
+    const shield=$('referenceViewSurface');if(shield)shield.hidden=true;
     cameraSnap=true;hasCameraLookTarget=false;
     shadowBudget.reset();
     const restore=referenceRestoreOrbit;
