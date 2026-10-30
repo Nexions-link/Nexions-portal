@@ -278,8 +278,10 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
   step=extent*2/grid,points=[],cols=[],indices=[];
  for(let j=0;j<=grid;j++)for(let i=0;i<=grid;i++){
   const x=-extent+i*step,z=-extent+j*step;
-  points.push(x,z);const c=startColorAt(x,z);
-  cols.push(...c,seamAlpha(Math.hypot(x,z)));
+  points.push(x,z);
+  // The sRGB soil/path texture already contains albedo. Vertex RGBA is used
+  // for the seam alpha ONLY; tinting again would make the ground too dark.
+  cols.push(1,1,1,seamAlpha(Math.hypot(x,z)));
   if(i<grid&&j<grid){
    const cx=x+step*.5,cz=z+step*.5;
    if(Math.hypot(cx,cz)<91){

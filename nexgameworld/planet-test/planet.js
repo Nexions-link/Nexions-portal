@@ -372,7 +372,7 @@ try {
    }catch{return null;}
   })();
   // Detailed native camp, lake and authentic procedural Tauren are isolated in start-zone.js.
-  const startZone=createStartZone(THREE,scene,()=>R,heightAt);
+  const startZone=createStartZone(THREE,scene,()=>R,heightAt,{globeGeometry:groundGeo});
   // Core scene, blocking trees and game systems are never detached.
   const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
   const artSafety=createArtSafetyController({
