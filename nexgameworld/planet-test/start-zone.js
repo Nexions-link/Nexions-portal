@@ -1,5 +1,6 @@
 import {createLandscapeMap} from '../landscape.js?v=0.6.45.27';
 import {forestGroundPixel,forestTextureMask} from './forest-ground-texture.js?v=3';
+import {createGlobeSurfaceSampler,seamRadius,seamAlpha,SEAM_MESH_EXTENT,SEAM_MESH_GRID} from './terrain-seam.js?v=1';
 import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=22';
 import {createSphericalMeadow} from './sphere-meadow.js?v=3';
 import {createVillageVisuals} from './village-visuals.js?v=2';
@@ -105,7 +106,7 @@ export function normalToLocal(n,R){
 // It avoids importing another library instance and shares the game's single renderer.
 let THREE;
 export function initStartZoneMath(THREELibrary){THREE=THREELibrary;}
-export function createStartZone(three,scene,getRadius,heightAt){
+export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=null}={}){
  initStartZoneMath(three);
  const UP=new THREE.Vector3(0,1,0);
  let textureSeed=531;
@@ -270,13 +271,18 @@ export function createStartZone(three,scene,getRadius,heightAt){
   brush.instanceMatrix.needsUpdate=true;
  }
  const terrainGeo=new THREE.BufferGeometry();
- const extent=87, grid=124,step=extent*2/grid,points=[],cols=[],indices=[];
+ // A high-resolution overlap ring replaces the hard patch cutoff. Border
+ // vertices converge on the actual TRIANGULATED globe (not an ideal sphere).
+ const globeSampler=globeGeometry?createGlobeSurfaceSampler(THREE,globeGeometry):null;
+ const extent=SEAM_MESH_EXTENT,grid=SEAM_MESH_GRID,
+  step=extent*2/grid,points=[],cols=[],indices=[];
  for(let j=0;j<=grid;j++)for(let i=0;i<=grid;i++){
   const x=-extent+i*step,z=-extent+j*step;
-  points.push(x,z);const c=startColorAt(x,z);cols.push(...c);
+  points.push(x,z);const c=startColorAt(x,z);
+  cols.push(...c,seamAlpha(Math.hypot(x,z)));
   if(i<grid&&j<grid){
    const cx=x+step*.5,cz=z+step*.5;
-   if(Math.hypot(cx,cz)<84){
+   if(Math.hypot(cx,cz)<91){
     const a=j*(grid+1)+i,b=a+grid+1;
     indices.push(a,a+1,b,b,a+1,b+1);
    }
@@ -313,9 +319,11 @@ export function createStartZone(three,scene,getRadius,heightAt){
  const verts=new Float32Array(points.length/2*3);
  terrainGeo.setIndex(indices);
  terrainGeo.setAttribute('position',new THREE.BufferAttribute(verts,3));
- terrainGeo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+ terrainGeo.setAttribute('color',new THREE.Float32BufferAttribute(cols,4));
  terrainGeo.setAttribute('uv',new THREE.Float32BufferAttribute(tileUVs,2));
- const terrainMaterial=new THREE.MeshStandardMaterial({map:paintedMap,roughness:1,side:THREE.DoubleSide});
+ const terrainMaterial=new THREE.MeshStandardMaterial({map:paintedMap,vertexColors:true,roughness:1,
+  side:THREE.DoubleSide,transparent:true,alphaTest:.008,depthWrite:true,
+  polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
  const patch=new THREE.Mesh(terrainGeo,terrainMaterial);
  patch.frustumCulled=false;scene.add(patch);
  // Water and shore geometries remain real-world metre sizes when the radius changes.
@@ -407,7 +415,10 @@ export function createStartZone(three,scene,getRadius,heightAt){
   const attr=terrainGeo.attributes.position;
   for(let i=0;i<points.length;i+=2){
    const x=points[i],z=points[i+1],n=localToNormal(x,z,getRadius());
-   const r=getRadius()+heightAt(n)+.12;attr.setXYZ(i/2,n.x*r,n.y*r,n.z*r);
+   const radius=getRadius()+heightAt(n);
+   const sampled=globeSampler?.sample(n);
+   const r=seamRadius(radius,sampled,Math.hypot(x,z));
+   attr.setXYZ(i/2,n.x*r,n.y*r,n.z*r);
   }
   attr.needsUpdate=true;terrainGeo.computeVertexNormals();terrainGeo.computeBoundingSphere();
   updateSurface(shore);updateSurface(water);updateSurface(shimmerGeometry);refreshAnchors();updateBrush();rebuildReeds();meadow.rebuild();rebuildStones();villageVisuals.rebuild();
