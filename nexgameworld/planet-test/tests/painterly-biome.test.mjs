@@ -60,7 +60,8 @@ test('meadow forest entrance shares the actual forest baked soil near the outer 
 test('world actually enables the botanical batches and preserves the opaque globe',()=>{
  const planet=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
  assert.match(planet,/createPainterlyBiome\(THREE,/);
- assert.match(planet,/painterlyBiome\?\.setQuality/);
+ assert.match(planet,/artSafety\.register\('painterly'/);
+ assert.match(planet,/artSafety\.update\(qualityName,isPortalPreview\)/);
  assert.match(planet,/map:groundTexture,vertexColors:true/);
  assert.match(planet,/transparent:false,depthWrite:true/);
 });

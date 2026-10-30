@@ -140,6 +140,15 @@
  background:linear-gradient(180deg,#151d20d8,#18232c9a);
  pointer-events:none;transition:height .12s linear
 }
+#graphicsFailure[hidden]{display:none!important}
+#graphicsFailure{position:fixed;inset:0;z-index:99999;box-sizing:border-box;
+ display:flex;flex-direction:column;justify-content:center;align-items:center;
+ padding:24px;background:#1d261ff5;color:#f5e5c6;text-align:center;
+ font:16px/1.5 system-ui,sans-serif}
+#graphicsFailure strong{font-size:20px}
+#graphicsFailure p{max-width:360px}
+#graphicsFailure button{min-height:46px;border-radius:8px;border:1px solid #c4aa79;
+ background:#50442b;color:#fff1c8;padding:10px 18px;font-weight:700}
 /* Optional FPS diagnostics stay compact in portrait mode. */
 #fpsCounter{max-width:min(74vw,320px);white-space:normal;line-height:1.2;font-variant-numeric:tabular-nums}
 #fpsCounter[hidden]{display:none!important}
@@ -746,6 +755,13 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
    <option value="high">Высокое</option>
   </select>
   <small id="qualityHelp" class="settings-help">Баланс чёткости, динамических теней и нагрузки.</small>
+   <label class="camera-follow-row" for="artRemasterToggle">
+    <input id="artRemasterToggle" type="checkbox" role="switch" checked aria-describedby="artRemasterStatus">
+    <span>Графический ремастер</span>
+   </label>
+   <small id="artRemasterStatus" class="settings-help" role="status" aria-live="polite">
+    Ремастер включён. Если новый визуальный слой даст ошибку, включится базовое окружение.
+   </small>
   <section id="referenceViewSetup" aria-label="Эталонные ракурсы R1">
    <strong>G-01 · Эталонные ракурсы R1</strong>
    <small>Четыре фиксированных ракурса для сравнения с художественным образцом.
@@ -778,6 +794,11 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 
 <div id="loading">Загружаем NexGameWorld…</div>
 <div id="failure" role="alert"></div>
+ <section id="graphicsFailure" role="alert" aria-live="assertive" hidden>
+  <strong>Проблема с отображением графики</strong>
+  <p id="graphicsFailureText">WebGL временно недоступен.</p>
+  <button type="button" id="graphicsReload">Перезапустить с базовой графикой</button>
+ </section>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">

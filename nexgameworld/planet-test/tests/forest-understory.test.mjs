@@ -48,8 +48,8 @@ test('world loads scenery separately from colliders and preserves opaque ground'
  const world=readFileSync(new URL('../planet.js',import.meta.url),'utf8'),
   light=readFileSync(new URL('../forest-lighting.js',import.meta.url),'utf8'),
   forest=readFileSync(new URL('../forest-understory.js',import.meta.url),'utf8');
- assert.match(world,/createForestUnderstory\(THREE,\{scene,radius:R,heightAt\}\)/);
- assert.match(world,/forestUnderstory\?\.setQuality\(qualityName,isPortalPreview\)/);
+ assert.match(world,/artSafety\.register\('understory',\(\)=>createForestUnderstory\(THREE,ART_SCENE_ARGS\)\)/);
+ assert.match(world,/artSafety\.update\(qualityName,isPortalPreview\)/);
  assert.match(forest,/new THREE\.InstancedMesh/);
  assert.match(light,/islands=9,facets=9/);
  assert.doesNotMatch(forest,/ShaderMaterial|onBeforeCompile|addCollider|registerObstacle/);

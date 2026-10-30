@@ -152,7 +152,7 @@ test('real game supplies capture metadata and compares only reproducible G-01 fr
  assert.match(src,/referencePose\?.normal\|\|state.normal/);
  assert.match(src,/makeVisualSnapshotMeta\(/);
  assert.match(src,/captureVisualWebGLFrame\(THREE,renderer,scene,camera\)/);
- assert.match(src,/if\(pendingVisualShot\)/);
+ assert.match(src,/if\(pendingVisualShot&&!webglContextFailed&&!artSafety\.isContextLost\)/);
  assert.match(src,/referenceCompareRange/);
  assert.doesNotMatch(src,/state\.normal\.copy\(referencePose/);
 });
