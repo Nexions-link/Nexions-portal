@@ -1023,7 +1023,7 @@ try {
     let power=state.orbit||rpg.movementLocked||chargeMotion||waitingForServer?0:input.strength;
     // Preserve manual camera-relative controls, but when idle allow the same
     // short-range auto-approach to a combat target as in the original NexGame.
-    const approach=!waitingForServer&&power<.11&&!state.orbit&&!chargeMotion?rpg.getApproachTarget():null;
+    const approach=!referencePose&&!waitingForServer&&power<.11&&!state.orbit&&!chargeMotion?rpg.getApproachTarget():null;
     if(approach)power=1;
     if(chargeMotion){
       const motion=chargeMotion;
