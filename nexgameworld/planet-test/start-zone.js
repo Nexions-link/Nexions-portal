@@ -106,6 +106,32 @@ export function normalToLocal(n,R){
 // It avoids importing another library instance and shares the game's single renderer.
 let THREE;
 export function initStartZoneMath(THREELibrary){THREE=THREELibrary;}
+// The identical Catmull-Rom geometry used to bake starter roads is also
+// shared with G-09 vegetation, so grass never follows unsmoothed waypoints.
+export function startVisualRouteSegments(routes=ROUTES){
+ const smoothRoute=route=>{
+  const points=[];
+  for(let i=0;i<route.length-1;i++){
+   const p0=route[Math.max(0,i-1)],p1=route[i],
+    p2=route[i+1],p3=route[Math.min(route.length-1,i+2)];
+   for(let step=0;step<3;step++){
+    const t=step/3,t2=t*t,t3=t2*t;
+    points.push([0,1].map(k=>.5*(2*p1[k]+(-p0[k]+p2[k])*t+
+     (2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+
+     (-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3)));
+   }
+  }
+  points.push(route.at(-1));
+  return points;
+ };
+ return routes.flatMap((route,ri)=>{
+  const curve=smoothRoute(route);
+  return curve.slice(0,-1).map((a,i)=>({
+   ax:a[0],az:a[1],bx:curve[i+1][0],bz:curve[i+1][1],
+   width:ri===4?2.25:ri===1?3.25:3.5
+  }));
+ });
+}
 export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=null}={}){
  initStartZoneMath(three);
  const UP=new THREE.Vector3(0,1,0);
@@ -293,28 +319,7 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
  // The same procedural meadow and path map as the main NexGame.
  // Curves soften the initial prototype's abrupt angular junctions.
  // Everything is painted on the existing terrain, never new road collision.
- const smoothRoute=route=>{
-  const points=[];
-  for(let i=0;i<route.length-1;i++){
-   const p0=route[Math.max(0,i-1)],p1=route[i],
-    p2=route[i+1],p3=route[Math.min(route.length-1,i+2)];
-   for(let step=0;step<3;step++){
-    const t=step/3,t2=t*t,t3=t2*t;
-    points.push([0,1].map(k=>.5*(2*p1[k]+(-p0[k]+p2[k])*t+
-     (2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+
-     (-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3)));
-   }
-  }
-  points.push(route.at(-1));
-  return points;
- };
- const routeSegments=ROUTES.flatMap((route,ri)=>{
-  const curve=smoothRoute(route);
-  return curve.slice(0,-1).map((a,i)=>({
-   ax:a[0],az:a[1],bx:curve[i+1][0],bz:curve[i+1][1],
-   width:ri===4?2.25:ri===1?3.25:3.5
-  }));
- });
+ const routeSegments=startVisualRouteSegments();
  const paintedMap=createLandscapeMap(THREE,routeSegments,1280,{
   blendPixel:blendBiomeSoilAt,
   shoreAt:(x,z)=>1-smooth(1.015,1.42,lakeRadius(x,z))

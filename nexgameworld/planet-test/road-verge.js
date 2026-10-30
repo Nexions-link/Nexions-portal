@@ -4,6 +4,7 @@ import {paintedTrailProfile} from './trail-art.js?v=1';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,
  forestDistance,createForestLayout} from './whispering-forest.js?v=22';
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
+import {BANDIT_CAMP} from './bandit-camp-data.js?v=2';
 const R=261,TAU=Math.PI*2,clamp=v=>Math.max(0,Math.min(1,v));
 export const ROAD_VERGE_CAPS=Object.freeze({grass:2200,moss:480,leaves:660,roots:260});
 export const ROAD_VERGE_VERSION='R1-G09-1';
@@ -18,7 +19,7 @@ const closeToForestSite=(lon,lat,size)=>forestDistance(lon,lat,FOREST_CAMP.lon,F
  FOREST_SITE_CLEARINGS.some(p=>forestDistance(lon,lat,p.lon,p.lat)<p.radius+size+4);
 
 export function roadVergeLayout({startSegments=[],lakeRadius=()=>Infinity,
- banditCamp=null,seed=973151}={}){
+ banditCamp=BANDIT_CAMP.center,seed=973151}={}){
  const random=createRandom(seed);
  const groups=Object.fromEntries(Object.keys(ROAD_VERGE_CAPS).map(key=>[key,[]]));
  const trees=createForestLayout().trees;

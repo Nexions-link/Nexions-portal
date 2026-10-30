@@ -39,7 +39,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=54';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath,startVisualRouteSegments} from './start-zone.js?v=55';
 initStartZoneMath(THREE);
 
 // Optional visuals must never prevent core world modules from loading. A
@@ -53,7 +53,8 @@ const optionalArtImports=await Promise.allSettled([
  import('./soil-scatter.js?v=2'),
  import('./roadside-details.js?v=2'),
  import('./painterly-biome.js?v=3'),
- import('./forest-ecology.js?v=4')
+ import('./forest-ecology.js?v=4'),
+ import('./road-verge.js?v=1')
 ]);
 const optionalArtCreators=Object.fromEntries([
  ['createForestAtmosphere',optionalArtImports[0].status==='fulfilled'?
@@ -73,9 +74,11 @@ const optionalArtCreators=Object.fromEntries([
  ['createPainterlyBiome',optionalArtImports[7].status==='fulfilled'?
   optionalArtImports[7].value.createPainterlyBiome:null],
  ['createForestEcology',optionalArtImports[8].status==='fulfilled'?
-  optionalArtImports[8].value.createForestEcology:null]
+  optionalArtImports[8].value.createForestEcology:null],
+ ['createRoadVerge',optionalArtImports[9].status==='fulfilled'?
+  optionalArtImports[9].value.createRoadVerge:null]
 ]);
-const missingArtModules=["createForestAtmosphere","createForestFloor","createForestGroundLife","createForestUnderstory","createSurfaceMicrodetail","createSoilScatter","createRoadsideDetails","createPainterlyBiome","createForestEcology"].filter(name=>!optionalArtCreators[name]);
+const missingArtModules=["createForestAtmosphere","createForestFloor","createForestGroundLife","createForestUnderstory","createSurfaceMicrodetail","createSoilScatter","createRoadsideDetails","createPainterlyBiome","createForestEcology","createRoadVerge"].filter(name=>!optionalArtCreators[name]);
 const createForestAtmosphere=optionalArtCreators.createForestAtmosphere;
 const createForestFloor=optionalArtCreators.createForestFloor;
 const createForestGroundLife=optionalArtCreators.createForestGroundLife;
@@ -85,6 +88,7 @@ const createSoilScatter=optionalArtCreators.createSoilScatter;
 const createRoadsideDetails=optionalArtCreators.createRoadsideDetails;
 const createPainterlyBiome=optionalArtCreators.createPainterlyBiome;
 const createForestEcology=optionalArtCreators.createForestEcology;
+const createRoadVerge=optionalArtCreators.createRoadVerge;
 
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -391,6 +395,9 @@ try {
     artSafety.renderError(new Error('Модули оформления не загрузились: '+missingArtModules.join(', ')));
   }
   artSafety.register('roadside',()=>createRoadsideDetails(THREE,{...ART_SCENE_ARGS,startRoute:ROUTES[1]}));
+  artSafety.register('road-verge',()=>createRoadVerge(THREE,{
+    ...ART_SCENE_ARGS,startSegments:startVisualRouteSegments(),lakeRadius
+  }));
   artSafety.register('ecology',()=>createForestEcology(THREE,ART_SCENE_ARGS));
   artSafety.register('light-pools',()=>createForestLightPools(THREE,ART_SCENE_ARGS));
   artSafety.register('atmosphere',()=>createForestAtmosphere(THREE,ART_SCENE_ARGS));

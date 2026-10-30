@@ -1,7 +1,7 @@
 // NexGameWorld painterly scene pass: original 3D botanical shapes and soft
 // canopy sun flecks spanning both biomes. Cosmetic instancing only; no physics,
 // NPCs, account state, server messages or foreign image/texture assets.
-import {pathWear,lakeRadius} from './start-zone.js?v=53';
+import {pathWear,lakeRadius} from './start-zone.js?v=55';
 import {forestTrailLatitude,forestDistance,FOREST_CAMP,FOREST_SITE_CLEARINGS,
  createForestLayout} from './whispering-forest.js?v=22';
 import {WORLD_ART_PALETTE as ART,WORLD_ART_VERTEX as V} from './world-art-style.js?v=1';
