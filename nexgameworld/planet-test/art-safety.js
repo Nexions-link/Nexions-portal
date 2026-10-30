@@ -16,12 +16,13 @@ export function createArtSafetyController({scene,storage=null,preview=false,onCh
  function collectNew(before){
   return scene.children.filter(child=>!before.has(child));
  }
- function hideAll(){
-  for(const row of layers.values())for(const object of row.objects){
+ function hideRow(row){
+  for(const object of row.objects){
    if(!row.wasHidden.has(object))row.wasHidden.set(object,object.visible);
    object.visible=false;
   }
  }
+ function hideAll(){for(const row of layers.values())hideRow(row)}
  function restoreAll(){
   for(const row of layers.values())for(const object of row.objects){
    if(row.wasHidden.has(object)){
@@ -36,10 +37,10 @@ export function createArtSafetyController({scene,storage=null,preview=false,onCh
   logger?.warn?.('NexGameWorld visual fallback:',stage,lastFault.message);
   notify();
  }
- function register(name,factory){
+ function register(name,factory,{when=()=>true}={}){
   if(typeof name!=='string'||!name||typeof factory!=='function'||layers.has(name))
    throw new TypeError('Invalid or duplicate art layer');
-  layers.set(name,{factory,handle:null,objects:[],wasHidden:new Map()});
+  layers.set(name,{factory,when,handle:null,objects:[],wasHidden:new Map()});
  }
  function build(name,row){
   if(row.handle)return true;
@@ -65,6 +66,11 @@ export function createArtSafetyController({scene,storage=null,preview=false,onCh
   }
   restoreAll();
   for(const [name,row] of layers){
+   if(!row.when(preset)){hideRow(row);continue;}
+   // Layers disabled by the economy profile may have been hidden earlier.
+   for(const object of row.objects)if(row.wasHidden.has(object)){
+    object.visible=row.wasHidden.get(object);row.wasHidden.delete(object);
+   }
    if(!build(name,row))return false;
    const before=new Set(scene.children);
    try{
