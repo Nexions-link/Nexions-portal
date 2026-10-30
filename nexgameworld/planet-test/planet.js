@@ -19,6 +19,7 @@ import {createForestGroundTexture,forestTextureMask} from './forest-ground-textu
 import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
 import {createSoilScatter} from './soil-scatter.js?v=2';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
+import {createPainterlyBiome} from './painterly-biome.js?v=1';
 import {createForestEcology} from './forest-ecology.js?v=4';
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
@@ -334,6 +335,7 @@ try {
   const forestFloor=isPortalPreview?null:createForestFloor(THREE,{scene,radius:R,heightAt});
   const forestGroundLife=isPortalPreview?null:createForestGroundLife(THREE,{scene,radius:R,heightAt});
   const forestUnderstory=isPortalPreview?null:createForestUnderstory(THREE,{scene,radius:R,heightAt});
+   const painterlyBiome=isPortalPreview?null:createPainterlyBiome(THREE,{scene,radius:R,heightAt});
   relocateInstances();
   const hero=createTauren(THREE,scene,{player:true});
   const actor=hero.root;
@@ -408,6 +410,7 @@ try {
     forestFloor?.setQuality(qualityName,isPortalPreview);
     forestGroundLife?.setQuality(qualityName,isPortalPreview);
     forestUnderstory?.setQuality(qualityName,isPortalPreview);
+     painterlyBiome?.setQuality(qualityName,isPortalPreview);
     surfaceMicrodetail?.setQuality(qualityName,isPortalPreview);
     soilScatter?.setQuality(qualityName,isPortalPreview);
     hero.visualDetails?.setQuality(isPortalPreview?.68:profile.detail);

@@ -1,4 +1,5 @@
 import {createLandscapeMap} from '../landscape.js?v=0.6.43.96';
+import {forestGroundPixel,forestTextureMask} from './forest-ground-texture.js?v=3';
 import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=21';
 import {createSphericalMeadow} from './sphere-meadow.js?v=3';
 import {createVillageVisuals} from './village-visuals.js?v=2';
@@ -68,6 +69,26 @@ export function startColorAt(x,z){
  }
  return c;
 }
+
+// The meadow terrain patch is physically separate from the globe. Its last
+// metres must sample the SAME forest soil pixels as the sphere beneath it,
+// otherwise a straight circular texture boundary cuts across the entrance.
+// Samples are strictly visual; terrain heights and collision are unchanged.
+export function blendBiomeSoilAt(x,z,base,radius=START_RADIUS){
+ const d=Math.hypot(x,z);
+ if(d<52||x<38||d>90)return base;
+ const k=d?Math.sin(d/radius)/d:0;
+ const lon=Math.atan2(x*k,Math.cos(d/radius));
+ const lat=Math.asin(Math.max(-1,Math.min(1,z*k)));
+ const forest=forestTextureMask(lon,lat);
+ const t=smooth(50,79,d)*smooth(.145,.31,lon)*forest;
+ if(t<=0)return base;
+ const pixel=forestGroundPixel(lon,lat);
+ return [Math.round(base[0]+(pixel[0]-base[0])*t),
+  Math.round(base[1]+(pixel[1]-base[1])*t),
+  Math.round(base[2]+(pixel[2]-base[2])*t),255];
+}
+
 export function localToNormal(x,z,R){
  const d=Math.hypot(x,z);
  if(d<1e-7)return new THREE.Vector3(0,0,1);
@@ -285,7 +306,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
    width:ri===4?2.25:ri===1?3.25:3.5
   }));
  });
- const paintedMap=createLandscapeMap(THREE,routeSegments,1280);
+ const paintedMap=createLandscapeMap(THREE,routeSegments,1280,{blendPixel:blendBiomeSoilAt});
  const tileUVs=[];
  for(let i=0;i<points.length;i+=2)tileUVs.push((points[i]+95)/190,1-(points[i+1]+95)/190);
  const verts=new Float32Array(points.length/2*3);

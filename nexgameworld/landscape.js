@@ -69,13 +69,14 @@ export function landscapeGroundPixel(x,z,preparedRoutes=[]){
   Math.round(Math.max(0,Math.min(255,g))),
   Math.round(Math.max(0,Math.min(255,b))),255];
 }
-export function createLandscapeMap(THREE,segments,size=1024){
+export function createLandscapeMap(THREE,segments,size=1024,{blendPixel=null}={}){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
  const context=canvas.getContext('2d'),image=context.createImageData(size,size),pixels=image.data;
  const prepared=prepareLandscapeRoutes(segments);
  for(let py=0;py<size;py++)for(let px=0;px<size;px++){
   const x=(px+.5)/size*190-95,z=(py+.5)/size*190-95;
-  pixels.set(landscapeGroundPixel(x,z,prepared),(py*size+px)*4);
+  const base=landscapeGroundPixel(x,z,prepared);
+  pixels.set(blendPixel?blendPixel(x,z,base):base,(py*size+px)*4);
  }
  context.putImageData(image,0,0);
  const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;
