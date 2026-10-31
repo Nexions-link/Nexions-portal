@@ -60,7 +60,7 @@ async function portrait(){
 }
 async function fakeApi(page){
  const requests=[];
- await page.route('https://nexgame-world.onrender.com/api/ngw/**',async route=>{
+ await page.route('https://api.nexions.ru/api/ngw/**',async route=>{
   const req=route.request();
   const u=new URL(req.url());
   requests.push({path:u.pathname,method:req.method(),auth:req.headers().authorization||''});

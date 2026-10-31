@@ -1,4 +1,4 @@
-const API='https://nexgame-world.onrender.com/api/ngw';
+const API='https://api.nexions.ru/api/ngw';
 const $=id=>document.getElementById(id);
 const views=['login','register','recoveryCodes','recover','characters'];
 // Persist only a revocable seven-day session, never a plaintext password.
