@@ -43,7 +43,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=3';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath,startVisualRouteSegments} from './start-zone.js?v=57';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,pathWear,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath,startVisualRouteSegments} from './start-zone.js?v=58';
 initStartZoneMath(THREE);
 
 // Optional visuals must never prevent core world modules from loading. A
@@ -482,9 +482,16 @@ try {
   if(isPortalPreview)qualityName='economy';
   let shadowActive=false;
   let combatQualitySink=null;
+  let assetForest=null;
   function applyGraphicsQuality(){
     const profile=GRAPHICS_PRESETS[qualityName];
     const artEnabled=artSafety.update(qualityName,isPortalPreview);
+    if(assetForest){
+      const enabled=artEnabled&&!isPortalPreview;
+      assetForest.setQuality(qualityName);
+      assetForest.setVisible(enabled);
+      startZone.setExternalTreesActive(enabled);
+    }
     const forestSurface=artSafety.getLayer('forest-surface');
     const wantForestSurface=!!(artEnabled&&forestSurface);
     if(forestSurfaceActive!==wantForestSurface){
@@ -541,6 +548,27 @@ try {
       qualityName==='high'?'Самая плотная растительность, чёткая картинка, тени 1024 px.':
       'Умеренная растительность, мягкие тени 512 px и улучшенное озеро.';
     if(graphicsSelect)graphicsSelect.value=qualityName;
+  }
+  // Keep the original procedural trees until the local CC0 GLB is fully loaded.
+  // Any fetch/decoder failure leaves the playable baseline scene unchanged.
+  // ?asset-pack=0 provides a same-device A/B comparison and emergency fallback.
+  if(!isPortalPreview&&new URLSearchParams(location.search).get('asset-pack')!=='0'){
+    import('./asset-forest.js?v=1')
+     .then(({createAssetForest})=>createAssetForest(THREE,{
+       scene,radius:R,heightAt,anchors:startZone.treeAnchors,
+       accept:(x,z)=>Math.hypot(x,z)<65&&lakeRadius(x,z)>1.18&&
+        pathWear(x,z)<.18&&Math.hypot(x+27,z+2)>16&&
+        canWalkCamp(x,z,.65)
+     }))
+     .then(pack=>{
+       assetForest=pack;
+       const enabled=artSafety.mode==='enhanced'&&!artSafety.isContextLost;
+       pack.setQuality(qualityName);
+       pack.setVisible(enabled);
+       startZone.setExternalTreesActive(enabled);
+       console.info('NexGameWorld CC0 forest asset pack ready',pack.counts);
+     })
+     .catch(error=>console.warn('NexGameWorld: CC0 asset pack fallback to native trees',error));
   }
   graphicsSelect?.addEventListener('change',()=>{
     qualityName=resolveGraphicsPreset(graphicsSelect.value);
