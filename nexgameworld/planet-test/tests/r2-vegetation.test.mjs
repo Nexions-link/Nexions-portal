@@ -94,6 +94,6 @@ test('pilot is opt-in and never touches main camera, online movement or animal v
  const planet=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
  const forest=readFileSync(new URL('../whispering-forest.js',import.meta.url),'utf8');
  assert.match(planet,/get\('r2vegetation'\)==='1'/);
- assert.match(planet,/createWhisperingForest\(THREE,\{scene,radius:R,heightAt,r2Vegetation\}\)/);
+ assert.match(planet,/createWhisperingForest\(THREE,\{scene,radius:R,heightAt,r2Vegetation,artRemaster\}\)/);
  assert.doesNotMatch(forest,/createForestLibraryTree|whispering-forest-tree-pilot/);
 });

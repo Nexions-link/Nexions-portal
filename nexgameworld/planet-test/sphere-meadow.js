@@ -91,7 +91,7 @@ function blossomGeometry(THREE,hex){
  geometry.computeVertexNormals();return geometry;
 }
 
-export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,accept,r2Vegetation=false}){
+export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,accept,r2Vegetation=false,artRemaster=false}){
  const UP=new THREE.Vector3(0,1,0),dummy=new THREE.Object3D();
  const upQuat=new THREE.Quaternion(),twist=new THREE.Quaternion();
  const layers=[];
@@ -138,10 +138,10 @@ export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,a
     dummy.quaternion.copy(upQuat).multiply(twist.setFromAxisAngle(UP,p.angle));
     if(mode==='shrubs')dummy.scale.set(.54*scale,.34*scale,.48*scale);
     else if(mode==='pebbles')dummy.scale.set(.20*.85*scale,.20*.33*scale,.20*1.1*scale);
-    else dummy.scale.setScalar(scale);
+    else dummy.scale.setScalar(mode==='grass'&&artRemaster?scale*1.14:scale);
     dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
-    if(mode==='grass')mesh.setColorAt(i,new THREE.Color().setHSL(.18+p.variety*.065,.32+.07*p.variety,.36+p.variety*.15));
-    if(mode==='shrubs')mesh.setColorAt(i,new THREE.Color().setHSL(.19+p.variety*.07,.28,.32+p.variety*.14));
+    if(mode==='grass')mesh.setColorAt(i,new THREE.Color().setHSL(artRemaster?.245+p.variety*.058:.18+p.variety*.065,artRemaster?.46+.05*p.variety:.32+.07*p.variety,artRemaster?.30+p.variety*.13:.36+p.variety*.15));
+    if(mode==='shrubs')mesh.setColorAt(i,new THREE.Color().setHSL(artRemaster?.23+p.variety*.05:.19+p.variety*.07,artRemaster?.38:.28,artRemaster?.30+p.variety*.13:.32+p.variety*.14));
     if(mode==='pebbles')mesh.setColorAt(i,new THREE.Color().setHSL(.09+p.variety*.03,.12,.43+p.variety*.13));
    }
    mesh.instanceMatrix.needsUpdate=true;

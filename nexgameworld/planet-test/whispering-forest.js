@@ -229,7 +229,7 @@ function fernGeometry(THREE){
  geo.computeVertexNormals();
  return geo;
 }
-export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation=false}){
+export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation=false,artRemaster=false}){
  const layout=createForestLayout(),canopy=forestCanopyDetailLayout(layout),up=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
  const object=new THREE.Object3D(),twist=new THREE.Quaternion(),align=new THREE.Quaternion();
  const batches=[];
@@ -323,10 +323,27 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
   p=>({y:.01,sx:p.radius,sy:2.3+p.radius*.36,sz:p.radius}),
   p=>p.tint>.52?'#483d35':'#5b4c3d');
  add('forest-ancient-trunks',layout.trees,trunks,detailedBark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
- add('forest-pine-lower',ever,pineGeo,pine,p=>({y:p.height*.69,sx:p.radius*3.2*(.93+.14*p.tint),sy:p.height*.48,sz:p.radius*3.2*(1.07-.14*p.tint)}),p=>p.tint>.5?'#3c5a48':'#344d41');
- add('forest-pine-crown',ever,pineUpperGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?'#526d55':'#3d5f50');
- add('forest-oak-crown',broad,leafGeo,leaves,p=>({y:p.height*.79,sx:p.radius*3.9*(.94+.13*p.tint),sy:p.height*.21,sz:p.radius*3.8*(1.05-.12*p.tint)}),p=>p.tint>.52?'#42624b':'#526a4b');
- add('forest-oak-upper-crown',broad,upperLeafGeo,leaves,p=>({y:p.height*.94,sx:p.radius*3.1,sy:p.height*.17,sz:p.radius*3.2}),p=>p.tint>.52?'#547557':'#42634d');
+ add('forest-pine-lower',ever,pineGeo,pine,p=>({
+  y:p.height*.69,sx:p.radius*(artRemaster?3.42:3.2)*(.93+.14*p.tint),
+  sy:p.height*(artRemaster?.52:.48),sz:p.radius*(artRemaster?3.42:3.2)*(1.07-.14*p.tint)
+ }),p=>artRemaster?(p.tint>.68?'#365b46':p.tint>.35?'#2c5143':'#47684c'):
+  (p.tint>.5?'#3c5a48':'#344d41'));
+ add('forest-pine-crown',ever,pineUpperGeo,pine,p=>({
+  y:p.height*.84,sx:p.radius*(artRemaster?2.72:2.55),
+  sy:p.height*(artRemaster?.40:.37),sz:p.radius*(artRemaster?2.72:2.55)
+ }),p=>artRemaster?(p.tint>.68?'#567d50':p.tint>.35?'#426c52':'#678357'):
+  (p.tint>.5?'#526d55':'#3d5f50'));
+ add('forest-oak-crown',broad,leafGeo,leaves,p=>({
+  y:p.height*.79,sx:p.radius*(artRemaster?4.10:3.9)*(.94+.13*p.tint),
+  sy:p.height*(artRemaster?.257:.21),
+  sz:p.radius*(artRemaster?4.04:3.8)*(1.05-.12*p.tint)
+ }),p=>artRemaster?(p.tint>.7?'#3f6347':p.tint>.34?'#4f764a':'#597b50'):
+  (p.tint>.52?'#42624b':'#526a4b'));
+ add('forest-oak-upper-crown',broad,upperLeafGeo,leaves,p=>({
+  y:p.height*.94,sx:p.radius*(artRemaster?3.30:3.1),
+  sy:p.height*(artRemaster?.205:.17),sz:p.radius*(artRemaster?3.38:3.2)
+ }),p=>artRemaster?(p.tint>.68?'#5b8655':p.tint>.32?'#4a7852':'#68885c'):
+  (p.tint>.52?'#547557':'#42634d'));
  // Instanced elevated boughs and small outer foliage masses make the crowns
  // feel multi-layered without hundreds of independent draw calls.
  const limbGeo=new THREE.CylinderGeometry(.43,.72,1,7,2);

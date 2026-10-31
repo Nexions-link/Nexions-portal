@@ -2,6 +2,7 @@
 // No WebGL shader overrides, extra meshes, height changes or colliders.
 import {forestTrailLatitude} from './whispering-forest.js';
 import {r2ForestGrade} from './r2-materials.js?v=1';
+import {paintForestGround} from './art-world-grade.js?v=1';
 const PI=Math.PI,TAU=PI*2;
 const clamp=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t)};
@@ -32,7 +33,7 @@ export function forestRoadProfile(lon,lat){
  const edge=smooth(2.0,3.4,rough)*(1-smooth(4.0,5.65,rough));
  return {wear,ruts,edge,dist};
 }
-export function forestGroundPixel(lon,lat,{r2=false}={}){
+export function forestGroundPixel(lon,lat,{r2=false,art=false}={}){
  const mask=forestTextureMask(lon,lat);
  if(mask<=.001)return [255,255,255,255];
  const x=261*lon*Math.cos(lat),z=261*lat;
@@ -74,12 +75,15 @@ export function forestGroundPixel(lon,lat,{r2=false}={}){
  r=r*surface+leafFibers*(1-road.wear)+stone*31;
  g=g*surface+leafFibers*.76*(1-road.wear)+stone*27;
  b=b*surface+leafFibers*.55*(1-road.wear)+stone*20;
- const rgb=r2?r2ForestGrade([r,g,b],{wear:road.wear,moss,leaves,wet,canopy}):[r,g,b];
+ const base=r2?r2ForestGrade([r,g,b],{wear:road.wear,moss,leaves,wet,canopy}):[r,g,b];
+ const painted=art?paintForestGround(base,{wear:road.wear,ruts:road.ruts,
+  edge:road.edge,moss,leaves,wet,earth,canopy,broad,patch,grit,scratch}):null;
+ const rgb=art?painted.map((v,i)=>v*.89+base[i]*.11):base;
  return [Math.round(mix(255,clamp(rgb[0]/255)*255,mask)),
   Math.round(mix(255,clamp(rgb[1]/255)*255,mask)),
   Math.round(mix(255,clamp(rgb[2]/255)*255,mask)),255];
 }
-export function buildForestGroundPixels(width=1024,height=512,{r2=false}={}){
+export function buildForestGroundPixels(width=1024,height=512,{r2=false,art=false}={}){
  if(!Number.isInteger(width)||!Number.isInteger(height)||width<4||height<4||
   width>2048||height>1024)throw new RangeError('invalid texture dimensions');
  const bytes=new Uint8ClampedArray(width*height*4);
@@ -94,13 +98,13 @@ export function buildForestGroundPixels(width=1024,height=512,{r2=false}={}){
    if(lon<.14||lon>1.55||Math.abs(lat+.035)>.46){
     bytes[i]=bytes[i+1]=bytes[i+2]=bytes[i+3]=255;continue;
    }
-   const pixel=forestGroundPixel(lon,lat,{r2});
+   const pixel=forestGroundPixel(lon,lat,{r2,art});
    bytes.set(pixel,i);
   }
  }
  return bytes;
 }
-export function createForestGroundTexture(THREE,{width=2048,height=1024,documentRef=globalThis.document,r2=false}={}){
+export function createForestGroundTexture(THREE,{width=2048,height=1024,documentRef=globalThis.document,r2=false,art=false}={}){
  if(!documentRef?.createElement)return null;
  try{
   const canvas=documentRef.createElement('canvas');
@@ -108,7 +112,7 @@ export function createForestGroundTexture(THREE,{width=2048,height=1024,document
   const ctx=canvas.getContext('2d');
   if(!ctx)return null;
   const image=ctx.createImageData(width,height);
-  image.data.set(buildForestGroundPixels(width,height,{r2}));
+  image.data.set(buildForestGroundPixels(width,height,{r2,art}));
   ctx.putImageData(image,0,0);
   const texture=new THREE.CanvasTexture(canvas);
   texture.colorSpace=THREE.SRGBColorSpace;

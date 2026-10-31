@@ -70,7 +70,7 @@ test('heavy art gallery is fully isolated from gameplay module imports',()=>{
  assert.doesNotMatch(forest,/createWhisperingForestTreePilot|forestTreeKey/);
  assert.doesNotMatch(forest,/tree-library-forest-types|tree-library-ancient-pine/);
  assert.doesNotMatch(planet,/heroTrees:!isPortalPreview/);
- assert.match(planet,/createWhisperingForest\(THREE,\{scene,radius:R,heightAt,r2Vegetation\}\)/);
+ assert.match(planet,/createWhisperingForest\(THREE,\{scene,radius:R,heightAt,r2Vegetation,artRemaster\}\)/);
  assert.equal(selectForestPilotTrees(layout,forestTrailLatitude).length,3,
   'retained archived gallery anchors are data-only and not rendered');
 });

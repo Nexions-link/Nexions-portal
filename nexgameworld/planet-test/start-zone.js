@@ -1,7 +1,7 @@
-import {createLandscapeMap} from '../landscape.js?v=0.6.45.55';
+import {createLandscapeMap} from '../landscape.js?v=0.6.45.60';
 import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=21';
-import {createSphericalMeadow} from './sphere-meadow.js?v=4';
+import {createSphericalMeadow} from './sphere-meadow.js?v=5';
 import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';
 import {createTaurenAnatomy} from './tauren-anatomy.js?v=3';
@@ -84,7 +84,7 @@ export function normalToLocal(n,R){
 // It avoids importing another library instance and shares the game's single renderer.
 let THREE;
 export function initStartZoneMath(THREELibrary){THREE=THREELibrary;}
-export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=false,r2Vegetation=false}={}){
+export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=false,r2Vegetation=false,artRemaster=false}={}){
  initStartZoneMath(three);
  const UP=new THREE.Vector3(0,1,0);
  let textureSeed=531;
@@ -234,7 +234,7 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
  // Replaced by the actual NexGame meadow (grass, three flower colors,
  // shrubs), so keep the original experimental brush instance hidden.
  brush.count=0;brush.frustumCulled=false;scene.add(brush);
- const meadow=createSphericalMeadow(THREE,{scene,getRadius,toNormal:localToNormal,heightAt,r2Vegetation,
+ const meadow=createSphericalMeadow(THREE,{scene,getRadius,toNormal:localToNormal,heightAt,r2Vegetation,artRemaster,
   accept:(x,z)=>Math.hypot(x,z)<69&&lakeRadius(x,z)>1.18&&pathWear(x,z)<.18&&
    (Math.abs(x+27)>12.8||Math.abs(z+2)>12.5)&&
    canWalkCamp(x,z,.5)});
@@ -286,7 +286,7 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
    width:ri===4?2.25:ri===1?3.25:3.5
   }));
  });
- const paintedMap=createLandscapeMap(THREE,routeSegments,1280,{r2:r2Materials});
+ const paintedMap=createLandscapeMap(THREE,routeSegments,1280,{r2:r2Materials,art:artRemaster});
  const tileUVs=[];
  for(let i=0;i<points.length;i+=2)tileUVs.push((points[i]+95)/190,1-(points[i+1]+95)/190);
  const verts=new Float32Array(points.length/2*3);
