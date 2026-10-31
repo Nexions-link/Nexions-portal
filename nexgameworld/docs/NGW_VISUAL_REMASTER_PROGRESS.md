@@ -30,7 +30,7 @@
 | G-12 | Глубокая фактура коры | Опубликован, художественная iPhone-приёмка не проведена | 0.6.45.40 | 3f9887ebccdad88daca86823ac0361220abac0ee |
 | G-13 | Корни и основание дерева | Опубликован, ожидание iPhone-приёмки | 0.6.45.41 | 6af1946952286771b5f1200ac29e3919655316f2 |
 | G-14 | Лиственные кроны как на эталоне | Опубликован, ожидание iPhone-приёмки | 0.6.45.43 | 2d7e1210618009b118f52133e41038450f0d3bab |
-| G-15 | Хвойные кроны как на эталоне | Реализован, ожидает CI и production audit | 0.6.45.46 | ожидается CI |
+| G-15 | Хвойные кроны как на эталоне | Опубликован, ожидает художественную приёмку iPhone | 0.6.45.46 | a7ebe88291a2321775dd9e24d320c83b0a5277ba |
 | G-16 | Ветви, просветы и вертикальная глубина | Не начат | — | — |
 | G-17 | Композиционное размещение деревьев | Не начат | — | — |
 | G-18 | Контакт деревьев со светом и землёй | Не начат | — | — |
@@ -233,3 +233,5 @@
 **Ручная приёмка iPhone и ПК:** снимки живого хвойного дерева в контрольном ракурсе R1, детализация еловых лап вблизи, читаемость внешнего контура со всех сторон, сравнение FPS economy/balanced/high; окончательное художественное совпадение пока не подтверждено.
 
 **Следующий этап:** G-16 — ветви, просветы и вертикальная глубина.
+
+**G-15 — публикация проверена 31.10.2026:** итоговый код [a7ebe882](https://github.com/Nexions-link/Nexgame/commit/a7ebe88291a2321775dd9e24d320c83b0a5277ba). Planet Test CI [41216951414](https://github.com/Nexions-link/Nexgame/actions/runs/41216951414) — success; spherical client + server [41216951371](https://github.com/Nexions-link/Nexgame/actions/runs/41216951371) — success; server checks [41216951340](https://github.com/Nexions-link/Nexgame/actions/runs/41216951340) — success; 5–10 player load [41216951312](https://github.com/Nexions-link/Nexgame/actions/runs/41216951312) — success; VPS deploy [41216951342](https://github.com/Nexions-link/Nexgame/actions/runs/41216951342) — success. Portal [Pages 41217088105](https://github.com/Nexions-link/Nexions-portal/actions/runs/41217088105) — success. Внешний исходный аудит [41217001489](https://github.com/Nexions-link/Nexgame/actions/runs/41217001489) и независимый аудит портала [41216592911, attempt 2](https://github.com/Nexions-link/Nexions-portal/actions/runs/41216592911) — success: `version=0.6.45.46, publishedSha=a7ebe88291a2321775dd9e24d320c83b0a5277ba, serverReady=true, progressSaveFailures=0`. Реальная визуальная проверка/замер FPS на iPhone остаются открытыми.
