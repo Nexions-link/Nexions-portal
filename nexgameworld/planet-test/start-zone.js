@@ -3,7 +3,7 @@ import {forestGroundPixel,forestTextureMask} from './forest-ground-texture.js?v=
 import {createGlobeSurfaceSampler,seamRadius,seamAlpha,SEAM_MESH_EXTENT,SEAM_MESH_GRID,SEAM_INNER_RADIUS} from './terrain-seam.js?v=1';
 import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=22';
 import {createSphericalMeadow} from './sphere-meadow.js?v=5';
-import {createVillageVisuals} from './village-visuals.js?v=2';
+import {createVillageVisuals} from './village-visuals.js?v=3';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';
 import {createTaurenAnatomy} from './tauren-anatomy.js?v=3';
 import {getTaurenSurfaceMaps} from './tauren-fur-textures.js?v=1';
@@ -21,6 +21,12 @@ import {BANDIT_CAMP,BANDIT_CHIEF_PATH} from './bandit-camp-data.js?v=2';
 // start zone, copied into this isolated module. No main game imports or networking.
 import {WORLD_ART_VERTEX as V} from './world-art-style.js?v=1';
 export const START_RADIUS=261;
+// Keep replacement art tied to the *existing* positions: no world design edits.
+export const START_VILLAGE_TREES=Object.freeze([
+ [-26,21,1.2],[54,35,1],[34,-26,.95],[-34,-30,1.15],
+ [9,49,1.2],[-39,40,1.1],[51,25,1.3],[57,-21,.8],[-47,-7,1.1]
+].map(row=>Object.freeze(row)));
+
 const TAU=Math.PI*2;
 const smooth=(a,b,v)=>{const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)};
 export const LAKE={x:30,z:26,radiusX:17.2,radiusZ:12.5,maxDepth:10.5};
@@ -261,15 +267,16 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
   for(const obj of [mesaBase,mesaCap,mesaGrass,boulders])obj.instanceMatrix.needsUpdate=true;
  }
  // Trees use the exact tree layout of the current NexGame zone.
+ const nativeTreeRoots=[];
  function tree(x,z,scale){
-  const g=anchor(x,z);g.scale.setScalar(scale);
+  const g=anchor(x,z);g.scale.setScalar(scale);nativeTreeRoots.push(g);
   villageVisuals.addTree(x,z,scale);
   rod(g,wood,0,0,0,.2,4.2,0,.33);for(const s of [-1,1])rod(g,wood,0,2,0,s*1.6,4.8,.2,.18);
   shadowCasters.push(ell(g,leaf,-1.4,4.8,0,2.4,.9,1.75));
   shadowCasters.push(ell(g,leaf2,1.4,5,.2,2.1,.95,1.6));
   shadowCasters.push(ell(g,leaf,0,5.65,0,2.5,.85,1.8));
  }
- for(const [x,z,s] of [[-26,21,1.2],[54,35,1],[34,-26,.95],[-34,-30,1.15],[9,49,1.2],[-39,40,1.1],[51,25,1.3],[57,-21,.8],[-47,-7,1.1]])tree(x,z,s);
+ for(const [x,z,s] of START_VILLAGE_TREES)tree(x,z,s);
  // Grass and rocks approximate the distribution; the main game uses instancing.
  let seed=179311;const rnd=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
  const brush=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),leaf2,175);
@@ -475,7 +482,11 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
   roofTransparency.setProgress(envelopeFade);
   wallTransparency.setProgress(envelopeFade);
  }
- return {rebuild,updateInteriorView,setGraphics,meadow,
+ function setExternalTreesActive(enabled){
+  for(const root of nativeTreeRoots)root.visible=!enabled;
+  villageVisuals.setExternalTreesActive(enabled);
+ }
+ return {rebuild,updateInteriorView,setGraphics,meadow,setExternalTreesActive,treeAnchors:START_VILLAGE_TREES,
   animate(t){houseRat.animate(t);banditCampVisuals.animate(t);
    flame.scale.y=1+Math.sin(t*9)*.12;
    rippleTexture.offset.set(t*.006,t*.003);
