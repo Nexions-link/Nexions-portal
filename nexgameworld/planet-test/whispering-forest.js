@@ -1,6 +1,7 @@
 // P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
 import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=2';
+import {createG11ForestTrunkGeometry} from './trunk-silhouette-g11.js?v=1';
 import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=1';
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
 const C=ART.canopy,W=ART.wood;
@@ -260,25 +261,11 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   batches.push({mesh,kind});
   return mesh;
  }
- // The existing 20x18 instanced trunk is re-sculpted ONCE.
- // Same vertex/index count, same one forest trunk draw call, no added GPU mesh.
- // Lower buttresses remain inside the current server-authoritative collider.
- const trunks=new THREE.CylinderGeometry(.52,FOREST_TRUNK_BASE_SCALE,1,20,18);
- const barkVertices=trunks.getAttribute('position'),barkColors=[];
- for(let i=0;i<barkVertices.count;i++){
-  const x=barkVertices.getX(i),z=barkVertices.getZ(i),y=barkVertices.getY(i);
-  const angle=Math.atan2(z,x),outline=proceduralForestTrunkOutline(y,angle);
-  // The source CylinderGeometry is only the indexed ring topology. Radius,
-  // roots and centreline are calculated once, before 400-way instancing.
-  barkVertices.setXYZ(i,Math.cos(angle)*outline.radius+outline.curveX,
-   y,Math.sin(angle)*outline.radius+outline.curveZ);
-  barkColors.push(outline.shade*(1-.19*outline.moss),
-   outline.shade*(.91+.12*outline.moss),
-   outline.shade*(.83-.11*outline.moss));
- }
- trunks.setAttribute('color',new THREE.Float32BufferAttribute(barkColors,3));
- barkVertices.needsUpdate=true;trunks.computeVertexNormals();
- trunks.computeBoundingSphere();
+ // G-11: one original sculpted old-growth trunk, same instancing and
+ // unchanged original 20x18 geometry/collider budget for all 400 trees.
+ // New cambium growth collars, scars, asymmetrical root flare and a smooth
+ // curved upper bole are computed once, not per frame or per instance.
+ const trunks=createG11ForestTrunkGeometry(THREE,proceduralForestTrunkOutline);
  // Irregular branch whorls and individually lobed crowns replace the old
  // perfect cones and spheres, but keep exactly the same tree locations.
  const leafGeo=makeForestCrownGeometry(THREE,'deciduous',0);

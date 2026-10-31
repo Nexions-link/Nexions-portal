@@ -9,8 +9,8 @@ import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=22';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=22';
+import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=23';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=23';
 
 
 
@@ -22,6 +22,7 @@ import {createForestGroundTexture,forestTextureMask} from './forest-ground-textu
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
 
 import {createArtSafetyController} from './art-safety.js?v=1';
+import {createG11AmbientTrunkGeometry} from './trunk-silhouette-g11.js?v=1';
 import {VISUAL_REFERENCE_VIEWS,getVisualReferenceView,referenceViewPose} from './reference-viewpoints.js?v=1';
 import {captureVisualWebGLFrame,createVisualCaptureStore,makeVisualSnapshotMeta,compareVisualSnapshotMeta} from './visual-capture.js?v=1';
 
@@ -363,7 +364,7 @@ try {
       mesh.instanceMatrix.needsUpdate=true;
     }
   }
-  instances(trunkData, new THREE.CylinderGeometry(.18, .27, 1.55, 6), new THREE.MeshStandardMaterial({color: '#65472e', roughness: 1}), .78, [1, 1, 1]);
+  instances(trunkData, createG11AmbientTrunkGeometry(THREE), new THREE.MeshStandardMaterial({color: '#80674a', roughness: 1, vertexColors: true}), .78, [1, 1, 1]);
   instances(foliageData, new THREE.DodecahedronGeometry(1, 1), new THREE.MeshStandardMaterial({color: '#ffffff', roughness: 1, flatShading: true}), 2.46, [1.55, 1.65, 1.55], p => p.tint > .6 ? '#89a65b' : '#5e934c');
   instances(pineData, new THREE.ConeGeometry(1.1, 3.5, 7), new THREE.MeshStandardMaterial({color: '#ffffff', roughness: 1, flatShading: true}), 2.38, [1, 1, 1], p => p.tint > .5 ? '#3e6f56' : '#57876a');
   instances(rockData, new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({color: '#ffffff', roughness: 1, flatShading: true}), .50, [.7, .48, .8], p => p.tint > .5 ? '#a8a28e' : '#8b8772');
