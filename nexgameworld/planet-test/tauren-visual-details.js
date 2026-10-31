@@ -1,4 +1,5 @@
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
+import {createTaurenFurLockGeometry} from './tauren-hero-sculpt.js?v=2';
 // Additional original NexGameWorld adventurer detailing. A cosmetic layer only:
 // parent joints, grips, IK, hitboxes, equipment and animation are unchanged.
 export function createTaurenVisualDetails(THREE,actor){
@@ -62,8 +63,9 @@ export function createTaurenVisualDetails(THREE,actor){
    scale:[.060+(.008*stagger),.22+(.038*(stagger/2)),.057],
    color:stagger===0?0x39281e:stagger===1?0x513526:0x62402d});
  }
- const mane=batch(chest,'mane-layered-fur',new THREE.ConeGeometry(1,1,5),
-  new THREE.MeshStandardMaterial({color:0xffffff,roughness:1,flatShading:true}),furRows);
+ const mane=batch(chest,'mane-layered-fur',createTaurenFurLockGeometry(THREE),
+  new THREE.MeshStandardMaterial({color:0xffffff,roughness:.96,
+   vertexColors:true,side:THREE.FrontSide}),furRows);
  // Small leather and bronze stitches follow the moving belt, not the fixed world.
  const beltRows=[];
  for(let i=0;i<17;i++){

@@ -13,14 +13,14 @@ export function createTaurenAnatomy(THREE,actor,{fur=0x836144,remote=false}={}){
  // as untextured plastic patches against the original skinned rig.
  const skin=chest.children.find(o=>o.isMesh&&o.material?.map)?.material||
   make(base.clone().multiplyScalar(1.05));
- const shade=make(base.clone().multiplyScalar(.82));
+ const shade=make(base.clone().multiplyScalar(.82),{map:skin.map||null});
  const muzzle=head.children.find(o=>o.isMesh&&o.material?.color?.getHex()===0xc5a47b)?.material||
   make(0xc3a27d);
  const lip=make(0x705143);
  const nose=make(0x33241e);
  const bone=make(0xe8d5ad);
  const keratin=make(0x4b382a);
- const furAccent=make(0x51372a);
+ const furAccent=make(0x51372a,{map:skin.map||null});
  const copper=make(0x9e7447,{metalness:.12,roughness:.67});
  // Shared within one actor and cloned by the existing preview where needed.
  const sphere=new THREE.SphereGeometry(1,16,12);

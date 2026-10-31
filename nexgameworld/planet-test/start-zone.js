@@ -3,7 +3,8 @@ import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=21';
 import {createSphericalMeadow} from './sphere-meadow.js?v=5';
 import {createVillageVisuals} from './village-visuals.js?v=2';
-import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';
+import {createTaurenVisualDetails} from './tauren-visual-details.js?v=5';
+import {createTaurenFurLockGeometry,carveTaurenHornRadius} from './tauren-hero-sculpt.js?v=2';
 import {createTaurenAnatomy} from './tauren-anatomy.js?v=3';
 import {getTaurenSurfaceMaps} from './tauren-fur-textures.js?v=1';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
@@ -472,22 +473,28 @@ function taurenForm(parent,mat,rings,segments=14,power=1){
  }
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();return mesh(parent,g,mat);
 }
-function taurenHorn(parent,sign){
+function taurenHorn(parent,sign,heroSculpt=false){
  const curve=new THREE.CatmullRomCurve3(hornPathPoints(THREE,sign));
  const p=[],uv=[],ix=[],steps=15,sides=8,up=new THREE.Vector3(0,0,1);
- for(let i=0;i<=steps;i++){const t=i/steps,point=curve.getPoint(t),tangent=curve.getTangent(t),normal=new THREE.Vector3().crossVectors(tangent,up).normalize(),binormal=new THREE.Vector3().crossVectors(tangent,normal).normalize(),r=hornRadius(t);
-  for(let j=0;j<=sides;j++){const a=j/sides*TAU,v=point.clone().addScaledVector(normal,Math.cos(a)*r).addScaledVector(binormal,Math.sin(a)*r);p.push(v.x,v.y,v.z);uv.push(j/sides,t)}
+ for(let i=0;i<=steps;i++){const t=i/steps,point=curve.getPoint(t),tangent=curve.getTangent(t),normal=new THREE.Vector3().crossVectors(tangent,up).normalize(),binormal=new THREE.Vector3().crossVectors(tangent,normal).normalize();
+  for(let j=0;j<=sides;j++){const a=j/sides*TAU,r=heroSculpt?carveTaurenHornRadius(t,a,hornRadius(t)):hornRadius(t);const v=point.clone().addScaledVector(normal,Math.cos(a)*r).addScaledVector(binormal,Math.sin(a)*r);p.push(v.x,v.y,v.z);uv.push(j/sides,t)}
  }
  for(let i=0;i<steps;i++)for(let j=0;j<sides;j++){const a=i*(sides+1)+j,b=a+sides+1;ix.push(a,a+1,b,b,a+1,b+1)}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(ix);g.computeVertexNormals();mesh(parent,g,taurenMaterials.horn);
 }
-function makeTauren({fur=0x836144,cloth=M.red,weapon=false,scale=1}={}){
+function makeTauren({fur=0x836144,cloth=M.red,weapon=false,scale=1,heroSculpt=false}={}){
  const T=taurenMaterials,pelt=material(fur,{map:taurenFurMap}),root=group(scene),body=group(root,0,1.4,0),chest=group(body),neck=group(chest,0,1.02,.48),head=group(neck);
+ // One static master sculpture shared with the hero's existing animated mane
+ // detail batch. NPCs retain their original low-poly cones. No new meshes.
+ const lockGeometry=heroSculpt?createTaurenFurLockGeometry(THREE):G.cone;
+ const lockMaterial=heroSculpt?material(0x745443,{map:taurenFurMap,
+  vertexColors:true,roughness:.96}):T.mane;
+ const kneeFurMaterial=heroSculpt?material(fur,{map:taurenFurMap,vertexColors:true}):pelt;
  // The shoulder hump rises above the low, forward-set bovine head.
  taurenForm(chest,pelt,[[-.17,.47,.34,.03],[.15,.62,.43,.02],[.53,.89,.55,-.02],[.95,1.02,.6,-.12],[1.26,.87,.54,-.22],[1.49,.56,.39,-.28],[1.58,.2,.14,-.26]]);
  ell(chest,T.mane,0,.99,-.41,.72,.81,.40);
  // Pointed overlapping locks define the mane in profile and from behind.
- for(let row=0;row<4;row++)for(let col=-2;col<=2;col++){const y=.35+row*.28,width=.22+row*.1,x=col*width*.42;const tuft=mesh(chest,G.cone,T.mane,x,y-.07*Math.abs(col),-.69-.08*Math.sin(row*.6),.14+row*.017,.40,.12);tuft.rotation.x=-.15;tuft.rotation.z=Math.PI-col*.10}
+ for(let row=0;row<4;row++)for(let col=-2;col<=2;col++){const y=.35+row*.28,width=.22+row*.1,x=col*width*.42;const tuft=mesh(chest,lockGeometry,lockMaterial,x,y-.07*Math.abs(col),-.69-.08*Math.sin(row*.6),.14+row*.017,.40,.12);tuft.rotation.x=-.15;tuft.rotation.z=Math.PI-col*.10}
  for(const s of [-1,1]){
   ell(chest,pelt,s*.44,.86,.33,.53,.41,.28).rotation.z=-s*.16;
   rod(chest,T.hide,[s*.62,.95,.51],[s*.44,.12,.41],.053,.052);
@@ -512,13 +519,13 @@ function makeTauren({fur=0x836144,cloth=M.red,weapon=false,scale=1}={}){
   ell(head,M.black,s*.247,.134,.523,.025,.034,.013);
   const brow=ell(head,pelt,s*.27,.256,.418,.222,.073,.099);brow.rotation.z=s*.23;
   ell(head,M.black,s*.245,-.095,1.06,.092,.046,.024).rotation.z=-s*.27;
-  taurenHorn(head,s);
+  taurenHorn(head,s,heroSculpt);
   // Cheek locks fall into two bead-bound braids, animated independently below.
-  for(let i=0;i<3;i++){const lock=mesh(head,G.cone,T.mane,s*(.42-i*.035),-.20-i*.14,.17,.17,.42,.16);lock.rotation.z=Math.PI+s*.2}
+  for(let i=0;i<3;i++){const lock=mesh(head,lockGeometry,lockMaterial,s*(.42-i*.035),-.20-i*.14,.17,.17,.42,.16);lock.rotation.z=Math.PI+s*.2}
  }
- const fringe=mesh(head,G.cone,T.mane,0,.40,.15,.30,.40,.18);fringe.rotation.z=Math.PI;
+ const fringe=mesh(head,lockGeometry,lockMaterial,0,.40,.15,.30,.40,.18);fringe.rotation.z=Math.PI;
  const noseRing=mesh(head,new THREE.TorusGeometry(.115,.026,6,14),M.gold,0,-.28,1.067);noseRing.rotation.x=.1;
- const beard=mesh(head,G.cone,T.mane,0,-.65,.44,.24,.58,.23);beard.rotation.z=Math.PI;
+ const beard=mesh(head,lockGeometry,lockMaterial,0,-.65,.44,.24,.58,.23);beard.rotation.z=Math.PI;
  const braids=[];
  for(const s of [-1,1]){const b=group(head,s*.39,-.35,.25);taurenForm(b,T.mane,[[-.55,.065,.067],[-.40,.095,.09],[-.1,.12,.11],[.04,.12,.10]],8);for(let i=0;i<3;i++)ell(b,T.mane,s*(i%2?.025:-.025),-.13-i*.12,0,.12,.095,.1);mesh(b,G.cylinder,M.teal,0,-.43,0,.10,.13,.10);mesh(b,G.cylinder,M.gold,0,-.49,0,.103,.025,.103);braids.push(b)}
  // The plain travelling wraps are the base appearance, not equipped armor.
@@ -545,14 +552,14 @@ function makeTauren({fur=0x836144,cloth=M.red,weapon=false,scale=1}={}){
   taurenForm(knee,pelt,[[-.66,.19,.21,-.01],[-.49,.205,.23,-.075],[-.21,.27,.28,-.09],[.04,.235,.24]],12);
   // Cloven hooves have a real gap and a bevelled toe, with the old IK contact height.
   for(const dx of [-.125,.125]){const toe=taurenForm(foot,T.hoof,[[-.205,.115,.255,.10,dx],[-.17,.12,.28,.105,dx],[.03,.106,.25,.09,dx],[.16,.086,.18,.035,dx]],8,.38);toe.castShadow=true}
-  for(let i=0;i<3;i++){const lock=mesh(knee,G.cone,pelt,(i-1)*.12,-.47,.035,.105,.30,.14);lock.rotation.z=Math.PI}
+  for(let i=0;i<3;i++){const lock=mesh(knee,lockGeometry,kneeFurMaterial,(i-1)*.12,-.47,.035,.105,.30,.14);lock.rotation.z=Math.PI}
   legs.push({hip,knee,foot,sign:s});
  }
  const tail=group(body,0,.01,-.4);rod(tail,pelt,[0,0,0],[0,-.52,-.32],.085,.055);rod(tail,pelt,[0,-.52,-.32],[0,-.98,-.43],.055,.045);ell(tail,T.mane,0,-1.04,-.43,.15,.28,.15);
   return {root,body,chest,neck,tail,braids,arms,legs,head};
 }
 
-  const actor=makeTauren({weapon:false,fur,cloth:clothColor===null?M.red:material(clothColor)});
+  const actor=makeTauren({weapon:false,fur,cloth:clothColor===null?M.red:material(clothColor),heroSculpt:player||remotePlayer});
   // Refreshed anatomy attaches only to existing joints, without moving the
   // weapon/shield grips. Existing NPCs stay lightweight; remote players receive
   // the shared silhouette at reduced detail.
