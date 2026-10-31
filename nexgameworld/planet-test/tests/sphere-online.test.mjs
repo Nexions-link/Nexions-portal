@@ -190,3 +190,40 @@ test('a lost account session is not retried indefinitely',async()=>{
   presence?.close();Object.assign(globalThis,old);
  }
 });
+
+test('acknowledged snapshots do not rewind locally predicted iPhone movement',async()=>{
+ const THREE=await import('three');
+ const {createSphericalPresence,greatCircleDistance}=await import('../sphere-online.js');
+ const old={WebSocket:globalThis.WebSocket,setInterval:globalThis.setInterval,
+  clearInterval:globalThis.clearInterval};
+ let ws,sendTick;
+ class Socket{static OPEN=1;constructor(){ws=this;this.readyState=1;this.sent=[]}
+  send(raw){this.sent.push(JSON.parse(raw))}close(){this.readyState=3}}
+ globalThis.WebSocket=Socket;globalThis.setInterval=fn=>{sendTick=fn;return 1};
+ globalThis.clearInterval=()=>{};
+ let normal=[0,0,1];const corrections=[];
+ const at=metres=>[Math.sin(metres/261),0,Math.cos(metres/261)];
+ let presence;
+ try{
+  presence=createSphericalPresence({THREE,scene:new THREE.Scene(),
+   getPosition:()=>({normal,radius:261,heading:0,moving:true}),
+   onPositionCorrection:x=>corrections.push(x)});
+  ws.onopen();
+  ws.onmessage({data:JSON.stringify({type:'welcome',protocol:2,
+   world:'nexgameworld',radius:261,id:'self',players:[]})});
+  normal=at(1);sendTick();
+  const seq=ws.sent.find(x=>x.type==='move').moveSeq;
+  normal=at(3);
+  const own=confirmed=>({id:'self',name:'Hero',normal:confirmed,
+   heading:0,moving:true,radius:261,moveSeq:seq});
+  const snapshot=confirmed=>ws.onmessage({data:JSON.stringify({
+   type:'snapshot',protocol:2,radius:261,players:[own(confirmed)],mobs:[]})});
+  snapshot(at(1));
+  assert.equal(corrections.length,0,'a matching old ACK cannot pull the client backwards');
+  snapshot(at(-1.5));
+  assert.equal(corrections.length,1,'server-confirmed divergence must be reconciled');
+  assert.equal(corrections[0].reason,'snapshot');
+  assert.ok(greatCircleDistance(corrections[0].normal,at(.5),261)<.02,
+   'confirmed position includes the 2 m travelled after ACK');
+ }finally{presence?.close();Object.assign(globalThis,old)}
+});

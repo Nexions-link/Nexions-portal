@@ -25,6 +25,15 @@ export function greatCircleDistance(a,b,radius){
  if(!validNormal(a)||!validNormal(b)||!finite(radius))return Infinity;
  return radius*Math.acos(clamp(a[0]*b[0]+a[1]*b[1]+a[2]*b[2],-1,1));
 }
+// Apply the post-ack local travel to the verified server position instead of
+// rewinding a live character to the time of an older server snapshot.
+export function rebaseSphereCorrection(THREE,sentNormal,serverNormal,currentNormal){
+ if(!validNormal(sentNormal)||!validNormal(serverNormal)||!validNormal(currentNormal))
+  return serverNormal;
+ const travelled=new THREE.Quaternion().setFromUnitVectors(
+  new THREE.Vector3(...sentNormal),new THREE.Vector3(...currentNormal));
+ return new THREE.Vector3(...serverNormal).applyQuaternion(travelled).normalize().toArray();
+}
 function nameSprite(THREE,label){
  const canvas=document.createElement('canvas');
  canvas.width=384;canvas.height=64;
@@ -63,6 +72,17 @@ export function createSphericalPresence({
  auth=null,url=WORLD_URL,loadBattlefuryScene=null
 }){
  let socket=null,closed=false,selfId=null,synced=false,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null,lastCorrection=0,onlineCount=1,reconnectAttempts=0,lastServerMessageAt=Date.now();
+ let moveSeq=0;
+ const sentMoves=[];
+ const confirmedMove=seq=>Number.isSafeInteger(seq)?
+  sentMoves.find(item=>item.seq===seq):null;
+ const clearMoves=()=>{sentMoves.length=0;moveSeq=0;};
+ const acknowledgedCorrection=(server,seq,reason)=>{
+  const sample=confirmedMove(seq),current=position();
+  if(!sample||!current)return {normal:server,reason};
+  return {normal:reason==='collision'?server:
+   rebaseSphereCorrection(THREE,sample.normal,server,current.normal),reason};
+ };
  const peers=new Map(),visuals=new Map(),chargeEvents=new Map(),remoteAttacks=new Map();
  let weaponLoaderPromise=null;
  let selfMount={mountState:'foot',mountId:null,owned:false};
@@ -194,7 +214,7 @@ export function createSphericalPresence({
   let ws;
   try{ws=new WebSocket(url)}catch{status('reconnecting');scheduleReconnect();return}
   socket=ws;
-  synced=false;selfId=null;lastServerMessageAt=Date.now();
+  synced=false;selfId=null;lastServerMessageAt=Date.now();clearMoves();
   const send=data=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(data))};
   ws.onopen=()=>{
    const p=position();
@@ -207,7 +227,10 @@ export function createSphericalPresence({
     if(ws.readyState!==WebSocket.OPEN||(auth&&!synced))return;
     const p=position();if(p){
      const visualPose=auth?getBattlefuryPose?.():null;
-     send({type:'move',...p,...(auth?{}:getCharacter?.()),
+     const seq=++moveSeq;
+     sentMoves.push({seq,normal:[...p.normal]});
+     if(sentMoves.length>64)sentMoves.shift();
+     send({type:'move',...p,moveSeq:seq,...(auth?{}:getCharacter?.()),
       ...(auth&&visualPose?{battlefuryPose:visualPose}:{})});
      // Same socket preserves ordering: proximity checks see the latest movement.
      if(pendingChestOpen){send(pendingChestOpen);pendingChestOpen=null;}
@@ -253,10 +276,15 @@ export function createSphericalPresence({
     if(own){
      if(own.mountState!==undefined)applyMount(own);
      onVitals?.(own);
-     const deviation=greatCircleDistance(p.normal,own.normal,p.radius);
+     const sample=confirmedMove(own.moveSeq);
+     // The local character is ahead of a 5 Hz snapshot: compare the position
+     // actually transmitted for the packet the server has acknowledged.
+     const deviation=greatCircleDistance(sample?.normal||
+      (p.moving?own.normal:p.normal),own.normal,p.radius);
      if(validNormal(own.normal)&&deviation>2.2&&Date.now()-lastCorrection>800){
       lastCorrection=Date.now();
-      onPositionCorrection?.({normal:own.normal,heading:own.heading,reason:'snapshot'});
+      const correction=acknowledgedCorrection(own.normal,own.moveSeq,'snapshot');
+      onPositionCorrection?.({...correction,heading:own.heading});
      }
     }
      }else if(m.type==='mountCasting'){
@@ -267,7 +295,8 @@ export function createSphericalPresence({
     else if(m.type==='mountRejected')onMountRejected?.(m.reason);
     else if(m.type==='positionCorrection'&&validNormal(m.normal)){
     lastCorrection=Date.now();
-    onPositionCorrection?.(m);
+    const correction=acknowledgedCorrection(m.normal,m.moveSeq,m.reason);
+    onPositionCorrection?.({...m,normal:correction.normal});
    }else if(m.type==='leave'&&typeof m.id==='string'){
     peers.delete(m.id);chargeEvents.delete(m.id);
     const visual=visuals.get(m.id);

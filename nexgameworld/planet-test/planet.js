@@ -31,7 +31,7 @@ import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from 
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=160';
-import {createSphericalPresence} from './sphere-online.js?v=25';
+import {createSphericalPresence} from './sphere-online.js?v=26';
 import {syncForestWolfMount} from './mount-visual.js?v=4';
 import {createMountControls} from './mount-controls.js?v=3';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=1';
@@ -550,6 +550,23 @@ try {
   combatQualitySink=rpg.setVisualQuality;
   combatQualitySink(isPortalPreview?.15:GRAPHICS_PRESETS[qualityName].detail);
   let presenceMoving=false,chargeMotion=null,chargeRecovery=0,chargeLandingCorrection=null;
+  let pendingNetworkRotation=null;
+  const applyNetworkRotation=dt=>{
+    if(!pendingNetworkRotation||chargeMotion)return;
+    const radians=2*Math.acos(clamp(pendingNetworkRotation.w,-1,1));
+    if(radians<1e-6){pendingNetworkRotation=null;return;}
+    // At most 3.5 metres per second of correction, instead of teleporting
+    // the scene backwards in one frame on a busy iPhone.
+    const ratio=Math.min(1,Math.max(0,dt)*9,
+      Math.max(0,dt)*3.5/Math.max(1e-6,radians*R));
+    if(ratio<=0)return;
+    const portion=new THREE.Quaternion().slerp(pendingNetworkRotation,ratio);
+    const oldLon=Math.atan2(state.normal.x,state.normal.z);
+    state.normal.applyQuaternion(portion).normalize();
+    state.lonUnwrapped+=angleDelta(Math.atan2(state.normal.x,state.normal.z),oldLon);
+    pendingNetworkRotation.premultiply(portion.invert());
+    if(ratio>=1)pendingNetworkRotation=null;
+  };
    let mountState='foot';
   function applyChargeLandingCorrection(event){
    if(!Array.isArray(event?.normal)||event.normal.length!==3||
@@ -618,11 +635,22 @@ try {
       if(chargeMotion)return;
       if(!Array.isArray(correction?.normal)||correction.normal.length!==3||
          !correction.normal.every(Number.isFinite))return;
-      const oldLon=Math.atan2(state.normal.x,state.normal.z);
-      state.normal.set(...correction.normal).normalize();
-      state.lonUnwrapped+=angleDelta(Math.atan2(state.normal.x,state.normal.z),oldLon);
-      if(Number.isFinite(correction.heading))state.heading=angleDelta(correction.heading,0);
-      updateActor();
+      const target=new THREE.Vector3(...correction.normal).normalize();
+      const distance=state.normal.angleTo(target)*R;
+      // Collision, login resync and extreme divergence must remain instant.
+      // Delayed snapshot/speed adjustments are softened, not ignored.
+      const immediate=['resync','collision','position_out_of_range'].includes(correction.reason)||
+        distance>9;
+      if(immediate){
+        pendingNetworkRotation=null;
+        const oldLon=Math.atan2(state.normal.x,state.normal.z);
+        state.normal.copy(target);
+        state.lonUnwrapped+=angleDelta(Math.atan2(state.normal.x,state.normal.z),oldLon);
+        if(Number.isFinite(correction.heading))state.heading=angleDelta(correction.heading,0);
+        updateActor();
+      }else if(distance>.06){
+        pendingNetworkRotation=new THREE.Quaternion().setFromUnitVectors(state.normal,target);
+      }
     },
     onEconomyResult:event=>rpg.onEconomyResult(event),
     onAuthRejected:reason=>rpg.onPartyNotice({message:reason}),
@@ -1328,6 +1356,7 @@ try {
     if(state.cameraFollow&&!state.orbit&&!chargePose&&power<.11&&touches.size===0&&followCooldown<=0)
      state.cameraHeading=turnTowardsAngle(state.cameraHeading,state.heading,dt,3.8);
     presenceMoving=poseWalk>.11;
+    applyNetworkRotation(dt);
     updateActor();
     onlinePresence?.tick(dt,elapsed);
     mountControls.tick();
