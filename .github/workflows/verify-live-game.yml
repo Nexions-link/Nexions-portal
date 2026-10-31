@@ -34,7 +34,7 @@ jobs:
           node-version: '22'
       - name: Test production release check
         run: node --test nexgameworld/ops/audit-production.test.mjs
-      - name: Verify NexGameWorld source main, published game HTML, assets, Render, and mirror SHA
+      - name: Verify NexGameWorld source main, published game HTML, assets, VPS (api.nexions.ru), and mirror SHA
         shell: bash
         run: |
           set -euo pipefail
