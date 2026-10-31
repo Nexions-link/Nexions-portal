@@ -35,8 +35,10 @@ jobs:
           const mirror=readFileSync('.github/workflows/sync-nexgame.yml','utf8');
           const launcher=readFileSync('nexgameworld/index.html','utf8');
           assert.match(html,/Content-Security-Policy/);
+          assert.ok(html.includes('connect-src https://api.nexions.ru;'));
+          assert.ok(js.includes("API='https://api.nexions.ru/api/ngw'"));
           assert.match(html,/script-src 'self'/);
-          assert.match(html,/src="\.\/account\.js\?v=0\.7\.6"/);
+          assert.match(html,/src="\.\/account\.js\?v=[0-9.]+"/);
           assert.doesNotMatch(html,/<script type="module">/);
           assert.match(mirror,/--exclude='\/account\.js'/);
           assert.doesNotMatch(html,/id="inviteCode"/);
