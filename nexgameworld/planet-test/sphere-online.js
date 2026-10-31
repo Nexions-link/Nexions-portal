@@ -6,7 +6,7 @@ import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge
 import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
 // NexGameWorld Stage 1: spherical WebSocket presence and visual-only remote avatars.
 // Combat, quests, loot and the player's local saves remain untouched.
-const WORLD_URL='wss://nexgame-world.onrender.com/ws/nexgameworld';
+const WORLD_URL='wss://api.nexions.ru/ws/nexgameworld';
 const PROTOCOL=2;
 const MAX_VISIBLE_PEERS=16;
 const VISIBLE_DISTANCE=85;

@@ -9,7 +9,7 @@ export async function auditProduction({
  fetchImpl=globalThis.fetch,
  expectedSha=null,
  siteOrigin='https://nexions.ru',
- worldOrigin='https://nexgame-world.onrender.com',
+ worldOrigin='https://api.nexions.ru',
  timeoutMs=55000
 }={}){
  if(typeof fetchImpl!=='function')throw Error('fetch is required');
@@ -26,27 +26,30 @@ export async function auditProduction({
   if(!response.ok)throw Error(new URL(endpoint).pathname+' HTTP '+response.status);
   return format==='json'?response.json():response.text();
  };
- const [health,ready,manifest,upstream,clientHtml,launcherHtml,gameCode,houseCode]=await Promise.all([
+ const [health,ready,manifest,upstream,clientHtml,launcherHtml,gameCode,houseCode,sessionCode,accountCode,accountHtml]=await Promise.all([
   get(worldOrigin,'/health'),get(worldOrigin,'/ready'),
   get(siteOrigin,'/nexgameworld/planet-test/version.json'),
   get(siteOrigin,'/nexgameworld/upstream-commit.txt','text'),
   get(siteOrigin,'/nexgameworld/planet-test/index.html','text'),
   get(siteOrigin,'/nexgameworld/','text'),
   get(siteOrigin,'/nexgameworld/planet-test/planet.js','text'),
-  get(siteOrigin,'/nexgameworld/planet-test/hearth-house.js','text')
+  get(siteOrigin,'/nexgameworld/planet-test/hearth-house.js','text'),
+  get(siteOrigin,'/nexgameworld/planet-test/account-session.js','text'),
+  get(siteOrigin,'/nexgameworld/account.js','text'),
+  get(siteOrigin,'/nexgameworld/account.html','text')
  ]);
  const latest=String(manifest?.version||''),build=String(health?.build||'');
  const publishedSha=String(upstream).trim().toLowerCase();
  if(health?.ok!==true||health?.world!=='nexgameworld')
-  throw Error('Render /health is not the active NexGameWorld server');
- if(ready?.ready!==true)throw Error('Render /ready does not confirm PostgreSQL availability');
+  throw Error('VPS /health is not the active NexGameWorld server');
+ if(ready?.ready!==true)throw Error('VPS /ready does not confirm PostgreSQL availability');
  if(health?.databaseConfigured!==true||health?.accountDbStatus!=='ready'||
     health?.accountApiEnabled!==true||health?.authenticatedWorldEnabled!==true||
     health?.authenticatedEconomyEnabled!==true)
   throw Error('Production account or economy service is not ready');
  if(health?.guestWorldEnabled!==false)throw Error('Guest world must remain disabled');
  if(!VERSION.test(latest)||!VERSION.test(build)||latest!==build||ready?.build!==build)
-  throw Error('Live game manifest and Render server build do not match');
+  throw Error('Live game manifest and VPS server build do not match');
  const declared=[...clientHtml.matchAll(/\bdata-build="([^"]+)"/g)].map(match=>match[1]);
  if(declared.length!==1||declared[0]!==latest)
   throw Error('Live playable HTML and game version.json do not match: '+declared.join(',')+'/'+latest);
@@ -62,6 +65,11 @@ export async function auditProduction({
   if(publishedSha!==expectedSha.toLowerCase())
    throw Error('Website mirror is behind Nexgame/main: '+publishedSha.slice(0,10)+' != '+expectedSha.slice(0,10));
  }
+ if(!sessionCode.includes("ACCOUNT_API='https://api.nexions.ru/api/ngw'")||
+    !sessionCode.includes("AUTH_WORLD_URL='wss://api.nexions.ru/ws/nexgameworld/auth'")||
+    !accountCode.includes("API='https://api.nexions.ru/api/ngw'")||
+    !accountHtml.includes('connect-src https://api.nexions.ru;'))
+  throw Error('Live account and game clients have not switched to the VPS');
  const failures=Number(health?.worldMetrics?.progressSaveFailures);
  if(!Number.isFinite(failures)||failures<0)
   throw Error('Save-failure metric is missing or invalid');

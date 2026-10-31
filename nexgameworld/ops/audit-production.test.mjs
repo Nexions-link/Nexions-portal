@@ -16,7 +16,10 @@ function mock({build='0.6.41.4',manifestVersion='0.6.41.4',
  '/nexgameworld/planet-test/index.html':'<aside data-build="'+manifestVersion+'"></aside><script>import(\'./planet.js?v=120\')</script>',
  '/nexgameworld/':'<script>const local=\'./planet-test/\';const mode=\'account-play\';</script>',
  '/nexgameworld/planet-test/planet.js':"import {a} from './start-zone.js?v=31'",
- '/nexgameworld/planet-test/hearth-house.js':'export function buildHearthHouse(){}'
+ '/nexgameworld/planet-test/hearth-house.js':'export function buildHearthHouse(){}',
+ '/nexgameworld/planet-test/account-session.js':"export const ACCOUNT_API='https://api.nexions.ru/api/ngw'; export const AUTH_WORLD_URL='wss://api.nexions.ru/ws/nexgameworld/auth';",
+ '/nexgameworld/account.js':"const API='https://api.nexions.ru/api/ngw';",
+ '/nexgameworld/account.html':'<meta content="connect-src https://api.nexions.ru;">'
  };
  return async href=>{
   const pathname=new URL(href).pathname;
@@ -72,4 +75,11 @@ test('reject live HTML, launcher and core modules that are stale or incomplete',
  await assert.rejects(()=>auditProduction({fetchImpl:corrupt(
   '/nexgameworld/planet-test/hearth-house.js',''
  ),expectedSha:SHA}),/missing required spherical game modules/);
+});
+
+test('reject a live account page still routed to the retired host',async()=>{
+ const original=mock();
+ const stale=async href=>new URL(href).pathname==='/nexgameworld/account.js'
+  ?{ok:true,status:200,text:async()=>"const API='https://nexgame-world.onrender.com/api/ngw';"}:original(href);
+ await assert.rejects(()=>auditProduction({fetchImpl:stale,expectedSha:SHA}),/not switched to the VPS/);
 });
