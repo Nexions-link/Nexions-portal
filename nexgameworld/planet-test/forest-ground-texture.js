@@ -3,6 +3,7 @@
 import {forestTrailLatitude} from './whispering-forest.js';
 import {r2ForestGrade} from './r2-materials.js?v=1';
 import {paintForestGround} from './art-world-grade.js?v=1';
+import {landscapeGroundPixel} from '../landscape.js?v=0.6.45.68';
 const PI=Math.PI,TAU=PI*2;
 const clamp=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t)};
@@ -18,6 +19,16 @@ function noise(x,z){
 export function forestTextureMask(lon,lat){
  return smooth(.14,.32,lon)*(1-smooth(1.40,1.55,lon))*
   (1-smooth(.31,.46,Math.abs(lat+.035)));
+}
+// A natural meadow-to-forest ecotone, with an irregular spatial border.
+// The original meadow texture is kept at the entrance and slowly acquires
+// darker damp soil and leaf litter deeper into the forest. Baked once.
+export function forestEntranceBlend(lon,lat){
+ if(!Number.isFinite(lon)||!Number.isFinite(lat))return 0;
+ const x=261*lon*Math.cos(lat),z=261*lat;
+ const wiggle=(noise(x*.033+42,z*.033-19)-.5)*.105+
+  (noise(x*.087-12,z*.087+32)-.5)*.037;
+ return smooth(.305,.645,lon+wiggle);
 }
 export function forestRoadProfile(lon,lat){
  if(!Number.isFinite(lon)||!Number.isFinite(lat))return {wear:0,ruts:0,edge:0,dist:Infinity};
@@ -79,9 +90,40 @@ export function forestGroundPixel(lon,lat,{r2=false,art=false}={}){
  const painted=art?paintForestGround(base,{wear:road.wear,ruts:road.ruts,
   edge:road.edge,moss,leaves,wet,earth,canopy,broad,patch,grit,scratch}):null;
  const rgb=art?painted.map((v,i)=>v*.89+base[i]*.11):base;
- return [Math.round(mix(255,clamp(rgb[0]/255)*255,mask)),
-  Math.round(mix(255,clamp(rgb[1]/255)*255,mask)),
-  Math.round(mix(255,clamp(rgb[2]/255)*255,mask)),255];
+ // The separate high-resolution village ground ends near the 84 m rim.
+ // Sample its SAME painted meadow algorithm for the woodland apron instead
+ // of allowing fully dark forest soil to appear immediately beyond the rim.
+ // No new canvas, shader, mesh, alpha transparency or per-frame sampling.
+ const forestBlend=forestEntranceBlend(lon,lat);
+ let blendedSoil=rgb;
+ if(forestBlend<.999){
+  const meadow=landscapeGroundPixel(x,z,[],{r2,art});
+  const worn=road.wear*.94;
+  const meadowRoad=[157+12*dry,125+10*dry,79+8*dry];
+  const entrance=meadow.slice(0,3).map((c,i)=>mix(c,meadowRoad[i],worn));
+  blendedSoil=entrance.map((c,i)=>mix(c,rgb[i],forestBlend));
+ }
+ return [Math.round(mix(255,clamp(blendedSoil[0]/255)*255,mask)),
+  Math.round(mix(255,clamp(blendedSoil[1]/255)*255,mask)),
+  Math.round(mix(255,clamp(blendedSoil[2]/255)*255,mask)),255];
+}
+// The tile has an irregular geometric edge. Feather its outermost
+// existing texels to the EXACT neighbouring globe texture colour; the
+// central village retains its unchanged material/palette and route marks.
+export function forestEntranceTilePixel(x,z,villagePixel,{radius=261,r2=false,art=false}={}){
+ if(!Number.isFinite(x)||!Number.isFinite(z)||!Array.isArray(villagePixel))
+  throw new TypeError('Invalid village terrain sample');
+ const distance=Math.hypot(x,z);
+ if(distance<=68||x<=49)return villagePixel;
+ const theta=distance/radius,projection=Math.sin(theta)/distance;
+ const nx=x*projection,ny=z*projection,nz=Math.cos(theta);
+ const lon=Math.atan2(nx,nz),lat=Math.asin(Math.max(-1,Math.min(1,ny)));
+ // Keep the original texture everywhere outside the woodland entrance.
+ const mask=forestTextureMask(lon,lat);
+ const feather=smooth(68,81,distance)*smooth(.36,.985,mask);
+ if(feather<=.0001)return villagePixel;
+ const forestPixel=forestGroundPixel(lon,lat,{r2,art});
+ return villagePixel.map((c,i)=>i===3?255:Math.round(mix(c,forestPixel[i],feather)));
 }
 export function buildForestGroundPixels(width=1024,height=512,{r2=false,art=false}={}){
  if(!Number.isInteger(width)||!Number.isInteger(height)||width<4||height<4||

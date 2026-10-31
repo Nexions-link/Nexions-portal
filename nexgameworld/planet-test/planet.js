@@ -17,7 +17,7 @@ import {r2LightingProfile} from './r2-lighting.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=2';
 import {createForestGroundLife} from './forest-ground-life.js?v=3';
 import {createForestUnderstory} from './forest-understory.js?v=3';
-import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=4';
+import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=5';
 import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
 import {createSoilScatter} from './soil-scatter.js?v=2';
@@ -38,7 +38,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=57';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=58';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.

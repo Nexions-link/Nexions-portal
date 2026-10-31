@@ -75,13 +75,18 @@ export function landscapeGroundPixel(x,z,preparedRoutes=[],{r2=false,art=false}=
   Math.round(Math.max(0,Math.min(255,rgb[1]))),
   Math.round(Math.max(0,Math.min(255,rgb[2]))),255];
 }
-export function createLandscapeMap(THREE,segments,size=1024,{r2=false,art=false}={}){
+export function createLandscapeMap(THREE,segments,size=1024,{r2=false,art=false,edgePaint=null}={}){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
  const context=canvas.getContext('2d'),image=context.createImageData(size,size),pixels=image.data;
  const prepared=prepareLandscapeRoutes(segments);
  for(let py=0;py<size;py++)for(let px=0;px<size;px++){
   const x=(px+.5)/size*190-95,z=(py+.5)/size*190-95;
-  pixels.set(landscapeGroundPixel(x,z,prepared,{r2,art}),(py*size+px)*4);
+  const original=landscapeGroundPixel(x,z,prepared,{r2,art});
+  // Only the narrow eastern edge of the existing starting terrain needs
+  // cross-biome painting; 99% of the baked map follows the original path.
+  const pixel=edgePaint&&x>49&&x*x+z*z>68*68
+   ?edgePaint(x,z,original):original;
+  pixels.set(pixel,(py*size+px)*4);
  }
  context.putImageData(image,0,0);
  const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;

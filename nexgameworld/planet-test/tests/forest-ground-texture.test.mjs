@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {forestTextureMask,forestGroundPixel,buildForestGroundPixels,createForestGroundTexture}
+import {forestTextureMask,forestGroundPixel,buildForestGroundPixels,createForestGroundTexture,
+ forestEntranceBlend,forestEntranceTilePixel}
  from '../forest-ground-texture.js';
 import {forestTrailLatitude} from '../whispering-forest.js';
 test('world texture remains fully opaque; unrelated biomes are neutral white',()=>{
@@ -44,4 +45,28 @@ test('main globe keeps regular opaque material and no custom shader',async()=>{
  assert.match(src,/map:groundTexture,vertexColors:true/);
  assert.match(src,/transparent:false,depthWrite:true/);
  assert.doesNotMatch(src,/installForestGroundShader/);
+});
+
+test('village-to-forest transition fades through a genuine meadow apron',()=>{
+ const lat=forestTrailLatitude(.34);
+ assert.ok(forestEntranceBlend(.30,lat)<.18);
+ assert.ok(forestEntranceBlend(.48,lat)>.1&&forestEntranceBlend(.48,lat)<.95);
+ assert.equal(forestEntranceBlend(.81,lat),1);
+ const meadow=forestGroundPixel(.32,forestTrailLatitude(.32)+.12,{r2:true,art:true});
+ assert.ok(meadow[1]>meadow[0]*1.16);
+ assert.equal(meadow[3],255);
+});
+test('village core is identical, and the eastern boundary matches the globe',()=>{
+ const original=[91,124,69,255];
+ for(const [x,z] of [[0,0],[56,-4],[40,70],[-82,0],[67,-1]]){
+  assert.deepEqual(forestEntranceTilePixel(x,z,original,{r2:true,art:true}),original);
+ }
+ const edge=forestEntranceTilePixel(84,-2,original,{r2:true,art:true});
+ const d=Math.hypot(84,-2),k=Math.sin(d/261)/d;
+ const lon=Math.atan2(84*k,Math.cos(d/261)),lat=Math.asin(-2*k);
+ assert.deepEqual(edge,forestGroundPixel(lon,lat,{r2:true,art:true}));
+ const mid=forestEntranceTilePixel(76,-2,original,{r2:true,art:true});
+ assert.notDeepEqual(mid,original);
+ assert.notDeepEqual(mid,edge);
+ assert.equal(edge[3],255);
 });

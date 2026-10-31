@@ -49,5 +49,7 @@ test('R2 is optional and inserted into true playable terrain, not a concept imag
  const start=readFileSync(new URL('../start-zone.js',import.meta.url),'utf8');
  assert.match(planet,/get\('r2materials'\)==='1'/);
  assert.match(planet,/createForestGroundTexture\(THREE,\{r2:r2Materials,art:artRemaster\}\)/);
- assert.match(start,/createLandscapeMap\(THREE,routeSegments,1280,\{r2:r2Materials,art:artRemaster\}\)/);
+ assert.match(start,/createLandscapeMap\(THREE,routeSegments,1280,\{/);
+ assert.match(start,/r2:r2Materials,art:artRemaster,/);
+ assert.match(start,/edgePaint:\(x,z,pixel\)=>forestEntranceTilePixel/);
 });

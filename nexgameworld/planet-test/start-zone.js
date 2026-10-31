@@ -1,6 +1,7 @@
 import {getActorOutfitMaps} from './actor-outfit-materials.js?v=1';
 import {createSmoothActorForm,getSmoothActorPrimitives} from './smooth-actor-geometry.js?v=1';
-import {createLandscapeMap} from '../landscape.js?v=0.6.45.60';
+import {createLandscapeMap} from '../landscape.js?v=0.6.45.68';
+import {forestEntranceTilePixel} from './forest-ground-texture.js?v=5';
 import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=21';
 import {createSphericalMeadow} from './sphere-meadow.js?v=5';
@@ -289,7 +290,13 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
    width:ri===4?2.25:ri===1?3.25:3.5
   }));
  });
- const paintedMap=createLandscapeMap(THREE,routeSegments,1280,{r2:r2Materials,art:artRemaster});
+ // The original village texture is untouched except for the easternmost
+ // entrance rim (68–84 m), where its pixels match the globe's meadow apron.
+ const paintedMap=createLandscapeMap(THREE,routeSegments,1280,{
+  r2:r2Materials,art:artRemaster,
+  edgePaint:(x,z,pixel)=>forestEntranceTilePixel(x,z,pixel,{
+   radius:getRadius(),r2:r2Materials,art:artRemaster})
+ });
  const tileUVs=[];
  for(let i=0;i<points.length;i+=2)tileUVs.push((points[i]+95)/190,1-(points[i+1]+95)/190);
  const verts=new Float32Array(points.length/2*3);
