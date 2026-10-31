@@ -248,7 +248,8 @@ export function createSphericalPresence({
   retry=setTimeout(()=>{retry=null;connect()},delay);
  }
  function connect(){
-  if(closed||!url||typeof WebSocket==='undefined')return;
+  if(closed)return;
+  if(!url||typeof WebSocket==='undefined'){status('offline');return}
   if(socket&&(socket.readyState===WebSocket.CONNECTING||socket.readyState===WebSocket.OPEN))return;
   status(reconnectAttempts?'reconnecting':'connecting');
   let ws;
@@ -260,8 +261,11 @@ export function createSphericalPresence({
    const p=position();
    if(!p){ws.close();return}
    joinedRadius=p.radius;
-   if(auth)send({type:'authJoin',sessionToken:auth.sessionToken,
-    characterId:auth.characterId});
+   if(auth){
+    status('authorizing');
+    send({type:'authJoin',sessionToken:auth.sessionToken,
+     characterId:auth.characterId});
+   }
    else send({type:'join',name:'Странник',...p,...getCharacter?.()});
    sendLoop=setInterval(()=>{
     if(ws.readyState!==WebSocket.OPEN||(auth&&!synced))return;

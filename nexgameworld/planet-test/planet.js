@@ -26,7 +26,8 @@ import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from 
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=160';
-import {createSphericalPresence} from './sphere-online.js?v=28';
+import {createSphericalPresence} from './sphere-online.js?v=29';
+import {createConnectionIndicator} from './connection-indicator.js?v=1';
 import {syncForestWolfMount} from './mount-visual.js?v=4';
 import {createMountControls} from './mount-controls.js?v=3';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=2';
@@ -58,6 +59,10 @@ const accountLaunch=accountMode?getAccountLaunch(sessionStorage):null;
 if(accountMode&&!accountLaunch){
  location.replace('/nexgameworld/account.html');
  throw Error('Сначала войдите в аккаунт и выберите персонажа');
+}
+if(accountMode){
+ const bootNotice=document.getElementById('loading');
+ if(bootNotice)bootNotice.textContent='Проверяем аккаунт и загружаем персонажа…';
 }
 const accountProfile=accountMode?await fetchAuthenticatedProfile(accountLaunch):null;
 const BASE_RADIUS = START_RADIUS;
@@ -514,6 +519,7 @@ try {
    updateActor();
   }
   const connectionBanner=$('connectionBanner');
+  const connectionIndicator=createConnectionIndicator({root:connectionBanner,documentRef:document});
   const mountControls=createMountControls({document,
    onSummon:()=>onlinePresence?.summonMount(),
    onDismount:()=>onlinePresence?.dismount(),
@@ -617,26 +623,16 @@ try {
       const element=$('onlineStatus');
       if(element)element.textContent=value==='online'?'В мире: '+count+' игрок'+(count===1?'':count>=2&&count<=4?'а':'ов'):
         value==='connecting'?'Подключение к миру…':
+        value==='authorizing'?'Проверка сессии…':
         value==='syncing'?'Загружаем сохранение…':
         value==='reconnecting'?'Переподключение…':
         value==='auth_required'?'Требуется повторный вход':
         value==='incompatible'?'Версия сервера не совпадает':'Нет связи с сервером';
-      if(!accountMode||!connectionBanner)return;
-      const notice={
-        connecting:'Подключаемся к игровому миру…',
-        reconnecting:'Связь потеряна. Переподключаемся; действия приостановлены.',
-        offline:'Сервер недоступен. Прогресс защищён; ждём подключения.',
-        syncing:'Соединение есть. Сверяем сохранение персонажа…',
-        auth_required:'Сессия истекла. Выбери персонажа повторно.',
-        incompatible:'Версия клиента и сервера не совпадает. Перезагрузи игру.'
-      };
-      connectionBanner.hidden=value==='online';
-      connectionBanner.textContent=notice[value]||notice.offline;
-      connectionBanner.dataset.status=value;
+      if(accountMode)connectionIndicator.setStatus(value);
     }
   });
   rpg.setMultiplayer(onlinePresence);
-  window.addEventListener('pagehide',()=>{mountControls.dispose();onlinePresence?.close();});
+  window.addEventListener('pagehide',()=>{mountControls.dispose();onlinePresence?.close();connectionIndicator.destroy();});
   let prevHeading = 0;
   // Initialize before restoring orbital view or entering landing-page preview.
   let cameraSnap = true,windowOffset=0,chestCameraOffset=null;
