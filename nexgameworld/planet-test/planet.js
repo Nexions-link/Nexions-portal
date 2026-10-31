@@ -28,7 +28,7 @@ import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from 
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=160';
-import {createSphericalPresence} from './sphere-online.js?v=29';
+import {createSphericalPresence} from './sphere-online.js?v=30';
 import {createConnectionIndicator} from './connection-indicator.js?v=1';
 import {syncForestWolfMount} from './mount-visual.js?v=4';
 import {createMountControls} from './mount-controls.js?v=3';
@@ -38,7 +38,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=55';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=57';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.

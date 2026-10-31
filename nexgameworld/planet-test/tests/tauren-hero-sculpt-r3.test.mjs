@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 import {taurenFurLockData,createTaurenFurLockGeometry,carveTaurenHornRadius,
- TAUREN_FUR_LOCK_BUDGET} from '../tauren-hero-sculpt.js?v=2';
+ TAUREN_FUR_LOCK_BUDGET} from '../tauren-hero-sculpt.js?v=3';
 import {createTauren} from '../start-zone.js';
 import {animateSphericalTauren} from '../tauren-animation.js';
 import {installDom} from './harness.mjs';
@@ -34,7 +34,7 @@ test('horns gain actual relief with preserved curve/radius tolerance',()=>{
  }
  assert.throws(()=>carveTaurenHornRadius(NaN,0,.2),RangeError);
 });
-test('R3-05 gives local and remote players new shared mane, NPC still uses light legacy geometry',()=>{
+test('R3-05 gives local and remote players new shared mane, NPC shares curved hair geometry',()=>{
  const player=spawn({player:true,fur:0x836144});
  const remote=spawn({remotePlayer:true,fur:0x937252});
  const npc=spawn({fur:0x836144});
@@ -50,7 +50,7 @@ test('R3-05 gives local and remote players new shared mane, NPC still uses light
  };
  assert.ok(countLocks(player)>=20);
  assert.equal(countLocks(player),countLocks(remote));
- assert.equal(countLocks(npc),0,'do not increase geometry for old NPC population');
+ assert.equal(countLocks(npc),countLocks(player),'villagers share the same smooth mane master');
  const remoteMain=remote.chest.children.find(o=>o.isMesh&&o.geometry===ref);
  assert.ok(remoteMain&&remoteMain.material.vertexColors);
  assert.strictEqual(remoteMain.geometry,ref);
@@ -85,7 +85,7 @@ test('original rig, hands, animation, dimensions and inspector preview remain co
 test('no model replacements or camera/equipment/network mutations',()=>{
  const source=readFileSync(new URL('../start-zone.js',import.meta.url),'utf8');
  const world=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
- assert.match(source,/heroSculpt:player\|\|remotePlayer/);
+ assert.match(source,/heroSculpt:true/);
  assert.match(source,/createTaurenFurLockGeometry\(THREE\)/);
  assert.match(source,/taurenHorn\(head,s,heroSculpt\)/);
  assert.match(world,/createTauren\(THREE,scene,\{player:true\}\)/);

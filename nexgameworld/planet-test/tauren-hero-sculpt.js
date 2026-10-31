@@ -45,6 +45,7 @@ export function createTaurenFurLockGeometry(THREE){
  geo.setIndex(data.indices);
  geo.computeVertexNormals();
  geo.computeBoundingSphere();
+ geo.userData.actorShared=true;
  cache.set(THREE,geo);
  return geo;
 }

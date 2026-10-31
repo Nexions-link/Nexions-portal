@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {createCanvas} from '@napi-rs/canvas';
 import {createTauren} from '../start-zone.js';
 import {installDom} from './harness.mjs';
-import {getTaurenSurfaceMaps,paintTaurenFur,TAUREN_FUR_ATLAS_SIZE,TAUREN_MUZZLE_ATLAS_SIZE} from '../tauren-fur-textures.js?v=1';
+import {getTaurenSurfaceMaps,paintTaurenFur,TAUREN_FUR_ATLAS_SIZE,TAUREN_MUZZLE_ATLAS_SIZE} from '../tauren-fur-textures.js?v=2';
 
 function render(short=false){
  const size=short?TAUREN_MUZZLE_ATLAS_SIZE:TAUREN_FUR_ATLAS_SIZE;

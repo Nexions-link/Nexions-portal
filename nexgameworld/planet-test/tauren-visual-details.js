@@ -1,5 +1,5 @@
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
-import {createTaurenFurLockGeometry} from './tauren-hero-sculpt.js?v=2';
+import {createTaurenFurLockGeometry} from './tauren-hero-sculpt.js?v=3';
 // Additional original NexGameWorld adventurer detailing. A cosmetic layer only:
 // parent joints, grips, IK, hitboxes, equipment and animation are unchanged.
 export function createTaurenVisualDetails(THREE,actor){

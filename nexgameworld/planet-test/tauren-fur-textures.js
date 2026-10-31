@@ -88,6 +88,7 @@ export function getTaurenSurfaceMaps(THREE,{createCanvas=()=>document.createElem
  };
  // These maps are intentionally shared; material instances carry unique player
  // tint and equipment color. Never dispose a shared map with one remote avatar.
+ for(const texture of Object.values(maps))texture.userData.actorShared=true;
  caches.set(THREE,maps);
  return maps;
 }

@@ -57,10 +57,10 @@ function nameSprite(THREE,label){
 }
 function disposeActor(root){
  root.traverse(child=>{
-  if(child.geometry)child.geometry.dispose();
+  if(child.geometry&&!child.geometry.userData?.actorShared)child.geometry.dispose();
   if(child.material){
    for(const material of (Array.isArray(child.material)?child.material:[child.material])){
-    if(material.map)material.map.dispose();
+    if(material.map&&!material.map.userData?.actorShared)material.map.dispose();
     material.dispose();
    }
   }
