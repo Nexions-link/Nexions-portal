@@ -3,6 +3,7 @@
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestMoodAt,
  forestDistance,createForestLayout} from './whispering-forest.js';
 import {forestSunbreakLayout} from './forest-lighting.js';
+import {r2AtmosphereBudget} from './r2-lighting.js?v=1';
 
 const TAU=Math.PI*2;
 const smooth=(a,b,t)=>{const v=Math.max(0,Math.min(1,(t-a)/(b-a)));return v*v*(3-2*v)};
@@ -85,7 +86,7 @@ function glowTexture(THREE){
  texture.magFilter=THREE.LinearFilter;texture.minFilter=THREE.LinearFilter;
  return texture;
 }
-export function createForestAtmosphere(THREE,{scene,radius,heightAt}){
+export function createForestAtmosphere(THREE,{scene,radius,heightAt,r2Lighting=false}){
  const hazeLayout=forestHazeLayout(),shaftLayout=forestSunbreakLayout();
  const up=new THREE.Vector3(0,1,0),n=new THREE.Vector3(),align=new THREE.Quaternion();
  const rotation=new THREE.Quaternion(),object=new THREE.Object3D();
@@ -103,7 +104,7 @@ export function createForestAtmosphere(THREE,{scene,radius,heightAt}){
   instanced.frustumCulled=false;scene.add(instanced);
  }
  const hazeMaterial=new THREE.MeshBasicMaterial({
-  color:'#b0c5bc',vertexColors:true,transparent:true,opacity:.56,
+  color:r2Lighting?'#a5bdb4':'#b0c5bc',vertexColors:true,transparent:true,opacity:r2Lighting?.38:.56,
   side:THREE.DoubleSide,depthWrite:false,polygonOffset:true,
   polygonOffsetFactor:-1,polygonOffsetUnits:-1
  });
@@ -111,7 +112,7 @@ export function createForestAtmosphere(THREE,{scene,radius,heightAt}){
  haze.name='forest-ground-mist-no-collision';
  place(haze,hazeLayout,p=>({offset:.23,x:p.size,y:1,z:p.size*.75}));
  const rays=new THREE.InstancedMesh(sunShaftGeometry(THREE),new THREE.MeshBasicMaterial({
-  color:'#fbe8c0',vertexColors:true,transparent:true,opacity:.45,
+  color:r2Lighting?'#ffdfad':'#fbe8c0',vertexColors:true,transparent:true,opacity:r2Lighting?.53:.45,
   blending:THREE.AdditiveBlending,side:THREE.DoubleSide,depthWrite:false
  }),shaftLayout.length);
  rays.name='forest-filtered-sunlight-no-collision';
@@ -137,14 +138,14 @@ export function createForestAtmosphere(THREE,{scene,radius,heightAt}){
  dustGeometry.setAttribute('position',positionAttribute);
  const sprite=glowTexture(THREE);
  const dust=new THREE.Points(dustGeometry,new THREE.PointsMaterial({
-  color:'#ffead0',map:sprite,transparent:true,opacity:.65,size:.55,
+  color:r2Lighting?'#ffedc9':'#ffead0',map:sprite,transparent:true,opacity:r2Lighting?.54:.65,size:.55,
   sizeAttenuation:true,depthWrite:false,blending:THREE.AdditiveBlending
  }));
  dust.name='forest-floating-motes-no-collision';
  dust.frustumCulled=false;scene.add(dust);
  let current={haze:0,beams:0,motes:0},animationTick=0;
  function setQuality(preset='balanced',preview=false){
-  current=forestAtmosphereBudget(preset,preview);
+  current=r2Lighting?r2AtmosphereBudget(preset,preview):forestAtmosphereBudget(preset,preview);
   haze.count=Math.min(hazeLayout.length,current.haze);
   rays.count=Math.min(shaftLayout.length,current.beams);
   dustGeometry.setDrawRange(0,current.motes);
@@ -156,8 +157,8 @@ export function createForestAtmosphere(THREE,{scene,radius,heightAt}){
   rays.visible=current.beams>0&&strength>.23;
   dust.visible=current.motes>0&&strength>.31;
   if(!strength)return;
-  hazeMaterial.opacity=.47+.08*Math.sin(time*.2);
-  rays.material.opacity=.35+.06*Math.sin(time*.19);
+  hazeMaterial.opacity=r2Lighting?.35+.05*Math.sin(time*.2):.47+.08*Math.sin(time*.2);
+  rays.material.opacity=r2Lighting?.46+.04*Math.sin(time*.19):.35+.06*Math.sin(time*.19);
   if(!dust.visible||++animationTick%3!==0)return;
   for(let i=0;i<current.motes;i++){
    const w=time*.49+phase[i];

@@ -83,10 +83,10 @@ function sunPoolGeometry(THREE){
  geo.computeVertexNormals();return geo;
 }
 
-export function createForestLightPools(THREE,{scene,radius,heightAt}){
+export function createForestLightPools(THREE,{scene,radius,heightAt,r2Lighting=false}){
  const spots=forestSunbreakLayout();
  const material=new THREE.MeshBasicMaterial({
-  color:'#f7dba1',vertexColors:true,transparent:true,opacity:.80,depthWrite:false,
+  color:r2Lighting?'#ffe5b1':'#f7dba1',vertexColors:true,transparent:true,opacity:r2Lighting?.96:.80,depthWrite:false,
   side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2
  });
  const pool=new THREE.InstancedMesh(sunPoolGeometry(THREE),material,spots.length);
@@ -102,7 +102,7 @@ export function createForestLightPools(THREE,{scene,radius,heightAt}){
    .multiply(turn.setFromAxisAngle(up,p.yaw));
   object.scale.set(p.radius,1,p.radius*.72);object.updateMatrix();
   pool.setMatrixAt(i,object.matrix);
-  pool.setColorAt(i,tint.set(p.tint>.5?'#f3dda9':'#e3c993'));
+  pool.setColorAt(i,tint.set(r2Lighting?(p.tint>.5?'#f6dc9b':'#efcb83'):(p.tint>.5?'#f3dda9':'#e3c993')));
  }
  pool.instanceMatrix.needsUpdate=true;
  pool.renderOrder=1;

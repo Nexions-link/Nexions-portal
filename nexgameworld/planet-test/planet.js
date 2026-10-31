@@ -11,7 +11,8 @@ import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-que
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=22';
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=22';
-import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
+import {createForestAtmosphere} from './forest-atmosphere.js?v=2';
+import {r2LightingProfile} from './r2-lighting.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
 import {createForestGroundLife} from './forest-ground-life.js?v=2';
 import {createForestUnderstory} from './forest-understory.js?v=2';
@@ -21,7 +22,7 @@ import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
 import {createSoilScatter} from './soil-scatter.js?v=2';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
 import {createForestEcology} from './forest-ecology.js?v=4';
-import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
+import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=3';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
@@ -55,6 +56,7 @@ const isPortalPreview = new URLSearchParams(location.search).get('portal-preview
 // R2 is an in-game A/B preview; default remains the verified fast renderer.
 const r2Materials=!isPortalPreview&&new URLSearchParams(location.search).get('r2materials')==='1';
 const r2Vegetation=!isPortalPreview&&new URLSearchParams(location.search).get('r2vegetation')==='1';
+const r2Lighting=!isPortalPreview&&new URLSearchParams(location.search).get('r2lighting')==='1';
 const accountMode=!isPortalPreview;
 const accountLaunch=accountMode?getAccountLaunch(sessionStorage):null;
 if(accountMode&&!accountLaunch){
@@ -180,6 +182,18 @@ try {
   const localFog=new THREE.Fog(skyDay,105,290);
   const forestFogColor=new THREE.Color('#536e68');
   const forestSkyColor=new THREE.Color('#8ba9a1');
+  // Fixed R2 palette allocations outside the frame loop. Original renderer
+  // remains untouched whenever the optional atmospheric profile is off.
+  const r2ForestFogColor=new THREE.Color('#829c8d');
+  const r2ForestSkyColor=new THREE.Color('#a7c0b2');
+  const r2WarmSun=new THREE.Color('#f6d6a8');
+  const r2DaySun=new THREE.Color('#fff0c9');
+  const r2CoolFill=new THREE.Color('#a9cadf');
+  const r2DayFill=new THREE.Color('#b4dbe9');
+  const r2ForestHemi=new THREE.Color('#e0e7d8');
+  const r2DayHemi=new THREE.Color('#f7e6c6');
+  const r2ForestGround=new THREE.Color('#354f58');
+  const r2DayGround=new THREE.Color('#486b70');
   const blendedForestSky=new THREE.Color();
   sun.shadow.camera.left=-31;sun.shadow.camera.right=31;
   sun.shadow.camera.top=31;sun.shadow.camera.bottom=-31;
@@ -338,8 +352,8 @@ try {
   const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt,r2Vegetation});
   const roadsideDetails=isPortalPreview?null:createRoadsideDetails(THREE,{scene,radius:R,heightAt,startRoute:ROUTES[1]});
   const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
-  const forestLightPools=isPortalPreview?null:createForestLightPools(THREE,{scene,radius:R,heightAt});
-  const forestAtmosphere=isPortalPreview?null:createForestAtmosphere(THREE,{scene,radius:R,heightAt});
+  const forestLightPools=isPortalPreview?null:createForestLightPools(THREE,{scene,radius:R,heightAt,r2Lighting});
+  const forestAtmosphere=isPortalPreview?null:createForestAtmosphere(THREE,{scene,radius:R,heightAt,r2Lighting});
   const forestFloor=isPortalPreview?null:createForestFloor(THREE,{scene,radius:R,heightAt});
   const forestGroundLife=isPortalPreview?null:createForestGroundLife(THREE,{scene,radius:R,heightAt});
   const forestUnderstory=isPortalPreview?null:createForestUnderstory(THREE,{scene,radius:R,heightAt});
@@ -374,6 +388,7 @@ try {
   function storePreference(key,value){try{localStorage.setItem(key,value)}catch{}}
   const graphicsSelect=$('graphicsQuality'),qualityHelp=$('qualityHelp');
   const r2MaterialsToggle=$('r2MaterialsToggle'),r2VegetationToggle=$('r2VegetationToggle');
+  const r2LightingToggle=$('r2LightingToggle');
   const fpsToggle=$('showFps'),fpsCounter=$('fpsCounter');
   const fpsCopy=$('copyFpsReport'),fpsReset=$('resetFpsReport'),fpsHelp=$('fpsHelp');
   const frameProfiler=createFrameProfiler();
@@ -399,6 +414,9 @@ try {
     renderer.shadowMap.enabled=enabled;
     shadowBudget.reset();
     shadowActive=enabled;
+    // Smaller bias improves contact at tree bases without an extra shadow
+    // pass, new shadow map, or changing the established refresh cadence.
+    sun.shadow.normalBias=r2Lighting?(qualityName==='high'?.027:.032):.035;
     scene.fog=state.orbit||isPortalPreview?null:localFog;
     localFog.near=profile.fogNear;localFog.far=profile.fogFar;
     const sceneryDensity=graphicsDensity(qualityName);
@@ -441,6 +459,15 @@ try {
       qualityName==='high'?'Самая плотная растительность, чёткая картинка, тени 1024 px.':
       'Умеренная растительность, мягкие тени 512 px и улучшенное озеро.';
     if(graphicsSelect)graphicsSelect.value=qualityName;
+  }
+  if(r2LightingToggle){
+    r2LightingToggle.checked=r2Lighting;
+    r2LightingToggle.addEventListener('change',()=>{
+      const next=new URL(location.href);
+      if(r2LightingToggle.checked)next.searchParams.set('r2lighting','1');
+      else next.searchParams.delete('r2lighting');
+      location.replace(next.href);
+    });
   }
   if(r2VegetationToggle){
     r2VegetationToggle.checked=r2Vegetation;
@@ -983,17 +1010,34 @@ try {
     const fogProfile=GRAPHICS_PRESETS[qualityName];
     // Shade follows the traveller, not the whole globe. A clearing gradually
     // restores daylight; combat silhouettes remain legible at every preset.
-    const localLight=forestLightResponse(forestShadeBlend,fogProfile.exposure);
+    const r2Light=r2Lighting?r2LightingProfile({
+      shade:forestShadeBlend,forest:forestFogBlend,
+      exposure:fogProfile.exposure,fogNear:fogProfile.fogNear,
+      fogFar:fogProfile.fogFar,quality:qualityName
+    }):null;
+    const localLight=r2Light||forestLightResponse(forestShadeBlend,fogProfile.exposure);
+    if(r2Light){
+      // Original objects, not new lights. Warm top-lit foliage, cool shade.
+      sun.color.copy(r2DaySun).lerp(r2WarmSun,r2Light.sunWarmth);
+      fill.color.copy(r2DayFill).lerp(r2CoolFill,r2Light.fillCoolness);
+      skyFill.color.copy(r2DayHemi).lerp(r2ForestHemi,r2Light.fillCoolness);
+      skyFill.groundColor.copy(r2DayGround).lerp(r2ForestGround,r2Light.groundCoolness);
+    }
     skyFill.intensity=localLight.hemi;
     sun.intensity=localLight.sun;
     fill.intensity=localLight.fill;
     renderer.toneMappingExposure=localLight.exposure;
-    localFog.near=fogProfile.fogNear*(1-.18*forestFogBlend-.08*forestShadeBlend);
-    localFog.far=fogProfile.fogFar*(1-.42*forestFogBlend-.11*forestShadeBlend);
-    localFog.color.copy(skyDay).lerp(forestFogColor,forestFogBlend*(.58+.1*forestShadeBlend));
+    localFog.near=r2Light?r2Light.fogNear:
+      fogProfile.fogNear*(1-.18*forestFogBlend-.08*forestShadeBlend);
+    localFog.far=r2Light?r2Light.fogFar:
+      fogProfile.fogFar*(1-.42*forestFogBlend-.11*forestShadeBlend);
+    localFog.color.copy(skyDay).lerp(
+      r2Light?r2ForestFogColor:forestFogColor,
+      r2Light?r2Light.fogBlend:forestFogBlend*(.58+.1*forestShadeBlend));
     if(!state.orbit&&!isPortalPreview)
-     scene.background=blendedForestSky.copy(skyDay).lerp(forestSkyColor,
-      forestFogBlend*(.62+.09*forestShadeBlend));
+     scene.background=blendedForestSky.copy(skyDay).lerp(
+      r2Light?r2ForestSkyColor:forestSkyColor,
+      r2Light?r2Light.skyBlend:forestFogBlend*(.62+.09*forestShadeBlend));
     if(measureFrames&&rawDt>0&&rawDt<=.25){
       fpsFrames++;fpsSeconds+=rawDt;
     }else{fpsSeconds=0;fpsFrames=0;}

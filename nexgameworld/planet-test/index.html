@@ -604,7 +604,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.45.57" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.45.58" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -678,6 +678,8 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
   <small id="r2MaterialsHelp" class="settings-help">Включает новые оттенки грунта и троп; на высоком качестве — PBR-фактуру земли. Игра перезагрузится, чтобы обновить запечённые текстуры. Выключите для сравнения с исходной графикой.</small>
   <label class="camera-follow-row" for="r2VegetationToggle"><input id="r2VegetationToggle" type="checkbox" role="switch" aria-describedby="r2VegetationHelp"><span>Новая растительность R2</span></label>
   <small id="r2VegetationHelp" class="settings-help">Экспериментальная форма крон Шепчущего леса и низкой луговой травы. Количество деревьев, травяных групп и draw calls не увеличено. Перезагрузка при переключении, сравни FPS и P95.</small>
+  <label class="camera-follow-row" for="r2LightingToggle"><input id="r2LightingToggle" type="checkbox" role="switch" aria-describedby="r2LightingHelp"><span>Новый свет и атмосфера R2</span></label>
+  <small id="r2LightingHelp" class="settings-help">Тёплый солнечный свет, прохладная глубина леса, более естественные просветы и влажная воздушная перспектива. Без дополнительных источников света, теневых проходов или объектов. Перезагрузка при переключении; сравни FPS и P95.</small>
   <label class="camera-follow-row" for="showFps"><input id="showFps" type="checkbox" role="switch" aria-describedby="fpsHelp"><span>Показывать FPS</span></label>
   <small id="fpsHelp" class="settings-help">FPS, P95 времени кадра и просадки измеряются локально. Для сравнения проверь поворот камеры, бой и дом.</small>
   <div class="fps-diagnostics-actions"><button type="button" id="copyFpsReport">Скопировать FPS-отчёт</button><button type="button" id="resetFpsReport">Сбросить замеры</button></div>
@@ -713,7 +715,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=265').catch(error=>{
+  import('./planet.js?v=266').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');
