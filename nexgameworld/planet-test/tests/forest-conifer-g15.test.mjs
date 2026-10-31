@@ -98,7 +98,7 @@ test('G-15 self-hosted PC modules, camera, starter lawn and VPS remain untouched
  const planet=p('../planet.js'),forest=p('../whispering-forest.js'),
   index=p('../index.html'),conifer=p('../forest-conifer-g15.js'),
   meadow=p('../sphere-meadow.js'),server=p('../../server/index.js');
- assert.match(planet,/from '\.\/whispering-forest\.js\?v=27'/);
+ assert.match(planet,/from '\.\/whispering-forest\.js\?v=\d+'/);
  assert.match(forest,/from '\.\/forest-crown-geometry\.js\?v=4'/);
  assert.match(index,/import\('\.\/planet\.js\?v=\d+'\)/);
  assert.match(index,/"three":"\.\/vendor\/three\.module\.js\?v=160"/);

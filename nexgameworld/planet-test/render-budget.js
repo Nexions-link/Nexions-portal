@@ -1,6 +1,6 @@
 // Cosmetic shadow-map cadence, independent of physics, controls and combat.
-// The high preset redraws its 1024 px map on every rendered frame;
-// balanced (512 px) schedules about 30 redraws/second on 60 Hz screens.
+// The high preset redraws its 2048 px map on every rendered frame;
+// balanced (1024 px) schedules about 30 redraws/second on 60 Hz screens.
 export const BALANCED_SHADOW_HZ=30;
 export function createShadowRefreshBudget(){
  let accumulator=0,wasEnabled=false,previousQuality=null;

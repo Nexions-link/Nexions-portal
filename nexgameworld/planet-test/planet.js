@@ -9,8 +9,8 @@ import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=27';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=27';
+import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=28';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=28';
 
 
 
@@ -26,7 +26,7 @@ import {createG11AmbientTrunkGeometry} from './trunk-silhouette-g11.js?v=1';
 import {VISUAL_REFERENCE_VIEWS,getVisualReferenceView,referenceViewPose} from './reference-viewpoints.js?v=1';
 import {captureVisualWebGLFrame,createVisualCaptureStore,makeVisualSnapshotMeta,compareVisualSnapshotMeta} from './visual-capture.js?v=1';
 
-import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
+import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=3';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
@@ -39,7 +39,7 @@ import {animateSphericalTauren} from './tauren-animation.js?v=12';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
-import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
+import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=3';
 import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath,startVisualRouteSegments} from './start-zone.js?v=56';
 initStartZoneMath(THREE);
 
@@ -228,8 +228,9 @@ try {
   renderer.shadowMap.autoUpdate=false;
   const shadowBudget=createShadowRefreshBudget();
   const localFog=new THREE.Fog(skyDay,105,290);
-  const forestFogColor=new THREE.Color('#536e68');
-  const forestSkyColor=new THREE.Color('#8ba9a1');
+  const forestFogColor=new THREE.Color('#809b88');
+  const forestAmbientColor=new THREE.Color('#bfd6c4');
+  const forestSkyColor=new THREE.Color('#a3beb1');
   const blendedForestSky=new THREE.Color();
   sun.shadow.camera.left=-31;sun.shadow.camera.right=31;
   sun.shadow.camera.top=31;sun.shadow.camera.bottom=-31;
@@ -1245,6 +1246,7 @@ try {
     // restores daylight; combat silhouettes remain legible at every preset.
     const localLight=forestLightResponse(forestShadeBlend,fogProfile.exposure);
     skyFill.intensity=localLight.hemi;
+    skyFill.color.set(ART.light.ambientSky).lerp(forestAmbientColor,forestShadeBlend*.65);
     sun.intensity=localLight.sun;
     fill.intensity=localLight.fill;
     renderer.toneMappingExposure=localLight.exposure;

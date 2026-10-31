@@ -260,6 +260,9 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   });
   mesh.instanceMatrix.needsUpdate=true;
   mesh.frustumCulled=false;
+  // Layered canopy, roots and bark receive the same directional light.
+  // Transparent contact shading stays a compositing layer.
+  mesh.receiveShadow=!material.transparent;
   scene.add(mesh);
   batches.push({mesh,kind});
   return mesh;
@@ -462,7 +465,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
    if(kind==='ground')mesh.count=Math.floor(mesh.instanceMatrix.count*groundFraction);
    if(kind==='detail')mesh.count=Math.floor(mesh.instanceMatrix.count*
     (portal?.12:q==='economy'?.35:q==='high'?1:.72));
-   mesh.castShadow=!portal&&q==='high'&&kind==='tree';
+   mesh.castShadow=!portal&&q!=='economy'&&kind==='tree';
   }
   campLight.visible=!portal&&q==='high';
   for(const item of smoke)item.visible=!portal&&q!=='economy';

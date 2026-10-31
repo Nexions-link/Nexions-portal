@@ -22,7 +22,7 @@ test('forest lighting darkens progressively but preserves clearings and the vill
 
 test('darker forest does not make combat unreadable or break preset exposure',()=>{
  const full=forestLightResponse(1,1.14),day=forestLightResponse(0,1.14);
- assert.deepEqual(day,{hemi:1.95,sun:2.5,fill:.62,exposure:1.14});
+ assert.deepEqual(day,{hemi:1.70,sun:2.8,fill:.62,exposure:1.14});
  assert.ok(full.hemi>1.2&&full.sun>1.5&&full.fill>.5);
  assert.ok(full.exposure>1.08&&full.exposure<day.exposure);
  assert.deepEqual(forestLightResponse(-2,1.14),day);
