@@ -4,25 +4,32 @@ import {scatterMeadow} from '../meadow.js?v=0.3.7.1';
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 import {WORLD_ART_VERTEX as V} from './world-art-style.js?v=1';
 export function meadowGrassBladeData(){
- const positions=[],colors=[],bladeCount=6;
+ // Stylized meadow turf: broad curved blades make grass readable at gameplay
+ // camera distance without introducing new draw calls or alpha overdraw.
+ const positions=[],colors=[],bladeCount=7;
  const emit=(v,c)=>{positions.push(...v);colors.push(...c)};
  const tri=(a,b,c,ca,cb,cc)=>{emit(a,ca);emit(b,cb);emit(c,cc)};
  for(let i=0;i<bladeCount;i++){
   const phase=i*Math.PI*2/bladeCount+.12;
   const dx=Math.cos(phase),dz=Math.sin(phase),tx=-dz,tz=dx;
-  const height=.43+(i%3)*.075,spread=.12+(i%3)*.04;
-  const w=.09+(i%2)*.017;
-  const low=[dx*.10,0,dz*.10],
-   left=[low[0]+tx*w,0,low[2]+tz*w],
-   right=[low[0]-tx*w,0,low[2]-tz*w],
-   shoulder=[dx*spread,height*.57,dz*spread],
-   tip=[dx*(spread+.24),height,dz*(spread+.24)];
-  const light=V.grassTip,dark=V.grassDark,mid=V.grassMid;
-  const l=[shoulder[0]+tx*w*.56,shoulder[1],shoulder[2]+tz*w*.56];
-  const r=[shoulder[0]-tx*w*.56,shoulder[1],shoulder[2]-tz*w*.56];
-  tri(left,right,l,dark,dark,mid);
-  tri(right,r,l,dark,mid,mid);
-  tri(l,r,tip,mid,mid,light);
+  const height=.60+(i%4)*.095,spread=.15+(i%3)*.045;
+  const width=.105+(i%3)*.014;
+  const baseX=dx*.07,baseZ=dz*.07;
+  const left=[baseX+tx*width,0,baseZ+tz*width];
+  const right=[baseX-tx*width,0,baseZ-tz*width];
+  const middle=[dx*spread,height*.47,dz*spread];
+  const upper=[dx*(spread+.15),height*.79,dz*(spread+.15)];
+  const tip=[dx*(spread+.38),height,dz*(spread+.38)];
+  const midLeft=[middle[0]+tx*width*.76,middle[1],middle[2]+tz*width*.76];
+  const midRight=[middle[0]-tx*width*.76,middle[1],middle[2]-tz*width*.76];
+  const upLeft=[upper[0]+tx*width*.34,upper[1],upper[2]+tz*width*.34];
+  const upRight=[upper[0]-tx*width*.34,upper[1],upper[2]-tz*width*.34];
+  const dark=V.grassDark,mid=V.grassMid,light=V.grassTip;
+  tri(left,right,midLeft,dark,dark,mid);
+  tri(right,midRight,midLeft,dark,mid,mid);
+  tri(midLeft,midRight,upLeft,mid,mid,light);
+  tri(midRight,upRight,upLeft,mid,light,light);
+  tri(upLeft,upRight,tip,light,light,light);
  }
  return {positions,colors,bladeCount};
 }
@@ -131,7 +138,7 @@ export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,a
    for(let i=0;i<points.length;i++){
     const p=points[i],normal=toNormal(p.x,p.z,radius);
     const elevation=heightAt(normal);
-    const scale=mode==='grass'?.24+p.scale*.27:mode==='flower'?.7+p.scale*.5:p.scale;
+    const scale=mode==='grass'?.36+p.scale*.34:mode==='flower'?.7+p.scale*.5:p.scale;
     const localHeight=mode==='grass'?0:mode==='flower'?.012:mode==='pebbles'?.055*p.scale:.31*p.scale;
     dummy.position.copy(normal).multiplyScalar(radius+elevation+localHeight);
     upQuat.setFromUnitVectors(UP,normal);
