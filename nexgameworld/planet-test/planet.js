@@ -29,6 +29,7 @@ import {VISUAL_REFERENCE_VIEWS,getVisualReferenceView,referenceViewPose} from '.
 import {captureVisualWebGLFrame,createVisualCaptureStore,makeVisualSnapshotMeta,compareVisualSnapshotMeta} from './visual-capture.js?v=1';
 
 import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=3';
+import {modernPreviewEnabled,modernLightingValues} from './modern-lighting-preview.js?v=1';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
@@ -115,6 +116,7 @@ planetViewport.addEventListener('contextmenu',event=>event.preventDefault());
 
 // NexGameWorld uses isolated spherical WebSockets for player presence; RPG combat stays local.
 const isPortalPreview = new URLSearchParams(location.search).get('portal-preview') === '1';
+const modernGraphicsPreview=!isPortalPreview&&modernPreviewEnabled(location.search);
 const accountMode=!isPortalPreview;
 const accountLaunch=accountMode?getAccountLaunch(sessionStorage):null;
 if(accountMode&&!accountLaunch){
@@ -240,6 +242,7 @@ try {
   const localFog=new THREE.Fog(skyDay,105,290);
   const forestFogColor=new THREE.Color('#809b88');
   const forestAmbientColor=new THREE.Color('#bfd6c4');
+  const modernAmbientTint=new THREE.Color('#a7bace');
   const forestSkyColor=new THREE.Color('#a3beb1');
   const blendedForestSky=new THREE.Color();
   sun.shadow.camera.left=-31;sun.shadow.camera.right=31;
@@ -1275,11 +1278,17 @@ try {
     const fogProfile=GRAPHICS_PRESETS[qualityName];
     // Shade follows the traveller, not the whole globe. A clearing gradually
     // restores daylight; combat silhouettes remain legible at every preset.
-    const localLight=forestLightResponse(forestShadeBlend,fogProfile.exposure);
+    const localLight=modernLightingValues(
+      forestLightResponse(forestShadeBlend,fogProfile.exposure),forestShadeBlend,modernGraphicsPreview);
     skyFill.intensity=localLight.hemi;
     skyFill.color.set(ART.light.ambientSky).lerp(forestAmbientColor,forestShadeBlend*.65);
+    if(modernGraphicsPreview)skyFill.color.lerp(modernAmbientTint,.16);
     sun.intensity=localLight.sun;
+    if(modernGraphicsPreview)sun.color.set('#ffdfa5');
+    else sun.color.set(ART.light.sun);
     fill.intensity=localLight.fill;
+    if(modernGraphicsPreview)fill.color.set('#9bc8ed');
+    else fill.color.set('#b4dbe9');
     renderer.toneMappingExposure=localLight.exposure;
     localFog.near=fogProfile.fogNear*(1-.18*forestFogBlend-.08*forestShadeBlend);
     localFog.far=fogProfile.fogFar*(1-.42*forestFogBlend-.11*forestShadeBlend);
