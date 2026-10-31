@@ -2,7 +2,7 @@
 // Geometries are instanced in whispering-forest.js; no collision meshes,
 // gameplay state, textures, downloads, custom shaders or per-tree materials.
 import {sculptForestCrown} from './r2-vegetation.js?v=1';
-import {deepenForestCanopy} from './forest-art-canopy.js?v=1';
+import {deepenForestCanopy} from './forest-art-canopy.js?v=2';
 const TAU=Math.PI*2;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export const FOREST_CROWN_GEOMETRY_BUDGET=Object.freeze({

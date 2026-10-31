@@ -1,6 +1,6 @@
 // P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
-import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=4';
+import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=5';
 import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=2';
 import {forestFernData} from './forest-botanical-geometry.js?v=1';
 const TAU=Math.PI*2;
@@ -61,6 +61,11 @@ export function forestTrailLatitude(lon){
 export function forestMoodAt(lon,lat){
  return smooth(.15,.62,lon)*(1-smooth(1.45,1.75,lon))*
   (1-smooth(.27,.52,Math.abs(lat-forestTrailLatitude(lon))));
+}
+// Existing tree coordinates form three visual layers around the trail.
+export function forestDepthBand(lon,lat){
+ const distance=Math.abs(lat-forestTrailLatitude(lon))*261;
+ return distance<26?'near':distance<61?'middle':'far';
 }
 export function createForestLayout(seed=451921){
  let state=seed>>>0;
@@ -230,6 +235,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
  const layout=createForestLayout(),canopy=forestCanopyDetailLayout(layout),up=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
  const object=new THREE.Object3D(),twist=new THREE.Quaternion(),align=new THREE.Quaternion();
  const batches=[];
+ const farFoliageTint=new THREE.Color('#75908a');
  const normalAt=(lon,lat)=>normal.set(Math.cos(lat)*Math.sin(lon),Math.sin(lat),Math.cos(lat)*Math.cos(lon));
  function add(name,rows,geometry,material,options,shade,kind='tree'){
   if(!rows.length)return null;
@@ -247,7 +253,16 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
    object.scale.set(g.sx,g.sy,g.sz);
    object.updateMatrix();
    mesh.setMatrixAt(i,object.matrix);
-   if(shade)mesh.setColorAt(i,color.set(shade(p)));
+   if(shade){
+    color.set(shade(p));
+    // G-16: grade the original instance colour once, not on every frame.
+    if(artRemaster&&/^forest-(?:oak|pine|crown-)/.test(name)){
+     const band=forestDepthBand(p.lon,p.lat);
+     if(band==='middle')color.lerp(farFoliageTint,.12);
+     else if(band==='far')color.lerp(farFoliageTint,.31).multiplyScalar(.91);
+    }
+    mesh.setColorAt(i,color);
+   }
   });
   mesh.instanceMatrix.needsUpdate=true;
   mesh.frustumCulled=false;
@@ -361,9 +376,11 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
    const x=bough.getX(i),y=bough.getY(i),z=bough.getZ(i);
    const angle=Math.atan2(z,x);
    const rough=1+.095*Math.sin(5*angle+7*y)+.045*Math.cos(8*angle-4*y);
-   // Crooked old bough instead of a perfect cylinder. Position and scale
-   // remain anchored to the same existing canopy limb instance.
-   bough.setXYZ(i,x*rough+.075*y*y,y,z*rough+.042*y);
+   // G-16: arched, tapering bough within the same original geometry.
+   const arch=.17*Math.sin(Math.PI*(y+.5));
+   const taper=1-.15*(y+.5);
+   bough.setXYZ(i,x*rough*taper+.075*y*y+arch*.65,
+    y,z*rough*taper+.042*y+arch*.32);
   }
   bough.needsUpdate=true;limbGeo.computeVertexNormals();limbGeo.computeBoundingSphere();
  }

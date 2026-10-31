@@ -2,6 +2,10 @@
 // No new vertices, triangles, materials, trees, textures or runtime animation.
 const TAU=Math.PI*2;
 const clamp=(v,min=0,max=1)=>Math.max(min,Math.min(max,v));
+const angularWindow=(angle,centre,width)=>{
+ const delta=Math.atan2(Math.sin(angle-centre),Math.cos(angle-centre));
+ return Math.exp(-Math.pow(delta/width,2));
+};
 
 export function deepenForestCanopy(data,kind,variant=0){
  if(!data||!Array.isArray(data.positions)||!Array.isArray(data.colors)||
@@ -20,12 +24,17 @@ export function deepenForestCanopy(data,kind,variant=0){
     const lobe=Math.sin(5*a+v*4.7+variant*.89);
     const rim=Math.cos(8*a-v*3.9+variant*.57);
     const pocket=Math.pow(Math.max(0,.5+.5*Math.cos(3*a-v*4.3+variant)),3);
-    const span=clamp(1+.105*s*lobe+.045*s*rim-.085*pocket*s,.76,1.17);
+    // G-16: sculpt three irregular sky windows in the existing shared mesh.
+    const opening=Math.min(1,Math.pow(s,1.15)*(
+     .80*angularWindow(a,.72+variant*.42+v*.52,.29)+
+     .68*angularWindow(a,3.06+variant*.19-v*.26,.34)+
+     .48*angularWindow(a,5.23-variant*.31+v*.16,.27)));
+    const span=clamp(1+.105*s*lobe+.045*s*rim-.085*pocket*s-.255*opening,.64,1.17);
     const r=Math.hypot(positions[i],positions[i+2]),cap=r>1e-8?
      Math.min(span,1.29/r):span;
     positions[i]*=cap;positions[i+2]*=cap;
-    positions[i+1]+=s*(.036*lobe+.027*rim-.025*pocket);
-    const light=clamp(.88+.26*v+.10*Math.max(0,lobe)-.24*pocket,.57,1.15);
+    positions[i+1]+=s*(.036*lobe+.027*rim-.025*pocket-.038*opening);
+    const light=clamp(.88+.26*v+.10*Math.max(0,lobe)-.24*pocket-.20*opening,.50,1.15);
     // Warm outer leaf groups, cool shadow volumes; no painted-on lights.
     colors[i]=clamp(colors[i]*light*(.91+.09*Math.max(0,lobe)));
     colors[i+1]=clamp(colors[i+1]*light*(.95+.07*v));
@@ -40,7 +49,10 @@ export function deepenForestCanopy(data,kind,variant=0){
    const start=3*group*(layer*branches+b);
    const twist=Math.sin(b*2.41+layer*3.3+variant*.59);
    const fringe=Math.cos(b*1.93-layer*2.7+variant*.88);
-   const reach=1+.10*twist+.045*fringe;
+   // Open alternating gaps between existing needle whorls (zero new triangles).
+   const gapIndex=(b+2*layer+Math.floor(variant))%7;
+   const opening=(gapIndex===0?1:gapIndex===1?.32:0)*(.75+.25*(4-layer)/4);
+   const reach=1+.10*twist+.045*fringe-.23*opening;
    for(let k=0;k<group;k++){
     const i=start+k*3,tip=k===2||k===4,side=k===1||k===5;
     if(tip){
@@ -54,7 +66,7 @@ export function deepenForestCanopy(data,kind,variant=0){
      positions[i]*=swell;positions[i+2]*=swell;
      positions[i+1]+=.018*twist;
     }
-    const sun=clamp((tip?.89:side?1.11:.73)+.09*twist+.055*layer/whorls,.55,1.2);
+    const sun=clamp((tip?.89:side?1.11:.73)+.09*twist+.055*layer/whorls-.16*opening,.48,1.2);
     colors[i]=clamp(colors[i]*sun*.94);
     colors[i+1]=clamp(colors[i+1]*sun*1.02);
     colors[i+2]=clamp(colors[i+2]*sun*.92);
