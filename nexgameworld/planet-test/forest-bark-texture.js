@@ -20,26 +20,40 @@ export const FOREST_BARK_TEXTURE_SIZE=Object.freeze({width:256,height:512});
 export function forestBarkPixel(u,v){
  if(!Number.isFinite(u)||!Number.isFinite(v))throw new RangeError('Invalid bark UV');
  u=wrap(u,1);v=wrap(v,1);
- // Two cyclic noise octaves warp vertical grain without creating tile seams.
+ // Three periodic octaves warp growth cracks in both directions, keeping the
+ // tile seamless. Existing stock bump map supplies close-range depth.
  const coarse=periodicNoise(u*8,v*16,8,16);
  const medium=periodicNoise(u*24,v*48,24,48);
  const fine=periodicNoise(u*64,v*128,64,128);
- const warp=.095*(coarse-.5)+.025*(medium-.5);
- const split=.5+.5*Math.cos(TAU*(11*u+warp+.045*Math.sin(TAU*(2*v+u))));
- const fissure=Math.pow(split,12);
- const fibers=.5+.5*Math.sin(TAU*(29*u+.14*Math.sin(TAU*3*v)+warp*2));
- const ridge=.72+.20*coarse+.14*medium+.10*(fibers-.5)-.52*fissure;
+ const warp=.11*(coarse-.5)+.034*(medium-.5);
+ // Long, crooked old-growth fissures, broken by transverse plate ridges.
+ const grain=11*u+warp+.068*Math.sin(TAU*(2*v+u));
+ const longSplit=.5+.5*Math.cos(TAU*grain);
+ const primaryCrack=Math.pow(longSplit,14);
+ const secondaryCrack=Math.pow(.5+.5*Math.cos(
+  TAU*(29*u+.08*Math.sin(TAU*(3*v+2*u))+warp*2)),22)*.38;
+ const plate=.5+.5*Math.sin(TAU*(5*v+.12*Math.sin(TAU*4*u)+.09*medium));
+ const raisedBark=smooth(.26+.40*coarse+.23*medium+.19*plate);
+ const ridge=Math.pow(Math.max(0,1-primaryCrack),1.3);
  const knotX=Math.abs(wrap(u-.67+.5,1)-.5);
  const knotY=Math.abs(wrap(v-.36+.5,1)-.5);
- const knot=Math.exp(-Math.pow(knotX/.07,2)-Math.pow(knotY/.058,2));
- const curved=.5+.5*Math.cos(TAU*(u*7+v*2.0));
- const fleck=(fine-.5)*.19;
- const light=clamp(ridge-.13*knot+.08*knot*curved+fleck,.23,1);
- // A neutral-grey / cool brown albedo multiplies each tree's individual tint.
- // All alpha values are 255: close-up bark cannot make the tree transparent.
- const color=[Math.round(229*light),Math.round(217*light),Math.round(199*light),255];
- // Independent monochrome relief for high-quality built-in bump mapping.
- const relief=Math.round(255*clamp(.42+.28*medium+.20*fibers-.36*fissure-.12*knot,.05,.95));
+ const knot=Math.exp(-Math.pow(knotX/.065,2)-Math.pow(knotY/.047,2));
+ // Pale lichen islands in the recesses, not evenly painted green stripes.
+ const lichen=smooth((coarse*.52+medium*.33+fine*.15-.68)*5.2)*
+  (.42+.58*Math.max(0,.5+.5*Math.sin(TAU*(3*u-2*v))))*
+  (1-primaryCrack);
+ const splinters=(fine-.5)*.17+.065*Math.sin(TAU*(7*v+3*u))*raisedBark;
+ const light=clamp(.59+.29*raisedBark+.13*ridge+
+  .12*plate-.62*primaryCrack-.25*secondaryCrack-
+  .17*knot+splinters,.18,1.09);
+ // Neutral ochre/grey bark: instance colours still distinguish each tree.
+ // Lichen changes hue locally, not the tree's entire material.
+ const color=[
+  Math.round(255*clamp(.89*light-.15*lichen)),
+  Math.round(255*clamp(.85*light+.055*lichen)),
+  Math.round(255*clamp(.77*light-.085*lichen)),255];
+ const relief=Math.round(255*clamp(.33+.31*raisedBark+.18*plate+
+  .11*(fine-.5)-.43*primaryCrack-.20*secondaryCrack-.12*knot,.035,.98));
  return {color,relief};
 }
 export function buildForestBarkPixels(width=256,height=512){
@@ -56,8 +70,8 @@ export function buildForestBarkPixels(width=256,height=512){
 }
 export function forestBarkQuality(quality='balanced',preview=false){
  if(preview||quality==='economy')return {bump:false,bumpScale:0};
- return quality==='high'?{bump:true,bumpScale:.09}:
-  {bump:true,bumpScale:.043};
+ return quality==='high'?{bump:true,bumpScale:.11}:
+  {bump:true,bumpScale:.057};
 }
 export function createForestBarkTextures(THREE){
  if(typeof THREE?.DataTexture!=='function')return null;
@@ -68,11 +82,11 @@ export function createForestBarkTextures(THREE){
    const t=new THREE.DataTexture(bytes,data.width,data.height,THREE.RGBAFormat);
    t.colorSpace=srgb?THREE.SRGBColorSpace:THREE.NoColorSpace;
    t.wrapS=t.wrapT=THREE.RepeatWrapping;
-   t.repeat.set(2,7);
+   t.repeat.set(2,5);
    t.generateMipmaps=true;
    t.minFilter=THREE.LinearMipmapLinearFilter;
    t.magFilter=THREE.LinearFilter;
-   t.anisotropy=2;
+   t.anisotropy=3;
    t.needsUpdate=true;
    return t;
   };

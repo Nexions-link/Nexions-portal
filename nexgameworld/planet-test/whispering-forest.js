@@ -1,7 +1,7 @@
 // P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
-import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=3';
-import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=1';
+import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=4';
+import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=2';
 const TAU=Math.PI*2;
 // Match the blocker exactly to the visible trunk's maximum ground radius.
 export const FOREST_TRUNK_BASE_SCALE=.78;
@@ -270,20 +270,21 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
   // roots and centreline are calculated once, before 400-way instancing.
   barkVertices.setXYZ(i,Math.cos(angle)*outline.radius+outline.curveX,
    y,Math.sin(angle)*outline.radius+outline.curveZ);
-  barkColors.push(outline.shade*(1-.19*outline.moss),
-   outline.shade*(.91+.12*outline.moss),
-   outline.shade*(.83-.11*outline.moss));
+  const lit=artRemaster?Math.min(1,.20+outline.shade*.87):outline.shade;
+  barkColors.push(lit*(1-.19*outline.moss),
+   lit*(.91+.15*outline.moss),
+   lit*(.83-.11*outline.moss));
  }
  trunks.setAttribute('color',new THREE.Float32BufferAttribute(barkColors,3));
  barkVertices.needsUpdate=true;trunks.computeVertexNormals();
  trunks.computeBoundingSphere();
  // Irregular branch whorls and individually lobed crowns replace the old
  // perfect cones and spheres, but keep exactly the same tree locations.
- const leafGeo=makeForestCrownGeometry(THREE,'deciduous',0,{r2:r2Vegetation});
- const upperLeafGeo=makeForestCrownGeometry(THREE,'deciduous',1,{r2:r2Vegetation});
- const outerTuftGeo=makeForestCrownGeometry(THREE,'deciduous',2,{r2:r2Vegetation});
- const pineGeo=makeForestCrownGeometry(THREE,'conifer',0,{r2:r2Vegetation});
- const pineUpperGeo=makeForestCrownGeometry(THREE,'conifer',1,{r2:r2Vegetation});
+ const leafGeo=makeForestCrownGeometry(THREE,'deciduous',0,{r2:r2Vegetation,art:artRemaster});
+ const upperLeafGeo=makeForestCrownGeometry(THREE,'deciduous',1,{r2:r2Vegetation,art:artRemaster});
+ const outerTuftGeo=makeForestCrownGeometry(THREE,'deciduous',2,{r2:r2Vegetation,art:artRemaster});
+ const pineGeo=makeForestCrownGeometry(THREE,'conifer',0,{r2:r2Vegetation,art:artRemaster});
+ const pineUpperGeo=makeForestCrownGeometry(THREE,'conifer',1,{r2:r2Vegetation,art:artRemaster});
  // The same tiny tiled bark atlas gives all ancient trunks, branches and
  // fallen timber visible fissures, grain and relief without extra draw calls.
  // A failed texture allocation always falls back to the old opaque materials.
@@ -314,12 +315,20 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
   const tip=point(.765,.004,a+.035+gnarl);
   const right=point(.53,.085,a+.25+gnarl);
   ribs.push(...summit,...left,...tip,...summit,...tip,...right);
+  // Fissured brown upper bark blends into cooler moss at the tips.
+  // One existing root draw batch; no new collision surface.
+  for(const shade of [1,.77,.55,1,.55,.83]){
+   const moss=artRemaster?1-shade:0;
+   ribColors.push(shade*(.96-.23*moss),
+    shade*(.92+.04*moss),shade*(.85-.16*moss));
+  }
  }
  const rootGeo=new THREE.BufferGeometry();
  rootGeo.setAttribute('position',new THREE.Float32BufferAttribute(ribs,3));
+ if(artRemaster)rootGeo.setAttribute('color',new THREE.Float32BufferAttribute(ribColors,3));
  rootGeo.computeVertexNormals();
  add('forest-buttress-roots',layout.trees,rootGeo,
-  new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1}),
+  new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1,vertexColors:artRemaster}),
   p=>({y:.01,sx:p.radius,sy:2.3+p.radius*.36,sz:p.radius}),
   p=>p.tint>.52?'#483d35':'#5b4c3d');
  add('forest-ancient-trunks',layout.trees,trunks,detailedBark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
@@ -347,6 +356,18 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
  // Instanced elevated boughs and small outer foliage masses make the crowns
  // feel multi-layered without hundreds of independent draw calls.
  const limbGeo=new THREE.CylinderGeometry(.43,.72,1,7,2);
+ if(artRemaster){
+  const bough=limbGeo.getAttribute('position');
+  for(let i=0;i<bough.count;i++){
+   const x=bough.getX(i),y=bough.getY(i),z=bough.getZ(i);
+   const angle=Math.atan2(z,x);
+   const rough=1+.095*Math.sin(5*angle+7*y)+.045*Math.cos(8*angle-4*y);
+   // Crooked old bough instead of a perfect cylinder. Position and scale
+   // remain anchored to the same existing canopy limb instance.
+   bough.setXYZ(i,x*rough+.075*y*y,y,z*rough+.042*y);
+  }
+  bough.needsUpdate=true;limbGeo.computeVertexNormals();limbGeo.computeBoundingSphere();
+ }
  add('forest-high-boughs',canopy.limbs,limbGeo,bark,p=>({
   y:p.branchHeight,sx:p.radius*.24,sy:p.length,sz:p.radius*.24,
   rotationZ:p.tilt,offsetAlongAxis:p.length*.46
