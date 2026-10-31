@@ -4,6 +4,11 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {beginPlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
+import {remoteEquipmentSpec} from './remote-equipment.js?v=1';
+import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
+import {createEquipmentVisualSwitcher} from './equipment-visual-switcher.js?v=1';
+import {applyWeaponQuality,applyShieldQuality} from '../item-quality.js?v=0.3.7.1';
+import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
 // NexGameWorld Stage 1: spherical WebSocket presence and visual-only remote avatars.
 // Combat, quests, loot and the player's local saves remain untouched.
 const WORLD_URL='wss://api.nexions.ru/ws/nexgameworld';
@@ -69,7 +74,7 @@ export function createSphericalPresence({
  onChestState,onChestStatus,onChestResult,onCombatRejected,onChargeAccepted,onDisconnect,
  onVerifiedProgress,onAuthRejected,onEconomyResult,onPositionCorrection,
  onMountChange=null,onMountRejected=null,onMountCast=null,
- auth=null,url=WORLD_URL,loadBattlefuryScene=null
+ auth=null,url=WORLD_URL,loadBattlefuryScene=null,loadEquipmentScene=null
 }){
  let socket=null,closed=false,selfId=null,synced=false,joinedRadius=null,retry=null,sendLoop=null,pendingChestOpen=null,lastCorrection=0,onlineCount=1,reconnectAttempts=0,lastServerMessageAt=Date.now();
  let moveSeq=0;
@@ -84,7 +89,6 @@ export function createSphericalPresence({
    rebaseSphereCorrection(THREE,sample.normal,server,current.normal),reason};
  };
  const peers=new Map(),visuals=new Map(),chargeEvents=new Map(),remoteAttacks=new Map();
- let weaponLoaderPromise=null;
  let selfMount={mountState:'foot',mountId:null,owned:false};
  const applyMount=mount=>{
   const validId=mount?.mountId==='forest_wolf';
@@ -96,69 +100,105 @@ export function createSphericalPresence({
   selfMount={mountState:state,mountId:state==='foot'?null:'forest_wolf',owned};
   onMountChange?.({...selfMount});
  };
- const fetchWeaponScene=loadBattlefuryScene||(async()=>{
-  if(!weaponLoaderPromise)weaponLoaderPromise=import(
-   'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js'
-  ).then(({GLTFLoader})=>new GLTFLoader());
-  const loader=await weaponLoaderPromise;
-  const gltf=await loader.loadAsync('../assets/weapons/admin-battlefury.glb');
-  return gltf.scene;
- });
- function clearWeapon(visual){
-  const mesh=visual.weaponMesh;
-  if(mesh)disposeActor(mesh);
-  visual.weaponMesh=null;visual.weaponKey=null;
-  visual.actor.root.userData.weaponKind='none';
-  visual.actor.root.userData.equipmentGrip={};
+ let equipmentLoaderPromise=null;
+ const cachedEquipmentGltf=new Map();
+ async function loadEquipmentAsset(url){
+  let loading=cachedEquipmentGltf.get(url);
+  if(!loading){
+   loading=(async()=>{
+    // The public server supplies item IDs, never asset paths. Resolve both
+    // ordinary and admin gear exclusively from the bundled item catalog.
+    if(url==='../assets/weapons/admin-battlefury.glb'&&loadBattlefuryScene)
+     return {scene:await loadBattlefuryScene()};
+    if(loadEquipmentScene){
+     const result=await loadEquipmentScene(url);
+     return result?.scene?result:{scene:result};
+    }
+    if(!equipmentLoaderPromise)equipmentLoaderPromise=import(
+     'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js'
+    ).then(({GLTFLoader})=>new GLTFLoader());
+    return await (await equipmentLoaderPromise).loadAsync(url);
+   })();
+   cachedEquipmentGltf.set(url,loading);
+   loading.catch(()=>{if(cachedEquipmentGltf.get(url)===loading)cachedEquipmentGltf.delete(url);});
+  }
+  return loading;
  }
- function syncBattlefury(visual,peer){
-  const appearance=peer.battlefury;
-  if(appearance?.itemId!==BATTLEFURY_ITEM_ID||!appearance.pose){
-   if(visual.weaponMesh||visual.weaponKey)clearWeapon(visual);
-   return;
+ const rightHand=visual=>visual.actor.arms[1]?.hand;
+ const leftHand=visual=>visual.actor.arms[0]?.hand;
+ function clearGear(visual,slot){
+  visual.gearMeshes[slot]?.removeFromParent();
+  visual.gearMeshes[slot]=null;
+  visual.gearKeys[slot]=null;
+  const hand=slot==='weapon'?rightHand(visual):leftHand(visual);
+  const grip=equipmentGrip(slot);
+  visual.actor.root.userData.equipmentGrip[slot]=grip;
+  if(hand)hand.rotation.set(grip.x,grip.y,grip.z,grip.order);
+  if(slot==='weapon')visual.actor.root.userData.weaponKind='none';
+ }
+ function equipRemoteGear(visual,slot,gltf,spec){
+  if(visuals.get(visual.id)!==visual)return;
+  const hand=slot==='weapon'?rightHand(visual):leftHand(visual);
+  if(!hand||!gltf?.scene?.clone)return;
+  // Each player owns an Object3D clone. The cached decoded GLB is never
+  // re-parented from another player or moved by an asynchronous load.
+  const asset=gltf.scene.clone(true);
+  let mesh=asset;
+  if(spec.battlefury){
+   const bounds=new THREE.Box3().setFromObject(asset);
+   const size=bounds.getSize(new THREE.Vector3());
+   const factor=1.95/Math.max(.001,size.x,size.y,size.z);
+   const center=bounds.getCenter(new THREE.Vector3());
+   asset.scale.multiplyScalar(factor);
+   asset.position.sub(center.multiplyScalar(factor));
+   mesh=new THREE.Group();mesh.add(asset);
   }
-  // The server has certified ownership. The pose is cosmetic and clamped again
-  // before it ever reaches the Three.js scene or remote wrist animation.
-  const pose=normalizeBattlefuryTuning(appearance.pose);
+  mesh.name='gear-'+(slot==='shield'?'shield':spec.kind);
+  let grip;
+  if(spec.battlefury){
+   const current=peers.get(visual.id);
+   const pose=normalizeBattlefuryTuning(current?.battlefury?.pose);
+   grip=applyBattlefuryPose(mesh,hand,pose);
+   visual.gearPoseKey=JSON.stringify(pose);
+  }else grip=applyEquipmentTransform(mesh,hand,spec);
+  // Mark shared GLB buffers before decorating, to keep peer disposal safe.
+  mesh.traverse(node=>{node.userData.ngwSharedGear=true;});
+  const old=visual.gearMeshes[slot];
+  hand.add(mesh);
+  visual.gearMeshes[slot]=mesh;
+  visual.gearKeys[slot]=spec.key;
+  visual.actor.root.userData.equipmentGrip[slot]=grip;
+  old?.removeFromParent();
+  if(slot==='weapon'){
+   visual.actor.root.userData.weaponKind=spec.kind;
+   applyWeaponQuality(THREE,visual.actor.root,spec.kind,spec.rarity);
+  }else{
+   styleShieldGlb(THREE,mesh,spec.rarity);
+   applyShieldQuality(THREE,visual.actor.root,spec.rarity);
+  }
+ }
+ function createRemoteGearSwitcher(visual){
+  return createEquipmentVisualSwitcher({
+   load:spec=>loadEquipmentAsset(spec.url),
+   clear:slot=>clearGear(visual,slot),
+   swap:(slot,gltf,spec)=>equipRemoteGear(visual,slot,gltf,spec),
+   onError:(slot,error)=>console.warn('Remote equipment unavailable',slot,error)
+  });
+ }
+ function syncRemoteGear(visual,peer){
+  for(const slot of ['weapon','shield']){
+   const spec=remoteEquipmentSpec(peer,slot);
+   void visual.gearSwitcher.update(slot,spec?.key??null,spec);
+  }
+  const certified=remoteEquipmentSpec(peer,'weapon');
+  if(!certified?.battlefury||visual.gearKeys.weapon!==certified.key||
+     !visual.gearMeshes.weapon)return;
+  const pose=normalizeBattlefuryTuning(peer.battlefury.pose);
   const key=JSON.stringify(pose);
-  if(visual.weaponMesh){
-   if(visual.weaponKey!==key){
-    const grip=applyBattlefuryPose(visual.weaponMesh,visual.actor.arms[1]?.hand,pose);
-    visual.actor.root.userData.equipmentGrip.weapon=grip;
-    visual.weaponKey=key;
-   }
-   return;
-  }
-  if(visual.weaponLoading||visual.weaponFailed)return;
-  const hand=visual.actor.arms[1]?.hand;
-  if(!hand)return;
-  visual.weaponLoading=true;
-  void (async()=>{
-   try{
-    const asset=await fetchWeaponScene();
-    if(visuals.get(peer.id)!==visual||peers.get(peer.id)?.battlefury?.itemId!==BATTLEFURY_ITEM_ID)return;
-    // Match the owner's GLB normalization, while retaining the full geometry.
-    const group=new THREE.Group(),bbox=new THREE.Box3().setFromObject(asset);
-    const dim=bbox.getSize(new THREE.Vector3());
-    const scale=1.95/Math.max(.001,dim.x,dim.y,dim.z);
-    const center=bbox.getCenter(new THREE.Vector3());
-    asset.scale.multiplyScalar(scale);
-    asset.position.sub(center.multiplyScalar(scale));
-    group.add(asset);
-    group.name='gear-axe';
-    hand.add(group);
-    visual.weaponMesh=group;
-    visual.actor.root.userData.weaponKind='axe';
-    const latest=peers.get(peer.id);
-    const latestPose=normalizeBattlefuryTuning(latest.battlefury.pose);
-    visual.weaponKey=JSON.stringify(latestPose);
-    visual.actor.root.userData.equipmentGrip??={};
-    visual.actor.root.userData.equipmentGrip.weapon=applyBattlefuryPose(group,hand,latestPose);
-   }catch(err){
-    visual.weaponFailed=true;
-    console.warn('Remote Battlefury model unavailable',err);
-   }finally{visual.weaponLoading=false}
-  })();
+  if(visual.gearPoseKey===key)return;
+  visual.gearPoseKey=key;
+  visual.actor.root.userData.equipmentGrip.weapon=
+   applyBattlefuryPose(visual.gearMeshes.weapon,rightHand(visual),pose);
  }
 
  const east=new THREE.Vector3(),north=new THREE.Vector3(),fwd=new THREE.Vector3(),
@@ -397,8 +437,14 @@ export function createSphericalPresence({
     const actor=createAvatar({fur:color,player:false,remotePlayer:true});
     actor.root.add(nameSprite(THREE,peer.name));
     const hint=chargeEvents.get(peer.id);
-    visual={actor,normal:new THREE.Vector3(...(hint?.fromNormal||peer.normal)),
-     targetNormal:new THREE.Vector3(),heading:peer.heading,phase:0,charge:null,recovery:0};
+    visual={id:peer.id,actor,normal:new THREE.Vector3(...(hint?.fromNormal||peer.normal)),
+     targetNormal:new THREE.Vector3(),heading:peer.heading,phase:0,charge:null,recovery:0,
+     gearMeshes:{weapon:null,shield:null},gearKeys:{weapon:null,shield:null},
+     gearPoseKey:null};
+    actor.root.userData.equipmentGrip={weapon:equipmentGrip('weapon'),
+     shield:equipmentGrip('shield')};
+    actor.root.userData.weaponKind='none';
+    visual.gearSwitcher=createRemoteGearSwitcher(visual);
     visuals.set(peer.id,visual);
    }
    // Keep the face and main silhouette near the camera, but avoid the
@@ -413,7 +459,7 @@ export function createSphericalPresence({
    }
    if(visual.actor.anatomy&&visual.actor.anatomy.quality!==modelDetail)
     visual.actor.anatomy.setQuality(modelDetail);
-   syncBattlefury(visual,peer);
+   syncRemoteGear(visual,peer);
    const nextCharge=chargeEvents.get(peer.id);
    if(nextCharge){
     const end=new THREE.Vector3(...nextCharge.normal);
@@ -471,9 +517,7 @@ export function createSphericalPresence({
    const attackPhase=attackAge>=0&&attackAge<.8?attackAge/.8:-1;
    const combatAttack=recentAttack?.abilityId==='thunderStomp'
     ?{attack:-1,stomp:attackPhase}:{attack:attackPhase,stomp:-1};
-   const weaponId=String(peer.equipment?.weapon||'').toLowerCase();
-   const weaponKind=/dagger|knife/.test(weaponId)?'dagger':
-    /sword|blade/.test(weaponId)?'sword':'axe';
+   const weaponKind=remoteEquipmentSpec(peer,'weapon')?.kind||'none';
    const poseWalk=chargePose?Math.max(chargePose.drive,.2):
     Math.max(movementStrength(visualMetres,dt,4.05),peer.moving?.55:0);
    const poseTurn=turnStrength(previousHeading,visual.heading,dt);

@@ -31,7 +31,7 @@ import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from 
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
 import {createOfflineRpg} from './offline-rpg.js?v=160';
-import {createSphericalPresence} from './sphere-online.js?v=27';
+import {createSphericalPresence} from './sphere-online.js?v=28';
 import {syncForestWolfMount} from './mount-visual.js?v=4';
 import {createMountControls} from './mount-controls.js?v=3';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=2';
