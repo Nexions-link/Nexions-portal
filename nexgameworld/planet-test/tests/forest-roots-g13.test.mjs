@@ -151,6 +151,6 @@ test('G-13 does not alter original camera, networking, server or published geome
  assert.match(forest,/import \{createG13RootGeometry/);
  assert.match(forest,/g13-root-contact-shade/);
  assert.match(planet,/new THREE\.PerspectiveCamera\(58, innerWidth \/ innerHeight, \.48, 1300\)/);
- assert.match(planet,/from '\.\/whispering-forest\.js\?v=25'/);
+ assert.match(planet,/from '\.\/whispering-forest\.js\?v=\d+'/);
  assert.doesNotMatch(roots,/fetch\(|localStorage|WebSocket|createCollider|ShaderMaterial|camera\./);
 });

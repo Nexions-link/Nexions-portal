@@ -10,7 +10,7 @@ export function meadowGrassBladeData(){
  for(let i=0;i<bladeCount;i++){
   const phase=i*Math.PI*2/bladeCount+.12;
   const dx=Math.cos(phase),dz=Math.sin(phase),tx=-dz,tz=dx;
-  const height=.60+(i%3)*.13,spread=.11+(i%3)*.055;
+  const height=.43+(i%3)*.075,spread=.12+(i%3)*.04;
   const w=.09+(i%2)*.017;
   const low=[dx*.10,0,dz*.10],
    left=[low[0]+tx*w,0,low[2]+tz*w],
@@ -95,7 +95,8 @@ export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,a
  const upQuat=new THREE.Quaternion(),twist=new THREE.Quaternion();
  const layers=[];
  const allowed=(x,z)=>Math.hypot(x+5,z-4)>8&&accept(x,z);
- const grassPoints=scatterMeadow({count:2800,attempts:7800,seed:17031,extent:69,
+ // Dense low meadow grass, never a field of big shrubs.
+ const grassPoints=scatterMeadow({count:10500,attempts:56000,seed:17031,extent:69,
   accept:(x,z)=>allowed(x,z)});
  const grass=new THREE.InstancedMesh(clumpGeometry(THREE),new THREE.MeshStandardMaterial({
   color:0xffffff,roughness:1,side:THREE.DoubleSide,vertexColors:true
@@ -130,7 +131,7 @@ export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,a
    for(let i=0;i<points.length;i++){
     const p=points[i],normal=toNormal(p.x,p.z,radius);
     const elevation=heightAt(normal);
-    const scale=mode==='grass'?.50+p.scale*.7:mode==='flower'?.7+p.scale*.5:p.scale;
+    const scale=mode==='grass'?.24+p.scale*.27:mode==='flower'?.7+p.scale*.5:p.scale;
     const localHeight=mode==='grass'?0:mode==='flower'?.012:mode==='pebbles'?.055*p.scale:.31*p.scale;
     dummy.position.copy(normal).multiplyScalar(radius+elevation+localHeight);
     upQuat.setFromUnitVectors(UP,normal);
@@ -139,7 +140,7 @@ export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,a
     else if(mode==='pebbles')dummy.scale.set(.20*.85*scale,.20*.33*scale,.20*1.1*scale);
     else dummy.scale.setScalar(scale);
     dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
-    if(mode==='grass')mesh.setColorAt(i,new THREE.Color().setHSL(.18+p.variety*.065,.32+.07*p.variety,.36+p.variety*.15));
+    if(mode==='grass')mesh.setColorAt(i,new THREE.Color().setHSL(.205+p.variety*.055,.38+.07*p.variety,.35+p.variety*.13));
     if(mode==='shrubs')mesh.setColorAt(i,new THREE.Color().setHSL(.19+p.variety*.07,.28,.32+p.variety*.14));
     if(mode==='pebbles')mesh.setColorAt(i,new THREE.Color().setHSL(.09+p.variety*.03,.12,.43+p.variety*.13));
    }

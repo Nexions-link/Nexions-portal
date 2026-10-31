@@ -9,8 +9,8 @@ import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=25';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=25';
+import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=26';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=26';
 
 
 
@@ -40,7 +40,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath,startVisualRouteSegments} from './start-zone.js?v=55';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath,startVisualRouteSegments} from './start-zone.js?v=56';
 initStartZoneMath(THREE);
 
 // Optional visuals must never prevent core world modules from loading. A

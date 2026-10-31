@@ -5,38 +5,63 @@ const TAU=Math.PI*2;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export const FOREST_CROWN_GEOMETRY_BUDGET=Object.freeze({
  deciduousSegments:18,deciduousRings:10,
+ deciduousLeafClusters:24,
  coniferWhorls:5,coniferBranches:12
 });
 function ensureFinite(values){
  if(values.some(n=>!Number.isFinite(n)))throw Error('Invalid forest crown geometry');
 }
 export function deciduousCrownData(variant=0){
- const {deciduousSegments:segments,deciduousRings:rings}=FOREST_CROWN_GEOMETRY_BUDGET;
+ const {deciduousSegments:segments,deciduousRings:rings,
+  deciduousLeafClusters:leafClusters}=FOREST_CROWN_GEOMETRY_BUDGET;
  const positions=[],colors=[],indices=[];
+ const emit=(x,y,z,shade)=>{positions.push(x,y,z);colors.push(...shade);return positions.length/3-1};
+ const sample=(a,theta)=>{
+  const v=variant*.87,s=Math.sin(theta);
+  // Distinct oak volumes: deep side clefts, drooping outer sprays,
+  // and genuine darker pockets instead of a uniformly smooth ball.
+  const large=.18*Math.cos(5*a+theta*.77+v)+.095*Math.cos(3*a-theta*1.5-v*.5);
+  const fine=.047*Math.sin(9*a+theta*2.7+v)+.035*Math.sin(7*a-theta*5.2-v);
+  const radial=s*clamp(1+large+fine,.72,1.25);
+  const deep=clamp((.38-large)*.67,.05,.46);
+  const drape=.063*s*s*(1+.6*Math.cos(a*5+theta*2+v));
+  const y=.5*Math.cos(theta)+.062*s*Math.cos(4*a+v)
+   -.048*s*s*Math.sin(3*a-theta*2+v)-drape;
+  const illumination=clamp(.70+.21*(y+.5)+
+   .13*Math.max(0,large)+.06*Math.cos(a*9+theta*4+v)-deep*.22,.46,1);
+  const shade=[.70*illumination,.93*illumination,.63*illumination];
+  return {x:radial*Math.cos(a),y,z:radial*Math.sin(a),shade};
+ };
  for(let row=0;row<=rings;row++){
-  const theta=Math.PI*row/rings,s=Math.sin(theta),y=.5*Math.cos(theta);
+  const theta=Math.PI*row/rings;
   for(let j=0;j<=segments;j++){
-   const a=TAU*j/segments,v=variant*.87;
-   // Same angular/ring budget, but the older crown now grows in several
-   // competing asymmetrical lobes with gravity on the rim, not a green ball.
-   const growth=1+.092*Math.sin(a*5+theta*2.7+v)+
-    .063*Math.cos(a*9-theta*3.1+v*.7)+
-    .053*Math.sin(a*3+theta*5.3+v)+
-    .039*Math.cos(a*2.1+theta*2.2-v);
-   const r=s*clamp(growth,.75,1.23);
-   const x=r*Math.cos(a),z=r*Math.sin(a);
-   const drape=.056*s*s*(.4+.6*Math.sin(a*5+v+.3));
-   const vertical=y+.068*s*Math.cos(a*4+v)*Math.sin(theta*2)-drape;
-   positions.push(x,vertical,z);
-   const veins=.07*Math.sin(a*8.3+theta*10.1+v);
-   const light=clamp(.71+.20*(vertical+.5)+veins+
-    .05*Math.cos(a*3.7-theta*4.4),.54,1);
-   colors.push(.79*light,.94*light,.75*light);
+   const a=TAU*j/segments,p=sample(a,theta);
+   emit(p.x,p.y,p.z,p.shade);
    if(row<rings&&j<segments){
     const k=row*(segments+1)+j;
     indices.push(k,k+segments+1,k+1,k+1,k+segments+1,k+segments+2);
    }
   }
+ }
+ // Twenty-four original leaf clusters; 2 irregular leaflets per cluster.
+ // One shared geometry is used by both lower and upper crown instancing.
+ for(let i=0;i<leafClusters;i++){
+  const a=TAU*(i+.22*Math.sin(i*2.71))/leafClusters+variant*.36;
+  const theta=.39+(i%5)*.34;
+  const point=sample(a,theta),tangent=[-Math.sin(a),0,Math.cos(a)];
+  const lift=.032+.024*((i*7)%5)/4,width=.085+.024*(i%3);
+  const base=[point.x*.89,point.y-.018,point.z*.89];
+  const left=[point.x-tangent[0]*width,point.y+lift,point.z-tangent[2]*width];
+  const right=[point.x+tangent[0]*width*.72,point.y-lift*.38,
+   point.z+tangent[2]*width*.72];
+  const tip=[point.x+Math.cos(a)*.04,
+   point.y+.036*Math.sin(i*2.6),point.z+Math.sin(a)*.04];
+  const green=i%4===0?[.31,.52,.25]:i%3===1?[.62,.83,.46]:[.44,.68,.35];
+  const bright=green.map((v,j)=>Math.min(1,v*(j===1?1.16:1.08)));
+  const dark=green.map(v=>v*.67);
+  const idx=positions.length/3;
+  emit(...base,dark);emit(...left,green);emit(...right,green);emit(...tip,bright);
+  indices.push(idx,idx+1,idx+3,idx,idx+3,idx+2);
  }
  ensureFinite(positions);ensureFinite(colors);
  return {positions,colors,indices,kind:'deciduous'};
