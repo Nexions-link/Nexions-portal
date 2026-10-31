@@ -685,7 +685,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.45.43" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.45.44" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -799,15 +799,32 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
   <p id="graphicsFailureText">WebGL временно недоступен.</p>
   <button type="button" id="graphicsReload">Перезапустить с базовой графикой</button>
  </section>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
+<!-- The game must start in Russia without a dependency on foreign CDNs.
+     Local unmodified Three.js r160 is MIT licensed (vendor/three.LICENSE.txt). -->
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js?v=160"}}</script>
+<link rel="modulepreload" href="./vendor/three.module.js?v=160">
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=250').catch(error=>{
+  import('./planet.js?v=251').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');
-    if(failure)failure.textContent='Ошибка загрузки NexGameWorld: '+(error?.message||String(error));
+    if(failure){
+      const msg=document.createElement('span');
+      msg.textContent='Ошибка загрузки NexGameWorld: '+(error?.message||String(error))+
+       '. Проверьте подключение и повторите запуск.';
+      const retry=document.createElement('button');
+      retry.type='button';
+      retry.textContent='Повторить загрузку';
+      retry.style.cssText='margin-left:14px;padding:8px 12px;cursor:pointer';
+      retry.addEventListener('click',()=>{
+        const url=new URL(location.href);
+        url.searchParams.set('ngw_retry',String(Date.now()));
+        location.replace(url.href);
+      });
+      failure.replaceChildren(msg,retry);
+    }
     console.error('NexGameWorld bootstrap:',error);
   });
 </script>

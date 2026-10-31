@@ -21,9 +21,21 @@ export async function auditProduction({
   // A scheduled read should bypass edge caches without changing canonical URLs.
   const response=await fetchImpl(endpoint,{
    cache:'no-store',signal:AbortSignal.timeout(timeoutMs),
-   headers:{accept:format==='json'?'application/json':'text/plain'}
+   headers:{accept:format==='json'?'application/json':format==='script'?
+    'text/javascript,application/javascript':'text/plain'}
   });
   if(!response.ok)throw Error(new URL(endpoint).pathname+' HTTP '+response.status);
+  if(format==='script'){
+   // Browser ES modules require a JavaScript MIME. A 200 HTML fallback
+   // or a CDN error document is NOT a successful game release.
+   const type=response.headers?.get?.('content-type')||'';
+   if(type&&!/\b(?:java|ecma)script\b/i.test(type))
+    throw Error('Game JS module served with invalid MIME '+type+': '+endpointUrl.pathname);
+   const body=await response.text();
+   if(!body.trim()||/^\s*<!doctype html/i.test(body))
+    throw Error('Game JS module is an empty/HTML response: '+endpointUrl.pathname);
+   return body;
+  }
   return format==='json'?response.json():response.text();
  };
  const [health,ready,manifest,upstream,clientHtml,launcherHtml,gameCode,houseCode,sessionCode,accountCode,accountHtml]=await Promise.all([
@@ -32,8 +44,8 @@ export async function auditProduction({
   get(siteOrigin,'/nexgameworld/upstream-commit.txt','text'),
   get(siteOrigin,'/nexgameworld/planet-test/index.html','text'),
   get(siteOrigin,'/nexgameworld/','text'),
-  get(siteOrigin,'/nexgameworld/planet-test/planet.js','text'),
-  get(siteOrigin,'/nexgameworld/planet-test/hearth-house.js','text'),
+  get(siteOrigin,'/nexgameworld/planet-test/planet.js','script'),
+  get(siteOrigin,'/nexgameworld/planet-test/hearth-house.js','script'),
   get(siteOrigin,'/nexgameworld/planet-test/account-session.js','text'),
   get(siteOrigin,'/nexgameworld/account.js','text'),
   get(siteOrigin,'/nexgameworld/account.html','text')
@@ -53,8 +65,33 @@ export async function auditProduction({
  const declared=[...clientHtml.matchAll(/\bdata-build="([^"]+)"/g)].map(match=>match[1]);
  if(declared.length!==1||declared[0]!==latest)
   throw Error('Live playable HTML and game version.json do not match: '+declared.join(',')+'/'+latest);
- if(!/import\(['"]\.\/planet\.js\?v=\d+['"]\)/.test(clientHtml))
-  throw Error('Live game HTML does not load a versioned main module');
+ const entry=clientHtml.match(/import\(['"]\.\/planet\.js\?v=(\d+)['"]\)/);
+ if(!entry)throw Error('Live game HTML does not load a versioned main module');
+ // Do not accept a release that only works when a third-party CDN is reachable.
+ // For players in Russia the entire bootstrap must resolve same-origin.
+ const importMapText=clientHtml.match(/<script\s+type=['"]importmap['"]>([\s\S]*?)<\/script>/)?.[1];
+ let imports;
+ try{imports=JSON.parse(importMapText||'').imports;}catch{}
+ if(imports?.three!=='./vendor/three.module.js?v=160'||
+    Object.values(imports||{}).some(value=>typeof value!=='string'||
+     value.startsWith('https:')||value.startsWith('http:')))
+  throw Error('Live browser still depends on an external Three.js CDN');
+ // Check the exact URL that the browser imports, not just the unversioned
+ // planet.js path. Query parameters are part of the release bootstrap.
+ const [entryCode,threeCode,startZoneCode,crownCode,meadowCode]=await Promise.all([
+  get(siteOrigin,'/nexgameworld/planet-test/planet.js?v='+entry[1],'script'),
+  get(siteOrigin,'/nexgameworld/planet-test/vendor/three.module.js?v=160','script'),
+  get(siteOrigin,'/nexgameworld/planet-test/start-zone.js','script'),
+  get(siteOrigin,'/nexgameworld/planet-test/forest-crown-geometry.js','script'),
+  get(siteOrigin,'/nexgameworld/planet-test/sphere-meadow.js','script')
+ ]);
+ if(entryCode!==gameCode||
+    !threeCode.includes("const REVISION = '160';")||
+    !threeCode.includes('export {')||
+    !startZoneCode.includes('createStartZone')||
+    !crownCode.includes('deciduousCrownData')||
+    !meadowCode.includes('createSphericalMeadow'))
+  throw Error('Public playable JS module graph is incomplete or stale');
  if(!launcherHtml.includes("const local='./planet-test/'")||!launcherHtml.includes('account-play'))
   throw Error('Live Nexions.ru launcher is not the same-domain authenticated game');
  if(!gameCode.includes("from './start-zone.js?v=")||!houseCode.includes('export function buildHearthHouse'))

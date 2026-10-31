@@ -13,9 +13,13 @@ function mock({build='0.6.41.4',manifestVersion='0.6.41.4',
  '/ready':{ready,build},
  '/nexgameworld/planet-test/version.json':{version:manifestVersion},
  '/nexgameworld/upstream-commit.txt':sha+'\n',
- '/nexgameworld/planet-test/index.html':'<aside data-build="'+manifestVersion+'"></aside><script>import(\'./planet.js?v=120\')</script>',
+ '/nexgameworld/planet-test/index.html':'<aside data-build="'+manifestVersion+'"></aside><script type="importmap">{"imports":{"three":"./vendor/three.module.js?v=160"}}</script><script>import(\'./planet.js?v=120\')</script>',
  '/nexgameworld/':'<script>const local=\'./planet-test/\';const mode=\'account-play\';</script>',
  '/nexgameworld/planet-test/planet.js':"import {a} from './start-zone.js?v=31'",
+ '/nexgameworld/planet-test/vendor/three.module.js':"const REVISION = '160'; export { REVISION };",
+ '/nexgameworld/planet-test/start-zone.js':"export function createStartZone(){}",
+ '/nexgameworld/planet-test/forest-crown-geometry.js':"export function deciduousCrownData(){}",
+ '/nexgameworld/planet-test/sphere-meadow.js':"export function createSphericalMeadow(){}",
  '/nexgameworld/planet-test/hearth-house.js':'export function buildHearthHouse(){}',
  '/nexgameworld/planet-test/account-session.js':"export const ACCOUNT_API='https://api.nexions.ru/api/ngw'; export const AUTH_WORLD_URL='wss://api.nexions.ru/ws/nexgameworld/auth';",
  '/nexgameworld/account.js':"const API='https://api.nexions.ru/api/ngw';",
@@ -82,4 +86,29 @@ test('reject a live account page still routed to the retired host',async()=>{
  const stale=async href=>new URL(href).pathname==='/nexgameworld/account.js'
   ?{ok:true,status:200,text:async()=>"const API='https://nexgame-world.onrender.com/api/ngw';"}:original(href);
  await assert.rejects(()=>auditProduction({fetchImpl:stale,expectedSha:SHA}),/not switched to the VPS/);
+});
+
+test('reject third-party CDN imports and missing same-origin Three.js even when planet.js is 200',async()=>{
+ const normal=mock();
+ const cdn=async href=>{
+  if(new URL(href).pathname==='/nexgameworld/planet-test/index.html')
+   return {ok:true,status:200,text:async()=>'<aside data-build="0.6.41.4"></aside><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js"}}</script><script>import(\'./planet.js?v=120\')</script>'};
+  return normal(href);
+ };
+ await assert.rejects(()=>auditProduction({fetchImpl:cdn,expectedSha:SHA}),/external Three.js CDN/);
+ const missing=async href=>{
+  if(new URL(href).pathname==='/nexgameworld/planet-test/vendor/three.module.js')
+   return {ok:false,status:404};
+  return normal(href);
+ };
+ await assert.rejects(()=>auditProduction({fetchImpl:missing,expectedSha:SHA}),/three.module.js HTTP 404/);
+});
+test('reject HTML errors or invalid module MIME instead of green audit',async()=>{
+ const normal=mock();
+ const bad=async href=>{
+  if(new URL(href).pathname==='/nexgameworld/planet-test/vendor/three.module.js')
+   return {ok:true,status:200,headers:{get:()=> 'text/html'},text:async()=>'<html>404</html>'};
+  return normal(href);
+ };
+ await assert.rejects(()=>auditProduction({fetchImpl:bad,expectedSha:SHA}),/invalid MIME/);
 });
