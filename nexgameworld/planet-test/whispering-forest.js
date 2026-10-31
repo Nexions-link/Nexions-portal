@@ -2,6 +2,7 @@
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
 import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=4';
 import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=2';
+import {forestFernData} from './forest-botanical-geometry.js?v=1';
 const TAU=Math.PI*2;
 // Match the blocker exactly to the visible trunk's maximum ground radius.
 export const FOREST_TRUNK_BASE_SCALE=.78;
@@ -216,16 +217,12 @@ export function blocksForestAtLocal(x,z,actorRadius=.42,radius=261,height=0){
  return false;
 }
 function fernGeometry(THREE){
- const vertices=[];
- // Six upward-curving fronds per fern; no alpha textures or sorting.
- for(let i=0;i<6;i++){
-  const a=i*TAU/6,dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx;
-  const mid=[dx*.56,.57,dz*.56],end=[dx*1.15,.39,dz*1.15],w=.18;
-  vertices.push(0,.08,0,mid[0]+px*w,mid[1],mid[2]+pz*w,end[0],end[1],end[2],
-   0,.08,0,end[0],end[1],end[2],mid[0]-px*w,mid[1],mid[2]-pz*w);
- }
+ // The six legacy forest fern blades now share the bent-pinnule sculpt.
+ // Twelve triangles per plant, exactly as before.
+ const fern=forestFernData({fronds:6,segments:1});
  const geo=new THREE.BufferGeometry();
- geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(fern.positions,3));
+ geo.setAttribute('color',new THREE.Float32BufferAttribute(fern.colors,3));
  geo.computeVertexNormals();
  return geo;
 }
@@ -392,7 +389,8 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
   p=>({y:p.height*.76,sx:p.radius*2.6,sy:p.height*.24,sz:p.radius*2.6}),
   p=>p.tint>.5?'#587157':'#6b815b','detail');
  const under=new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1});
- add('forest-ferns',layout.ground,fernGeometry(THREE),under,p=>({y:.05,sx:p.size,sy:p.size,sz:p.size}),p=>p.tint>.5?'#466b4b':'#6b8052','ground');
+ const fernMaterial=new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1,vertexColors:true});
+ add('forest-ferns',layout.ground,fernGeometry(THREE),fernMaterial,p=>({y:.05,sx:p.size,sy:p.size,sz:p.size}),p=>p.tint>.5?'#4c8359':'#71885b','ground');
  // Dry leaf and needle mats at the edges of the trail: no solid collider.
  const litterGeo=new THREE.CircleGeometry(1,7);
  litterGeo.rotateX(-Math.PI/2);

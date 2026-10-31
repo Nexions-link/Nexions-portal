@@ -51,16 +51,19 @@ export function forestCurvedGrassData(){
  const tri=(a,b,c,ca,cb,cc)=>{append(a,ca);append(b,cb);append(c,cc)};
  for(let i=0;i<blades;i++){
   const a=i*TAU/blades+.1,dx=Math.cos(a),dz=Math.sin(a),tx=-dz,tz=dx;
-  const extent=.14+(i%3)*.047,height=.72+(i%4)*.11,lean=.24+(i%2)*.09;
-  const w=.068+(i%3)*.01;
+  const extent=.19+(i%3)*.049,height=.59+(i%4)*.095,lean=.24+(i%2)*.11;
+  const w=.085+(i%3)*.012;
   const root=[dx*.055,.02,dz*.055],
    lowLeft=[root[0]+tx*w,.02,root[2]+tz*w],
    lowRight=[root[0]-tx*w,.02,root[2]-tz*w];
   const shoulder=[dx*extent,height*.52,dz*extent];
   const left=[shoulder[0]+tx*w*.55,shoulder[1],shoulder[2]+tz*w*.55];
   const right=[shoulder[0]-tx*w*.55,shoulder[1],shoulder[2]-tz*w*.55];
-  const tip=[dx*(extent+lean),height,dz*(extent+lean)];
-  const dark=[.43,.59,.37],mid=[.64,.77,.52],light=[.80,.88,.64];
+  const tip=[dx*(extent+lean),height-(i%2)*.055,dz*(extent+lean)];
+  const shade=i%3;
+  const dark=[.29+.04*shade,.49+.055*shade,.25+.025*shade];
+  const mid=[.48+.05*shade,.71+.04*shade,.38+.04*shade];
+  const light=[.70+.035*shade,.85+.025*shade,.48+.04*shade];
   tri(lowLeft,lowRight,left,dark,dark,mid);
   tri(lowRight,right,left,dark,mid,mid);
   tri(left,right,tip,mid,mid,light);
@@ -73,21 +76,34 @@ function grassMeshGeometry(THREE){
  g.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
  g.computeVertexNormals();return g;
 }
-function saplingGeometry(THREE){
- // A small branching crown, not another green rock/icosahedron.
- const verts=[],colors=[],branches=7;
+export function forestSaplingLeafData(){
+ // Seven actual bifurcated leafy shoots replace homogeneous sharp fans.
+ // Same seven times two triangles; each has an arched stem and two leaf
+ // planes with different highlight/pocket colours.
+ const positions=[],colors=[],branches=7;
+ const tri=(vertices,shade)=>{
+  positions.push(...vertices);
+  for(const col of shade)colors.push(...col);
+ };
  for(let j=0;j<branches;j++){
-  const a=j*TAU/branches,c=Math.cos(a),s=Math.sin(a),pc=-s,ps=c;
-  const h=.6+(j%3)*.17,len=.35+(j%2)*.22,width=.14;
-  const base=[0,.09,0],mid=[c*len*.56,h*.75,s*len*.56];
-  const tip=[c*len,h,s*len];
-  verts.push(...base,mid[0]+pc*width,mid[1],mid[2]+ps*width,...tip,
-   ...base,...tip,mid[0]-pc*width,mid[1],mid[2]-ps*width);
-  for(let k=0;k<6;k++)colors.push(.75,.94,.69);
+  const a=j*TAU/branches+.12,dx=Math.cos(a),dz=Math.sin(a);
+  const tx=-dz,tz=dx,reach=.44+(j%3)*.11;
+  const h=.55+(j%4)*.11,wide=.16+(j%2)*.035;
+  const base=[dx*.06,.07,dz*.06],stem=[dx*reach*.42,h*.55,dz*reach*.42];
+  const crown=[dx*reach*.8,h*.87,dz*reach*.8];
+  const tip=[dx*(reach+.14),h*.90-.045*(j%2),dz*(reach+.14)];
+  const left=[crown[0]+tx*wide,crown[1]-.03,crown[2]+tz*wide];
+  const right=[crown[0]-tx*wide,crown[1]-.055,crown[2]-tz*wide];
+  const shadow=[.34,.57,.34],lit=[.74,.88,.53],middle=[.51,.74,.44];
+  tri([...stem,...left,...tip],[shadow,lit,middle]);
+  tri([...stem,...tip,...right],[shadow,middle,lit]);
  }
- const g=new THREE.BufferGeometry();
- g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
- g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+ return {positions,colors,triangles:branches*2};
+}
+function saplingGeometry(THREE){
+ const data=forestSaplingLeafData(),g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
+ g.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
  g.computeVertexNormals();return g;
 }
 function twigGeometry(THREE){
@@ -108,8 +124,8 @@ export function createForestGroundLife(THREE,{scene,radius,heightAt}){
   n=new THREE.Vector3(),align=new THREE.Quaternion(),yaw=new THREE.Quaternion(),
   dummy=new THREE.Object3D(),tint=new THREE.Color();
  const tints={
-  grass:['#64805a','#827c4d','#536e51','#8c875d'],
-  saplings:['#456c4b','#5a7853','#799164','#365b44'],
+  grass:['#5f8a4f','#888a50','#48784c','#9a9462'],
+  saplings:['#3c7847','#6c8a59','#94a56c','#396c50'],
   deadwood:['#66553f','#564c3d','#8a7551','#504734']
  };
  function add(kind,geometry){
@@ -131,7 +147,7 @@ export function createForestGroundLife(THREE,{scene,radius,heightAt}){
    dummy.scale.set(size,kind==='deadwood'?1:size,size);
    dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
    let palette=tints[kind][Math.min(3,Math.floor(p.variation*4))];
-   if(kind==='grass'&&p.shade>.52)palette='#456947';
+   if(kind==='grass'&&p.shade>.52)palette='#3e704a';
    mesh.setColorAt(i,tint.set(palette));
   }
   mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);

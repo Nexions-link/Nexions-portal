@@ -1,5 +1,6 @@
 // Deterministic visual-only forest ecology: does not create actual mobs or loot.
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
+import {forestFernData} from './forest-botanical-geometry.js?v=1';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestDistance,
  createForestLayout} from './whispering-forest.js';
 const TAU=Math.PI*2;
@@ -61,17 +62,12 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
  // Six thin, two-sided leaves per clump; geometry and materials are shared
  // by the entire batch. No transparent textures or alpha-sorting overhead.
  function brackenGeometry(){
-  const vertices=[],leafCount=6;
-  for(let i=0;i<leafCount;i++){
-   const a=i*TAU/leafCount,x=Math.cos(a),z=Math.sin(a),px=-z,pz=x;
-   const mid=[x*.45,.58,z*.45],tip=[x*.93,.29,z*.93],width=.15;
-   vertices.push(0,.06,0,mid[0]+px*width,mid[1],mid[2]+pz*width,
-    tip[0],tip[1],tip[2],
-    0,.06,0,tip[0],tip[1],tip[2],
-    mid[0]-px*width,mid[1],mid[2]-pz*width);
-  }
+  // Reuse the same six-frond silhouette as the nearby forest ferns.
+  // Six fans x two triangles = the original twelve triangles/instance.
+  const sculpt=forestFernData({fronds:6,segments:1});
   const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(sculpt.positions,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(sculpt.colors,3));
   geo.computeVertexNormals();return geo;
  }
  function shrubLeafGeometry(){
@@ -95,9 +91,9 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
   p=>({x:p.size,y:p.size*1.20,z:p.size,h:.045}),
   p=>p.variation>.65?'#526b51':p.variation>.3?'#3d5b46':'#657453');
  instance('forest-deep-bracken',layout.bracken,brackenGeometry(),
-  mat('#ffffff',{side:THREE.DoubleSide}),p=>({
+  mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),p=>({
    x:p.size*1.12,y:p.size*(.74+.25*p.variation),z:p.size*1.12,h:.035
-  }),p=>p.variation>.7?'#31533c':p.variation>.34?'#496745':'#647756');
+  }),p=>p.variation>.7?'#47744a':p.variation>.34?'#598451':'#77925a');
  instance('forest-stones',layout.rocks,createWeatheredStoneGeometry(THREE,'forest'),stones,
   p=>({x:p.size*.73,y:p.size*.29,z:p.size*.58,h:p.size*.24}),
   p=>p.variation>.65?'#5a6a5c':p.variation>.32?'#72786c':'#606f64');

@@ -5,6 +5,7 @@ import {createForestLayout,forestDistance,forestTrailLatitude,forestMoodAt,
  FOREST_CAMP,FOREST_SITE_CLEARINGS} from './whispering-forest.js';
 import {forestCanopyShadeAt} from './forest-lighting.js';
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
+import {forestFernData} from './forest-botanical-geometry.js?v=1';
 
 const TAU=Math.PI*2,R=261;
 export const FOREST_UNDERSTORY_CAPS=Object.freeze({
@@ -73,25 +74,10 @@ function geometryData(kind){
   vertex(a,ca);vertex(b,cb);vertex(c,cc);
  };
  if(kind==='ferns'){
-  // Each arching fern has tapering individual pinnules, not 2D crossed cards.
-  // The graded ochre-green tips read like real layered woodland vegetation.
-  for(let f=0;f<7;f++){
-   const a=f*TAU/7+.18,dx=Math.cos(a),dz=Math.sin(a);
-   const tangent=[-dz,dx],height=.65+(f%3)*.13;
-   for(let s=0;s<6;s++){
-    const p=s/6,q=(s+1)/6;
-    const center=t=>[dx*(.15+.83*t),.11+height*Math.sin(t*Math.PI*.78),dz*(.15+.83*t)];
-    const mid=center(p+.08),tip=center(q+.035);
-    const width=.21*Math.sin(Math.PI*(p+.18))*(1-.37*p);
-    const c0=[.64+.16*p,.79+.07*p,.59+.12*p],
-     c1=[.36+.15*p,.55+.12*p,.34+.11*p];
-    for(const side of [-1,1]){
-     const sidePoint=[mid[0]+tangent[0]*width*side,
-      mid[1]-.06,mid[2]+tangent[1]*width*side];
-     triangle(center(p),sidePoint,tip,c1,c0,c1);
-    }
-   }
-  }
+  // Replaces the old flat fan with individual arched leaflets.
+  // Still precisely 7 fronds x 6 stations x 2 triangles per station.
+  const fern=forestFernData({fronds:7,segments:6});
+  return {positions:fern.positions,colors:fern.colors,triangles:fern.triangles};
  }else if(kind==='leaves'){
   // Fallen oak leaf litter with independently curled lobes rather than
   // repeated sharp paper triangles; tiny height variations catch glancing light.
@@ -153,10 +139,10 @@ export function createForestUnderstory(THREE,{scene,radius,heightAt}){
  const tilt=new THREE.Quaternion(),turn=new THREE.Quaternion(),
   dummy=new THREE.Object3D(),tint=new THREE.Color();
  const palettes={
-  ferns:['#5d7e57','#3d694c','#798765','#4d724c'],
-  leaves:['#806545','#6b5441','#9a7550','#796747'],
+  ferns:['#527e4b','#31674d','#91a868','#497e54'],
+  leaves:['#866547','#66533d','#ae8659','#857047'],
   boulders:['#6b7169','#6d7769','#5a6864','#787f74'],
-  ivy:['#476647','#587c53','#416044','#72916b']
+  ivy:['#3c6846','#5b8653','#386149','#7b9962']
  };
  const normalAt=p=>normal.set(Math.cos(p.lat)*Math.sin(p.lon),Math.sin(p.lat),
   Math.cos(p.lat)*Math.cos(p.lon));
@@ -185,7 +171,7 @@ export function createForestUnderstory(THREE,{scene,radius,heightAt}){
    }else if(kind==='boulders'){
     dummy.scale.set(p.size*.78,p.size*.32,p.size*.66);
    }else if(kind==='ferns'){
-    dummy.scale.set(p.size,p.size*.99,p.size);
+    dummy.scale.set(p.size*1.10,p.size*.98,p.size*1.10);
    }else dummy.scale.set(p.size,1,p.size);
    dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
    const palette=palettes[kind][Math.floor((kind==='ivy'?p.tint:p.variation)*4)];
