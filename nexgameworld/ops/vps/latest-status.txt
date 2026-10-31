@@ -1,38 +1,38 @@
-SERVICE=activating
-LOCAL_HEALTH=000
-LOCAL_READY=000
+SERVICE=active
+LOCAL_HEALTH=200
+LOCAL_READY=200
 SERVICE_DETAILS
-MainPID=0
-Result=exit-code
-NRestarts=67
-ExecMainCode=1
-ExecMainStatus=1
-ActiveState=activating
-SubState=auto-restart
+MainPID=170350
+Result=success
+NRestarts=0
+ExecMainCode=0
+ExecMainStatus=0
+ActiveState=active
+SubState=running
 SERVICE_LOGS
-    at moduleResolve (node:internal/modules/esm/resolve:865:10)
-    at defaultResolve (node:internal/modules/esm/resolve:989:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
-    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
-  code: 'ERR_MODULE_NOT_FOUND',
-  url: 'file:///opt/nexgameworld/releases/bestiary/chest-preview-motion.js?v=1'
-}
-Node.js v22.23.4
-node:internal/modules/esm/resolve:275
-    throw new ERR_MODULE_NOT_FOUND(
-          ^
-Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/opt/nexgameworld/releases/bestiary/chest-preview-motion.js' imported from /opt/nexgameworld/releases/planet-test/gather-world.js
-    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
-    at moduleResolve (node:internal/modules/esm/resolve:865:10)
-    at defaultResolve (node:internal/modules/esm/resolve:989:11)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
-    at ModuleJob._link (node:internal/modules/esm/module_job:182:49) {
-  code: 'ERR_MODULE_NOT_FOUND',
-  url: 'file:///opt/nexgameworld/releases/bestiary/chest-preview-motion.js?v=1'
-}
-Node.js v22.23.4
-PUBLIC_HEALTH=502\n
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NexGameWorld spherical server listening on 9800
+NexGameWorld database URL present: true
+NexGameWorld Neon connection: ok
+NexGameWorld account tables: ready
+NexGameWorld account API enabled
+NexGameWorld authenticated world gateway enabled
+NexGameWorld authenticated economy enabled
+NexGameWorld shutdown saves drained: 0
+(node:170350) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NexGameWorld spherical server listening on 9800
+NexGameWorld database URL present: true
+NexGameWorld Neon connection: ok
+NexGameWorld account tables: ready
+NexGameWorld account API enabled
+NexGameWorld authenticated world gateway enabled
+NexGameWorld authenticated economy enabled
+PUBLIC_HEALTH=200\n
