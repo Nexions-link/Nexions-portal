@@ -80,15 +80,28 @@ export function createForestFloor(THREE,{scene,radius,heightAt}){
   for(const item of layout.moss){
    const color=forestFloorColors(item.lon,item.lat,item.variation*2-1).moss;
    const center=point(item.lon,item.lat,.095),c=item.size;
+   // Preserve the original 9-facet baked spherical moss decal, but turn
+   // its plain circular fade into scalloped, mottled cushions. No new mesh,
+   // transparent layer or additional GPU draw call.
+   const palette=(factor,greenBoost=0)=>[
+    Math.min(1,color[0]*factor),
+    Math.min(1,color[1]*factor+greenBoost),
+    Math.min(1,color[2]*factor)
+   ];
    for(let i=0;i<facets;i++){
     const angle1=i*TAU/facets+item.angle,angle2=(i+1)*TAU/facets+item.angle;
     function edge(a,index){
-     const jitter=.86+.1*Math.sin(index*3.5+item.variation*11);
+     const lobes=.80+.18*Math.sin(index*2.31+item.variation*13)+
+      .065*Math.cos(index*4.21-item.variation*7);
+     const jitter=Math.max(.62,Math.min(1.10,lobes));
      return point(item.lon+Math.cos(a)*c*jitter/(radius*Math.cos(item.lat)),
       item.lat+Math.sin(a)*c*jitter/radius,.098);
     }
+    const dapple=.84+.18*Math.sin(i*2.77+item.variation*11);
+    const middle=palette(dapple, .015*(1+Math.sin(i*1.93)));
+    const edgeTint=palette(.73+.12*Math.cos(i*2.53+item.angle));
     vertices.push(...center,...edge(angle1,i),...edge(angle2,i+1));
-    colors.push(...color,.58,...color,0,...color,0);
+    colors.push(...middle,.70,...edgeTint,.015,...edgeTint,.015);
    }
   }
   const geometry=new THREE.BufferGeometry();

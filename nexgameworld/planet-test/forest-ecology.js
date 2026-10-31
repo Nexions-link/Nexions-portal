@@ -1,6 +1,7 @@
 // Deterministic visual-only forest ecology: does not create actual mobs or loot.
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 import {forestFernData} from './forest-botanical-geometry.js?v=1';
+import {forestShrubLeafData,forestMushroomCapData} from './forest-art-ecology.js?v=1';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestDistance,
  createForestLayout} from './whispering-forest.js';
 const TAU=Math.PI*2;
@@ -70,26 +71,37 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
   geo.setAttribute('color',new THREE.Float32BufferAttribute(sculpt.colors,3));
   geo.computeVertexNormals();return geo;
  }
- function shrubLeafGeometry(){
-  // Angular bushes previously resembled stones; layered leaves give them
-  // recognisable stems and an open silhouette without extra draw calls.
-  const positions=[];
-  for(let i=0;i<9;i++){
-   const a=i*TAU/9,dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx;
-   const h=.54+(i%4)*.10,r=.48+(i%3)*.13,w=.23;
-   const mid=[dx*r*.64,h*.72,dz*r*.64];
-   const tip=[dx*r,h,dz*r];
-   positions.push(0,.06,0,mid[0]+px*w,mid[1],mid[2]+pz*w,...tip,
-    0,.06,0,...tip,mid[0]-px*w,mid[1],mid[2]-pz*w);
-  }
-  const geometry=new THREE.BufferGeometry();
-  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-  geometry.computeVertexNormals();return geometry;
+ function vertexGeometry(data){
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
+  geo.computeVertexNormals();return geo;
  }
- const leaves=mat('#ffffff',{side:THREE.DoubleSide}),stones=mat('#ffffff',{flatShading:true,vertexColors:true});
+ function shrubLeafGeometry(){
+  return vertexGeometry(forestShrubLeafData());
+ }
+ function mushroomCapGeometry(){
+  return vertexGeometry(forestMushroomCapData());
+ }
+ function mushroomStemGeometry(){
+  // Same source CylinderGeometry radial/vertical topology and collision-free
+  // scale; sculpt its existing verts for a tapered, mildly crooked stalk.
+  const stem=new THREE.CylinderGeometry(.31,.39,1,6);
+  const pos=stem.getAttribute('position'),colors=[];
+  for(let i=0;i<pos.count;i++){
+   const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+   const r=1+.11*Math.sin(y*4.2+Math.atan2(z,x)*3);
+   pos.setXYZ(i,x*r+.055*y*y,y,z*r+.032*y);
+   const upper=Math.max(0,Math.min(1,y+.5));
+   colors.push(.64+.32*upper,.59+.31*upper,.47+.28*upper);
+  }
+  stem.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  pos.needsUpdate=true;stem.computeVertexNormals();return stem;
+ }
+ const leaves=mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),stones=mat('#ffffff',{flatShading:true,vertexColors:true});
  instance('forest-shrubs',layout.shrubs,shrubLeafGeometry(),leaves,
   p=>({x:p.size,y:p.size*1.20,z:p.size,h:.045}),
-  p=>p.variation>.65?'#526b51':p.variation>.3?'#3d5b46':'#657453');
+  p=>p.variation>.65?'#567e53':p.variation>.3?'#426c51':'#799165');
  instance('forest-deep-bracken',layout.bracken,brackenGeometry(),
   mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),p=>({
    x:p.size*1.12,y:p.size*(.74+.25*p.variation),z:p.size*1.12,h:.035
@@ -97,11 +109,12 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
  instance('forest-stones',layout.rocks,createWeatheredStoneGeometry(THREE,'forest'),stones,
   p=>({x:p.size*.73,y:p.size*.29,z:p.size*.58,h:p.size*.24}),
   p=>p.variation>.65?'#5a6a5c':p.variation>.32?'#72786c':'#606f64');
- instance('forest-mushroom-stems',layout.fungi,new THREE.CylinderGeometry(.31,.39,1,6),
-  mat('#ae9c7d'),p=>({x:p.size*.28,y:p.size*.48,z:p.size*.28,h:p.size*.28}));
- instance('forest-mushroom-caps',layout.fungi,new THREE.ConeGeometry(1,.72,7),mat('#ffffff'),
+ instance('forest-mushroom-stems',layout.fungi,mushroomStemGeometry(),
+  mat('#e1d4b7',{vertexColors:true}),p=>({x:p.size*.28,y:p.size*.48,z:p.size*.28,h:p.size*.28}));
+ instance('forest-mushroom-caps',layout.fungi,mushroomCapGeometry(),
+  mat('#ffffff',{vertexColors:true,side:THREE.DoubleSide}),
   p=>({x:p.size*.55,y:p.size*.45,z:p.size*.55,h:p.size*.61}),
-  p=>p.variation>.48?'#876351':'#705949');
+  p=>p.variation>.68?'#b3865b':p.variation>.32?'#9e715b':'#826953');
  const fur=mat('#4c423a'),russet=mat('#91755c'),muzzle=mat('#b29a79'),eyes=mat('#22241f');
  const animals=[];
  function mesh(parent,geometry,material,x,y,z,sx=1,sy=1,sz=1){

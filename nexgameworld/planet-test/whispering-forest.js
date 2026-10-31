@@ -312,12 +312,13 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
   const tip=point(.765,.004,a+.035+gnarl);
   const right=point(.53,.085,a+.25+gnarl);
   ribs.push(...summit,...left,...tip,...summit,...tip,...right);
-  // Fissured brown upper bark blends into cooler moss at the tips.
-  // One existing root draw batch; no new collision surface.
-  for(const shade of [1,.77,.55,1,.55,.83]){
-   const moss=artRemaster?1-shade:0;
-   ribColors.push(shade*(.96-.23*moss),
-    shade*(.92+.04*moss),shade*(.85-.16*moss));
+  // Warm cracked wood fades to real moss colour on the buried root toes.
+  // Reuses the SAME six vertices / two root triangles per buttress.
+  for(const [shade,damp] of [[.98,.03],[.83,.31],[.68,.92],
+   [.98,.03],[.68,.92],[.88,.23]]){
+   const moss=artRemaster?damp:0;
+   ribColors.push(shade*(.86-.47*moss),
+    shade*(.69+.19*moss),shade*(.55-.19*moss));
   }
  }
  const rootGeo=new THREE.BufferGeometry();
@@ -327,7 +328,8 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
  add('forest-buttress-roots',layout.trees,rootGeo,
   new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1,vertexColors:artRemaster}),
   p=>({y:.01,sx:p.radius,sy:2.3+p.radius*.36,sz:p.radius}),
-  p=>p.tint>.52?'#483d35':'#5b4c3d');
+  p=>artRemaster?(p.tint>.52?'#898674':'#807e70'):
+   (p.tint>.52?'#483d35':'#5b4c3d'));
  add('forest-ancient-trunks',layout.trees,trunks,detailedBark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
  add('forest-pine-lower',ever,pineGeo,pine,p=>({
   y:p.height*.69,sx:p.radius*(artRemaster?3.42:3.2)*(.93+.14*p.tint),
