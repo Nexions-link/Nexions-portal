@@ -4,7 +4,8 @@ import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction,createCameraProbe,isInLonghouse,canWalkCamp} from './sphere-physics.js?v=17';
 import {settleCameraLook} from './camera-look-smoothing.js?v=1';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
-import {createShadowRefreshBudget} from './render-budget.js?v=1';
+import {createShadowRefreshBudget} from './render-budget.js?v=2';
+import {createR2AdaptiveRenderBudget,createR2SceneSnapshot,compareR2SceneSnapshots} from './r2-performance.js?v=1';
 import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay.js?v=5';
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
@@ -57,6 +58,7 @@ const isPortalPreview = new URLSearchParams(location.search).get('portal-preview
 const r2Materials=!isPortalPreview&&new URLSearchParams(location.search).get('r2materials')==='1';
 const r2Vegetation=!isPortalPreview&&new URLSearchParams(location.search).get('r2vegetation')==='1';
 const r2Lighting=!isPortalPreview&&new URLSearchParams(location.search).get('r2lighting')==='1';
+const r2Performance=!isPortalPreview&&new URLSearchParams(location.search).get('r2perf')==='1';
 const accountMode=!isPortalPreview;
 const accountLaunch=accountMode?getAccountLaunch(sessionStorage):null;
 if(accountMode&&!accountLaunch){
@@ -388,15 +390,30 @@ try {
   function storePreference(key,value){try{localStorage.setItem(key,value)}catch{}}
   const graphicsSelect=$('graphicsQuality'),qualityHelp=$('qualityHelp');
   const r2MaterialsToggle=$('r2MaterialsToggle'),r2VegetationToggle=$('r2VegetationToggle');
-  const r2LightingToggle=$('r2LightingToggle');
+  const r2LightingToggle=$('r2LightingToggle'),r2PerformanceToggle=$('r2PerformanceToggle');
   const fpsToggle=$('showFps'),fpsCounter=$('fpsCounter');
   const fpsCopy=$('copyFpsReport'),fpsReset=$('resetFpsReport'),fpsHelp=$('fpsHelp');
+  const saveR2Baseline=$('saveR2Baseline'),compareR2Frames=$('compareR2Frames');
+  const captureR2Frame=$('captureR2Frame'),comparisonOutput=$('r2ComparisonOutput');
   const frameProfiler=createFrameProfiler();
   // Graphics settings belong exclusively to the menu; renderModal owns visibility.
   let qualityName=resolveGraphicsPreset(readPreference(graphicsStorageKey,'balanced'));
   if(isPortalPreview)qualityName='economy';
   let shadowActive=false,r2GlobeMaps=null;
-  let combatQualitySink=null;
+  let combatQualitySink=null,pendingR2Capture=false,captureInFlight=false;
+  const adaptiveRenderBudget=createR2AdaptiveRenderBudget();
+  const comparisonStorageKey='nexgameworld-r2-performance-A-v1';
+  const r2Flags=()=>['mat:'+Number(r2Materials),'flora:'+Number(r2Vegetation),
+   'light:'+Number(r2Lighting),'perf:'+Number(r2Performance)].join(' ');
+  const effectiveDpr=()=>Math.min(
+   effectivePixelRatio(qualityName,window.devicePixelRatio||1,isPortalPreview),
+   adaptiveRenderBudget.settings(qualityName,r2Performance).pixelRatioCap);
+  const sceneSnapshot=()=>createR2SceneSnapshot({
+   profile:frameProfiler,quality:qualityName,version:r2VersionLabel(),
+   r2:r2Flags(),dpr:renderer.getPixelRatio()});
+  function r2VersionLabel(){
+   return $('planetBuildWidget')?.dataset.build||'0.6.45.59';
+  }
   function applyGraphicsQuality(){
     const profile=GRAPHICS_PRESETS[qualityName];
     if(!isPortalPreview&&qualityName!=='economy'){
@@ -404,7 +421,8 @@ try {
       if(!soilScatter)soilScatter=createSoilScatter(THREE,{scene,radius:R,heightAt});
     }
     const enabled=!isPortalPreview&&!state.orbit&&profile.shadowSize>0;
-    renderer.setPixelRatio(effectivePixelRatio(qualityName,window.devicePixelRatio||1,isPortalPreview));
+    adaptiveRenderBudget.reset();
+    renderer.setPixelRatio(effectiveDpr());
     renderer.toneMappingExposure=profile.exposure;
     if(sun.shadow.mapSize.x!==(profile.shadowSize||256)){
       sun.shadow.mapSize.set(profile.shadowSize||256,profile.shadowSize||256);
@@ -460,6 +478,15 @@ try {
       'Умеренная растительность, мягкие тени 512 px и улучшенное озеро.';
     if(graphicsSelect)graphicsSelect.value=qualityName;
   }
+  if(r2PerformanceToggle){
+    r2PerformanceToggle.checked=r2Performance;
+    r2PerformanceToggle.addEventListener('change',()=>{
+      const next=new URL(location.href);
+      if(r2PerformanceToggle.checked)next.searchParams.set('r2perf','1');
+      else next.searchParams.delete('r2perf');
+      location.replace(next.href);
+    });
+  }
   if(r2LightingToggle){
     r2LightingToggle.checked=r2Lighting;
     r2LightingToggle.addEventListener('change',()=>{
@@ -511,6 +538,27 @@ try {
     }catch{
       if(fpsHelp)fpsHelp.textContent='Буфер обмена недоступен в этом браузере.';
     }
+  });
+  saveR2Baseline?.addEventListener('click',()=>{
+    const snapshot=sceneSnapshot();
+    if(!Object.keys(snapshot.results).length){
+      if(fpsHelp)fpsHelp.textContent='Включи «Показывать FPS» и походи по локации 10–20 секунд, затем сохрани замер А.';
+      return;
+    }
+    storePreference(comparisonStorageKey,JSON.stringify(snapshot));
+    if(fpsHelp)fpsHelp.textContent='Замер А сохранён. Можно переключить R2 или оптимизацию, пройти тот же маршрут и сравнить с Б.';
+    if(comparisonOutput){comparisonOutput.hidden=false;comparisonOutput.textContent='Сохранён замер А: '+snapshot.quality+' · DPR '+snapshot.dpr+' · '+snapshot.r2;}
+  });
+  compareR2Frames?.addEventListener('click',()=>{
+    let before=null;try{before=JSON.parse(readPreference(comparisonStorageKey,'null'))}catch{}
+    const text=compareR2SceneSnapshots(before,sceneSnapshot());
+    if(comparisonOutput){comparisonOutput.hidden=false;comparisonOutput.textContent=text;}
+    if(fpsHelp)fpsHelp.textContent='Результаты А/Б показаны ниже. Они не заменяют замер GPU и визуальную проверку кадров.';
+  });
+  captureR2Frame?.addEventListener('click',()=>{
+    if(captureInFlight||pendingR2Capture)return;
+    pendingR2Capture=true;
+    if(fpsHelp)fpsHelp.textContent='Снимок реального WebGL-кадра будет сохранён в PNG, без интерфейса игры.';
   });
   fpsReset?.addEventListener('click',()=>{
     frameProfiler.reset();
@@ -995,10 +1043,19 @@ try {
   let fpsSeconds=0,fpsFrames=0;
   function animate() {
     requestAnimationFrame(animate);
-    const measureFrames=!!fpsCounter&&!fpsCounter.hidden&&!document.hidden;
+    const measureFrames=!document.hidden&&(r2Performance||!!fpsCounter&&!fpsCounter.hidden);
     const frameStart=measureFrames?performance.now():0;
     const rawDt=clock.getDelta();
     const dt = Math.min(rawDt, .05);
+    if(adaptiveRenderBudget.observe(rawDt*1000,rawDt,{
+      enabled:r2Performance,quality:qualityName,hidden:document.hidden
+    })){
+      // DPR is a raster resolution change only; canvas CSS size, camera
+      // projection, character movement and world physics are unaffected.
+      const nextRatio=effectiveDpr();
+      if(Math.abs(renderer.getPixelRatio()-nextRatio)>.01)renderer.setPixelRatio(nextRatio);
+      shadowBudget.reset();
+    }
     elapsed += dt; uiClock += dt; introClock += dt;
     // A gradual forest microclimate: darker distant silhouettes, not a jump cut.
     const forestLongitude=Math.atan2(state.normal.x,state.normal.z);
@@ -1245,7 +1302,10 @@ try {
     hasCameraLookTarget=true;lastLookOrbit=state.orbit;
     camera.lookAt(cameraLookTarget);
     rpg.updateQuestMarkers();
-    const redrawShadows=shadowBudget.next(dt,{enabled:shadowActive,quality:qualityName});
+    const shadowSettings=adaptiveRenderBudget.settings(qualityName,r2Performance);
+    const redrawShadows=shadowBudget.next(dt,{
+      enabled:shadowActive,quality:qualityName,maxHz:shadowSettings.shadowHz
+    });
     renderer.shadowMap.needsUpdate=redrawShadows;
     if(redrawShadows){
       // Keep the 62-metre shadow frustum centred around the active character.
@@ -1257,6 +1317,28 @@ try {
     }
     drawNativeMinimap();
     renderer.render(scene,camera);
+    if(pendingR2Capture&&!captureInFlight){
+      pendingR2Capture=false;captureInFlight=true;
+      // Capturing immediately after render is required when the browser
+      // clears a WebGL drawing buffer after composition (Safari included).
+      if(typeof canvas.toBlob==='function')canvas.toBlob(blob=>{
+        captureInFlight=false;
+        if(!blob){
+          if(fpsHelp)fpsHelp.textContent='Safari не выдал PNG. Попробуй повторить снимок.';
+          return;
+        }
+        const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+        const version=r2VersionLabel().replace(/[^a-zA-Z0-9.-]/g,'-');
+        anchor.href=url;anchor.download='NGW-'+version+'-'+qualityName+'-'+Date.now()+'.png';
+        document.body.appendChild(anchor);anchor.click();anchor.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),15000);
+        if(fpsHelp)fpsHelp.textContent='Снимок реальной игровой сцены PNG сохранён. Можно приложить к сообщению.';
+      },'image/png');
+      else{
+        captureInFlight=false;
+        if(fpsHelp)fpsHelp.textContent='Создание PNG недоступно в этом браузере.';
+      }
+    }
     if(measureFrames){
       const sceneName=selectFrameScene({orbit:state.orbit,combat:rpg.combatActive,
        house:!!cameraPlayerLocal&&isInLonghouse(cameraPlayerLocal.x,cameraPlayerLocal.z),

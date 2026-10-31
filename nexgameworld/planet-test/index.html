@@ -604,7 +604,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.45.58" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.45.59" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -680,9 +680,18 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
   <small id="r2VegetationHelp" class="settings-help">Экспериментальная форма крон Шепчущего леса и низкой луговой травы. Количество деревьев, травяных групп и draw calls не увеличено. Перезагрузка при переключении, сравни FPS и P95.</small>
   <label class="camera-follow-row" for="r2LightingToggle"><input id="r2LightingToggle" type="checkbox" role="switch" aria-describedby="r2LightingHelp"><span>Новый свет и атмосфера R2</span></label>
   <small id="r2LightingHelp" class="settings-help">Тёплый солнечный свет, прохладная глубина леса, более естественные просветы и влажная воздушная перспектива. Без дополнительных источников света, теневых проходов или объектов. Перезагрузка при переключении; сравни FPS и P95.</small>
+  <label class="camera-follow-row" for="r2PerformanceToggle"><input id="r2PerformanceToggle" type="checkbox" role="switch" aria-describedby="r2PerformanceHelp"><span>Адаптивная оптимизация R2</span></label>
+  <small id="r2PerformanceHelp" class="settings-help">Высокое качество: теневой проход ограничен 30 обновлениями/с. При устойчивых просадках игра понижает только внутреннее разрешение и частоту обновления теней; когда FPS восстановится — возвращает детализацию. Выключи для сравнения с исходной графикой.</small>
   <label class="camera-follow-row" for="showFps"><input id="showFps" type="checkbox" role="switch" aria-describedby="fpsHelp"><span>Показывать FPS</span></label>
   <small id="fpsHelp" class="settings-help">FPS, P95 времени кадра и просадки измеряются локально. Для сравнения проверь поворот камеры, бой и дом.</small>
   <div class="fps-diagnostics-actions"><button type="button" id="copyFpsReport">Скопировать FPS-отчёт</button><button type="button" id="resetFpsReport">Сбросить замеры</button></div>
+  <div class="fps-diagnostics-actions" aria-label="R2-04 сравнение кадров">
+   <button type="button" id="saveR2Baseline">Сохранить замер А</button>
+   <button type="button" id="compareR2Frames">Сравнить с замером Б</button>
+   <button type="button" id="captureR2Frame">Снимок сцены PNG</button>
+  </div>
+  <small class="settings-help">Для сравнения включи FPS, пройди одинаковый маршрут в игре, сохрани А. Переключи нужный параметр R2, повтори маршрут и нажми «Сравнить с Б». Снимок PNG снимается непосредственно с 3D-кадра, без интерфейса.</small>
+  <pre id="r2ComparisonOutput" hidden aria-live="polite" style="font:11px/1.45 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;padding:9px;border:1px solid #71816b;border-radius:7px;background:#15231b;color:#e2e8d2"></pre>
    <div class="ngw-art-lab-entry" style="margin-top:14px;padding:10px;border:1px solid #76866d;border-radius:9px;background:#23382c;color:#e1e8d4;display:grid;gap:5px">
     <strong style="font-size:13px">Новый графический полигон P2.4</strong>
     <small style="font-size:11px;line-height:1.5;color:#c7d1bd">Сравни пять оригинальных природных материалов на удалённом участке планеты. Прогресс персонажа и стартовая зона не затрагиваются.</small>
@@ -715,7 +724,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=266').catch(error=>{
+  import('./planet.js?v=267').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');
