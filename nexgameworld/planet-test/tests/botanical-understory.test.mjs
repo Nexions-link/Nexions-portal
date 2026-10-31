@@ -56,3 +56,14 @@ test('real instanced plants receive shadows and petals keep their original colou
  layer.setQuality('high');
  assert.ok(scene.children.every(x=>x.count>0&&x.visible));
 });
+
+test('distant botanical geometry keeps the same leaves and bounds with fewer subdivisions',()=>{
+ for(const kind of ['ferns','groundcover']){
+  const full=botanicalUnderstoryData(kind),distant=botanicalUnderstoryData(kind,'distant');
+  assert.ok(distant.positions.length<=full.positions.length*.4);
+  const vertices=new Set();
+  for(let i=0;i<full.positions.length;i+=3)vertices.add(full.positions.slice(i,i+3).map(v=>v.toFixed(8)).join(','));
+  for(let i=0;i<distant.positions.length;i+=3)
+   assert.ok(vertices.has(distant.positions.slice(i,i+3).map(v=>v.toFixed(8)).join(',')),kind+' must retain the original leaf envelope');
+ }
+});

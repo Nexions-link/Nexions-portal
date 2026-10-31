@@ -5,7 +5,7 @@ import {pathWear,lakeRadius} from './start-zone.js?v=55';
 import {forestTrailLatitude,forestDistance,FOREST_CAMP,FOREST_SITE_CLEARINGS,
  createForestLayout} from './whispering-forest.js?v=22';
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
-import {botanicalUnderstoryData} from './botanical-understory.js?v=1';
+import {botanicalUnderstoryData} from './botanical-understory.js?v=2';
 const TAU=Math.PI*2,R=261;
 const clamp=x=>Math.max(0,Math.min(1,x));
 function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);}
@@ -141,6 +141,10 @@ export function createPainterlyBiome(THREE,{scene,radius,heightAt}){
  for(const kind of Object.keys(CAPS)){
   const data=painterlyPlantGeometryData(kind);
   const geo=meshGeometry(THREE,data.positions,data.colors,data.alpha);
+  if(kind==='ferns'||kind==='groundcover'){
+   const distant=botanicalUnderstoryData(kind,'distant');
+   geo.userData.ngwDistantGeometry=meshGeometry(THREE,distant.positions,distant.colors);
+  }
   const material=kind==='sunflecks'?
    new THREE.MeshBasicMaterial({color:'#fce4ae',vertexColors:true,transparent:true,
     opacity:.68,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,

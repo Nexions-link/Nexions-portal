@@ -3,7 +3,7 @@ import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestDistance,
  createForestLayout} from './whispering-forest.js';
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
-import {botanicalUnderstoryData} from './botanical-understory.js?v=1';
+import {botanicalUnderstoryData} from './botanical-understory.js?v=2';
 const TAU=Math.PI*2;
 export function forestEcologyLayout(seed=97431){
  let s=seed>>>0;
@@ -62,23 +62,19 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
  }
  // Six thin, two-sided leaves per clump; geometry and materials are shared
  // by the entire batch. No transparent textures or alpha-sorting overhead.
- function brackenGeometry(){
-  const data=botanicalUnderstoryData('ferns'),geo=new THREE.BufferGeometry();
+ function botanicalGeometry(kind,detail='high'){
+  const data=botanicalUnderstoryData(kind,detail),geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
   geo.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
-  geo.computeVertexNormals();return geo;
- }
- function shrubLeafGeometry(){
-  const data=botanicalUnderstoryData('groundcover'),geometry=new THREE.BufferGeometry();
-  geometry.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
-  geometry.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
-  geometry.computeVertexNormals();return geometry;
+  geo.computeVertexNormals();
+  if(detail==='high')geo.userData.ngwDistantGeometry=botanicalGeometry(kind,'distant');
+  return geo;
  }
  const leaves=mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),stones=mat('#ffffff',{flatShading:true,vertexColors:true});
- instance('forest-shrubs',layout.shrubs,shrubLeafGeometry(),leaves,
+ instance('forest-shrubs',layout.shrubs,botanicalGeometry('groundcover'),leaves,
   p=>({x:p.size,y:p.size*1.20,z:p.size,h:.045}),
   p=>p.variation>.65?ART.canopy.understory[0]:p.variation>.3?ART.canopy.understory[1]:ART.canopy.understory[2]);
- instance('forest-deep-bracken',layout.bracken,brackenGeometry(),
+ instance('forest-deep-bracken',layout.bracken,botanicalGeometry('ferns'),
   mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),p=>({
    x:p.size*1.12,y:p.size*(.74+.25*p.variation),z:p.size*1.12,h:.035
   }),p=>p.variation>.7?'#31533c':p.variation>.34?'#496745':'#647756');

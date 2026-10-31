@@ -4,7 +4,8 @@ import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction,createCameraProbe,isInLonghouse,canWalkCamp} from './sphere-physics.js?v=17';
 import {settleCameraLook} from './camera-look-smoothing.js?v=1';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
-import {createShadowRefreshBudget} from './render-budget.js?v=1';
+import {createShadowRefreshBudget} from './render-budget.js?v=2';
+import {createForestSpatialBatches} from './forest-spatial-batches.js?v=1';
 import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay.js?v=5';
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
@@ -20,7 +21,7 @@ import {createForestGroundTexture,forestTextureMask} from './forest-ground-textu
 
 
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
-import {forestSurfaceRecess} from './forest-surface-profile.js?v=1';
+import {forestSurfaceRecess,forestBackgroundIndices} from './forest-surface-profile.js?v=2';
 
 import {createArtSafetyController} from './art-safety.js?v=1';
 import {createG11AmbientTrunkGeometry} from './trunk-silhouette-g11.js?v=1';
@@ -50,15 +51,15 @@ const optionalArtImports=await Promise.allSettled([
  import('./forest-atmosphere.js?v=1'),
  import('./forest-floor.js?v=2'),
  import('./forest-ground-life.js?v=3'),
- import('./forest-understory.js?v=3'),
+ import('./forest-understory.js?v=4'),
  import('./surface-microdetail.js?v=2'),
  import('./soil-scatter.js?v=2'),
  import('./roadside-details.js?v=2'),
- import('./painterly-biome.js?v=4'),
- import('./forest-ecology.js?v=5'),
+ import('./painterly-biome.js?v=5'),
+ import('./forest-ecology.js?v=6'),
  import('./road-verge.js?v=1'),
  import('./ground-stones-g10.js?v=1'),
- import('./forest-surface.js?v=1')
+ import('./forest-surface.js?v=2')
 ]);
 const optionalArtCreators=Object.fromEntries([
  ['createForestAtmosphere',optionalArtImports[0].status==='fulfilled'?
@@ -204,6 +205,7 @@ function colorAt(n, h) {
 
 try {
   const scene = new THREE.Scene();
+  const forestSpatial=createForestSpatialBatches(THREE,{scene,planetRadius:R});
   const skyDay = new THREE.Color(ART.light.sky);
   const skyNight = new THREE.Color('#101c32');
   scene.background = skyDay;
@@ -248,6 +250,8 @@ try {
 
   // Build a genuine closed triangulated sphere, rather than a flat wrapping map.
   const groundGeo = new THREE.SphereGeometry(R, 180, 112);
+  const completeGroundIndex=groundGeo.index;
+  let coveredGroundIndex=null;
   const pos = groundGeo.attributes.position;
   const colorData = new Float32Array(pos.count * 3);
   const groundDirections = new Float32Array(pos.count * 3);
@@ -289,6 +293,12 @@ try {
     groundGeo.attributes.normal.needsUpdate = true;
     groundGeo.computeBoundingSphere();
     groundGeo.computeBoundingBox();
+  }
+  function updateGroundCoverage(covered){
+    if(covered&&!coveredGroundIndex)
+      coveredGroundIndex=new THREE.BufferAttribute(forestBackgroundIndices(groundGeo,R),1);
+    const index=covered?coveredGroundIndex:completeGroundIndex;
+    if(groundGeo.index!==index){groundGeo.setIndex(index);groundGeo.computeVertexNormals();}
   }
   // Atmosphere is intentionally subtle; it only appears in orbital view.
   const atmosphere = new THREE.Mesh(
@@ -477,6 +487,7 @@ try {
     if(forestSurfaceActive!==wantForestSurface){
       forestSurfaceActive=wantForestSurface;reshapeGround();
     }
+    updateGroundCoverage(wantForestSurface);
     const enabled=!isPortalPreview&&!state.orbit&&profile.shadowSize>0;
     renderer.setPixelRatio(effectivePixelRatio(qualityName,window.devicePixelRatio||1,isPortalPreview));
     renderer.toneMappingExposure=profile.exposure;
@@ -1491,7 +1502,7 @@ try {
     hasCameraLookTarget=true;lastLookOrbit=state.orbit;
     camera.lookAt(cameraLookTarget);
     rpg.updateQuestMarkers();
-    const redrawShadows=shadowBudget.next(dt,{enabled:shadowActive,quality:qualityName});
+    const redrawShadows=shadowBudget.next(rawDt,{enabled:shadowActive,quality:qualityName});
     renderer.shadowMap.needsUpdate=redrawShadows;
     if(redrawShadows){
       // Keep the 62-metre shadow frustum centred around the active character.
@@ -1504,6 +1515,7 @@ try {
       sun.target.updateMatrixWorld();
     }
     drawNativeMinimap();
+    if(!isPortalPreview)forestSpatial.update(camera,qualityName);
     if(!webglContextFailed&&!artSafety.isContextLost){
       try{renderer.render(scene,camera)}
       catch(renderError){

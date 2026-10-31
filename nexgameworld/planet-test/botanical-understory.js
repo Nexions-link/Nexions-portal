@@ -1,7 +1,7 @@
 // Original, opaque botanical geometry. Local Y is the spherical surface normal.
 // No scene state, physics, random globals or external texture dependencies.
 const TAU=Math.PI*2;
-export function botanicalUnderstoryData(kind){
+export function botanicalUnderstoryData(kind,detail='high'){
  const positions=[],colors=[];
  const tri=(a,b,c,shade)=>{
   positions.push(...a,...b,...c);
@@ -12,7 +12,7 @@ export function botanicalUnderstoryData(kind){
   const dx=end[0]-base[0],dz=end[2]-base[2],d=Math.hypot(dx,dz)||1;
   const tx=-dz/d,tz=dx/d;
   // A raised central vein and four tapered segments form a curved leaf.
-  const sections=4;
+  const sections=detail==='distant'?2:4;
   for(let j=0;j<sections;j++){
    const station=t=>{
     const w=Math.sin(Math.PI*t)*width;

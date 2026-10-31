@@ -111,3 +111,22 @@ test('recess does not create a sunken belt under plants in the blended seam',()=
   assert.ok(recess*(1-a)<.055,'feather can never sink 40 cm under grass');
  }
 });
+
+test('covered background triangles are removed only underneath the fully opaque forest core',async()=>{
+ const {forestBackgroundIndices}=await import('../forest-surface-profile.js');
+ const g=new THREE.SphereGeometry(R,180,112),original=g.index.array.slice();
+ const kept=forestBackgroundIndices(g,R),keys=new Set();
+ for(let i=0;i<kept.length;i+=3)keys.add([...kept.slice(i,i+3)].join(','));
+ assert.ok(kept.length<original.length-1000);
+ assert.deepEqual(g.index.array,original,'fallback index must remain byte-exact');
+ const pos=g.attributes.position;
+ for(let i=0;i<original.length;i+=3){
+  const tri=[...original.slice(i,i+3)];if(keys.has(tri.join(',')))continue;
+  const a=new THREE.Vector3().fromBufferAttribute(pos,tri[0]);
+  const b=new THREE.Vector3().fromBufferAttribute(pos,tri[1]);
+  const c=new THREE.Vector3().fromBufferAttribute(pos,tri[2]);
+  for(const point of [a,b,c,a.clone().add(b).add(c).multiplyScalar(1/3)]){
+   point.normalize();assert.equal(forestSurfaceCoverage(Math.atan2(point.x,point.z),Math.asin(point.y)),1);
+  }
+ }
+});

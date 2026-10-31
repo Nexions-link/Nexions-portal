@@ -1,0 +1,40 @@
+{
+  "version": "0.6.45.50",
+  "baselineCommit": "a36d2e3770defdd2b06bc9d640347d1163006c4b",
+  "environment": "Chromium SwiftShader, local mocked profile, balanced preset, 216x384, explicit shadow redraw; renderer.info.autoReset=false",
+  "measurement": "Submitted triangles and draw calls for colour plus shadow passes. Not real-device FPS. Captured before final covered-background index optimisation.",
+  "views": [
+    {
+      "view": "start",
+      "beforeTriangles": 8171103,
+      "afterTriangles": 1730458,
+      "reductionPercent": 78.8,
+      "beforeCalls": 1436,
+      "afterCalls": 1727
+    },
+    {
+      "view": "entrance",
+      "beforeTriangles": 8077837,
+      "afterTriangles": 2133269,
+      "reductionPercent": 73.6,
+      "beforeCalls": 537,
+      "afterCalls": 916
+    },
+    {
+      "view": "trail",
+      "beforeTriangles": 8071036,
+      "afterTriangles": 1716128,
+      "reductionPercent": 78.7,
+      "beforeCalls": 390,
+      "afterCalls": 676
+    },
+    {
+      "view": "wolves",
+      "beforeTriangles": 8050781,
+      "afterTriangles": 1536969,
+      "reductionPercent": 80.9,
+      "beforeCalls": 131,
+      "afterCalls": 347
+    }
+  ]
+}

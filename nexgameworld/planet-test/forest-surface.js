@@ -1,6 +1,6 @@
 // A local, finely triangulated forest surface, like the starter-zone patch.
 // Native THREE materials only. No physics, networking or shader replacement.
-import {FOREST_SURFACE,forestSurfacePoint,forestSurfaceCoverage} from './forest-surface-profile.js?v=1';
+import {FOREST_SURFACE,forestSurfacePoint,forestSurfaceCoverage} from './forest-surface-profile.js?v=2';
 import {forestGroundPixel,forestRoadProfile} from './forest-ground-texture.js?v=5';
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestDistance} from './whispering-forest.js?v=28';

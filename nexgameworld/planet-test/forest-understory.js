@@ -6,7 +6,7 @@ import {createForestLayout,forestDistance,forestTrailLatitude,forestMoodAt,
 import {forestCanopyShadeAt} from './forest-lighting.js';
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 
-import {botanicalUnderstoryData} from './botanical-understory.js?v=1';
+import {botanicalUnderstoryData} from './botanical-understory.js?v=2';
 const TAU=Math.PI*2,R=261;
 export const FOREST_UNDERSTORY_CAPS=Object.freeze({
  ferns:540,leaves:980,boulders:175,ivy:300
@@ -67,8 +67,8 @@ export function forestUnderstoryLayout(seed=522817){
   ivy:Object.freeze(ivy)
  });
 }
-function geometryData(kind){
- if(kind==='ferns'){const data=botanicalUnderstoryData(kind);return {...data,triangles:data.positions.length/9};}
+function geometryData(kind,detail='high'){
+ if(kind==='ferns'){const data=botanicalUnderstoryData(kind,detail);return {...data,triangles:data.positions.length/9};}
  const positions=[],colors=[];
  const vertex=(p,color)=>{positions.push(...p);colors.push(...color)};
  const triangle=(a,b,c,ca,cb=ca,cc=ca)=>{
@@ -176,7 +176,9 @@ export function createForestUnderstory(THREE,{scene,radius,heightAt}){
   mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);
   batches.push({kind,mesh,count:rows.length});
  }
- add('ferns',createGeo(geometryData('ferns')));
+ const fernGeometry=createGeo(geometryData('ferns'));
+ fernGeometry.userData.ngwDistantGeometry=createGeo(geometryData('ferns','distant'));
+ add('ferns',fernGeometry);
  add('leaves',createGeo(geometryData('leaves')));
  add('boulders',createWeatheredStoneGeometry(THREE,'forest'));
  add('ivy',createGeo(geometryData('ivy')));

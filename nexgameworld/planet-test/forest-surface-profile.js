@@ -23,3 +23,23 @@ export function forestSurfaceRecess(lon,lat,radius=261){
  // close to the physics surface so plants never float over a sunken seam.
  return FOREST_SURFACE.recess*smooth(.90,1,forestSurfaceCoverage(lon,lat,radius));
 }
+
+// Omit coarse globe triangles only well INSIDE the opaque detailed forest.
+// A generous inset keeps the complete background beneath every feather edge.
+export function forestBackgroundIndices(geometry,radius=261){
+ const pos=geometry.attributes.position,index=geometry.index,p=FOREST_SURFACE;
+ const covered=new Uint8Array(pos.count);
+ for(let i=0;i<pos.count;i++){
+  const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),r=Math.hypot(x,y,z);
+  const lon=Math.atan2(x,z),lat=Math.asin(Math.max(-1,Math.min(1,y/r)));
+  const d=Math.acos(Math.max(-1,Math.min(1,z/r)))*radius;
+  covered[i]=Number(lon>p.lonMin+.08&&lon<p.lonMax-.08&&
+   Math.abs(lat-forestTrailLatitude(lon))<p.halfWidth-.08&&d>112);
+ }
+ const kept=[];
+ for(let i=0;i<index.count;i+=3){
+  const a=index.getX(i),b=index.getX(i+1),c=index.getX(i+2);
+  if(!(covered[a]&&covered[b]&&covered[c]))kept.push(a,b,c);
+ }
+ return new index.array.constructor(kept);
+}
