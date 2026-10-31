@@ -195,6 +195,8 @@ body{position:fixed;inset:0;font:14px/1.5 Georgia,serif;overscroll-behavior:none
    target.searchParams.set('fresh',String(Date.now()));
    if(params.get('portal-preview')==='1')target.searchParams.set('portal-preview','1');
    if(accountPlay)target.searchParams.set('account-play','1');
+   // Forward only the explicitly supported local graphics A/B switch.
+   if(params.get('gfx-modern')==='1')target.searchParams.set('gfx-modern','1');
    if(loadedVersion===version&&loadedUrl===url&&loadedCommit===mirrorSha&&frame.src)return;
    loadedVersion=version;loadedUrl=url;loadedCommit=mirrorSha;
    loading.hidden=false;
