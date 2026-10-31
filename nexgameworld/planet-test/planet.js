@@ -15,7 +15,8 @@ import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
 import {createForestGroundLife} from './forest-ground-life.js?v=2';
 import {createForestUnderstory} from './forest-understory.js?v=2';
-import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=2';
+import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=3';
+import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
 import {createSoilScatter} from './soil-scatter.js?v=2';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
@@ -34,7 +35,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=51';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=52';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -50,6 +51,8 @@ planetViewport.addEventListener('contextmenu',event=>event.preventDefault());
 
 // NexGameWorld uses isolated spherical WebSockets for player presence; RPG combat stays local.
 const isPortalPreview = new URLSearchParams(location.search).get('portal-preview') === '1';
+// R2 is an in-game A/B preview; default remains the verified fast renderer.
+const r2Materials=!isPortalPreview&&new URLSearchParams(location.search).get('r2materials')==='1';
 const accountMode=!isPortalPreview;
 const accountLaunch=accountMode?getAccountLaunch(sessionStorage):null;
 if(accountMode&&!accountLaunch){
@@ -184,7 +187,7 @@ try {
   const colorData = new Float32Array(pos.count * 3);
   const groundDirections = new Float32Array(pos.count * 3);
   // One baked texture on the existing opaque globe, never a replacement shader.
-  const groundTexture=isPortalPreview?null:createForestGroundTexture(THREE);
+  const groundTexture=isPortalPreview?null:createForestGroundTexture(THREE,{r2:r2Materials});
   const n0 = new THREE.Vector3();
   const neutralForest=new THREE.Color('#ffffff');
   for (let i = 0; i < pos.count; i++) {
@@ -322,7 +325,7 @@ try {
    }catch{return null;}
   })();
   // Detailed native camp, lake and authentic procedural Tauren are isolated in start-zone.js.
-  const startZone=createStartZone(THREE,scene,()=>R,heightAt);
+  const startZone=createStartZone(THREE,scene,()=>R,heightAt,{r2Materials});
   // Construct expensive surface tiles only on a rich quality preset. Economy
   // mode and portal first render should not bake a large microtexture at all.
   let surfaceMicrodetail=null,soilScatter=null;
@@ -364,13 +367,14 @@ try {
   function readPreference(key,fallback){try{return localStorage.getItem(key)??fallback}catch{return fallback}}
   function storePreference(key,value){try{localStorage.setItem(key,value)}catch{}}
   const graphicsSelect=$('graphicsQuality'),qualityHelp=$('qualityHelp');
+  const r2MaterialsToggle=$('r2MaterialsToggle');
   const fpsToggle=$('showFps'),fpsCounter=$('fpsCounter');
   const fpsCopy=$('copyFpsReport'),fpsReset=$('resetFpsReport'),fpsHelp=$('fpsHelp');
   const frameProfiler=createFrameProfiler();
   // Graphics settings belong exclusively to the menu; renderModal owns visibility.
   let qualityName=resolveGraphicsPreset(readPreference(graphicsStorageKey,'balanced'));
   if(isPortalPreview)qualityName='economy';
-  let shadowActive=false;
+  let shadowActive=false,r2GlobeMaps=null;
   let combatQualitySink=null;
   function applyGraphicsQuality(){
     const profile=GRAPHICS_PRESETS[qualityName];
@@ -397,9 +401,23 @@ try {
     startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,shadows:enabled,portal:isPortalPreview,microBump:surfaceMicrodetail?.reliefVillage});
     // The existing opaque forest map doubles as subtle material relief on
     // richer presets, adding zero GPU texture memory or custom shaders.
-    const relief=!isPortalPreview&&qualityName!=='economy'?(surfaceMicrodetail?.reliefGlobe||groundTexture):null;
+    const relief=!isPortalPreview&&qualityName!=='economy'&&!(r2Materials&&qualityName==='high')?(surfaceMicrodetail?.reliefGlobe||groundTexture):null;
     if(groundMaterial.bumpMap!==relief){groundMaterial.bumpMap=relief;groundMaterial.needsUpdate=true;}
     groundMaterial.bumpScale=qualityName==='high'?.074:.043;
+    // R2 adds only two 128px tiled textures on HIGH, no new passes or objects.
+    const useR2=r2Materials&&qualityName==='high';
+    if(useR2&&!r2GlobeMaps){
+      try{r2GlobeMaps=createR2MaterialMaps(THREE,{repeatX:820,repeatY:410});}
+      catch(error){console.warn('R2 forest detail unavailable; using classic shading',error);}
+    }
+    const pbr=useR2?r2GlobeMaps:null;
+    if(groundMaterial.normalMap!==(pbr?.normalMap||null)||
+       groundMaterial.roughnessMap!==(pbr?.roughnessMap||null)){
+      groundMaterial.normalMap=pbr?.normalMap||null;
+      groundMaterial.roughnessMap=pbr?.roughnessMap||null;
+      groundMaterial.needsUpdate=true;
+    }
+    groundMaterial.normalScale.set(.24,.24);
     whisperingForest.setQuality(qualityName,isPortalPreview);
     roadsideDetails?.setQuality(qualityName,isPortalPreview);
     forestEcology?.setQuality(qualityName,isPortalPreview);
@@ -417,6 +435,15 @@ try {
       qualityName==='high'?'Самая плотная растительность, чёткая картинка, тени 1024 px.':
       'Умеренная растительность, мягкие тени 512 px и улучшенное озеро.';
     if(graphicsSelect)graphicsSelect.value=qualityName;
+  }
+  if(r2MaterialsToggle){
+    r2MaterialsToggle.checked=r2Materials;
+    r2MaterialsToggle.addEventListener('change',()=>{
+      const next=new URL(location.href);
+      if(r2MaterialsToggle.checked)next.searchParams.set('r2materials','1');
+      else next.searchParams.delete('r2materials');
+      location.replace(next.href);
+    });
   }
   graphicsSelect?.addEventListener('change',()=>{
     qualityName=resolveGraphicsPreset(graphicsSelect.value);

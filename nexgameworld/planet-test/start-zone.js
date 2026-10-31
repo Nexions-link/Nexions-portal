@@ -1,4 +1,5 @@
-import {createLandscapeMap} from '../landscape.js?v=0.6.43.96';
+import {createLandscapeMap} from '../landscape.js?v=0.6.45.55';
+import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=21';
 import {createSphericalMeadow} from './sphere-meadow.js?v=3';
 import {createVillageVisuals} from './village-visuals.js?v=2';
@@ -83,7 +84,7 @@ export function normalToLocal(n,R){
 // It avoids importing another library instance and shares the game's single renderer.
 let THREE;
 export function initStartZoneMath(THREELibrary){THREE=THREELibrary;}
-export function createStartZone(three,scene,getRadius,heightAt){
+export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=false}={}){
  initStartZoneMath(three);
  const UP=new THREE.Vector3(0,1,0);
  let textureSeed=531;
@@ -285,7 +286,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
    width:ri===4?2.25:ri===1?3.25:3.5
   }));
  });
- const paintedMap=createLandscapeMap(THREE,routeSegments,1280);
+ const paintedMap=createLandscapeMap(THREE,routeSegments,1280,{r2:r2Materials});
  const tileUVs=[];
  for(let i=0;i<points.length;i+=2)tileUVs.push((points[i]+95)/190,1-(points[i+1]+95)/190);
  const verts=new Float32Array(points.length/2*3);
@@ -391,7 +392,7 @@ export function createStartZone(three,scene,getRadius,heightAt){
   updateSurface(shore);updateSurface(water);updateSurface(shimmerGeometry);refreshAnchors();updateBrush();rebuildReeds();meadow.rebuild();rebuildStones();villageVisuals.rebuild();
  }
  rebuild();
- let shadowsEnabled=false,shimmerStrength=.30;
+ let shadowsEnabled=false,shimmerStrength=.30,r2VillageMaps=null;
  function setGraphics(preset={}){
   meadow.applyDensity(preset);
   villageVisuals.applyQuality(preset.detail);
@@ -406,10 +407,21 @@ export function createStartZone(three,scene,getRadius,heightAt){
   patch.receiveShadow=shadowsEnabled;
   // Standard Three.js bump shading reuses the colour atlas, so no second
   // texture is needed on iPhone. The ground mesh never changes its shape.
-  const bump=(preset.detail??0)>=.60&&!preset.portal?(preset.microBump||paintedMap):null;
-  if(terrainMaterial.bumpMap!==bump){
-   terrainMaterial.bumpMap=bump;terrainMaterial.needsUpdate=true;
+  const useR2=r2Materials&&(preset.detail??0)>.9&&!preset.portal;
+  if(useR2&&!r2VillageMaps){
+   try{r2VillageMaps=createR2MaterialMaps(THREE,{repeatX:95,repeatY:95});}
+   catch(error){console.warn('R2 village detail unavailable; using classic terrain',error);}
   }
+  const maps=useR2?r2VillageMaps:null;
+  const bump=maps?null:(preset.detail??0)>=.60&&!preset.portal?(preset.microBump||paintedMap):null;
+  if(terrainMaterial.bumpMap!==bump||terrainMaterial.normalMap!==(maps?.normalMap||null)||
+   terrainMaterial.roughnessMap!==(maps?.roughnessMap||null)){
+   terrainMaterial.bumpMap=bump;
+   terrainMaterial.normalMap=maps?.normalMap||null;
+   terrainMaterial.roughnessMap=maps?.roughnessMap||null;
+   terrainMaterial.needsUpdate=true;
+  }
+  terrainMaterial.normalScale.set(.31,.31);
   terrainMaterial.bumpScale=(preset.detail??0)>.9?.052:.024;
  }
  function updateInteriorView(x,z,dt=1/60){

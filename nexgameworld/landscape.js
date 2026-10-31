@@ -1,5 +1,6 @@
 // NexGameWorld: deterministic baked meadow soil and organically feathered trails.
 // All surface changes are visual only: no new geometry, height or collision.
+import {r2MeadowGrade} from './planet-test/r2-materials.js?v=1';
 const clamp01=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp01((v-a)/(b-a));return t*t*(3-2*t)};
 const mix=(a,b,t)=>a+(b-a)*clamp01(t);
@@ -14,7 +15,7 @@ export function prepareLandscapeRoutes(segments=[]){
   minZ:Math.min(s.az,s.bz)-6,maxZ:Math.max(s.az,s.bz)+6
  }));
 }
-export function landscapeGroundPixel(x,z,preparedRoutes=[]){
+export function landscapeGroundPixel(x,z,preparedRoutes=[],{r2=false}={}){
  // World-space frequencies, so quality remains consistent when map resolution
  // changes and the old grass/earth colour bands never repeat like a tiled rug.
  const broad=noise(x*.057,z*.057),clump=noise(x*.18+31,z*.18-17);
@@ -65,17 +66,18 @@ export function landscapeGroundPixel(x,z,preparedRoutes=[]){
   const pebble=worn*smooth(.915,.992,hash(Math.floor(x*3.8),Math.floor(z*3.8)));
   r+=pebble*23;g+=pebble*23;b+=pebble*19;
  }
- return [Math.round(Math.max(0,Math.min(255,r))),
-  Math.round(Math.max(0,Math.min(255,g))),
-  Math.round(Math.max(0,Math.min(255,b))),255];
+ const rgb=r2?r2MeadowGrade([r,g,b],{worn,earth,moss,dry,moisture,clump}):[r,g,b];
+ return [Math.round(Math.max(0,Math.min(255,rgb[0]))),
+  Math.round(Math.max(0,Math.min(255,rgb[1]))),
+  Math.round(Math.max(0,Math.min(255,rgb[2]))),255];
 }
-export function createLandscapeMap(THREE,segments,size=1024){
+export function createLandscapeMap(THREE,segments,size=1024,{r2=false}={}){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
  const context=canvas.getContext('2d'),image=context.createImageData(size,size),pixels=image.data;
  const prepared=prepareLandscapeRoutes(segments);
  for(let py=0;py<size;py++)for(let px=0;px<size;px++){
   const x=(px+.5)/size*190-95,z=(py+.5)/size*190-95;
-  pixels.set(landscapeGroundPixel(x,z,prepared),(py*size+px)*4);
+  pixels.set(landscapeGroundPixel(x,z,prepared,{r2}),(py*size+px)*4);
  }
  context.putImageData(image,0,0);
  const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;
