@@ -817,6 +817,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
       const retry=document.createElement('button');
       retry.type='button';
       retry.textContent='Повторить загрузку';
+      retry.setAttribute('aria-label','Повторить загрузку NexGameWorld');
       retry.style.cssText='margin-left:14px;padding:8px 12px;cursor:pointer';
       retry.addEventListener('click',()=>{
         const url=new URL(location.href);

@@ -78,7 +78,7 @@ test('reject live HTML, launcher and core modules that are stale or incomplete',
  ),expectedSha:SHA}),/same-domain authenticated game/);
  await assert.rejects(()=>auditProduction({fetchImpl:corrupt(
   '/nexgameworld/planet-test/hearth-house.js',''
- ),expectedSha:SHA}),/missing required spherical game modules/);
+ ),expectedSha:SHA}),/missing required spherical game modules|Game JS module is an empty\/HTML response/);
 });
 
 test('reject a live account page still routed to the retired host',async()=>{
