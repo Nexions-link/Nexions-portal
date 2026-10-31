@@ -3,6 +3,7 @@ import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestDistance,
  createForestLayout} from './whispering-forest.js';
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
+import {botanicalUnderstoryData} from './botanical-understory.js?v=1';
 const TAU=Math.PI*2;
 export function forestEcologyLayout(seed=97431){
  let s=seed>>>0;
@@ -48,7 +49,7 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
  const mat=(color,options={})=>new THREE.MeshStandardMaterial({color,roughness:1,...options});
  function instance(name,items,geometry,material,scale,shade){
   const mesh=new THREE.InstancedMesh(geometry,material,items.length);
-  mesh.name=name;mesh.frustumCulled=false;const color=new THREE.Color();
+  mesh.name=name;mesh.frustumCulled=false;mesh.receiveShadow=true;const color=new THREE.Color();
   items.forEach((p,i)=>{
    const normal=surface(p),t=scale(p);
    dummy.position.copy(normal).multiplyScalar(radius+heightAt(normal)+t.h);
@@ -62,41 +63,23 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
  // Six thin, two-sided leaves per clump; geometry and materials are shared
  // by the entire batch. No transparent textures or alpha-sorting overhead.
  function brackenGeometry(){
-  const vertices=[],leafCount=6;
-  for(let i=0;i<leafCount;i++){
-   const a=i*TAU/leafCount,x=Math.cos(a),z=Math.sin(a),px=-z,pz=x;
-   const mid=[x*.45,.58,z*.45],tip=[x*.93,.29,z*.93],width=.15;
-   vertices.push(0,.06,0,mid[0]+px*width,mid[1],mid[2]+pz*width,
-    tip[0],tip[1],tip[2],
-    0,.06,0,tip[0],tip[1],tip[2],
-    mid[0]-px*width,mid[1],mid[2]-pz*width);
-  }
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+  const data=botanicalUnderstoryData('ferns'),geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
   geo.computeVertexNormals();return geo;
  }
  function shrubLeafGeometry(){
-  // Angular bushes previously resembled stones; layered leaves give them
-  // recognisable stems and an open silhouette without extra draw calls.
-  const positions=[];
-  for(let i=0;i<9;i++){
-   const a=i*TAU/9,dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx;
-   const h=.54+(i%4)*.10,r=.48+(i%3)*.13,w=.23;
-   const mid=[dx*r*.64,h*.72,dz*r*.64];
-   const tip=[dx*r,h,dz*r];
-   positions.push(0,.06,0,mid[0]+px*w,mid[1],mid[2]+pz*w,...tip,
-    0,.06,0,...tip,mid[0]-px*w,mid[1],mid[2]-pz*w);
-  }
-  const geometry=new THREE.BufferGeometry();
-  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  const data=botanicalUnderstoryData('groundcover'),geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
+  geometry.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
   geometry.computeVertexNormals();return geometry;
  }
- const leaves=mat('#ffffff',{side:THREE.DoubleSide}),stones=mat('#ffffff',{flatShading:true,vertexColors:true});
+ const leaves=mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),stones=mat('#ffffff',{flatShading:true,vertexColors:true});
  instance('forest-shrubs',layout.shrubs,shrubLeafGeometry(),leaves,
   p=>({x:p.size,y:p.size*1.20,z:p.size,h:.045}),
   p=>p.variation>.65?ART.canopy.understory[0]:p.variation>.3?ART.canopy.understory[1]:ART.canopy.understory[2]);
  instance('forest-deep-bracken',layout.bracken,brackenGeometry(),
-  mat('#ffffff',{side:THREE.DoubleSide}),p=>({
+  mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),p=>({
    x:p.size*1.12,y:p.size*(.74+.25*p.variation),z:p.size*1.12,h:.035
   }),p=>p.variation>.7?'#31533c':p.variation>.34?'#496745':'#647756');
  instance('forest-stones',layout.rocks,createWeatheredStoneGeometry(THREE,'forest'),stones,

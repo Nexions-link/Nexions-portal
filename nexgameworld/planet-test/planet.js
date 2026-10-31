@@ -53,8 +53,8 @@ const optionalArtImports=await Promise.allSettled([
  import('./surface-microdetail.js?v=2'),
  import('./soil-scatter.js?v=2'),
  import('./roadside-details.js?v=2'),
- import('./painterly-biome.js?v=3'),
- import('./forest-ecology.js?v=4'),
+ import('./painterly-biome.js?v=4'),
+ import('./forest-ecology.js?v=5'),
  import('./road-verge.js?v=1'),
  import('./ground-stones-g10.js?v=1')
 ]);

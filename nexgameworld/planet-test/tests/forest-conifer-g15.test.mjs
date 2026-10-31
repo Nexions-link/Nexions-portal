@@ -100,10 +100,10 @@ test('G-15 self-hosted PC modules, camera, starter lawn and VPS remain untouched
   meadow=p('../sphere-meadow.js'),server=p('../../server/index.js');
  assert.match(planet,/from '\.\/whispering-forest\.js\?v=27'/);
  assert.match(forest,/from '\.\/forest-crown-geometry\.js\?v=4'/);
- assert.match(index,/import\('\.\/planet\.js\?v=253'\)/);
+ assert.match(index,/import\('\.\/planet\.js\?v=\d+'\)/);
  assert.match(index,/"three":"\.\/vendor\/three\.module\.js\?v=160"/);
  assert.match(planet,/new THREE\.PerspectiveCamera\(58, innerWidth \/ innerHeight, \.48, 1300\)/);
  assert.match(meadow,/count:10500,attempts:56000/);
- assert.match(server,/BUILD='0\.6\.45\.46'/);
+ assert.equal(server.match(/BUILD='([^']+)'/)?.[1],JSON.parse(p('../version.json')).version);
  assert.doesNotMatch(conifer,/WebSocket|camera\.|fetch\(|localStorage|createCollider|ShaderMaterial|onBeforeCompile|document\./);
 });

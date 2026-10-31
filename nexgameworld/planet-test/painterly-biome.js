@@ -4,11 +4,12 @@
 import {pathWear,lakeRadius} from './start-zone.js?v=55';
 import {forestTrailLatitude,forestDistance,FOREST_CAMP,FOREST_SITE_CLEARINGS,
  createForestLayout} from './whispering-forest.js?v=22';
-import {WORLD_ART_PALETTE as ART,WORLD_ART_VERTEX as V} from './world-art-style.js?v=1';
+import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
+import {botanicalUnderstoryData} from './botanical-understory.js?v=1';
 const TAU=Math.PI*2,R=261;
 const clamp=x=>Math.max(0,Math.min(1,x));
 function rng(seed){let s=seed>>>0;return ()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);}
-const CAPS=Object.freeze({groundcover:4300,ferns:1350,daisies:1650,bluebells:1200,mushrooms:420,sunflecks:120});
+const CAPS=Object.freeze({lawn:18000,groundcover:4300,ferns:1350,daisies:1650,bluebells:1200,mushrooms:420,sunflecks:120});
 export const PAINTERLY_BIOME_CAPS=CAPS;
 export function painterlyBiomeBudget(preset='balanced',preview=false){
  const factor=preview?0:preset==='economy'?.22:preset==='high'?1:.70;
@@ -59,34 +60,12 @@ function meshGeometry(THREE,positions,colors,rgba=false){
  geo.computeVertexNormals();return geo;
 }
 export function painterlyPlantGeometryData(kind){
+ if(['lawn','ferns','groundcover'].includes(kind))return botanicalUnderstoryData(kind);
  const p=[],c=[];
  const tri=(a,b,d,ca,cb=ca,cc=ca)=>{
   p.push(...a,...b,...d);c.push(...ca,...cb,...cc);
  };
- const petal=(a,h,r,w,from,to,light,dark)=>{
-  const x=Math.cos(a),z=Math.sin(a),tx=-z,tz=x;
-  const root=[x*r*.20,h*.20,z*r*.20];
-  const left=[x*r*.58+tx*w,h*.70,z*r*.58+tz*w];
-  const right=[x*r*.58-tx*w,h*.65,z*r*.58-tz*w];
-  const tip=[x*r,h,z*r];
-  tri(root,left,tip,dark,light,light);
-  tri(root,tip,right,dark,light,dark);
- };
- if(kind==='groundcover'||kind==='ferns'){
-  const count=kind==='groundcover'?10:8;
-  for(let j=0;j<count;j++){
-   const a=j*TAU/count+(j%3)*.035;
-   const h=(kind==='ferns'?.75:.36)*(1+.16*(j%3));
-   const reach=(kind==='ferns'?.95:.58)*(1+.15*(j%4));
-   const base=V.painterLeafDark,hi=V.painterLeafLight;
-   petal(a,h,reach,kind==='ferns'?.13:.18,0,0,hi,base);
-   if(kind==='ferns'){
-    const sideA=a+.33,sideB=a-.29;
-    petal(sideA,h*.58,reach*.61,.085,0,0,hi,base);
-    petal(sideB,h*.62,reach*.57,.08,0,0,hi,base);
-   }
-  }
- }else if(kind==='daisies'||kind==='bluebells'){
+ if(kind==='daisies'||kind==='bluebells'){
   const blue=kind==='bluebells';
   const petals=blue?[.44,.61,.96]:[.97,.97,.83];
   const edges=blue?[.24,.37,.75]:[.80,.85,.66];
@@ -151,6 +130,7 @@ export function createPainterlyBiome(THREE,{scene,radius,heightAt}){
  const n=new THREE.Vector3(),align=new THREE.Quaternion(),rotation=new THREE.Quaternion();
  const obj=new THREE.Object3D(),color=new THREE.Color();
  const palette={
+  lawn:ART.canopy.meadowGrass,
   groundcover:ART.canopy.meadowGrass,
   ferns:ART.canopy.fern,
   daisies:ART.flowers.white,
@@ -169,7 +149,7 @@ export function createPainterlyBiome(THREE,{scene,radius,heightAt}){
     roughness:1,metalness:0,side:THREE.DoubleSide});
   const rows=layout[kind],mesh=new THREE.InstancedMesh(geo,material,rows.length);
   mesh.name='painterly-'+kind+'-decorative-no-collision';
-  mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;
+  mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=kind!=='sunflecks';
   for(let i=0;i<rows.length;i++){
    const row=rows[i];
    if(row.zone==='start'){
@@ -185,7 +165,9 @@ export function createPainterlyBiome(THREE,{scene,radius,heightAt}){
    const size=(kind==='sunflecks'?1.5:kind==='mushrooms'?.62:1)*row.size;
    obj.scale.set(size,size,size);obj.updateMatrix();
    mesh.setMatrixAt(i,obj.matrix);
-   mesh.setColorAt(i,color.set(palette[kind][Math.min(3,Math.floor(row.variation*4))]));
+   const plantTint=(kind==='daisies'||kind==='bluebells')?'#ffffff':
+    palette[kind][Math.min(3,Math.floor(row.variation*4))];
+   mesh.setColorAt(i,color.set(plantTint));
   }
   mesh.instanceMatrix.needsUpdate=true;
   if(kind==='sunflecks')mesh.renderOrder=1;
