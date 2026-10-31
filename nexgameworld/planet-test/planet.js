@@ -54,7 +54,8 @@ const optionalArtImports=await Promise.allSettled([
  import('./roadside-details.js?v=2'),
  import('./painterly-biome.js?v=3'),
  import('./forest-ecology.js?v=4'),
- import('./road-verge.js?v=1')
+ import('./road-verge.js?v=1'),
+ import('./ground-stones-g10.js?v=1')
 ]);
 const optionalArtCreators=Object.fromEntries([
  ['createForestAtmosphere',optionalArtImports[0].status==='fulfilled'?
@@ -76,9 +77,11 @@ const optionalArtCreators=Object.fromEntries([
  ['createForestEcology',optionalArtImports[8].status==='fulfilled'?
   optionalArtImports[8].value.createForestEcology:null],
  ['createRoadVerge',optionalArtImports[9].status==='fulfilled'?
-  optionalArtImports[9].value.createRoadVerge:null]
+  optionalArtImports[9].value.createRoadVerge:null],
+ ['createG10GroundStones',optionalArtImports[10].status==='fulfilled'?
+  optionalArtImports[10].value.createG10GroundStones:null]
 ]);
-const missingArtModules=["createForestAtmosphere","createForestFloor","createForestGroundLife","createForestUnderstory","createSurfaceMicrodetail","createSoilScatter","createRoadsideDetails","createPainterlyBiome","createForestEcology","createRoadVerge"].filter(name=>!optionalArtCreators[name]);
+const missingArtModules=["createForestAtmosphere","createForestFloor","createForestGroundLife","createForestUnderstory","createSurfaceMicrodetail","createSoilScatter","createRoadsideDetails","createPainterlyBiome","createForestEcology","createRoadVerge","createG10GroundStones"].filter(name=>!optionalArtCreators[name]);
 const createForestAtmosphere=optionalArtCreators.createForestAtmosphere;
 const createForestFloor=optionalArtCreators.createForestFloor;
 const createForestGroundLife=optionalArtCreators.createForestGroundLife;
@@ -89,6 +92,7 @@ const createRoadsideDetails=optionalArtCreators.createRoadsideDetails;
 const createPainterlyBiome=optionalArtCreators.createPainterlyBiome;
 const createForestEcology=optionalArtCreators.createForestEcology;
 const createRoadVerge=optionalArtCreators.createRoadVerge;
+const createG10GroundStones=optionalArtCreators.createG10GroundStones;
 
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -396,6 +400,9 @@ try {
   }
   artSafety.register('roadside',()=>createRoadsideDetails(THREE,{...ART_SCENE_ARGS,startRoute:ROUTES[1]}));
   artSafety.register('road-verge',()=>createRoadVerge(THREE,{
+    ...ART_SCENE_ARGS,startSegments:startVisualRouteSegments(),lakeRadius
+  }));
+  artSafety.register('ground-stones-g10',()=>createG10GroundStones(THREE,{
     ...ART_SCENE_ARGS,startSegments:startVisualRouteSegments(),lakeRadius
   }));
   artSafety.register('ecology',()=>createForestEcology(THREE,ART_SCENE_ARGS));
