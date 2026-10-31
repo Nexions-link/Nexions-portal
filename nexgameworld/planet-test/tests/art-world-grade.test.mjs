@@ -5,8 +5,8 @@ import * as THREE from 'three';
 import {paintVillageGround,paintForestGround} from '../art-world-grade.js';
 import {prepareLandscapeRoutes,landscapeGroundPixel} from '../../landscape.js';
 import {forestGroundPixel,forestRoadProfile,forestTextureMask} from '../forest-ground-texture.js';
-import {forestTrailLatitude,createForestLayout,forestColliders,createWhisperingForest}
- from '../whispering-forest.js';
+import {forestTrailLatitude,createForestLayout,forestColliders,createWhisperingForest,
+ forestGroveFoliageLayout} from '../whispering-forest.js';
 
 test('R3 new terrain colours are visible, deterministic and in-bounds',()=>{
  const sample={worn:.93,earth:.24,moss:.22,dry:.68,moisture:.4,
@@ -44,8 +44,13 @@ test('R3 forest crown volumes change, not population, instanced draw calls or co
  const meshes=scene=>scene.children.filter(m=>m.isInstancedMesh&&m.name.startsWith('forest-'));
  const a=meshes(beforeScene),b=meshes(afterScene);
  assert.equal(a.length,12);assert.equal(b.length,a.length);
+ const extras=forestGroveFoliageLayout(layout).length;
  for(let i=0;i<a.length;i++){
-  assert.equal(b[i].instanceMatrix.count,a[i].instanceMatrix.count);
+  assert.equal(a[i].name,b[i].name);
+  // G-17 only appends decorative leafy canopy instances in one existing
+  // render batch. All original tree, trunk and physics populations persist.
+  const allowed=a[i].name==='forest-crown-silhouettes'?extras:0;
+  assert.equal(b[i].instanceMatrix.count,a[i].instanceMatrix.count+allowed);
   assert.equal(b[i].geometry.attributes.position.count,a[i].geometry.attributes.position.count);
   assert.equal(b[i].geometry.index?.count||0,a[i].geometry.index?.count||0);
  }

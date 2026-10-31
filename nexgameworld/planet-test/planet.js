@@ -10,8 +10,8 @@ import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=27';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=27';
+import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=28';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=28';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=2';
 import {r2LightingProfile} from './r2-lighting.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=2';

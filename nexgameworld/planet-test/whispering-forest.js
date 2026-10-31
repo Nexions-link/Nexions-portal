@@ -67,6 +67,50 @@ export function forestDepthBand(lon,lat){
  const distance=Math.abs(lat-forestTrailLatitude(lon))*261;
  return distance<26?'near':distance<61?'middle':'far';
 }
+// G-17: spatially correlated tree crowns form groves instead of 400
+// unrelated silhouettes. All gameplay tree coordinates remain immutable.
+export function forestGroveComposition(tree){
+ const road=forestTrailLatitude(tree.lon);
+ const side=tree.lat>=road?1:-1;
+ const distance=Math.abs(tree.lat-road)*261;
+ const wave=.52+.26*Math.sin(tree.lon*19.3+side*1.8)
+  +.18*Math.sin(tree.lon*39.1-side*2.3)
+  +.04*Math.cos(tree.lon*9.4+side*4.1);
+ const grove=clamp01(wave);
+ const roadside=1-smooth(13,32,distance);
+ return {
+  side,distance,grove,roadside,
+  crownWidth:Math.max(.73,Math.min(1.18,.90+.24*grove-.18*roadside)),
+  crownHeight:.94+.13*grove
+ };
+}
+// Only a small number of high canopy lobes are added to EXISTING old-growth
+// trees. These lightweight pieces reuse the existing leaf batch and material,
+// never create trunks, collider circles, navigation nodes or new draw calls.
+export function forestGroveFoliageLayout(layout=createForestLayout()){
+ const tufts=[];
+ for(const tree of layout.trees){
+  if(tree.evergreen)continue;
+  const plan=forestGroveComposition(tree);
+  if(tree.lon<.31||tree.lon>1.4||plan.distance<13||plan.distance>54
+    ||plan.grove<.5)continue;
+  if(forestDistance(tree.lon,tree.lat,FOREST_CAMP.lon,FOREST_CAMP.lat)<
+     FOREST_CAMP.clearingRadius+12)continue;
+  if(FOREST_SITE_CLEARINGS.some(c=>
+   forestDistance(tree.lon,tree.lat,c.lon,c.lat)<c.radius+10))continue;
+  const margin=1.25+.65*plan.grove;
+  const lon=tree.lon+Math.sin(tree.yaw*1.7)*.7/261;
+  const lat=tree.lat+plan.side*margin/261;
+  // Height and size stay inside the parent tree's upper foliage envelope.
+  const branchHeight=tree.height*(.72+.06*plan.grove);
+  tufts.push({...tree,lon,lat,anchorLon:tree.lon,anchorLat:tree.lat,
+   yaw:tree.yaw+.38*plan.side,branchHeight,
+   spread:tree.radius*(1.15+.24*plan.grove),
+   bulge:tree.radius*(.83+.28*plan.grove),
+   groveDetail:true});
+ }
+ return tufts;
+}
 export function createForestLayout(seed=451921){
  let state=seed>>>0;
  const rand=()=>((state=(Math.imul(state,1664525)+1013904223)>>>0)/4294967296);
@@ -232,7 +276,9 @@ function fernGeometry(THREE){
  return geo;
 }
 export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation=false,artRemaster=false}){
- const layout=createForestLayout(),canopy=forestCanopyDetailLayout(layout),up=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
+ const layout=createForestLayout(),canopy=forestCanopyDetailLayout(layout),
+  groveTufts=artRemaster?forestGroveFoliageLayout(layout):[],
+  up=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
  const object=new THREE.Object3D(),twist=new THREE.Quaternion(),align=new THREE.Quaternion();
  const batches=[];
  const farFoliageTint=new THREE.Color('#75908a');
@@ -346,26 +392,41 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
   p=>artRemaster?(p.tint>.52?'#898674':'#807e70'):
    (p.tint>.52?'#483d35':'#5b4c3d'));
  add('forest-ancient-trunks',layout.trees,trunks,detailedBark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
- add('forest-pine-lower',ever,pineGeo,pine,p=>({
-  y:p.height*.69,sx:p.radius*(artRemaster?3.42:3.2)*(.93+.14*p.tint),
-  sy:p.height*(artRemaster?.52:.48),sz:p.radius*(artRemaster?3.42:3.2)*(1.07-.14*p.tint)
- }),p=>artRemaster?(p.tint>.68?'#365b46':p.tint>.35?'#2c5143':'#47684c'):
+ add('forest-pine-lower',ever,pineGeo,pine,p=>{
+  const c=artRemaster?forestGroveComposition(p):null;
+  return {
+  y:p.height*.69,sx:p.radius*(artRemaster?3.42:3.2)*(.93+.14*p.tint)*(c?.crownWidth||1),
+  sy:p.height*(artRemaster?.52:.48)*(c?.crownHeight||1),
+  sz:p.radius*(artRemaster?3.42:3.2)*(1.07-.14*p.tint)*(c?.crownWidth||1)
+  };
+ },p=>artRemaster?(p.tint>.68?'#365b46':p.tint>.35?'#2c5143':'#47684c'):
   (p.tint>.5?'#3c5a48':'#344d41'));
- add('forest-pine-crown',ever,pineUpperGeo,pine,p=>({
-  y:p.height*.84,sx:p.radius*(artRemaster?2.72:2.55),
-  sy:p.height*(artRemaster?.40:.37),sz:p.radius*(artRemaster?2.72:2.55)
- }),p=>artRemaster?(p.tint>.68?'#567d50':p.tint>.35?'#426c52':'#678357'):
+ add('forest-pine-crown',ever,pineUpperGeo,pine,p=>{
+  const c=artRemaster?forestGroveComposition(p):null;
+  return {
+  y:p.height*.84,sx:p.radius*(artRemaster?2.72:2.55)*(c?.crownWidth||1),
+  sy:p.height*(artRemaster?.40:.37)*(c?.crownHeight||1),
+  sz:p.radius*(artRemaster?2.72:2.55)*(c?.crownWidth||1)
+  };
+ },p=>artRemaster?(p.tint>.68?'#567d50':p.tint>.35?'#426c52':'#678357'):
   (p.tint>.5?'#526d55':'#3d5f50'));
- add('forest-oak-crown',broad,leafGeo,leaves,p=>({
-  y:p.height*.79,sx:p.radius*(artRemaster?4.10:3.9)*(.94+.13*p.tint),
-  sy:p.height*(artRemaster?.257:.21),
-  sz:p.radius*(artRemaster?4.04:3.8)*(1.05-.12*p.tint)
- }),p=>artRemaster?(p.tint>.7?'#3f6347':p.tint>.34?'#4f764a':'#597b50'):
+ add('forest-oak-crown',broad,leafGeo,leaves,p=>{
+  const c=artRemaster?forestGroveComposition(p):null;
+  return {
+  y:p.height*.79,sx:p.radius*(artRemaster?4.10:3.9)*(.94+.13*p.tint)*(c?.crownWidth||1),
+  sy:p.height*(artRemaster?.257:.21)*(c?.crownHeight||1),
+  sz:p.radius*(artRemaster?4.04:3.8)*(1.05-.12*p.tint)*(c?.crownWidth||1)
+  };
+ },p=>artRemaster?(p.tint>.7?'#3f6347':p.tint>.34?'#4f764a':'#597b50'):
   (p.tint>.52?'#42624b':'#526a4b'));
- add('forest-oak-upper-crown',broad,upperLeafGeo,leaves,p=>({
-  y:p.height*.94,sx:p.radius*(artRemaster?3.30:3.1),
-  sy:p.height*(artRemaster?.205:.17),sz:p.radius*(artRemaster?3.38:3.2)
- }),p=>artRemaster?(p.tint>.68?'#5b8655':p.tint>.32?'#4a7852':'#68885c'):
+ add('forest-oak-upper-crown',broad,upperLeafGeo,leaves,p=>{
+  const c=artRemaster?forestGroveComposition(p):null;
+  return {
+  y:p.height*.94,sx:p.radius*(artRemaster?3.30:3.1)*(c?.crownWidth||1),
+  sy:p.height*(artRemaster?.205:.17)*(c?.crownHeight||1),
+  sz:p.radius*(artRemaster?3.38:3.2)*(c?.crownWidth||1)
+  };
+ },p=>artRemaster?(p.tint>.68?'#5b8655':p.tint>.32?'#4a7852':'#68885c'):
   (p.tint>.52?'#547557':'#42634d'));
  // Instanced elevated boughs and small outer foliage masses make the crowns
  // feel multi-layered without hundreds of independent draw calls.
@@ -388,7 +449,9 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
   y:p.branchHeight,sx:p.radius*.24,sy:p.length,sz:p.radius*.24,
   rotationZ:p.tilt,offsetAlongAxis:p.length*.46
  }),darkBark,'detail');
- add('forest-crown-silhouettes',canopy.tufts,outerTuftGeo,leaves,p=>({
+ // G-17: decorative lobes share this original draw batch; placing them
+ // first also keeps some visible on the balanced/economy detail budgets.
+ add('forest-crown-silhouettes',[...groveTufts,...canopy.tufts],outerTuftGeo,leaves,p=>({
   y:p.branchHeight,sx:p.bulge*1.35,sy:p.bulge*.58,sz:p.bulge*1.16,
   offsetX:p.spread
  }),p=>p.tint>.5?'#416047':'#587150','detail');

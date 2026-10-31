@@ -51,13 +51,17 @@ test('forest keeps all server colliders, trees, positions and 12 instanced batch
  assert.equal(now.length,12);assert.equal(old.length,12);
  for(let i=0;i<12;i++){
   assert.equal(old[i].name,now[i].name);
-  assert.equal(old[i].instanceMatrix.count,now[i].instanceMatrix.count);
-  // R3 already gave crown batches different artistic scale: world anchors
-  // must match, while foliage size is intentionally allowed to change.
+  // G-17 only adds cosmetic grove leaves within the EXISTING
+  // silhouette batch. Every pre-existing transform is preserved.
+  const groveBatch=old[i].name==='forest-crown-silhouettes';
+  const extra=now[i].instanceMatrix.count-old[i].instanceMatrix.count;
+  assert.equal(groveBatch?extra>=0:extra===0,true);
   for(let j=0;j<old[i].instanceMatrix.count;j++){
+   const updatedIndex=groveBatch?j+extra:j;
    for(const k of [12,13,14])assert.equal(
-    old[i].instanceMatrix.array[16*j+k],now[i].instanceMatrix.array[16*j+k],
-    'tree world anchor must stay fixed in '+old[i].name);
+    old[i].instanceMatrix.array[16*j+k],
+    now[i].instanceMatrix.array[16*updatedIndex+k],
+    'existing tree world anchor must stay fixed in '+old[i].name);
   }
   assert.equal(old[i].geometry.attributes.position.count,now[i].geometry.attributes.position.count);
   assert.equal(old[i].geometry.index?.count??0,now[i].geometry.index?.count??0);
