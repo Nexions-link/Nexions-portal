@@ -59,11 +59,11 @@ export function forestFloorLayout(seed=768451){
 }
 export function createForestFloor(THREE,{scene,radius,heightAt}){
  const layout=forestFloorLayout();
- const objects=[],material=new THREE.MeshBasicMaterial({
+ const objects=[],material=new THREE.MeshStandardMaterial({
   vertexColors:true,transparent:true,opacity:.90,depthWrite:false,
   side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2
  });
- const leafMaterial=new THREE.MeshBasicMaterial({
+ const leafMaterial=new THREE.MeshStandardMaterial({
   vertexColors:true,side:THREE.DoubleSide,roughness:1,
   polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2
  });
@@ -95,7 +95,7 @@ export function createForestFloor(THREE,{scene,radius,heightAt}){
   geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
   geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,4));
   const mesh=new THREE.Mesh(geometry,material);mesh.name='forest-floor-moss-no-collision';
-  mesh.frustumCulled=false;scene.add(mesh);objects.push({mesh,verticesPerItem:facets*3,count:layout.moss.length,key:'moss'});
+  mesh.frustumCulled=false;mesh.receiveShadow=true;scene.add(mesh);objects.push({mesh,verticesPerItem:facets*3,count:layout.moss.length,key:'moss'});
  }
  function buildLitter(){
   const vertices=[],colors=[];
@@ -120,7 +120,7 @@ export function createForestFloor(THREE,{scene,radius,heightAt}){
   geom.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
   geom.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
   const mesh=new THREE.Mesh(geom,leafMaterial);mesh.name='forest-floor-leaves-and-twigs-no-collision';
-  mesh.frustumCulled=false;scene.add(mesh);objects.push({mesh,verticesPerItem:9,count:layout.litter.length,key:'litter'});
+  mesh.frustumCulled=false;mesh.receiveShadow=true;scene.add(mesh);objects.push({mesh,verticesPerItem:9,count:layout.litter.length,key:'litter'});
  }
  buildMoss();buildLitter();
  function setQuality(quality='balanced',preview=false){

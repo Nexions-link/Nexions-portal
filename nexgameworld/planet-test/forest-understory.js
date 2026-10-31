@@ -6,6 +6,7 @@ import {createForestLayout,forestDistance,forestTrailLatitude,forestMoodAt,
 import {forestCanopyShadeAt} from './forest-lighting.js';
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 
+import {botanicalUnderstoryData} from './botanical-understory.js?v=1';
 const TAU=Math.PI*2,R=261;
 export const FOREST_UNDERSTORY_CAPS=Object.freeze({
  ferns:540,leaves:980,boulders:175,ivy:300
@@ -67,32 +68,13 @@ export function forestUnderstoryLayout(seed=522817){
  });
 }
 function geometryData(kind){
+ if(kind==='ferns'){const data=botanicalUnderstoryData(kind);return {...data,triangles:data.positions.length/9};}
  const positions=[],colors=[];
  const vertex=(p,color)=>{positions.push(...p);colors.push(...color)};
  const triangle=(a,b,c,ca,cb=ca,cc=ca)=>{
   vertex(a,ca);vertex(b,cb);vertex(c,cc);
  };
- if(kind==='ferns'){
-  // Each arching fern has tapering individual pinnules, not 2D crossed cards.
-  // The graded ochre-green tips read like real layered woodland vegetation.
-  for(let f=0;f<7;f++){
-   const a=f*TAU/7+.18,dx=Math.cos(a),dz=Math.sin(a);
-   const tangent=[-dz,dx],height=.65+(f%3)*.13;
-   for(let s=0;s<6;s++){
-    const p=s/6,q=(s+1)/6;
-    const center=t=>[dx*(.15+.83*t),.11+height*Math.sin(t*Math.PI*.78),dz*(.15+.83*t)];
-    const mid=center(p+.08),tip=center(q+.035);
-    const width=.21*Math.sin(Math.PI*(p+.18))*(1-.37*p);
-    const c0=[.64+.16*p,.79+.07*p,.59+.12*p],
-     c1=[.36+.15*p,.55+.12*p,.34+.11*p];
-    for(const side of [-1,1]){
-     const sidePoint=[mid[0]+tangent[0]*width*side,
-      mid[1]-.06,mid[2]+tangent[1]*width*side];
-     triangle(center(p),sidePoint,tip,c1,c0,c1);
-    }
-   }
-  }
- }else if(kind==='leaves'){
+ if(kind==='leaves'){
   // Fallen oak leaf litter with independently curled lobes rather than
   // repeated sharp paper triangles; tiny height variations catch glancing light.
   for(let j=0;j<10;j++){
@@ -173,7 +155,7 @@ export function createForestUnderstory(THREE,{scene,radius,heightAt}){
    new THREE.MeshBasicMaterial({color:'#ffffff',vertexColors:true,side:THREE.DoubleSide});
   const mesh=new THREE.InstancedMesh(geo,material,rows.length);
   mesh.name='forest-cinematic-'+kind+'-no-collision';
-  mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;
+  mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=true;
   for(let i=0;i<rows.length;i++){
    const p=rows[i],n=normalAt(p);
    const h=kind==='ivy'?.02:kind==='boulders'?p.size*.25:.055;
@@ -195,7 +177,7 @@ export function createForestUnderstory(THREE,{scene,radius,heightAt}){
   batches.push({kind,mesh,count:rows.length});
  }
  add('ferns',createGeo(geometryData('ferns')));
- add('leaves',createGeo(geometryData('leaves')),false);
+ add('leaves',createGeo(geometryData('leaves')));
  add('boulders',createWeatheredStoneGeometry(THREE,'forest'));
  add('ivy',createGeo(geometryData('ivy')));
  function setQuality(quality='balanced',preview=false){

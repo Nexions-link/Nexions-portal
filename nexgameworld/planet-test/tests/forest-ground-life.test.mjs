@@ -11,7 +11,7 @@ test('dense undergrowth is reproducible and leaves paths and important clearings
   assert.equal(a[key].length,FOREST_GROUND_LIFE_CAPS[key],key);
  }
  for(const [kind,items] of Object.entries(a))for(const p of items){
-  const road=kind==='deadwood'?6.3:kind==='saplings'?6.9:4.6;
+  const road=kind==='deadwood'?6.3:kind==='saplings'?6.9:3.7;
   assert.ok(Math.abs(p.lat-forestTrailLatitude(p.lon))*261>=road+p.size);
   assert.ok(forestDistance(p.lon,p.lat,FOREST_CAMP.lon,FOREST_CAMP.lat)>=
     FOREST_CAMP.clearingRadius+p.size+3);
@@ -25,8 +25,8 @@ test('dense undergrowth is reproducible and leaves paths and important clearings
  assert.deepEqual(forestColliders(),before);
 });
 test('grass and leaves have quality budgets, portal preview omits all',()=>{
- assert.deepEqual(forestGroundLifeBudget('economy'),{grass:430,saplings:55,deadwood:65});
- assert.deepEqual(forestGroundLifeBudget('balanced'),{grass:1210,saplings:195,deadwood:195});
- assert.deepEqual(forestGroundLifeBudget('high'),{grass:2100,saplings:360,deadwood:310});
+ assert.deepEqual(forestGroundLifeBudget('economy'),{grass:4800,saplings:55,deadwood:65});
+ assert.deepEqual(forestGroundLifeBudget('balanced'),{grass:18000,saplings:195,deadwood:195});
+ assert.deepEqual(forestGroundLifeBudget('high'),{grass:24000,saplings:360,deadwood:310});
  assert.deepEqual(forestGroundLifeBudget('high',true),{grass:0,saplings:0,deadwood:0});
 });

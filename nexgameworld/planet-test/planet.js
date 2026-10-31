@@ -20,6 +20,7 @@ import {createForestGroundTexture,forestTextureMask} from './forest-ground-textu
 
 
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
+import {forestSurfaceRecess} from './forest-surface-profile.js?v=1';
 
 import {createArtSafetyController} from './art-safety.js?v=1';
 import {createG11AmbientTrunkGeometry} from './trunk-silhouette-g11.js?v=1';
@@ -47,16 +48,17 @@ initStartZoneMath(THREE);
 // missing or corrupted remaster module is reported and activates base art.
 const optionalArtImports=await Promise.allSettled([
  import('./forest-atmosphere.js?v=1'),
- import('./forest-floor.js?v=1'),
- import('./forest-ground-life.js?v=2'),
- import('./forest-understory.js?v=2'),
+ import('./forest-floor.js?v=2'),
+ import('./forest-ground-life.js?v=3'),
+ import('./forest-understory.js?v=3'),
  import('./surface-microdetail.js?v=2'),
  import('./soil-scatter.js?v=2'),
  import('./roadside-details.js?v=2'),
  import('./painterly-biome.js?v=4'),
  import('./forest-ecology.js?v=5'),
  import('./road-verge.js?v=1'),
- import('./ground-stones-g10.js?v=1')
+ import('./ground-stones-g10.js?v=1'),
+ import('./forest-surface.js?v=1')
 ]);
 const optionalArtCreators=Object.fromEntries([
  ['createForestAtmosphere',optionalArtImports[0].status==='fulfilled'?
@@ -80,9 +82,11 @@ const optionalArtCreators=Object.fromEntries([
  ['createRoadVerge',optionalArtImports[9].status==='fulfilled'?
   optionalArtImports[9].value.createRoadVerge:null],
  ['createG10GroundStones',optionalArtImports[10].status==='fulfilled'?
-  optionalArtImports[10].value.createG10GroundStones:null]
+  optionalArtImports[10].value.createG10GroundStones:null],
+ ['createForestSurface',optionalArtImports[11].status==='fulfilled'?
+  optionalArtImports[11].value.createForestSurface:null]
 ]);
-const missingArtModules=["createForestAtmosphere","createForestFloor","createForestGroundLife","createForestUnderstory","createSurfaceMicrodetail","createSoilScatter","createRoadsideDetails","createPainterlyBiome","createForestEcology","createRoadVerge","createG10GroundStones"].filter(name=>!optionalArtCreators[name]);
+const missingArtModules=["createForestAtmosphere","createForestFloor","createForestGroundLife","createForestUnderstory","createSurfaceMicrodetail","createSoilScatter","createRoadsideDetails","createPainterlyBiome","createForestEcology","createRoadVerge","createG10GroundStones","createForestSurface"].filter(name=>!optionalArtCreators[name]);
 const createForestAtmosphere=optionalArtCreators.createForestAtmosphere;
 const createForestFloor=optionalArtCreators.createForestFloor;
 const createForestGroundLife=optionalArtCreators.createForestGroundLife;
@@ -94,6 +98,7 @@ const createPainterlyBiome=optionalArtCreators.createPainterlyBiome;
 const createForestEcology=optionalArtCreators.createForestEcology;
 const createRoadVerge=optionalArtCreators.createRoadVerge;
 const createG10GroundStones=optionalArtCreators.createG10GroundStones;
+const createForestSurface=optionalArtCreators.createForestSurface;
 
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -177,9 +182,12 @@ function heightAt(n) {
 }
 // The dense starting-zone tile covers the fine shoreline and paths;
 // recess the coarse background sphere under it to prevent z-fighting.
+let forestSurfaceActive=false;
 function backgroundHeightAt(n) {
   const local=normalToLocal(n,R);
-  return heightAt(n)-(1-smooth(70,85,local.d))*3.4;
+  const forestDepth=forestSurfaceActive?forestSurfaceRecess(
+   Math.atan2(n.x,n.z),Math.asin(clamp(n.y,-1,1)),R):0;
+  return heightAt(n)-(1-smooth(70,85,local.d))*3.4-forestDepth;
 }
 function colorAt(n, h) {
   const weights = biomeWeights(Math.atan2(n.x, n.z));
@@ -407,6 +415,11 @@ try {
   artSafety.register('ground-stones-g10',()=>createG10GroundStones(THREE,{
     ...ART_SCENE_ARGS,startSegments:startVisualRouteSegments(),lakeRadius
   }));
+  artSafety.register('forest-surface',()=>{
+    forestSurfaceActive=true;reshapeGround();
+    try{return createForestSurface(THREE,{...ART_SCENE_ARGS,globeGeometry:groundGeo});}
+    catch(error){forestSurfaceActive=false;reshapeGround();throw error;}
+  });
   artSafety.register('ecology',()=>createForestEcology(THREE,ART_SCENE_ARGS));
   artSafety.register('light-pools',()=>createForestLightPools(THREE,ART_SCENE_ARGS));
   artSafety.register('atmosphere',()=>createForestAtmosphere(THREE,ART_SCENE_ARGS));
@@ -459,6 +472,11 @@ try {
   function applyGraphicsQuality(){
     const profile=GRAPHICS_PRESETS[qualityName];
     const artEnabled=artSafety.update(qualityName,isPortalPreview);
+    const forestSurface=artSafety.getLayer('forest-surface');
+    const wantForestSurface=!!(artEnabled&&forestSurface);
+    if(forestSurfaceActive!==wantForestSurface){
+      forestSurfaceActive=wantForestSurface;reshapeGround();
+    }
     const enabled=!isPortalPreview&&!state.orbit&&profile.shadowSize>0;
     renderer.setPixelRatio(effectivePixelRatio(qualityName,window.devicePixelRatio||1,isPortalPreview));
     renderer.toneMappingExposure=profile.exposure;
@@ -468,6 +486,7 @@ try {
     }
     sun.castShadow=enabled;
     renderer.shadowMap.enabled=enabled;
+    ground.receiveShadow=enabled;
     shadowBudget.reset();
     shadowActive=enabled;
     scene.fog=state.orbit||isPortalPreview?null:localFog;
@@ -477,6 +496,7 @@ try {
     if(isPortalPreview)sceneryDensity.detail=.68;
     const detail=artEnabled&&!isPortalPreview&&qualityName!=='economy'?
      artSafety.getLayer('microdetail'):null;
+    forestSurface?.setSurfaceMaps(detail,qualityName);
     startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,
      shadows:enabled,portal:isPortalPreview,
      microBump:detail?.reliefVillage||null,

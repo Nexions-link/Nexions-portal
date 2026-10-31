@@ -6,13 +6,13 @@ import {forestTrailLatitude,forestDistance,forestMoodAt,FOREST_CAMP,
 import {forestCanopyShadeAt} from './forest-lighting.js';
 const TAU=Math.PI*2;
 export const FOREST_GROUND_LIFE_CAPS=Object.freeze({
- grass:2100,saplings:360,deadwood:310
+ grass:24000,saplings:360,deadwood:310
 });
 export function forestGroundLifeBudget(quality='balanced',preview=false){
  if(preview)return {grass:0,saplings:0,deadwood:0};
- if(quality==='economy')return {grass:430,saplings:55,deadwood:65};
+ if(quality==='economy')return {grass:4800,saplings:55,deadwood:65};
  if(quality==='high')return {...FOREST_GROUND_LIFE_CAPS};
- return {grass:1210,saplings:195,deadwood:195};
+ return {grass:18000,saplings:195,deadwood:195};
 }
 export function forestGroundLifeLayout(seed=706419){
  let state=seed>>>0;
@@ -30,14 +30,15 @@ export function forestGroundLifeLayout(seed=706419){
   if(trees.some(t=>forestDistance(lon,lat,t.lon,t.lat)<t.radius*.8+size*.58))return false;
   return true;
  }
- for(let i=0;i<12000&&Object.keys(places).some(k=>places[k].length<FOREST_GROUND_LIFE_CAPS[k]);i++){
+ for(let i=0;i<160000&&Object.keys(places).some(k=>places[k].length<FOREST_GROUND_LIFE_CAPS[k]);i++){
   const lon=.25+rand()*1.19;
-  const lat=forestTrailLatitude(lon)+(rand()-.5)*.76;
+  const latitudeRoll=rand()-.5;
   const kindRoll=rand(),kind=kindRoll<.73?'grass':kindRoll<.85?'saplings':'deadwood';
   if(places[kind].length>=FOREST_GROUND_LIFE_CAPS[kind])continue;
+  const lat=forestTrailLatitude(lon)+latitudeRoll*(kind==='grass'&&kindRoll<.54?.27:.76);
   const variation=rand(),size=kind==='grass'?.34+rand()*.62:
    kind==='saplings'?.65+rand()*1.25:.32+rand()*.95;
-  if(!valid(lon,lat,size,kind==='deadwood'?6.3:kind==='saplings'?6.9:4.6))continue;
+  if(!valid(lon,lat,size,kind==='deadwood'?6.3:kind==='saplings'?6.9:3.7))continue;
   const shade=forestCanopyShadeAt(lon,lat);
   // Drier sunbreaks carry straw; old damp canopy carries darker meadow grass.
   places[kind].push(Object.freeze({lon,lat,size,variation,
@@ -51,8 +52,8 @@ export function forestCurvedGrassData(){
  const tri=(a,b,c,ca,cb,cc)=>{append(a,ca);append(b,cb);append(c,cc)};
  for(let i=0;i<blades;i++){
   const a=i*TAU/blades+.1,dx=Math.cos(a),dz=Math.sin(a),tx=-dz,tz=dx;
-  const extent=.14+(i%3)*.047,height=.72+(i%4)*.11,lean=.24+(i%2)*.09;
-  const w=.068+(i%3)*.01;
+  const extent=.14+(i%3)*.047,height=.28+(i%4)*.045,lean=.16+(i%2)*.06;
+  const w=.038+(i%3)*.007;
   const root=[dx*.055,.02,dz*.055],
    lowLeft=[root[0]+tx*w,.02,root[2]+tz*w],
    lowRight=[root[0]-tx*w,.02,root[2]-tz*w];
@@ -118,7 +119,7 @@ export function createForestGroundLife(THREE,{scene,radius,heightAt}){
     vertexColors:kind!=='deadwood',side:THREE.DoubleSide,roughness:1,
     metalness:0,flatShading:true}),rows.length);
   mesh.name='forest-'+kind+'-decorative-no-collision';
-  mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;
+  mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=true;
   for(let i=0;i<rows.length;i++){
    const p=rows[i];
    n.set(Math.cos(p.lat)*Math.sin(p.lon),Math.sin(p.lat),
