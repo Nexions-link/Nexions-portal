@@ -30,7 +30,8 @@ test('pine tree crowns have separated layered drooping branches',()=>{
  assert.equal(pine.indices.length,0);
  assert.equal(pine.positions.length/9,
   FOREST_CROWN_GEOMETRY_BUDGET.coniferWhorls*
-  FOREST_CROWN_GEOMETRY_BUDGET.coniferBranches*2);
+  FOREST_CROWN_GEOMETRY_BUDGET.coniferBranches*
+  FOREST_CROWN_GEOMETRY_BUDGET.coniferNeedleSprays*2);
  assert.ok(crownDataBounds(pine).radialMax<=1.13);
  assert.ok(crownDataBounds(pine).minY<-.48);
  assert.ok(crownDataBounds(pine).maxY<.5);

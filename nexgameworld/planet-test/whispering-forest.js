@@ -1,6 +1,6 @@
 // P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
-import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=3';
+import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=4';
 import {createG11ForestTrunkGeometry} from './trunk-silhouette-g11.js?v=1';
 import {createG13RootGeometry,createG13MossLitterGeometry,
  createG13ContactShadowGeometry} from './forest-roots-g13.js?v=1';

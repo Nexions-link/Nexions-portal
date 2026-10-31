@@ -1,4 +1,5 @@
-// P2.3.9: asymmetrical deciduous canopies and layered conifer branches.
+// NGW-ART-REMASTER-001 G-15: clustered deciduous leaves and layered fir needles.
+import {buildG15ConiferData,G15_CONIFER_BUDGET} from './forest-conifer-g15.js?v=1';
 // Geometries are instanced in whispering-forest.js; no collision meshes,
 // gameplay state, textures, downloads, custom shaders or per-tree materials.
 const TAU=Math.PI*2;
@@ -6,7 +7,8 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export const FOREST_CROWN_GEOMETRY_BUDGET=Object.freeze({
  deciduousSegments:18,deciduousRings:10,
  deciduousLeafClusters:24,
- coniferWhorls:5,coniferBranches:12
+ coniferWhorls:G15_CONIFER_BUDGET.whorls,coniferBranches:G15_CONIFER_BUDGET.branches,
+ coniferNeedleSprays:G15_CONIFER_BUDGET.sprays
 });
 function ensureFinite(values){
  if(values.some(n=>!Number.isFinite(n)))throw Error('Invalid forest crown geometry');
@@ -67,36 +69,7 @@ export function deciduousCrownData(variant=0){
  return {positions,colors,indices,kind:'deciduous'};
 }
 export function coniferCrownData(variant=0){
- const {coniferWhorls:whorls,coniferBranches:branches}=FOREST_CROWN_GEOMETRY_BUDGET;
- const positions=[],colors=[];
- function vertex(x,y,z,light){
-  positions.push(x,y,z);colors.push(.77*light,.94*light,.83*light);
- }
- for(let level=0;level<whorls;level++){
-  const vertical=-.40+level*.192;
-  const radius=(.96-level*.168)*(level===0?1:.96);
-  // Overlapping tapered branch fans, with ragged and drooping outer tips.
-  for(let j=0;j<branches;j++){
-   const a=TAU*(j+(level%2)*.5)/branches+variant*.31;
-   const scallop=1+.076*Math.sin(j*2.91+level*1.77+variant*2.4)+
-    .025*Math.sin(j*5.13+level*2.77);
-   const r=radius*scallop;
-   const age=.67+.33*(whorls-level)/whorls;
-   const angleLeft=a-.22,angleRight=a+.19;
-   const centerY=vertical+.095;
-   const tipY=vertical-.14-.026*Math.sin(j*1.8+level)-.036*age;
-   const left=[r*.59*Math.cos(angleLeft),vertical-.05,r*.59*Math.sin(angleLeft)];
-   const right=[r*.65*Math.cos(angleRight),vertical-.055,r*.65*Math.sin(angleRight)];
-   const tip=[r*Math.cos(a),tipY,r*Math.sin(a)];
-   const root=[r*.13*Math.cos(a),centerY,r*.13*Math.sin(a)];
-   // Two wedge triangles per bough, two-sided material, strong 3D contour.
-   const warmth=.035*Math.sin(j*2.6+level*3+variant);
-   for(const [p,light] of [[root,.76],[left,.92],[tip,.66],
-    [root,.76],[tip,.66],[right,.86]])vertex(...p,light+warmth);
-  }
- }
- ensureFinite(positions);ensureFinite(colors);
- return {positions,colors,indices:[],kind:'conifer'};
+ return buildG15ConiferData(variant);
 }
 export function crownDataBounds(data){
  const p=data.positions;

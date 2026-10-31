@@ -59,7 +59,7 @@ test('G-14 touches only decorative canopy and lawn, not cameras, multiplayer or 
  const forest=source('../whispering-forest.js'),planet=source('../planet.js'),
   meadow=source('../sphere-meadow.js'),roots=source('../forest-roots-g13.js');
  const colliders=forestColliders();
- assert.match(forest,/forest-crown-geometry\.js\?v=3/);
+ assert.match(forest,/forest-crown-geometry\.js\?v=\d+/);
  assert.match(planet,/sphere-physics/);
  assert.match(planet,/new THREE\.PerspectiveCamera\(58, innerWidth \/ innerHeight, \.48, 1300\)/);
  assert.match(meadow,/count:10500/);
