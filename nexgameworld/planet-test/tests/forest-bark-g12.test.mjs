@@ -119,6 +119,6 @@ test('G-12 modifies no camera, multiplayer, movement, collision or tree placemen
  assert.match(forest,/roughnessMap/);
  assert.match(forest,/new THREE\.InstancedMesh/);
  assert.match(planet,/new THREE\.PerspectiveCamera\(58, innerWidth \/ innerHeight, \.48, 1300\)/);
- assert.match(planet,/from '\.\/whispering-forest\.js\?v=24'/);
+ assert.match(planet,/from '\.\/whispering-forest\.js\?v=\d+'/);
  assert.doesNotMatch(bark,/WebSocket|camera\.|localStorage|fetch\(|createCollider|ShaderMaterial|onBeforeCompile/);
 });

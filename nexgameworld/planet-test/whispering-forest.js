@@ -2,6 +2,8 @@
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
 import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=2';
 import {createG11ForestTrunkGeometry} from './trunk-silhouette-g11.js?v=1';
+import {createG13RootGeometry,createG13MossLitterGeometry,
+ createG13ContactShadowGeometry} from './forest-roots-g13.js?v=1';
 import {createForestBarkTextures,forestBarkQuality,forestBarkUseRoughness,
  forestBarkSpeciesTint} from './forest-bark-texture.js?v=2';
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
@@ -290,29 +292,29 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  // Reuse one atlas and one 400-tree batch; species differ by instance tint.
  const darkBark=p=>forestBarkSpeciesTint(p,'trunk');
  const broad=layout.trees.filter(t=>!t.evergreen),ever=layout.trees.filter(t=>t.evergreen);
- // Buttress ribs are inside the existing trunk collision footprint (max .72
- // of trunk radius vs .78 collision), so they cannot create invisible walls.
- const ribs=[],ribColors=[],ribCount=5;
- for(let j=0;j<ribCount;j++){
-  const a=j*TAU/ribCount,gnarl=.05*Math.sin(j*4.7);
-  const point=(r,y,angle)=>[Math.cos(angle)*r,y,Math.sin(angle)*r];
-  // Twisted, tapering buttresses grow from the same trunk silhouette.
-  // The widest rendered solid remains below radius .78.
-  const summit=point(.50,.94+gnarl,a+.04);
-  // The same original ten buttress triangles now reach the trunk's broad
-  // lower bole and sink outward into the forest ground. No extra draw pass.
-  const left=point(.54,.085,a-.27-gnarl);
-  const tip=point(.765,.004,a+.035+gnarl);
-  const right=point(.53,.085,a+.25+gnarl);
-  ribs.push(...summit,...left,...tip,...summit,...tip,...right);
- }
- const rootGeo=new THREE.BufferGeometry();
- rootGeo.setAttribute('position',new THREE.Float32BufferAttribute(ribs,3));
- rootGeo.computeVertexNormals();
- add('forest-buttress-roots',layout.trees,rootGeo,
-  new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1}),
+ // G-13: the former flat buttress triangles become smoothly tapering
+ // original radial root bodies, rooted in the G-11 trunk, then buried into
+ // the existing soil. Nothing extends past the old 0.78 collider radius.
+ const rootGeo=createG13RootGeometry(THREE);
+ const rootMesh=add('forest-buttress-roots',layout.trees,rootGeo,detailedBark,
   p=>({y:.01,sx:p.radius,sy:2.3+p.radius*.36,sz:p.radius}),
-  p=>p.tint>.52?W.root[0]:W.root[1]);
+  darkBark,'root');
+ rootMesh.raycast=()=>{}; // decorative roots must never intercept targeting
+ // Roots are surrounded by low moss hummocks and individually coloured
+ // fallen leaves. A gentle translucent contact shade anchors the trunks to
+ // the forest floor without modifying terrain height or collision.
+ const groundAccents=add('g13-root-moss-litter',layout.trees,
+  createG13MossLitterGeometry(THREE),
+  new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
+   vertexColors:true,side:THREE.DoubleSide}),
+  p=>({y:.002,sx:p.radius,sy:1,sz:p.radius}),null,'ground');
+ const contactShade=add('g13-root-contact-shade',layout.trees,
+  createG13ContactShadowGeometry(THREE),
+  new THREE.MeshBasicMaterial({color:'#ffffff',vertexColors:true,
+   side:THREE.DoubleSide,transparent:true,opacity:.20,depthWrite:false}),
+  p=>({y:.052,sx:p.radius,sy:1,sz:p.radius}),null,'ground');
+ groundAccents.raycast=()=>{};
+ contactShade.raycast=()=>{};
  add('forest-ancient-trunks',layout.trees,trunks,detailedBark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
  add('forest-pine-lower',ever,pineGeo,pine,p=>({y:p.height*.69,sx:p.radius*3.2*(.93+.14*p.tint),sy:p.height*.48,sz:p.radius*3.2*(1.07-.14*p.tint)}),p=>p.tint>.5?C.pineLower[0]:C.pineLower[1]);
  add('forest-pine-crown',ever,pineUpperGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?C.pineUpper[0]:C.pineUpper[1]);
