@@ -2,7 +2,8 @@
 // Instanced draw calls: grass, three blossom colors, shrubs and small stones.
 import {scatterMeadow} from '../meadow.js?v=0.3.7.1';
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
-export function meadowGrassBladeData(){
+import {sculptMeadowGrass} from './r2-vegetation.js?v=1';
+export function meadowGrassBladeData({r2=false}={}){
  const positions=[],colors=[],bladeCount=6;
  const emit=(v,c)=>{positions.push(...v);colors.push(...c)};
  const tri=(a,b,c,ca,cb,cc)=>{emit(a,ca);emit(b,cb);emit(c,cc)};
@@ -23,10 +24,11 @@ export function meadowGrassBladeData(){
   tri(right,r,l,dark,mid,mid);
   tri(l,r,tip,mid,mid,light);
  }
- return {positions,colors,bladeCount};
+ const data={positions,colors,bladeCount};
+ return r2?sculptMeadowGrass(data):data;
 }
-function clumpGeometry(THREE){
- const data=meadowGrassBladeData(),geometry=new THREE.BufferGeometry();
+function clumpGeometry(THREE,r2=false){
+ const data=meadowGrassBladeData({r2}),geometry=new THREE.BufferGeometry();
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
  geometry.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
  geometry.computeVertexNormals();return geometry;
@@ -89,14 +91,14 @@ function blossomGeometry(THREE,hex){
  geometry.computeVertexNormals();return geometry;
 }
 
-export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,accept}){
+export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,accept,r2Vegetation=false}){
  const UP=new THREE.Vector3(0,1,0),dummy=new THREE.Object3D();
  const upQuat=new THREE.Quaternion(),twist=new THREE.Quaternion();
  const layers=[];
  const allowed=(x,z)=>Math.hypot(x+5,z-4)>8&&accept(x,z);
  const grassPoints=scatterMeadow({count:2800,attempts:7800,seed:17031,extent:69,
   accept:(x,z)=>allowed(x,z)});
- const grass=new THREE.InstancedMesh(clumpGeometry(THREE),new THREE.MeshStandardMaterial({
+ const grass=new THREE.InstancedMesh(clumpGeometry(THREE,r2Vegetation),new THREE.MeshStandardMaterial({
   color:0xffffff,roughness:1,side:THREE.DoubleSide,vertexColors:true
  }),grassPoints.length);
  scene.add(grass);layers.push({mesh:grass,points:grassPoints,mode:'grass'});

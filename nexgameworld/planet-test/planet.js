@@ -9,8 +9,8 @@ import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=21';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=21';
+import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=22';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=22';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=1';
 import {createForestGroundLife} from './forest-ground-life.js?v=2';
@@ -36,7 +36,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=52';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=53';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -54,6 +54,7 @@ planetViewport.addEventListener('contextmenu',event=>event.preventDefault());
 const isPortalPreview = new URLSearchParams(location.search).get('portal-preview') === '1';
 // R2 is an in-game A/B preview; default remains the verified fast renderer.
 const r2Materials=!isPortalPreview&&new URLSearchParams(location.search).get('r2materials')==='1';
+const r2Vegetation=!isPortalPreview&&new URLSearchParams(location.search).get('r2vegetation')==='1';
 const accountMode=!isPortalPreview;
 const accountLaunch=accountMode?getAccountLaunch(sessionStorage):null;
 if(accountMode&&!accountLaunch){
@@ -330,11 +331,11 @@ try {
    }catch{return null;}
   })();
   // Detailed native camp, lake and authentic procedural Tauren are isolated in start-zone.js.
-  const startZone=createStartZone(THREE,scene,()=>R,heightAt,{r2Materials});
+  const startZone=createStartZone(THREE,scene,()=>R,heightAt,{r2Materials,r2Vegetation});
   // Construct expensive surface tiles only on a rich quality preset. Economy
   // mode and portal first render should not bake a large microtexture at all.
   let surfaceMicrodetail=null,soilScatter=null;
-  const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
+  const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt,r2Vegetation});
   const roadsideDetails=isPortalPreview?null:createRoadsideDetails(THREE,{scene,radius:R,heightAt,startRoute:ROUTES[1]});
   const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
   const forestLightPools=isPortalPreview?null:createForestLightPools(THREE,{scene,radius:R,heightAt});
@@ -372,7 +373,7 @@ try {
   function readPreference(key,fallback){try{return localStorage.getItem(key)??fallback}catch{return fallback}}
   function storePreference(key,value){try{localStorage.setItem(key,value)}catch{}}
   const graphicsSelect=$('graphicsQuality'),qualityHelp=$('qualityHelp');
-  const r2MaterialsToggle=$('r2MaterialsToggle');
+  const r2MaterialsToggle=$('r2MaterialsToggle'),r2VegetationToggle=$('r2VegetationToggle');
   const fpsToggle=$('showFps'),fpsCounter=$('fpsCounter');
   const fpsCopy=$('copyFpsReport'),fpsReset=$('resetFpsReport'),fpsHelp=$('fpsHelp');
   const frameProfiler=createFrameProfiler();
@@ -440,6 +441,15 @@ try {
       qualityName==='high'?'Самая плотная растительность, чёткая картинка, тени 1024 px.':
       'Умеренная растительность, мягкие тени 512 px и улучшенное озеро.';
     if(graphicsSelect)graphicsSelect.value=qualityName;
+  }
+  if(r2VegetationToggle){
+    r2VegetationToggle.checked=r2Vegetation;
+    r2VegetationToggle.addEventListener('change',()=>{
+      const next=new URL(location.href);
+      if(r2VegetationToggle.checked)next.searchParams.set('r2vegetation','1');
+      else next.searchParams.delete('r2vegetation');
+      location.replace(next.href);
+    });
   }
   if(r2MaterialsToggle){
     r2MaterialsToggle.checked=r2Materials;

@@ -1,6 +1,7 @@
 // P2.3.9: asymmetrical deciduous canopies and layered conifer branches.
 // Geometries are instanced in whispering-forest.js; no collision meshes,
 // gameplay state, textures, downloads, custom shaders or per-tree materials.
+import {sculptForestCrown} from './r2-vegetation.js?v=1';
 const TAU=Math.PI*2;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export const FOREST_CROWN_GEOMETRY_BUDGET=Object.freeze({
@@ -10,7 +11,7 @@ export const FOREST_CROWN_GEOMETRY_BUDGET=Object.freeze({
 function ensureFinite(values){
  if(values.some(n=>!Number.isFinite(n)))throw Error('Invalid forest crown geometry');
 }
-export function deciduousCrownData(variant=0){
+export function deciduousCrownData(variant=0,{r2=false}={}){
  const {deciduousSegments:segments,deciduousRings:rings}=FOREST_CROWN_GEOMETRY_BUDGET;
  const positions=[],colors=[],indices=[];
  for(let row=0;row<=rings;row++){
@@ -39,9 +40,10 @@ export function deciduousCrownData(variant=0){
   }
  }
  ensureFinite(positions);ensureFinite(colors);
- return {positions,colors,indices,kind:'deciduous'};
+ const data={positions,colors,indices,kind:'deciduous'};
+ return r2?sculptForestCrown(data,'deciduous',variant):data;
 }
-export function coniferCrownData(variant=0){
+export function coniferCrownData(variant=0,{r2=false}={}){
  const {coniferWhorls:whorls,coniferBranches:branches}=FOREST_CROWN_GEOMETRY_BUDGET;
  const positions=[],colors=[];
  function vertex(x,y,z,light){
@@ -71,7 +73,8 @@ export function coniferCrownData(variant=0){
   }
  }
  ensureFinite(positions);ensureFinite(colors);
- return {positions,colors,indices:[],kind:'conifer'};
+ const data={positions,colors,indices:[],kind:'conifer'};
+ return r2?sculptForestCrown(data,'conifer',variant):data;
 }
 export function crownDataBounds(data){
  const p=data.positions;
@@ -94,8 +97,8 @@ export function crownLowestHeightFraction(kind){
  return .79+.21*deciduousCrownData().positions
   .filter((_,i)=>i%3===1).reduce((a,v)=>Math.min(a,v),Infinity);
 }
-export function makeForestCrownGeometry(THREE,kind,variant=0){
- const data=kind==='conifer'?coniferCrownData(variant):deciduousCrownData(variant);
+export function makeForestCrownGeometry(THREE,kind,variant=0,{r2=false}={}){
+ const data=kind==='conifer'?coniferCrownData(variant,{r2}):deciduousCrownData(variant,{r2});
  const geometry=new THREE.BufferGeometry();
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
  geometry.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));

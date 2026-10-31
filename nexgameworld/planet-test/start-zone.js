@@ -1,7 +1,7 @@
 import {createLandscapeMap} from '../landscape.js?v=0.6.45.55';
 import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=21';
-import {createSphericalMeadow} from './sphere-meadow.js?v=3';
+import {createSphericalMeadow} from './sphere-meadow.js?v=4';
 import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';
 import {createTaurenAnatomy} from './tauren-anatomy.js?v=3';
@@ -84,7 +84,7 @@ export function normalToLocal(n,R){
 // It avoids importing another library instance and shares the game's single renderer.
 let THREE;
 export function initStartZoneMath(THREELibrary){THREE=THREELibrary;}
-export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=false}={}){
+export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=false,r2Vegetation=false}={}){
  initStartZoneMath(three);
  const UP=new THREE.Vector3(0,1,0);
  let textureSeed=531;
@@ -234,7 +234,7 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
  // Replaced by the actual NexGame meadow (grass, three flower colors,
  // shrubs), so keep the original experimental brush instance hidden.
  brush.count=0;brush.frustumCulled=false;scene.add(brush);
- const meadow=createSphericalMeadow(THREE,{scene,getRadius,toNormal:localToNormal,heightAt,
+ const meadow=createSphericalMeadow(THREE,{scene,getRadius,toNormal:localToNormal,heightAt,r2Vegetation,
   accept:(x,z)=>Math.hypot(x,z)<69&&lakeRadius(x,z)>1.18&&pathWear(x,z)<.18&&
    (Math.abs(x+27)>12.8||Math.abs(z+2)>12.5)&&
    canWalkCamp(x,z,.5)});

@@ -1,6 +1,6 @@
 // P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
-import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=2';
+import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=3';
 import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=1';
 const TAU=Math.PI*2;
 // Match the blocker exactly to the visible trunk's maximum ground radius.
@@ -229,7 +229,7 @@ function fernGeometry(THREE){
  geo.computeVertexNormals();
  return geo;
 }
-export function createWhisperingForest(THREE,{scene,radius,heightAt}){
+export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation=false}){
  const layout=createForestLayout(),canopy=forestCanopyDetailLayout(layout),up=new THREE.Vector3(0,1,0),normal=new THREE.Vector3();
  const object=new THREE.Object3D(),twist=new THREE.Quaternion(),align=new THREE.Quaternion();
  const batches=[];
@@ -279,11 +279,11 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  trunks.computeBoundingSphere();
  // Irregular branch whorls and individually lobed crowns replace the old
  // perfect cones and spheres, but keep exactly the same tree locations.
- const leafGeo=makeForestCrownGeometry(THREE,'deciduous',0);
- const upperLeafGeo=makeForestCrownGeometry(THREE,'deciduous',1);
- const outerTuftGeo=makeForestCrownGeometry(THREE,'deciduous',2);
- const pineGeo=makeForestCrownGeometry(THREE,'conifer',0);
- const pineUpperGeo=makeForestCrownGeometry(THREE,'conifer',1);
+ const leafGeo=makeForestCrownGeometry(THREE,'deciduous',0,{r2:r2Vegetation});
+ const upperLeafGeo=makeForestCrownGeometry(THREE,'deciduous',1,{r2:r2Vegetation});
+ const outerTuftGeo=makeForestCrownGeometry(THREE,'deciduous',2,{r2:r2Vegetation});
+ const pineGeo=makeForestCrownGeometry(THREE,'conifer',0,{r2:r2Vegetation});
+ const pineUpperGeo=makeForestCrownGeometry(THREE,'conifer',1,{r2:r2Vegetation});
  // The same tiny tiled bark atlas gives all ancient trunks, branches and
  // fallen timber visible fissures, grain and relief without extra draw calls.
  // A failed texture allocation always falls back to the old opaque materials.
