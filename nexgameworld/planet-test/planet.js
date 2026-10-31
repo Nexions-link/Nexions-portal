@@ -4,32 +4,23 @@ import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction,createCameraProbe,isInLonghouse,canWalkCamp} from './sphere-physics.js?v=17';
 import {settleCameraLook} from './camera-look-smoothing.js?v=1';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
-import {createShadowRefreshBudget} from './render-budget.js?v=2';
-import {createForestSpatialBatches} from './forest-spatial-batches.js?v=1';
+import {createShadowRefreshBudget} from './render-budget.js?v=1';
 import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay.js?v=5';
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=28';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=28';
-
-
-
-
-import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=5';
-
-
-
-import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
-import {forestSurfaceRecess,forestBackgroundIndices} from './forest-surface-profile.js?v=2';
-
-import {createArtSafetyController} from './art-safety.js?v=1';
-import {createG11AmbientTrunkGeometry} from './trunk-silhouette-g11.js?v=1';
-import {VISUAL_REFERENCE_VIEWS,getVisualReferenceView,referenceViewPose} from './reference-viewpoints.js?v=1';
-import {captureVisualWebGLFrame,createVisualCaptureStore,makeVisualSnapshotMeta,compareVisualSnapshotMeta} from './visual-capture.js?v=1';
-
-import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=3';
-import {modernPreviewEnabled,modernLightingValues} from './modern-lighting-preview.js?v=1';
+import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=21';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=21';
+import {createForestAtmosphere} from './forest-atmosphere.js?v=1';
+import {createForestFloor} from './forest-floor.js?v=1';
+import {createForestGroundLife} from './forest-ground-life.js?v=2';
+import {createForestUnderstory} from './forest-understory.js?v=2';
+import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=2';
+import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
+import {createSoilScatter} from './soil-scatter.js?v=2';
+import {createRoadsideDetails} from './roadside-details.js?v=2';
+import {createForestEcology} from './forest-ecology.js?v=4';
+import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './forest-lighting.js?v=2';
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
@@ -42,66 +33,9 @@ import {animateSphericalTauren} from './tauren-animation.js?v=12';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
-import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=3';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,pathWear,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath,startVisualRouteSegments} from './start-zone.js?v=58';
+import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=51';
 initStartZoneMath(THREE);
-
-// Optional visuals must never prevent core world modules from loading. A
-// missing or corrupted remaster module is reported and activates base art.
-const optionalArtImports=await Promise.allSettled([
- import('./forest-atmosphere.js?v=1'),
- import('./forest-floor.js?v=2'),
- import('./forest-ground-life.js?v=3'),
- import('./forest-understory.js?v=4'),
- import('./surface-microdetail.js?v=2'),
- import('./soil-scatter.js?v=2'),
- import('./roadside-details.js?v=2'),
- import('./painterly-biome.js?v=5'),
- import('./forest-ecology.js?v=6'),
- import('./road-verge.js?v=1'),
- import('./ground-stones-g10.js?v=1'),
- import('./forest-surface.js?v=2')
-]);
-const optionalArtCreators=Object.fromEntries([
- ['createForestAtmosphere',optionalArtImports[0].status==='fulfilled'?
-  optionalArtImports[0].value.createForestAtmosphere:null],
- ['createForestFloor',optionalArtImports[1].status==='fulfilled'?
-  optionalArtImports[1].value.createForestFloor:null],
- ['createForestGroundLife',optionalArtImports[2].status==='fulfilled'?
-  optionalArtImports[2].value.createForestGroundLife:null],
- ['createForestUnderstory',optionalArtImports[3].status==='fulfilled'?
-  optionalArtImports[3].value.createForestUnderstory:null],
- ['createSurfaceMicrodetail',optionalArtImports[4].status==='fulfilled'?
-  optionalArtImports[4].value.createSurfaceMicrodetail:null],
- ['createSoilScatter',optionalArtImports[5].status==='fulfilled'?
-  optionalArtImports[5].value.createSoilScatter:null],
- ['createRoadsideDetails',optionalArtImports[6].status==='fulfilled'?
-  optionalArtImports[6].value.createRoadsideDetails:null],
- ['createPainterlyBiome',optionalArtImports[7].status==='fulfilled'?
-  optionalArtImports[7].value.createPainterlyBiome:null],
- ['createForestEcology',optionalArtImports[8].status==='fulfilled'?
-  optionalArtImports[8].value.createForestEcology:null],
- ['createRoadVerge',optionalArtImports[9].status==='fulfilled'?
-  optionalArtImports[9].value.createRoadVerge:null],
- ['createG10GroundStones',optionalArtImports[10].status==='fulfilled'?
-  optionalArtImports[10].value.createG10GroundStones:null],
- ['createForestSurface',optionalArtImports[11].status==='fulfilled'?
-  optionalArtImports[11].value.createForestSurface:null]
-]);
-const missingArtModules=["createForestAtmosphere","createForestFloor","createForestGroundLife","createForestUnderstory","createSurfaceMicrodetail","createSoilScatter","createRoadsideDetails","createPainterlyBiome","createForestEcology","createRoadVerge","createG10GroundStones","createForestSurface"].filter(name=>!optionalArtCreators[name]);
-const createForestAtmosphere=optionalArtCreators.createForestAtmosphere;
-const createForestFloor=optionalArtCreators.createForestFloor;
-const createForestGroundLife=optionalArtCreators.createForestGroundLife;
-const createForestUnderstory=optionalArtCreators.createForestUnderstory;
-const createSurfaceMicrodetail=optionalArtCreators.createSurfaceMicrodetail;
-const createSoilScatter=optionalArtCreators.createSoilScatter;
-const createRoadsideDetails=optionalArtCreators.createRoadsideDetails;
-const createPainterlyBiome=optionalArtCreators.createPainterlyBiome;
-const createForestEcology=optionalArtCreators.createForestEcology;
-const createRoadVerge=optionalArtCreators.createRoadVerge;
-const createG10GroundStones=optionalArtCreators.createG10GroundStones;
-const createForestSurface=optionalArtCreators.createForestSurface;
-
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
 // Safari's double-tap protection applies only to the 3D surface.
@@ -116,7 +50,6 @@ planetViewport.addEventListener('contextmenu',event=>event.preventDefault());
 
 // NexGameWorld uses isolated spherical WebSockets for player presence; RPG combat stays local.
 const isPortalPreview = new URLSearchParams(location.search).get('portal-preview') === '1';
-const modernGraphicsPreview=!isPortalPreview&&modernPreviewEnabled(location.search);
 const accountMode=!isPortalPreview;
 const accountLaunch=accountMode?getAccountLaunch(sessionStorage):null;
 if(accountMode&&!accountLaunch){
@@ -185,12 +118,9 @@ function heightAt(n) {
 }
 // The dense starting-zone tile covers the fine shoreline and paths;
 // recess the coarse background sphere under it to prevent z-fighting.
-let forestSurfaceActive=false;
 function backgroundHeightAt(n) {
   const local=normalToLocal(n,R);
-  const forestDepth=forestSurfaceActive?forestSurfaceRecess(
-   Math.atan2(n.x,n.z),Math.asin(clamp(n.y,-1,1)),R):0;
-  return heightAt(n)-(1-smooth(70,85,local.d))*3.4-forestDepth;
+  return heightAt(n)-(1-smooth(70,85,local.d))*3.4;
 }
 function colorAt(n, h) {
   const weights = biomeWeights(Math.atan2(n.x, n.z));
@@ -207,8 +137,7 @@ function colorAt(n, h) {
 
 try {
   const scene = new THREE.Scene();
-  const forestSpatial=createForestSpatialBatches(THREE,{scene,planetRadius:R});
-  const skyDay = new THREE.Color(ART.light.sky);
+  const skyDay = new THREE.Color('#a1ccd5');
   const skyNight = new THREE.Color('#101c32');
   scene.background = skyDay;
   // Improved near/far clipping for mobile depth buffer precision.
@@ -226,9 +155,9 @@ try {
   renderer.toneMappingExposure = 1.15;
   viewport.appendChild(renderer.domElement);
   const canvas = renderer.domElement;
-  const skyFill=new THREE.HemisphereLight(ART.light.ambientSky,ART.light.ambientGround,1.95);
+  const skyFill=new THREE.HemisphereLight('#f7e6c6', '#486b70', 1.95);
   scene.add(skyFill);
-  const sun = new THREE.DirectionalLight(ART.light.sun,2.50);
+  const sun = new THREE.DirectionalLight('#ffebba', 2.50);
   sun.position.set(130, 225, 155);
   scene.add(sun);
   const fill = new THREE.DirectionalLight('#b4dbe9', .62);
@@ -240,10 +169,8 @@ try {
   renderer.shadowMap.autoUpdate=false;
   const shadowBudget=createShadowRefreshBudget();
   const localFog=new THREE.Fog(skyDay,105,290);
-  const forestFogColor=new THREE.Color('#809b88');
-  const forestAmbientColor=new THREE.Color('#bfd6c4');
-  const modernAmbientTint=new THREE.Color('#a7bace');
-  const forestSkyColor=new THREE.Color('#a3beb1');
+  const forestFogColor=new THREE.Color('#536e68');
+  const forestSkyColor=new THREE.Color('#8ba9a1');
   const blendedForestSky=new THREE.Color();
   sun.shadow.camera.left=-31;sun.shadow.camera.right=31;
   sun.shadow.camera.top=31;sun.shadow.camera.bottom=-31;
@@ -253,8 +180,6 @@ try {
 
   // Build a genuine closed triangulated sphere, rather than a flat wrapping map.
   const groundGeo = new THREE.SphereGeometry(R, 180, 112);
-  const completeGroundIndex=groundGeo.index;
-  let coveredGroundIndex=null;
   const pos = groundGeo.attributes.position;
   const colorData = new Float32Array(pos.count * 3);
   const groundDirections = new Float32Array(pos.count * 3);
@@ -296,12 +221,6 @@ try {
     groundGeo.attributes.normal.needsUpdate = true;
     groundGeo.computeBoundingSphere();
     groundGeo.computeBoundingBox();
-  }
-  function updateGroundCoverage(covered){
-    if(covered&&!coveredGroundIndex)
-      coveredGroundIndex=new THREE.BufferAttribute(forestBackgroundIndices(groundGeo,R),1);
-    const index=covered?coveredGroundIndex:completeGroundIndex;
-    if(groundGeo.index!==index){groundGeo.setIndex(index);groundGeo.computeVertexNormals();}
   }
   // Atmosphere is intentionally subtle; it only appears in orbital view.
   const atmosphere = new THREE.Mesh(
@@ -386,7 +305,7 @@ try {
       mesh.instanceMatrix.needsUpdate=true;
     }
   }
-  instances(trunkData, createG11AmbientTrunkGeometry(THREE), new THREE.MeshStandardMaterial({color: '#80674a', roughness: 1, vertexColors: true}), .78, [1, 1, 1]);
+  instances(trunkData, new THREE.CylinderGeometry(.18, .27, 1.55, 6), new THREE.MeshStandardMaterial({color: '#65472e', roughness: 1}), .78, [1, 1, 1]);
   instances(foliageData, new THREE.DodecahedronGeometry(1, 1), new THREE.MeshStandardMaterial({color: '#ffffff', roughness: 1, flatShading: true}), 2.46, [1.55, 1.65, 1.55], p => p.tint > .6 ? '#89a65b' : '#5e934c');
   instances(pineData, new THREE.ConeGeometry(1.1, 3.5, 7), new THREE.MeshStandardMaterial({color: '#ffffff', roughness: 1, flatShading: true}), 2.38, [1, 1, 1], p => p.tint > .5 ? '#3e6f56' : '#57876a');
   instances(rockData, new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({color: '#ffffff', roughness: 1, flatShading: true}), .50, [.7, .48, .8], p => p.tint > .5 ? '#a8a28e' : '#8b8772');
@@ -403,47 +322,18 @@ try {
    }catch{return null;}
   })();
   // Detailed native camp, lake and authentic procedural Tauren are isolated in start-zone.js.
-  const startZone=createStartZone(THREE,scene,()=>R,heightAt,{globeGeometry:groundGeo});
-  // Core scene, blocking trees and game systems are never detached.
+  const startZone=createStartZone(THREE,scene,()=>R,heightAt);
+  // Construct expensive surface tiles only on a rich quality preset. Economy
+  // mode and portal first render should not bake a large microtexture at all.
+  let surfaceMicrodetail=null,soilScatter=null;
   const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt});
-  const artSafety=createArtSafetyController({
-    scene,storage:localStorage,preview:isPortalPreview,
-    onChange:({mode,lastFault,contextLost})=>{
-      const toggle=$('artRemasterToggle'),help=$('artRemasterStatus');
-      if(toggle)toggle.checked=mode==='enhanced';
-      if(help)help.textContent=contextLost?'Контекст WebGL потерян. Ожидаем восстановления.':
-       lastFault?'Безопасная графика включена: '+lastFault.stage+'. Включить ремастер повторно можно вручную.':
-       mode==='enhanced'?'Ремастер включён. При ошибке графический слой отключится.':
-       'Базовая графика: дополнительные декоративные слои выключены.';
-    }
-  });
-  const ART_SCENE_ARGS={scene,radius:R,heightAt};
-  if(missingArtModules.length){
-    artSafety.renderError(new Error('Модули оформления не загрузились: '+missingArtModules.join(', ')));
-  }
-  artSafety.register('roadside',()=>createRoadsideDetails(THREE,{...ART_SCENE_ARGS,startRoute:ROUTES[1]}));
-  artSafety.register('road-verge',()=>createRoadVerge(THREE,{
-    ...ART_SCENE_ARGS,startSegments:startVisualRouteSegments(),lakeRadius
-  }));
-  artSafety.register('ground-stones-g10',()=>createG10GroundStones(THREE,{
-    ...ART_SCENE_ARGS,startSegments:startVisualRouteSegments(),lakeRadius
-  }));
-  artSafety.register('forest-surface',()=>{
-    forestSurfaceActive=true;reshapeGround();
-    try{return createForestSurface(THREE,{...ART_SCENE_ARGS,globeGeometry:groundGeo});}
-    catch(error){forestSurfaceActive=false;reshapeGround();throw error;}
-  });
-  artSafety.register('ecology',()=>createForestEcology(THREE,ART_SCENE_ARGS));
-  artSafety.register('light-pools',()=>createForestLightPools(THREE,ART_SCENE_ARGS));
-  artSafety.register('atmosphere',()=>createForestAtmosphere(THREE,ART_SCENE_ARGS));
-  artSafety.register('forest-floor',()=>createForestFloor(THREE,ART_SCENE_ARGS));
-  artSafety.register('ground-life',()=>createForestGroundLife(THREE,ART_SCENE_ARGS));
-  artSafety.register('understory',()=>createForestUnderstory(THREE,ART_SCENE_ARGS));
-  artSafety.register('painterly',()=>createPainterlyBiome(THREE,ART_SCENE_ARGS));
-  artSafety.register('microdetail',()=>createSurfaceMicrodetail(THREE,ART_SCENE_ARGS),
-    {when:preset=>preset!=='economy'});
-  artSafety.register('soil-scatter',()=>createSoilScatter(THREE,ART_SCENE_ARGS),
-    {when:preset=>preset!=='economy'});
+  const roadsideDetails=isPortalPreview?null:createRoadsideDetails(THREE,{scene,radius:R,heightAt,startRoute:ROUTES[1]});
+  const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
+  const forestLightPools=isPortalPreview?null:createForestLightPools(THREE,{scene,radius:R,heightAt});
+  const forestAtmosphere=isPortalPreview?null:createForestAtmosphere(THREE,{scene,radius:R,heightAt});
+  const forestFloor=isPortalPreview?null:createForestFloor(THREE,{scene,radius:R,heightAt});
+  const forestGroundLife=isPortalPreview?null:createForestGroundLife(THREE,{scene,radius:R,heightAt});
+  const forestUnderstory=isPortalPreview?null:createForestUnderstory(THREE,{scene,radius:R,heightAt});
   relocateInstances();
   const hero=createTauren(THREE,scene,{player:true});
   const actor=hero.root;
@@ -482,22 +372,12 @@ try {
   if(isPortalPreview)qualityName='economy';
   let shadowActive=false;
   let combatQualitySink=null;
-  let assetForest=null;
   function applyGraphicsQuality(){
     const profile=GRAPHICS_PRESETS[qualityName];
-    const artEnabled=artSafety.update(qualityName,isPortalPreview);
-    if(assetForest){
-      const enabled=artEnabled&&!isPortalPreview;
-      assetForest.setQuality(qualityName);
-      assetForest.setVisible(enabled);
-      startZone.setExternalTreesActive(enabled);
+    if(!isPortalPreview&&qualityName!=='economy'){
+      if(!surfaceMicrodetail)surfaceMicrodetail=createSurfaceMicrodetail(THREE,{scene,radius:R,heightAt});
+      if(!soilScatter)soilScatter=createSoilScatter(THREE,{scene,radius:R,heightAt});
     }
-    const forestSurface=artSafety.getLayer('forest-surface');
-    const wantForestSurface=!!(artEnabled&&forestSurface);
-    if(forestSurfaceActive!==wantForestSurface){
-      forestSurfaceActive=wantForestSurface;reshapeGround();
-    }
-    updateGroundCoverage(wantForestSurface);
     const enabled=!isPortalPreview&&!state.orbit&&profile.shadowSize>0;
     renderer.setPixelRatio(effectivePixelRatio(qualityName,window.devicePixelRatio||1,isPortalPreview));
     renderer.toneMappingExposure=profile.exposure;
@@ -507,7 +387,6 @@ try {
     }
     sun.castShadow=enabled;
     renderer.shadowMap.enabled=enabled;
-    ground.receiveShadow=enabled;
     shadowBudget.reset();
     shadowActive=enabled;
     scene.fog=state.orbit||isPortalPreview?null:localFog;
@@ -515,32 +394,22 @@ try {
     const sceneryDensity=graphicsDensity(qualityName);
     // The portal shows the latest village art without costly shadows or high DPR.
     if(isPortalPreview)sceneryDensity.detail=.68;
-    const detail=artEnabled&&!isPortalPreview&&qualityName!=='economy'?
-     artSafety.getLayer('microdetail'):null;
-    forestSurface?.setSurfaceMaps(detail,qualityName);
-    startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,
-     shadows:enabled,portal:isPortalPreview,
-     microBump:detail?.reliefVillage||null,
-     microNormal:detail?.normalVillage||null,
-     microRoughness:detail?.roughnessVillage||null});
-    // Use actual PBR maps on the existing opaque globe. A failed optional
-    // layer leaves native low-cost bump and the core sphere intact.
-    const normal=detail?.normalGlobe||null;
-    const roughness=detail?.roughnessGlobe||null;
-    const relief=!normal&&artEnabled&&!isPortalPreview&&qualityName!=='economy'?
-     (detail?.reliefGlobe||groundTexture):null;
-    if(groundMaterial.bumpMap!==relief||groundMaterial.normalMap!==normal||
-       groundMaterial.roughnessMap!==roughness){
-     groundMaterial.bumpMap=relief;
-     groundMaterial.normalMap=normal;
-     groundMaterial.roughnessMap=roughness;
-     groundMaterial.needsUpdate=true;
-    }
-    groundMaterial.normalScale.set(qualityName==='high'?.40:.22,
-     qualityName==='high'?.40:.22);
+    startZone.setGraphics({...sceneryDensity,waterColor:profile.waterColor,shadows:enabled,portal:isPortalPreview,microBump:surfaceMicrodetail?.reliefVillage});
+    // The existing opaque forest map doubles as subtle material relief on
+    // richer presets, adding zero GPU texture memory or custom shaders.
+    const relief=!isPortalPreview&&qualityName!=='economy'?(surfaceMicrodetail?.reliefGlobe||groundTexture):null;
+    if(groundMaterial.bumpMap!==relief){groundMaterial.bumpMap=relief;groundMaterial.needsUpdate=true;}
     groundMaterial.bumpScale=qualityName==='high'?.074:.043;
     whisperingForest.setQuality(qualityName,isPortalPreview);
-    // Optional scenery presets are protected by artSafety.update above.
+    roadsideDetails?.setQuality(qualityName,isPortalPreview);
+    forestEcology?.setQuality(qualityName,isPortalPreview);
+    forestLightPools?.setQuality(qualityName,isPortalPreview);
+    forestAtmosphere?.setQuality(qualityName,isPortalPreview);
+    forestFloor?.setQuality(qualityName,isPortalPreview);
+    forestGroundLife?.setQuality(qualityName,isPortalPreview);
+    forestUnderstory?.setQuality(qualityName,isPortalPreview);
+    surfaceMicrodetail?.setQuality(qualityName,isPortalPreview);
+    soilScatter?.setQuality(qualityName,isPortalPreview);
     hero.visualDetails?.setQuality(isPortalPreview?.68:profile.detail);
     combatQualitySink?.(isPortalPreview?.15:profile.detail);
     if(qualityHelp)qualityHelp.textContent=
@@ -549,34 +418,9 @@ try {
       'Умеренная растительность, мягкие тени 512 px и улучшенное озеро.';
     if(graphicsSelect)graphicsSelect.value=qualityName;
   }
-  // Keep the original procedural trees until the local CC0 GLB is fully loaded.
-  // Any fetch/decoder failure leaves the playable baseline scene unchanged.
-  // ?asset-pack=0 provides a same-device A/B comparison and emergency fallback.
-  if(!isPortalPreview&&new URLSearchParams(location.search).get('asset-pack')!=='0'){
-    import('./asset-forest.js?v=1')
-     .then(({createAssetForest})=>createAssetForest(THREE,{
-       scene,radius:R,heightAt,anchors:startZone.treeAnchors,
-       accept:(x,z)=>Math.hypot(x,z)<65&&lakeRadius(x,z)>1.18&&
-        pathWear(x,z)<.18&&Math.hypot(x+27,z+2)>16&&
-        canWalkCamp(x,z,.65)
-     }))
-     .then(pack=>{
-       assetForest=pack;
-       const enabled=artSafety.mode==='enhanced'&&!artSafety.isContextLost;
-       pack.setQuality(qualityName);
-       pack.setVisible(enabled);
-       startZone.setExternalTreesActive(enabled);
-       console.info('NexGameWorld CC0 forest asset pack ready',pack.counts);
-     })
-     .catch(error=>console.warn('NexGameWorld: CC0 asset pack fallback to native trees',error));
-  }
   graphicsSelect?.addEventListener('change',()=>{
     qualityName=resolveGraphicsPreset(graphicsSelect.value);
     storePreference(graphicsStorageKey,qualityName);
-    applyGraphicsQuality();
-  });
-  $('artRemasterToggle')?.addEventListener('change',event=>{
-    artSafety.setMode(event.target.checked?'enhanced':'base',qualityName);
     applyGraphicsQuality();
   });
   if(fpsToggle&&fpsCounter){
@@ -769,7 +613,6 @@ try {
   let prevHeading = 0;
   // Initialize before restoring orbital view or entering landing-page preview.
   let cameraSnap = true,windowOffset=0,chestCameraOffset=null;
-  let referenceView=null,referencePose=null,referenceRestoreOrbit=false;
   const cameraGoal = new THREE.Vector3();
   const cameraProbe=createCameraProbe(THREE);
   const cameraRadial=new THREE.Vector3(),cameraCandidate=new THREE.Vector3();
@@ -857,7 +700,6 @@ try {
   canvas.addEventListener('pointermove', e => {
     if (!touches.has(e.pointerId)) return;
     e.preventDefault();
-    if(referencePose){touches.set(e.pointerId,{x:e.clientX,y:e.clientY});return;}
     const last = touches.get(e.pointerId);
     if (touches.size === 1) {
       if (state.orbit) {
@@ -889,19 +731,12 @@ try {
   canvas.addEventListener('pointercancel', untrack);
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    if(referencePose)return;
     if (state.orbit) state.orbitDistance = clamp(state.orbitDistance + e.deltaY * .002, 1.6, 5.5);
     else {state.zoom = clamp(state.zoom + e.deltaY * .015, 6, 44); updateZoomLabel();}
     saveWorld();
   }, {passive:false});
   const minimapToggle = $('minimapFrame');
   function togglePlanetView() {
-    if(referenceView){
-      referenceView=null;referencePose=null;referenceRestoreOrbit=false;
-      const bar=$('referenceViewBar');if(bar)bar.hidden=true;
-      const shield=$('referenceViewSurface');if(shield)shield.hidden=true;
-      hasCameraLookTarget=false;
-    }
     state.orbit = !state.orbit;
     stars.visible = state.orbit;
     atmosphere.visible = state.orbit;
@@ -942,167 +777,6 @@ try {
     updateZoomLabel();saveWorld();
   });
   updateZoomLabel();
-  const referenceSelect=$('referenceViewSelect'),referenceBar=$('referenceViewBar');
-  const referenceTitle=$('referenceViewTitle'),referenceDetails=$('referenceViewDetails');
-  const referenceChecklist=$('referenceViewChecklist'),referenceMetrics=$('referenceViewMetrics');
-  if(referenceSelect){
-    for(const view of VISUAL_REFERENCE_VIEWS){
-      const option=document.createElement('option');
-      option.value=view.id;option.textContent=view.label;
-      referenceSelect.appendChild(option);
-    }
-  }
-  function activateReferenceView(id){
-    if(isPortalPreview)return;
-    const view=getVisualReferenceView(id);
-    if(!view)return;
-    if(!referenceView){
-      referenceRestoreOrbit=state.orbit;
-      if(state.orbit)togglePlanetView();
-    }
-    referenceView=view;
-    referencePose=referenceViewPose(THREE,view,{radius:R,heightAt});
-    if(referenceSelect)referenceSelect.value=view.id;
-    if(referenceTitle)referenceTitle.textContent='R1 · '+view.label+' · '+view.zone;
-    if(referenceDetails)referenceDetails.textContent='Было: '+view.baseline+' Цель: '+view.target;
-    if(referenceChecklist)referenceChecklist.textContent=view.check;
-    if(referenceMetrics){
-      referenceMetrics.textContent='Нормаль '+referencePose.normal.toArray().map(v=>v.toFixed(4)).join(', ')+
-       ' · курс '+view.heading.toFixed(2)+' рад · наклон '+view.pitch.toFixed(2)+
-       ' рад · дистанция '+view.zoom+' м · FOV 58°';
-    }
-    if(referenceBar)referenceBar.hidden=false;
-    const shield=$('referenceViewSurface');if(shield)shield.hidden=false;
-    cameraSnap=true;hasCameraLookTarget=false;
-    shadowBudget.reset();
-    $('modalClose')?.click();
-  }
-  function leaveReferenceView(){
-    if(!referenceView)return;
-    referenceView=null;referencePose=null;
-    if(referenceBar)referenceBar.hidden=true;
-    const shield=$('referenceViewSurface');if(shield)shield.hidden=true;
-    cameraSnap=true;hasCameraLookTarget=false;
-    shadowBudget.reset();
-    const restore=referenceRestoreOrbit;
-    referenceRestoreOrbit=false;
-    if(restore&&!state.orbit)togglePlanetView();
-  }
-  function cycleReferenceView(delta){
-    const index=VISUAL_REFERENCE_VIEWS.findIndex(v=>v.id===referenceView?.id);
-    const count=VISUAL_REFERENCE_VIEWS.length;
-    activateReferenceView(VISUAL_REFERENCE_VIEWS[(index+delta+count)%count].id);
-  }
-  $('referenceViewEnter')?.addEventListener('click',()=>
-    activateReferenceView(referenceSelect?.value||VISUAL_REFERENCE_VIEWS[0].id));
-  $('referenceViewPrev')?.addEventListener('click',()=>cycleReferenceView(-1));
-  $('referenceViewNext')?.addEventListener('click',()=>cycleReferenceView(1));
-  $('referenceViewExit')?.addEventListener('click',leaveReferenceView);
-  // G-02: voluntary local snapshots of the REAL Three.js scene. Never send
-  // images or camera coordinates to the game server or change player state.
-  let pendingVisualShot=null,visualShotBusy=false,visualUrls=[];
-  let visualStore=null;
-  const snapshotStatus=$('referenceCaptureStatus');
-  const snapshotButtons=[$('referenceCaptureBaseline'),$('referenceCaptureCurrent')];
-  function reportSnapshotStatus(message){
-    if(snapshotStatus)snapshotStatus.textContent=message;
-  }
-  function getVisualStore(){
-    if(!visualStore)visualStore=createVisualCaptureStore();
-    return visualStore;
-  }
-  function captureShot(slot){
-    if(visualShotBusy||!referencePose||!referenceView||isPortalPreview)return;
-    visualShotBusy=true;
-    for(const button of snapshotButtons)if(button)button.disabled=true;
-    reportSnapshotStatus('Снимаем реальный кадр игрового мира…');
-    // Consumed during the next rendered animation frame (no blank WebGL buffer).
-    pendingVisualShot={slot,view:referenceView,pose:referencePose};
-  }
-  $('referenceCaptureBaseline')?.addEventListener('click',()=>captureShot('baseline'));
-  $('referenceCaptureCurrent')?.addEventListener('click',()=>captureShot('current'));
-  const visualCompare=$('referenceCompareOverlay'),visualSlider=$('referenceCompareRange');
-  function closeVisualCompare(){
-    if(visualCompare)visualCompare.hidden=true;
-    for(const url of visualUrls)URL.revokeObjectURL(url);
-    visualUrls=[];
-    for(const id of ['referenceCompareBase','referenceCompareCurrent']){
-      const img=$(id);if(img)img.removeAttribute('src');
-    }
-  }
-  $('referenceCompareExit')?.addEventListener('click',closeVisualCompare);
-  const setVisualSplit=()=>{
-    const percent=Number(visualSlider?.value??50);
-    if($('referenceCompareCurrent'))$('referenceCompareCurrent').style.clipPath=
-      'inset(0 '+(100-percent)+'% 0 0)';
-    if($('referenceCompareDivider'))$('referenceCompareDivider').style.left=percent+'%';
-  };
-  visualSlider?.addEventListener('input',setVisualSplit);
-  const snapshotDescription=(label,row)=>{
-    const m=row.metadata,location=m.location||'—';
-    return label+' · Alpha '+m.version+'\n'+location+
-      '\nГрафика: '+m.quality+' · '+m.screen.width+' × '+m.screen.height+
-      ' · DPR '+m.screen.pixelRatio+'\nКамера: FOV '+m.camera.fov+'°'+
-      '\nFPS: '+(m.fps??'—')+' · P95: '+(m.p95Ms??'—')+' мс'+
-      '\n'+m.timestamp;
-  };
-  async function openVisualCompare(){
-    if(!referenceView||visualShotBusy)return;
-    try{
-      const store=getVisualStore(),id=referenceView.id;
-      const [baseline,current]=await Promise.all([store.get(id,'baseline'),store.get(id,'current')]);
-      if(!baseline||!current){
-        reportSnapshotStatus('Для сравнения сначала снимите «До» и «После» этого ракурса.');
-        return;
-      }
-      closeVisualCompare();
-      const a=URL.createObjectURL(baseline.blob),b=URL.createObjectURL(current.blob);
-      visualUrls=[a,b];
-      $('referenceCompareBase').src=a;$('referenceCompareCurrent').src=b;
-      const photos=$('referenceComparePhotos');
-      if(photos)photos.style.aspectRatio=baseline.width+'/'+baseline.height;
-      const warnings=compareVisualSnapshotMeta(baseline.metadata,current.metadata);
-      if(photos)photos.style.borderColor=warnings.length?'#d59469':'#a3916c';
-      $('referenceCompareWarnings').textContent=warnings.length?
-       'Параметры отличаются: '+warnings.join('; '):
-       'Ракурс и условия сравнения совпадают. Изображения — реальный рендер WebGL, без HUD.';
-      $('referenceCompareBaseInfo').textContent=snapshotDescription('ДО',baseline);
-      $('referenceCompareCurrentInfo').textContent=snapshotDescription('ПОСЛЕ',current);
-      $('referenceCompareTitle').textContent='G-02 · '+referenceView.label+' · сравнение';
-      if(visualSlider)visualSlider.value='50';
-      setVisualSplit();
-      if(visualCompare)visualCompare.hidden=false;
-    }catch(error){
-      reportSnapshotStatus('Сравнение недоступно: '+(error?.message||String(error)));
-    }
-  }
-  $('referenceCaptureCompare')?.addEventListener('click',openVisualCompare);
-  async function performVisualShot(request){
-    try{
-      if(!referencePose||referenceView?.id!==request.view.id)
-        throw new Error('Ракурс изменился до создания снимка');
-      const stats=frameProfiler.stats('world');
-      const metadata=makeVisualSnapshotMeta({
-        version:$('planetBuildWidget')?.dataset.build||'unknown',
-        view:request.view,quality:qualityName,
-        normal:request.pose.normal.toArray(),
-        position:camera.position.toArray(),focus:request.pose.focus.toArray(),
-        fov:camera.fov,screenWidth:innerWidth,screenHeight:innerHeight,
-        pixelRatio:renderer.getPixelRatio(),stats
-      });
-      const shot=await captureVisualWebGLFrame(THREE,renderer,scene,camera);
-      await getVisualStore().put(request.view.id,request.slot,{
-        blob:shot.blob,width:shot.width,height:shot.height,metadata
-      });
-      reportSnapshotStatus('Сохранён '+(request.slot==='baseline'?'кадр «До»':'кадр «После»')+
-       ': Alpha '+metadata.version+' · '+shot.width+' × '+shot.height+'. Хранится только на устройстве.');
-    }catch(error){
-      reportSnapshotStatus('Не удалось сохранить: '+(error?.message||String(error)));
-    }finally{
-      visualShotBusy=false;
-      for(const button of snapshotButtons)if(button)button.disabled=false;
-    }
-  }
   const footer = $('footer');
   function updateWorldMetrics() {
     const length = TAU * R;
@@ -1258,47 +932,17 @@ try {
   const windowFocus=new THREE.Vector3();let hasWindowFocus=false;
   const clock = new THREE.Clock();
   let elapsed = 0, uiClock = 0, introClock = 0, forestFogBlend=0, forestShadeBlend=0;
-  let webglContextFailed=false;
-  const gfxFailure=$('graphicsFailure'),gfxFailureText=$('graphicsFailureText');
-  function showGraphicsFailure(message,error){
-    if(gfxFailureText)gfxFailureText.textContent=message;
-    if(gfxFailure)gfxFailure.hidden=false;
-    if(error)console.error('NexGameWorld graphics failure',error);
-  }
-  $('graphicsReload')?.addEventListener('click',()=>{
-    artSafety.setMode('base',qualityName);
-    location.reload();
-  });
-  canvas.addEventListener('webglcontextlost',event=>{
-    event.preventDefault();
-    artSafety.onContextLost();
-    webglContextFailed=true;
-    showGraphicsFailure('WebGL временно недоступен. При восстановлении игра продолжится в базовой графике.');
-  },false);
-  canvas.addEventListener('webglcontextrestored',()=>{
-    artSafety.onContextRestored();
-    webglContextFailed=false;
-    try{
-      applyGraphicsQuality();
-      shadowBudget.reset();
-      if(gfxFailure)gfxFailure.hidden=true;
-    }catch(error){
-      webglContextFailed=true;
-      showGraphicsFailure('Не удалось восстановить графику. Перезагрузите игру.',error);
-    }
-  },false);
   let fpsSeconds=0,fpsFrames=0;
   function animate() {
     requestAnimationFrame(animate);
-    const measureFrames=!!fpsCounter&&(!fpsCounter.hidden||!!referencePose)&&!document.hidden;
+    const measureFrames=!!fpsCounter&&!fpsCounter.hidden&&!document.hidden;
     const frameStart=measureFrames?performance.now():0;
     const rawDt=clock.getDelta();
     const dt = Math.min(rawDt, .05);
     elapsed += dt; uiClock += dt; introClock += dt;
     // A gradual forest microclimate: darker distant silhouettes, not a jump cut.
-    const lightingNormal=referencePose?.normal||state.normal;
-    const forestLongitude=Math.atan2(lightingNormal.x,lightingNormal.z);
-    const forestLatitude=Math.asin(clamp(lightingNormal.y,-1,1));
+    const forestLongitude=Math.atan2(state.normal.x,state.normal.z);
+    const forestLatitude=Math.asin(clamp(state.normal.y,-1,1));
     const desiredForestFog=isPortalPreview?0:forestMoodAt(forestLongitude,forestLatitude);
     forestFogBlend+=(desiredForestFog-forestFogBlend)*Math.min(1,dt*1.3);
     const desiredShade=isPortalPreview?0:forestCanopyShadeAt(forestLongitude,forestLatitude);
@@ -1306,17 +950,10 @@ try {
     const fogProfile=GRAPHICS_PRESETS[qualityName];
     // Shade follows the traveller, not the whole globe. A clearing gradually
     // restores daylight; combat silhouettes remain legible at every preset.
-    const localLight=modernLightingValues(
-      forestLightResponse(forestShadeBlend,fogProfile.exposure),forestShadeBlend,modernGraphicsPreview);
+    const localLight=forestLightResponse(forestShadeBlend,fogProfile.exposure);
     skyFill.intensity=localLight.hemi;
-    skyFill.color.set(ART.light.ambientSky).lerp(forestAmbientColor,forestShadeBlend*.65);
-    if(modernGraphicsPreview)skyFill.color.lerp(modernAmbientTint,.16);
     sun.intensity=localLight.sun;
-    if(modernGraphicsPreview)sun.color.set('#ffdfa5');
-    else sun.color.set(ART.light.sun);
     fill.intensity=localLight.fill;
-    if(modernGraphicsPreview)fill.color.set('#9bc8ed');
-    else fill.color.set('#b4dbe9');
     renderer.toneMappingExposure=localLight.exposure;
     localFog.near=fogProfile.fogNear*(1-.18*forestFogBlend-.08*forestShadeBlend);
     localFog.far=fogProfile.fogFar*(1-.42*forestFogBlend-.11*forestShadeBlend);
@@ -1332,7 +969,6 @@ try {
     const desktop=keyboard.read();
     let horizontal = joystick.x + desktop.x;
     let forward = -joystick.y - desktop.y;
-    if(referencePose){horizontal=0;forward=0;}
     // The same deadzone, analog strength and camera-relative stick used by NexGame.
     // The spherical tangent basis maps flat X -> East and flat Z -> -North.
     const input=screenMoveVector(horizontal, -forward, state.cameraHeading-Math.PI/2);
@@ -1344,7 +980,7 @@ try {
     let power=state.orbit||rpg.movementLocked||chargeMotion||waitingForServer?0:input.strength;
     // Preserve manual camera-relative controls, but when idle allow the same
     // short-range auto-approach to a combat target as in the original NexGame.
-    const approach=!referencePose&&!waitingForServer&&power<.11&&!state.orbit&&!chargeMotion?rpg.getApproachTarget():null;
+    const approach=!waitingForServer&&power<.11&&!state.orbit&&!chargeMotion?rpg.getApproachTarget():null;
     if(approach)power=1;
     if(chargeMotion){
       const motion=chargeMotion;
@@ -1432,8 +1068,8 @@ try {
     mountControls.tick();
     startZone.animate(elapsed);
     whisperingForest.animate(elapsed);
-    artSafety.animate('ecology',elapsed);
-    artSafety.animate('atmosphere',elapsed,state.orbit?0:forestFogBlend);
+    forestEcology?.animate(elapsed);
+    forestAtmosphere?.animate(elapsed,state.orbit?0:forestFogBlend);
     rpg.update(dt);
     // Single native pose pass after gathering/combat state has updated.
     // No second subsystem may reset the hip, knee, torso or arm angles.
@@ -1448,11 +1084,7 @@ try {
     syncForestWolfMount(THREE,hero,{riding:mountState==='riding',time:elapsed,travelled,heading:state.heading});
 
     const windowView=rpg.getWindowView();
-    if(referencePose){
-      focus.copy(referencePose.focus);
-      cameraGoal.copy(referencePose.position);
-      camera.up.copy(referencePose.normal);
-    }else if (state.orbit) {
+    if (state.orbit) {
       const r = R * state.orbitDistance;
       const horizontalRadius = r * Math.cos(state.orbitElevation);
       cameraGoal.set(Math.sin(state.orbitAngle) * horizontalRadius,
@@ -1472,7 +1104,7 @@ try {
       camera.up.copy(state.normal);
     }
     const cameraPlayerLocal=!state.orbit?normalToLocal(state.normal,R):null;
-    if(windowView?.focus&&!state.orbit&&!referencePose){
+    if(windowView?.focus&&!state.orbit){
       // View the lid from beside the player rather than through their back.
       focus.copy(windowView.focus);
       if(chestCameraOffset===null){
@@ -1496,18 +1128,15 @@ try {
     }else chestCameraOffset=null;
     if(!state.orbit){
       startZone.updateInteriorView(cameraPlayerLocal.x,cameraPlayerLocal.z,dt);
-      if(!referencePose){
       const hit=cameraObstruction(THREE,{
        start:focus,desired:cameraGoal,getRadius:cameraWorldRadius,toLocal:normalToLocal,
        heightAt,heroLocal:cameraPlayerLocal,clearance:.82
       },cameraProbe);
       if(hit)cameraGoal.copy(hit);
-      }
     }
-    if(referencePose){camera.position.copy(cameraGoal);cameraSnap=false;}
-    else if (cameraSnap) {camera.position.copy(cameraGoal);cameraSnap=false;}
+    if (cameraSnap) {camera.position.copy(cameraGoal);cameraSnap=false;}
     else camera.position.lerp(cameraGoal,1-Math.exp(-dt * (state.orbit&&touches.size===1?24:8.5)));
-    if(!state.orbit&&!referencePose){
+    if(!state.orbit){
       // A lerp can sweep a safe target through a tent, building or cliff.
       // Validate the *actual* camera, not merely its target.
       const sweptHit=cameraObstruction(THREE,{
@@ -1520,8 +1149,8 @@ try {
       if(camera.position.length()<min)camera.position.copy(n.multiplyScalar(min));
     }
     // Lift the scene above the sheet without changing saved camera settings.
-    windowOffset+=(((referencePose?0:windowView?.height)||0)/2-windowOffset)*(1-Math.exp(-dt*10));
-    if(windowView?.focus&&!referencePose){
+    windowOffset+=((windowView?.height||0)/2-windowOffset)*(1-Math.exp(-dt*10));
+    if(windowView?.focus){
       if(!hasWindowFocus)windowFocus.copy(focus);
       windowFocus.lerp(windowView.focus,1-Math.exp(-dt*8));hasWindowFocus=true;
     }else if(hasWindowFocus){
@@ -1533,45 +1162,24 @@ try {
     // Camera and avatar must react differently to server corrections.
     // Smooth only the look-at target; keep network position, collision tests
     // and the 3D hero transform entirely authoritative and immediate.
-    const desiredLook=referencePose?referencePose.focus:hasWindowFocus?windowFocus:focus;
+    const desiredLook=hasWindowFocus?windowFocus:focus;
     const snapLook=!hasCameraLookTarget||lastLookOrbit!==state.orbit;
     settleCameraLook(cameraLookTarget,desiredLook,dt,{snap:snapLook});
     hasCameraLookTarget=true;lastLookOrbit=state.orbit;
     camera.lookAt(cameraLookTarget);
     rpg.updateQuestMarkers();
-    const redrawShadows=shadowBudget.next(rawDt,{enabled:shadowActive,quality:qualityName});
+    const redrawShadows=shadowBudget.next(dt,{enabled:shadowActive,quality:qualityName});
     renderer.shadowMap.needsUpdate=redrawShadows;
     if(redrawShadows){
       // Keep the 62-metre shadow frustum centred around the active character.
-      const shadowNormal=referencePose?.normal||state.normal;
-      const shadowFocus=referencePose?.focus||actor.position;
-      tangentBasis(shadowNormal);
-      sun.target.position.copy(shadowFocus);
-      sun.position.copy(shadowFocus).addScaledVector(shadowNormal,44)
+      tangentBasis(state.normal);
+      sun.target.position.copy(actor.position);
+      sun.position.copy(actor.position).addScaledVector(state.normal,44)
         .addScaledVector(tangentEast,27).addScaledVector(tangentNorth,20);
       sun.target.updateMatrixWorld();
     }
     drawNativeMinimap();
-    if(!isPortalPreview)forestSpatial.update(camera,qualityName);
-    if(!webglContextFailed&&!artSafety.isContextLost){
-      try{renderer.render(scene,camera)}
-      catch(renderError){
-        artSafety.renderError(renderError);
-        try{
-          applyGraphicsQuality();
-          renderer.render(scene,camera);
-        }catch(baseError){
-          webglContextFailed=true;
-          showGraphicsFailure('Не удалось восстановить рендер. Перезагрузите игру в безопасном режиме.',baseError);
-        }
-      }
-    }
-    if(pendingVisualShot&&!webglContextFailed&&!artSafety.isContextLost){
-      const shot=pendingVisualShot;pendingVisualShot=null;
-      // Call synchronously after the real frame; WebGL target is restored by
-      // captureVisualWebGLFrame before the next animation frame.
-      void performVisualShot(shot);
-    }
+    renderer.render(scene,camera);
     if(measureFrames){
       const sceneName=selectFrameScene({orbit:state.orbit,combat:rpg.combatActive,
        house:!!cameraPlayerLocal&&isInLonghouse(cameraPlayerLocal.x,cameraPlayerLocal.z),

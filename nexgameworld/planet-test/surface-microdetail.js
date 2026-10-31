@@ -57,10 +57,7 @@ export function surfaceDetailPixel(u,v){
  const b=Math.round(Math.min(255,Math.max(0,101+bright*47-dark*77)));
  const relief=Math.round(255*clamp(.32+.16*soil+.15*grain+.09*silt+
   .27*mineral+.15*pine-.21*blackPore-.10*chip+.04*moss));
- // Original, matte physical variation: saturated moss versus mineral grit.
- const roughness=Math.round(255*clamp(.93+.055*moss+.02*pine-
-  .065*mineral-.048*blackPore+.028*humus));
- return {rgba:[r,g,b,alpha],relief,roughness};
+ return {rgba:[r,g,b,alpha],relief};
 }
 export function surfaceDetailWarp(x,z){
  if(!Number.isFinite(x)||!Number.isFinite(z))throw new RangeError('Invalid ground position');
@@ -88,27 +85,13 @@ export function surfaceDetailTint(kind,sample){
 }
 export function buildSurfaceDetailPixels(size=SURFACE_DETAIL_TILE_SIZE){
  if(!Number.isInteger(size)||size<32||size>512)throw new RangeError('invalid microdetail size');
- const diffuse=new Uint8Array(size*size*4),relief=new Uint8Array(size*size*4),
-  normals=new Uint8Array(size*size*4),roughness=new Uint8Array(size*size*4);
+ const diffuse=new Uint8Array(size*size*4),relief=new Uint8Array(size*size*4);
  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
   const p=surfaceDetailPixel((x+.5)/size,(y+.5)/size),i=(y*size+x)*4;
   diffuse.set(p.rgba,i);
   relief[i]=relief[i+1]=relief[i+2]=p.relief;relief[i+3]=255;
-  // The standard Three.js roughnessMap samples its GREEN channel.
-  roughness[i]=roughness[i+1]=roughness[i+2]=p.roughness;
-  roughness[i+3]=255;
  }
- const h=(x,y)=>relief[(((y+size)%size)*size+(x+size)%size)*4]/255;
- for(let y=0;y<size;y++)for(let x=0;x<size;x++){
-  const dx=(h(x-1,y)-h(x+1,y))*.62;
-  const dy=(h(x,y-1)-h(x,y+1))*.62;
-  const norm=Math.hypot(dx,dy,1),i=(y*size+x)*4;
-  normals[i]=Math.round(255*(.5+.5*dx/norm));
-  normals[i+1]=Math.round(255*(.5+.5*dy/norm));
-  normals[i+2]=Math.round(255*(.5+.5/norm));
-  normals[i+3]=255;
- }
- return {diffuse,relief,normals,roughness,size};
+ return {diffuse,relief,size};
 }
 export function surfaceDetailQuality(quality='balanced',preview=false){
  if(preview||quality==='economy')return {visible:false,opacity:0,bump:false};
@@ -232,19 +215,6 @@ export function createSurfaceMicrodetail(THREE,{scene,radius,heightAt}){
   const reliefVillage=textureFromData(THREE,data.relief,data.size,false);
   reliefVillage.repeat.set(48,48);
   textures.push(reliefGlobe,reliefVillage);
-  const normalGlobe=textureFromData(THREE,data.normals,data.size,false);
-  normalGlobe.name='NGW G-07 tangent-space globe micro-normal';
-  normalGlobe.repeat.set(409,205);
-  const normalVillage=textureFromData(THREE,data.normals,data.size,false);
-  normalVillage.name='NGW G-07 tangent-space village micro-normal';
-  normalVillage.repeat.set(48,48);
-  const roughnessGlobe=textureFromData(THREE,data.roughness,data.size,false);
-  roughnessGlobe.name='NGW G-07 globe mineral/moss roughness';
-  roughnessGlobe.repeat.set(409,205);
-  const roughnessVillage=textureFromData(THREE,data.roughness,data.size,false);
-  roughnessVillage.name='NGW G-07 village mineral/moss roughness';
-  roughnessVillage.repeat.set(48,48);
-  textures.push(normalGlobe,normalVillage,roughnessGlobe,roughnessVillage);
   for(const kind of ['start','forest']){
    const geometry=terrainGeometry(THREE,kind,radius,heightAt);
    const material=new THREE.MeshBasicMaterial({
@@ -267,8 +237,7 @@ export function createSurfaceMicrodetail(THREE,{scene,radius,heightAt}){
    contact.mesh.count=quality==='high'?400:quality==='balanced'?270:0;
   }
   setQuality();
-  return {setQuality,reliefGlobe,reliefVillage,normalGlobe,normalVillage,
-   roughnessGlobe,roughnessVillage,decorativeOnly:true,
+  return {setQuality,reliefGlobe,reliefVillage,decorativeOnly:true,
    drawCalls:3,materials:objects.map(o=>o.material),textures};
  }catch(error){
   for(const entry of objects){scene.remove(entry.mesh);entry.mesh.geometry.dispose();entry.material.dispose();}

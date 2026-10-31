@@ -56,8 +56,8 @@ test('mobile presets avoid new instanced render passes on economy/preview',()=>{
 });
 test('heavy material passes are initialized lazily for the selected preset',()=>{
  const world=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
- assert.match(world,/artSafety\.register\('microdetail'/);
- assert.match(world,/when:preset=>preset!=='economy'/);
- assert.match(world,/createSoilScatter\(THREE,ART_SCENE_ARGS\)/);
- assert.match(world,/artSafety\.update\(qualityName,isPortalPreview\)/);
+ assert.match(world,/let surfaceMicrodetail=null,soilScatter=null/);
+ assert.match(world,/qualityName!=='economy'/);
+ assert.match(world,/createSoilScatter\(THREE,\{scene,radius:R,heightAt\}\)/);
+ assert.match(world,/soilScatter\?\.setQuality\(qualityName,isPortalPreview\)/);
 });

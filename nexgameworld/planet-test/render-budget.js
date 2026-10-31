@@ -1,8 +1,7 @@
 // Cosmetic shadow-map cadence, independent of physics, controls and combat.
-// Keep the same map resolution, but decouple shadow cost from 60/90/120 Hz
-// beauty rendering. This never changes simulation or camera timing.
-export const BALANCED_SHADOW_HZ=20;
-export const HIGH_SHADOW_HZ=30;
+// The high preset redraws its 1024 px map on every rendered frame;
+// balanced (512 px) schedules about 30 redraws/second on 60 Hz screens.
+export const BALANCED_SHADOW_HZ=30;
 export function createShadowRefreshBudget(){
  let accumulator=0,wasEnabled=false,previousQuality=null;
  return {
@@ -14,9 +13,10 @@ export function createShadowRefreshBudget(){
    const changed=!wasEnabled||previousQuality!==quality;
    wasEnabled=true;previousQuality=quality;
    if(changed){accumulator=0;return true;}
+   if(quality==='high')return true;
    if(!Number.isFinite(dt)||dt<=0)return false;
    accumulator+=Math.min(dt,.1);
-   const interval=1/(quality==='high'?HIGH_SHADOW_HZ:BALANCED_SHADOW_HZ);
+   const interval=1/BALANCED_SHADOW_HZ;
    if(accumulator+1e-9<interval)return false;
    accumulator%=interval;
    return true;

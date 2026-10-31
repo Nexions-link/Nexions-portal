@@ -79,11 +79,8 @@ test('existing globe stays an opaque unmodified standard material',()=>{
  const world=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
  assert.match(world,/groundMaterial=new THREE.MeshStandardMaterial/);
  assert.match(world,/transparent:false,depthWrite:true,side:THREE.FrontSide/);
- assert.match(world,/artSafety\.register\('microdetail'/);
- assert.match(world,/artSafety\.update\(qualityName,isPortalPreview\)/);
- assert.match(world,/artSafety\.getLayer\('microdetail'\)/);
- assert.match(world,/detail\?\.normalGlobe/);
- assert.match(world,/groundMaterial\.roughnessMap=roughness/);
+ assert.match(world,/surfaceMicrodetail\?\.setQuality\(qualityName,isPortalPreview\)/);
+ assert.match(world,/surfaceMicrodetail\?\.reliefGlobe/);
  assert.doesNotMatch(world,/installForestGroundShader\(/);
 });
 

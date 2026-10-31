@@ -29,8 +29,8 @@ export function forestCanopyShadeAt(lon,lat){
 export function forestLightResponse(shade,exposure=1.14){
  const d=clamp01(shade),e=Number.isFinite(exposure)?exposure:1.14;
  return {
-  hemi:1.70*(1-.25*d),
-  sun:2.80*(1-.16*d),
+  hemi:1.95*(1-.32*d),
+  sun:2.50*(1-.34*d),
   fill:.62*(1-.12*d),
   exposure:e*(1-.038*d)
  };

@@ -106,7 +106,7 @@ export function createVillageVisuals(THREE,{scene,getRadius,toNormal,heightAt}){
   // Preserve active level after spherical radius changes.
   applyQuality(currentDetail);
  }
- let currentDetail=0,currentInterior=false,externalTreesActive=false;
+ let currentDetail=0,currentInterior=false;
  function setInterior(inside){
   currentInterior=!!inside;
   for(const roof of roofLayers)roof.visible=currentDetail>=.5&&!currentInterior;
@@ -118,14 +118,10 @@ export function createVillageVisuals(THREE,{scene,getRadius,toNormal,heightAt}){
   if(tufts){
    // The first layer covers all trees; higher settings add more crown volume.
    const fraction=currentDetail<.3?0:currentDetail<.85?.5:1;
-   tufts.count=externalTreesActive?0:Math.min(tuftCapacity,Math.floor(tuftCapacity*fraction));
+   tufts.count=Math.min(tuftCapacity,Math.floor(tuftCapacity*fraction));
   }
  }
- function setExternalTreesActive(enabled){
-  externalTreesActive=!!enabled;
-  applyQuality(currentDetail);
- }
- return {addRoof,addTent,addTree,rebuild,applyQuality,setInterior,setExternalTreesActive,
+ return {addRoof,addTent,addTree,rebuild,applyQuality,setInterior,
   get counts(){return {roofs:roofLayers.length,tents:tentLayers.length,
    trees:treeLocations.length,tufts:tuftCapacity};}
  };

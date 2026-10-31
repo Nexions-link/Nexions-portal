@@ -2,34 +2,26 @@
 // Instanced draw calls: grass, three blossom colors, shrubs and small stones.
 import {scatterMeadow} from '../meadow.js?v=0.3.7.1';
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
-import {WORLD_ART_VERTEX as V} from './world-art-style.js?v=1';
 export function meadowGrassBladeData(){
- // Stylized meadow turf: broad curved blades make grass readable at gameplay
- // camera distance without introducing new draw calls or alpha overdraw.
- const positions=[],colors=[],bladeCount=7;
+ const positions=[],colors=[],bladeCount=6;
  const emit=(v,c)=>{positions.push(...v);colors.push(...c)};
  const tri=(a,b,c,ca,cb,cc)=>{emit(a,ca);emit(b,cb);emit(c,cc)};
  for(let i=0;i<bladeCount;i++){
   const phase=i*Math.PI*2/bladeCount+.12;
   const dx=Math.cos(phase),dz=Math.sin(phase),tx=-dz,tz=dx;
-  const height=.60+(i%4)*.095,spread=.15+(i%3)*.045;
-  const width=.105+(i%3)*.014;
-  const baseX=dx*.07,baseZ=dz*.07;
-  const left=[baseX+tx*width,0,baseZ+tz*width];
-  const right=[baseX-tx*width,0,baseZ-tz*width];
-  const middle=[dx*spread,height*.47,dz*spread];
-  const upper=[dx*(spread+.15),height*.79,dz*(spread+.15)];
-  const tip=[dx*(spread+.38),height,dz*(spread+.38)];
-  const midLeft=[middle[0]+tx*width*.76,middle[1],middle[2]+tz*width*.76];
-  const midRight=[middle[0]-tx*width*.76,middle[1],middle[2]-tz*width*.76];
-  const upLeft=[upper[0]+tx*width*.34,upper[1],upper[2]+tz*width*.34];
-  const upRight=[upper[0]-tx*width*.34,upper[1],upper[2]-tz*width*.34];
-  const dark=V.grassDark,mid=V.grassMid,light=V.grassTip;
-  tri(left,right,midLeft,dark,dark,mid);
-  tri(right,midRight,midLeft,dark,mid,mid);
-  tri(midLeft,midRight,upLeft,mid,mid,light);
-  tri(midRight,upRight,upLeft,mid,light,light);
-  tri(upLeft,upRight,tip,light,light,light);
+  const height=.60+(i%3)*.13,spread=.11+(i%3)*.055;
+  const w=.09+(i%2)*.017;
+  const low=[dx*.10,0,dz*.10],
+   left=[low[0]+tx*w,0,low[2]+tz*w],
+   right=[low[0]-tx*w,0,low[2]-tz*w],
+   shoulder=[dx*spread,height*.57,dz*spread],
+   tip=[dx*(spread+.24),height,dz*(spread+.24)];
+  const light=[.78,.88,.61],dark=[.39,.64,.36],mid=[.61,.77,.44];
+  const l=[shoulder[0]+tx*w*.56,shoulder[1],shoulder[2]+tz*w*.56];
+  const r=[shoulder[0]-tx*w*.56,shoulder[1],shoulder[2]-tz*w*.56];
+  tri(left,right,l,dark,dark,mid);
+  tri(right,r,l,dark,mid,mid);
+  tri(l,r,tip,mid,mid,light);
  }
  return {positions,colors,bladeCount};
 }
@@ -52,7 +44,7 @@ export function meadowShrubLeafData(){
   const width=.15+(i%3)*.017;
   const left=[m[0]+tx*width,m[1],m[2]+tz*width];
   const right=[m[0]-tx*width,m[1],m[2]-tz*width];
-  const dark=V.shrubDark,mid=V.shrubMid,tip=V.shrubTip;
+  const dark=[.37,.56,.35],mid=[.56,.74,.45],tip=[.78,.87,.59];
   face(base,left,point,dark,mid,tip);
   face(base,point,right,dark,tip,mid);
   // A second bent leaf on every other branch fills the middle without
@@ -102,8 +94,7 @@ export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,a
  const upQuat=new THREE.Quaternion(),twist=new THREE.Quaternion();
  const layers=[];
  const allowed=(x,z)=>Math.hypot(x+5,z-4)>8&&accept(x,z);
- // Dense low meadow grass, never a field of big shrubs.
- const grassPoints=scatterMeadow({count:10500,attempts:56000,seed:17031,extent:69,
+ const grassPoints=scatterMeadow({count:2800,attempts:7800,seed:17031,extent:69,
   accept:(x,z)=>allowed(x,z)});
  const grass=new THREE.InstancedMesh(clumpGeometry(THREE),new THREE.MeshStandardMaterial({
   color:0xffffff,roughness:1,side:THREE.DoubleSide,vertexColors:true
@@ -138,7 +129,7 @@ export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,a
    for(let i=0;i<points.length;i++){
     const p=points[i],normal=toNormal(p.x,p.z,radius);
     const elevation=heightAt(normal);
-    const scale=mode==='grass'?.36+p.scale*.34:mode==='flower'?.7+p.scale*.5:p.scale;
+    const scale=mode==='grass'?.50+p.scale*.7:mode==='flower'?.7+p.scale*.5:p.scale;
     const localHeight=mode==='grass'?0:mode==='flower'?.012:mode==='pebbles'?.055*p.scale:.31*p.scale;
     dummy.position.copy(normal).multiplyScalar(radius+elevation+localHeight);
     upQuat.setFromUnitVectors(UP,normal);
@@ -147,7 +138,7 @@ export function createSphericalMeadow(THREE,{scene,getRadius,toNormal,heightAt,a
     else if(mode==='pebbles')dummy.scale.set(.20*.85*scale,.20*.33*scale,.20*1.1*scale);
     else dummy.scale.setScalar(scale);
     dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
-    if(mode==='grass')mesh.setColorAt(i,new THREE.Color().setHSL(.205+p.variety*.055,.38+.07*p.variety,.35+p.variety*.13));
+    if(mode==='grass')mesh.setColorAt(i,new THREE.Color().setHSL(.18+p.variety*.065,.32+.07*p.variety,.36+p.variety*.15));
     if(mode==='shrubs')mesh.setColorAt(i,new THREE.Color().setHSL(.19+p.variety*.07,.28,.32+p.variety*.14));
     if(mode==='pebbles')mesh.setColorAt(i,new THREE.Color().setHSL(.09+p.variety*.03,.12,.43+p.variety*.13));
    }

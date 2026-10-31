@@ -19,8 +19,8 @@ test('all three presets are real, ordered by detail and bounded for mobile',()=>
  assert.ok(GRAPHICS_PRESETS.economy.grass<GRAPHICS_PRESETS.balanced.grass);
  assert.ok(GRAPHICS_PRESETS.balanced.grass<GRAPHICS_PRESETS.high.grass);
  assert.equal(GRAPHICS_PRESETS.economy.shadowSize,0);
- assert.equal(GRAPHICS_PRESETS.balanced.shadowSize,1024);
- assert.equal(GRAPHICS_PRESETS.high.shadowSize,2048);
+ assert.equal(GRAPHICS_PRESETS.balanced.shadowSize,512);
+ assert.equal(GRAPHICS_PRESETS.high.shadowSize,1024);
 });
 
 test('pixel ratio adapts to mobile displays and homepage preview always stays light',()=>{

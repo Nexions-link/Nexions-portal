@@ -1,10 +1,6 @@
 // Safe P2.3.8-B: baked sRGB texture for the existing sphere material.
 // No WebGL shader overrides, extra meshes, height changes or colliders.
-import {forestTrailLatitude} from './whispering-forest.js?v=22';
-import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
-import {groundMaterialPixel} from './ground-material-library.js?v=1';
-import {paintedTrailProfile,paintTrailSurface} from './trail-art.js?v=1';
-const T=ART.terrain;
+import {forestTrailLatitude} from './whispering-forest.js';
 const PI=Math.PI,TAU=PI*2;
 const clamp=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t)};
@@ -24,10 +20,16 @@ export function forestTextureMask(lon,lat){
 export function forestRoadProfile(lon,lat){
  if(!Number.isFinite(lon)||!Number.isFinite(lat))return {wear:0,ruts:0,edge:0,dist:Infinity};
  const x=261*lon*Math.cos(lat),z=261*lat;
- const signedDistance=(lat-forestTrailLatitude(lon))*261;
- // Match the meadow's original route and the forest's cleared 7.2m corridor.
- const art=paintedTrailProfile(x,z,signedDistance,3.65);
- return {...art,edge:art.verge,dist:Math.abs(signedDistance)};
+ const dist=Math.abs(lat-forestTrailLatitude(lon))*261;
+ const nibble=noise(x*.22+21,z*.22-44)-.5;
+ const fine=noise(x*.69-8,z*.69+47)-.5;
+ // Narrow compacted core, soft eroded shoulders and two uneven worn grooves.
+ const rough=dist+nibble*1.34+fine*.39;
+ const wear=1-smooth(1.36,5.50,rough);
+ const ruts=Math.exp(-Math.pow((dist-1.02-nibble*.19)/.34,2))*
+  (.4+.6*noise(x*.12,z*.12));
+ const edge=smooth(2.0,3.4,rough)*(1-smooth(4.0,5.65,rough));
+ return {wear,ruts,edge,dist};
 }
 export function forestGroundPixel(lon,lat){
  const mask=forestTextureMask(lon,lat);
@@ -44,39 +46,33 @@ export function forestGroundPixel(lon,lat){
  const leaves=smooth(.35,.77,patch*.54+medium*.30+(1-dry)*.16);
  const road=forestRoadProfile(lon,lat);
  // Deep leaf litter, exposed mineral soil, damp moss and patches of old grass.
- let r=mix(T.forestShade[0],T.forestSoil[0],.61*earth),g=mix(T.forestShade[1],T.forestSoil[1],.61*earth),b=mix(T.forestShade[2],T.forestSoil[2],.61*earth);
+ let r=mix(91,132,.61*earth),g=mix(111,87,.61*earth),b=mix(64,57,.61*earth);
  const mossBlend=.68*moss;
- r=mix(r,T.forestMoss[0],mossBlend);g=mix(g,T.forestMoss[1],mossBlend);b=mix(b,T.forestMoss[2],mossBlend);
+ r=mix(r,60,mossBlend);g=mix(g,85,mossBlend);b=mix(b,51,mossBlend);
  const leafBlend=.49*leaves*(1-moss*.42);
- r=mix(r,T.forestLitter[0],leafBlend);g=mix(g,T.forestLitter[1],leafBlend);b=mix(b,T.forestLitter[2],leafBlend);
+ r=mix(r,145,leafBlend);g=mix(g,99,leafBlend);b=mix(b,58,leafBlend);
  const canopy=smooth(.37,.72,darkCanopy)*.20*(1-road.wear);
  r*=1-canopy;g*=1-canopy*.82;b*=1-canopy*.68;
  // A single continuous baked forest track; the former above-ground ribbon
  // is removed, so there is no double geometry, z-fighting or visible seam.
  const dusty=smooth(.30,.73,medium*.56+(1-wet)*.44);
  const roadGrain=(grit-.5)*22+(scratch-.5)*13;
- const trailR=T.forestTrailShade[0]+(T.forestTrailSun[0]-T.forestTrailShade[0])*dusty+roadGrain-road.ruts*16;
- const trailG=T.forestTrailShade[1]+(T.forestTrailSun[1]-T.forestTrailShade[1])*dusty+roadGrain*.76-road.ruts*14;
- const trailB=T.forestTrailShade[2]+(T.forestTrailSun[2]-T.forestTrailShade[2])*dusty+roadGrain*.58-road.ruts*12;
+ const trailR=132+26*dusty+roadGrain-road.ruts*16;
+ const trailG=105+23*dusty+roadGrain*.76-road.ruts*14;
+ const trailB=68+19*dusty+roadGrain*.58-road.ruts*12;
  r=mix(r,trailR,road.wear*.97);g=mix(g,trailG,road.wear*.97);
  b=mix(b,trailB,road.wear*.97);
  // Damp ruts and scattered gravel; irregular grassy shoulders.
  const mud=road.wear*road.ruts*.16*smooth(.38,.70,wet);
- r=mix(r,T.wetRuts[0],mud);g=mix(g,T.wetRuts[1],mud);b=mix(b,T.wetRuts[2],mud);
+ r=mix(r,67,mud);g=mix(g,67,mud);b=mix(b,54,mud);
  const shoulder=road.edge*smooth(.34,.78,mineral)*.14;
- r=mix(r,T.vergeGrass[0],shoulder);g=mix(g,T.vergeGrass[1],shoulder);b=mix(b,T.vergeGrass[2],shoulder);
+ r=mix(r,70,shoulder);g=mix(g,89,shoulder);b=mix(b,54,shoulder);
  const stone=road.wear*smooth(.94,.997,hash(Math.floor(x*3.3),Math.floor(z*3.3)));
  const leafFibers=(scratch-.5)*18+(grit-.5)*9;
  const surface=1+(.12*(darkCanopy-.5));
  r=r*surface+leafFibers*(1-road.wear)+stone*31;
  g=g*surface+leafFibers*.76*(1-road.wear)+stone*27;
  b=b*surface+leafFibers*.55*(1-road.wear)+stone*20;
- // G-06: both biomes share real original soil families, not just
- // matching green pigments. Keep the pre-existing road ruts and mask.
- const material=groundMaterialPixel(x,z,{biome:'forest',earth,
-  moisture:wet,moss,leaves,dry,roadWear:road.wear,roadRuts:road.ruts});
- r=mix(r,material[0],.86);g=mix(g,material[1],.86);b=mix(b,material[2],.86);
- [r,g,b]=paintTrailSurface([r,g,b],road,x,z);
  return [Math.round(mix(255,clamp(r/255)*255,mask)),
   Math.round(mix(255,clamp(g/255)*255,mask)),
   Math.round(mix(255,clamp(b/255)*255,mask)),255];

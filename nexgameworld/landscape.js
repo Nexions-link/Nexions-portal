@@ -1,9 +1,5 @@
 // NexGameWorld: deterministic baked meadow soil and organically feathered trails.
 // All surface changes are visual only: no new geometry, height or collision.
-import {WORLD_ART_PALETTE as ART} from './planet-test/world-art-style.js';
-import {groundMaterialPixel} from './planet-test/ground-material-library.js';
-import {paintedTrailProfile,paintTrailSurface} from './planet-test/trail-art.js';
-const T=ART.terrain;
 const clamp01=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp01((v-a)/(b-a));return t*t*(3-2*t)};
 const mix=(a,b,t)=>a+(b-a)*clamp01(t);
@@ -18,7 +14,7 @@ export function prepareLandscapeRoutes(segments=[]){
   minZ:Math.min(s.az,s.bz)-6,maxZ:Math.max(s.az,s.bz)+6
  }));
 }
-export function landscapeGroundPixel(x,z,preparedRoutes=[],environment={}){
+export function landscapeGroundPixel(x,z,preparedRoutes=[]){
  // World-space frequencies, so quality remains consistent when map resolution
  // changes and the old grass/earth colour bands never repeat like a tiled rug.
  const broad=noise(x*.057,z*.057),clump=noise(x*.18+31,z*.18-17);
@@ -30,29 +26,28 @@ export function landscapeGroundPixel(x,z,preparedRoutes=[],environment={}){
  const moss=smooth(.38,.75,moisture*.45+broad*.32+(1-mineral)*.23);
  // Character-sized patches of living grass, decomposing leaf litter and
  // ochre mineral soil. Small colour variation is baked, never alpha-blended.
- let r=mix(T.meadowShade[0],T.meadowSun[0],dry),g=mix(T.meadowShade[1],T.meadowSun[1],dry),b=mix(T.meadowShade[2],T.meadowSun[2],dry);
+ let r=mix(93,127,dry),g=mix(112,123,dry),b=mix(61,66,dry);
  const soil=.16+.58*earth*(1-.22*moss);
- r=mix(r,T.meadowSoil[0],soil);g=mix(g,T.meadowSoil[1],soil);b=mix(b,T.meadowSoil[2],soil);
+ r=mix(r,132,soil);g=mix(g,94,soil);b=mix(b,65,soil);
  const wetMoss=.37*moss*(1-.42*earth);
- r=mix(r,T.meadowMoss[0],wetMoss);g=mix(g,T.meadowMoss[1],wetMoss);b=mix(b,T.meadowMoss[2],wetMoss);
+ r=mix(r,74,wetMoss);g=mix(g,105,wetMoss);b=mix(b,61,wetMoss);
  const faded=(clump*.6+mineral*.4);
  const litter=smooth(.54,.8,faded)*(.16+.26*dry);
- r=mix(r,T.forestLitter[0],litter);g=mix(g,T.forestLitter[1],litter);b=mix(b,T.forestLitter[2],litter);
+ r=mix(r,145,litter);g=mix(g,103,litter);b=mix(b,62,litter);
  // Tangled grass tips and rough soil micro-grain.
  const grain=(flecks-.5)*16+(grit-.5)*11;
  r+=grain;g+=grain*.83;b+=grain*.63;
- let worn=0,roadEdge=0,roadArt=null;
+ let worn=0,roadEdge=0;
  for(const seg of preparedRoutes){
   // Bounding-box rejection keeps startup cheap even with smoothed roads.
   if(x<seg.minX||x>seg.maxX||z<seg.minZ||z>seg.maxZ)continue;
   const t=clamp01(((x-seg.ax)*seg.dx+(z-seg.az)*seg.dz)/seg.length2);
   const d=Math.hypot(x-seg.ax-seg.dx*t,z-seg.az-seg.dz*t);
-  // G-08: common real-metre path profile for this smoothed route segment.
-  // This only changes baked pigment, never the actual centreline or physics.
-  const cross=(x-seg.ax)*seg.dz-(z-seg.az)*seg.dx;
-  const signed=d*(cross<0?-1:1);
-  const art=paintedTrailProfile(x,z,signed,seg.width);
-  if(art.wear>worn){worn=art.wear;roadEdge=d;roadArt=art;}
+  // Eroded, scalloped verges replace the old uniform strip width.
+  const edge=(clump-.5)*.95+(mineral-.5)*.42+
+   (flecks-.5)*.17;
+  const path=1-smooth(seg.width*.32,seg.width*.99,d+edge);
+  if(path>worn){worn=path;roadEdge=d;}
  }
  if(worn>.001){
   const dusty=smooth(.30,.8,mineral*.51+(1-moisture)*.49);
@@ -61,35 +56,26 @@ export function landscapeGroundPixel(x,z,preparedRoutes=[],environment={}){
   // A walked-down middle, a pair of faint wheel/rain ruts, dry shoulders.
   const pairedRuts=Math.exp(-Math.pow((roadEdge-1.14)/.24,2))*.11;
   const midWear=(1-smooth(0,1.1,roadEdge))*.085;
-  const roadDry=mix(T.trailShade[0],T.trailSun[0],dusty)+gravel-midWear*28-pairedRuts*32;
-  const roadGreen=mix(T.trailShade[1],T.trailSun[1],dusty)+gravel*.76-midWear*19-pairedRuts*21;
-  const roadBlue=mix(T.trailShade[2],T.trailSun[2],dusty)+gravel*.54-midWear*12-pairedRuts*14;
+  const roadDry=mix(129,159,dusty)+gravel-midWear*28-pairedRuts*32;
+  const roadGreen=mix(106,132,dusty)+gravel*.76-midWear*19-pairedRuts*21;
+  const roadBlue=mix(73,92,dusty)+gravel*.54-midWear*12-pairedRuts*14;
   const darkMud=worn*mud*.21;
   r=mix(r,roadDry,worn);g=mix(g,roadGreen,worn);b=mix(b,roadBlue,worn);
-  r=mix(r,T.wetRuts[0],darkMud);g=mix(g,T.wetRuts[1],darkMud);b=mix(b,T.wetRuts[2],darkMud);
+  r=mix(r,78,darkMud);g=mix(g,76,darkMud);b=mix(b,62,darkMud);
   const pebble=worn*smooth(.915,.992,hash(Math.floor(x*3.8),Math.floor(z*3.8)));
   r+=pebble*23;g+=pebble*23;b+=pebble*19;
  }
- // G-06: shared six-way material blend with exactly the same world-space
- // pigment as Whispering Forest. Existing geometry, routes and lake remain.
- const next=groundMaterialPixel(x,z,{biome:'meadow',earth,moisture,
-  moss,leaves:litter,dry,roadWear:worn,shore:environment.shore??0});
- r=mix(r,next[0],.86);g=mix(g,next[1],.86);b=mix(b,next[2],.86);
- // Ochre compression, softly scalloped shoulders, separate narrow rain ruts,
- // gravel and leaf specks. No mesh/ribbon drawn above the spherical terrain.
- if(roadArt&&roadArt.wear>.001)[r,g,b]=paintTrailSurface([r,g,b],roadArt,x,z);
  return [Math.round(Math.max(0,Math.min(255,r))),
   Math.round(Math.max(0,Math.min(255,g))),
   Math.round(Math.max(0,Math.min(255,b))),255];
 }
-export function createLandscapeMap(THREE,segments,size=1024,{blendPixel=null,shoreAt=null}={}){
+export function createLandscapeMap(THREE,segments,size=1024){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
  const context=canvas.getContext('2d'),image=context.createImageData(size,size),pixels=image.data;
  const prepared=prepareLandscapeRoutes(segments);
  for(let py=0;py<size;py++)for(let px=0;px<size;px++){
   const x=(px+.5)/size*190-95,z=(py+.5)/size*190-95;
-  const base=landscapeGroundPixel(x,z,prepared,{shore:shoreAt?shoreAt(x,z):0});
-  pixels.set(blendPixel?blendPixel(x,z,base):base,(py*size+px)*4);
+  pixels.set(landscapeGroundPixel(x,z,prepared),(py*size+px)*4);
  }
  context.putImageData(image,0,0);
  const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;

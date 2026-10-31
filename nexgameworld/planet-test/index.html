@@ -140,15 +140,6 @@
  background:linear-gradient(180deg,#151d20d8,#18232c9a);
  pointer-events:none;transition:height .12s linear
 }
-#graphicsFailure[hidden]{display:none!important}
-#graphicsFailure{position:fixed;inset:0;z-index:99999;box-sizing:border-box;
- display:flex;flex-direction:column;justify-content:center;align-items:center;
- padding:24px;background:#1d261ff5;color:#f5e5c6;text-align:center;
- font:16px/1.5 system-ui,sans-serif}
-#graphicsFailure strong{font-size:20px}
-#graphicsFailure p{max-width:360px}
-#graphicsFailure button{min-height:46px;border-radius:8px;border:1px solid #c4aa79;
- background:#50442b;color:#fff1c8;padding:10px 18px;font-weight:700}
 /* Optional FPS diagnostics stay compact in portrait mode. */
 #fpsCounter{max-width:min(74vw,320px);white-space:normal;line-height:1.2;font-variant-numeric:tabular-nums}
 #fpsCounter[hidden]{display:none!important}
@@ -518,100 +509,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </script>
 </head>
 <body>
-<style id="ngw-g01-reference-style">
- #referenceViewSurface[hidden],#referenceViewBar[hidden]{display:none!important}
- #referenceViewSurface{position:fixed;inset:0;z-index:34;background:transparent;
- touch-action:none;user-select:none}
- #referenceViewBar{position:fixed;z-index:36;bottom:calc(env(safe-area-inset-bottom,0px) + 162px);
- left:50%;transform:translateX(-50%);width:min(440px,calc(100vw - 22px));
- max-height:min(36dvh,265px);overflow:auto;-webkit-overflow-scrolling:touch;
- box-sizing:border-box;border:1px solid #b99d69;border-radius:10px;padding:10px 12px;
- background:#211f19ed;color:#f3e5cb;box-shadow:0 8px 24px #0009;
- font:12px/1.36 system-ui,sans-serif;touch-action:pan-y}
- #referenceViewBar strong{font-size:13px;color:#fae1a9}
- #referenceViewBar p{margin:5px 0}
- #referenceViewBar small{color:#cabd9e;font-size:10px;display:block}
- #referenceViewBar .ngw-ref-buttons{display:flex;gap:7px;margin-top:8px}
- #referenceViewBar button,#referenceViewSetup button{min-height:35px;flex:1;border:1px solid #b19464;
- border-radius:6px;background:#4a3f2a;color:#fae7b8;padding:5px 9px;touch-action:manipulation;font:700 12px system-ui,sans-serif}
- #referenceViewBar button:last-child{background:#624035}
- #referenceViewBar details{margin-top:6px;border-top:1px solid #ffffff25;padding-top:6px}
- #referenceViewBar summary{cursor:pointer;color:#f2d7a1;font-size:11px}
- #referenceViewSetup{margin:12px 0 2px;padding:10px;border:1px solid #877b61;
- border-radius:8px;background:#292b22;color:#ebdcba;display:grid;gap:7px}
- #referenceViewSetup select{width:100%;padding:9px;color:#f5e1b6;background:#303322;
- border:1px solid #a08c5f;border-radius:6px;font-size:13px}
- #referenceViewSetup small{font-size:11px;line-height:1.5;color:#c8c9ae}
-
- #referenceViewBar .ngw-ref-capture{display:grid;gap:5px;margin-top:8px;padding-top:7px;border-top:1px solid #ffffff29}
- #referenceViewBar .ngw-ref-capture button{font-size:11px;min-height:33px}
- #referenceCaptureStatus{font:11px/1.35 system-ui,sans-serif;color:#e2d4b8}
- #referenceCompareOverlay[hidden]{display:none!important}
- #referenceCompareOverlay{position:fixed;inset:0;z-index:95;
- background:#141813f7;color:#f4e5c5;overflow:auto;-webkit-overflow-scrolling:touch;
- box-sizing:border-box;padding:max(14px,env(safe-area-inset-top,0px)) 13px max(18px,env(safe-area-inset-bottom,0px));
- font:12px/1.4 system-ui,sans-serif;touch-action:pan-y}
- #referenceCompareOverlay .ngw-compare-head{max-width:630px;margin:auto;display:flex;gap:8px;align-items:center;justify-content:space-between}
- #referenceCompareOverlay strong{font-size:15px}
- #referenceCompareOverlay button{border:1px solid #b69964;background:#493e2b;color:#f8e4b6;border-radius:7px;padding:8px 13px;min-height:40px}
- #referenceCompareOverlay .ngw-compare-photos{max-width:min(630px,98vw);margin:10px auto 8px;position:relative;
- background:#222a21;border:1px solid #a3916c;border-radius:6px;overflow:hidden;
- width:100%;aspect-ratio:9/16;max-height:58dvh}
- #referenceCompareOverlay .ngw-compare-photos img{position:absolute;inset:0;width:100%;height:100%;
- object-fit:contain;display:block}
- #referenceCompareOverlay #referenceCompareCurrent{clip-path:inset(0 50% 0 0)}
- #referenceCompareOverlay #referenceCompareDivider{position:absolute;left:50%;top:0;bottom:0;width:2px;background:#ffe0a1;box-shadow:0 0 4px #000d}
- #referenceCompareOverlay #referenceCompareRange{display:block;width:min(610px,94vw);margin:10px auto;accent-color:#dcb977}
- #referenceCompareOverlay #referenceCompareInfo{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:630px;margin:auto;font-size:11px}
- #referenceCompareOverlay #referenceCompareInfo p{margin:0;border:1px solid #877d5b;padding:7px;border-radius:5px;white-space:pre-line}
- #referenceCompareOverlay #referenceCompareWarnings{margin:9px auto;max-width:630px;color:#f2cc8c}
- 
- @media(max-width:400px){#referenceViewBar{bottom:calc(env(safe-area-inset-bottom,0px) + 136px);padding:8px 9px}}
- </style>
 <main id="viewport" aria-label="Сферический мир NexGameWorld"></main>
-<div id="referenceViewSurface" hidden aria-hidden="true"></div>
-<aside id="referenceViewBar" hidden aria-label="Эталонный ракурс R1">
- <strong id="referenceViewTitle">R1 · Эталонный ракурс</strong>
- <p id="referenceViewDetails"></p>
- <details><summary>Контрольный список сравнения с R1</summary>
- <p id="referenceViewChecklist"></p>
- <small id="referenceViewMetrics"></small>
- <p>Эталон R1 — исходный пользовательский кадр 864×1536 от 30.10.2026.
- Сравнивай с ним реальное изображение игры. Это художественная проверка, не автоматический процент совпадения.</p>
- </details>
- <div class="ngw-ref-buttons">
-  <button id="referenceViewPrev" type="button" aria-label="Предыдущий ракурс">←</button>
-  <button id="referenceViewNext" type="button" aria-label="Следующий ракурс">Следующий</button>
-  <button id="referenceViewExit" type="button">В игру</button>
- </div>
- <div class="ngw-ref-capture">
-  <small>G-02 · снимки настоящей 3D-сцены без HUD, хранятся только на устройстве</small>
-  <div class="ngw-ref-buttons">
-   <button id="referenceCaptureBaseline" type="button">Сохранить «До»</button>
-   <button id="referenceCaptureCurrent" type="button">Сохранить «После»</button>
-  </div>
-  <button id="referenceCaptureCompare" type="button">Сравнить кадры «До / После»</button>
-  <span id="referenceCaptureStatus" role="status" aria-live="polite">Выберите ракурс и снимите два кадра.</span>
- </div>
-</aside>
-<section id="referenceCompareOverlay" role="dialog" aria-modal="true" aria-label="Сравнение кадров NexGameWorld" hidden>
- <div class="ngw-compare-head"><strong id="referenceCompareTitle">R1 · Сравнение кадров</strong>
-  <button type="button" id="referenceCompareExit">Закрыть</button>
- </div>
- <p style="max-width:630px;margin:8px auto">Слева — новая сборка («После»), справа — сохранённая («До»).
-  Перемещайте разделитель для сравнения. Положение штатной камеры не изменяется.</p>
- <div class="ngw-compare-photos" id="referenceComparePhotos">
-  <img id="referenceCompareBase" alt="Снимок предыдущей версии игры">
-  <img id="referenceCompareCurrent" alt="Снимок новой версии игры">
-  <div id="referenceCompareDivider" aria-hidden="true"></div>
- </div>
- <input id="referenceCompareRange" type="range" min="0" max="100" value="50"
-  aria-label="Положение разделителя сравнения кадров">
- <div id="referenceCompareWarnings" role="status"></div>
- <div id="referenceCompareInfo">
-  <p id="referenceCompareBaseInfo"></p><p id="referenceCompareCurrentInfo"></p>
- </div>
-</section>
 <div id="combatFeedback" aria-hidden="true"></div>
 <div id="xpFeedback" aria-live="polite" aria-atomic="false" aria-label="Полученный опыт"></div>
 <div id="levelUpFeedback" aria-live="polite" aria-label="Повышение уровня"></div>
@@ -685,7 +583,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.45.53" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.45.54" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -755,22 +653,6 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
    <option value="high">Высокое</option>
   </select>
   <small id="qualityHelp" class="settings-help">Баланс чёткости, динамических теней и нагрузки.</small>
-   <label class="camera-follow-row" for="artRemasterToggle">
-    <input id="artRemasterToggle" type="checkbox" role="switch" checked aria-describedby="artRemasterStatus">
-    <span>Графический ремастер</span>
-   </label>
-   <small id="artRemasterStatus" class="settings-help" role="status" aria-live="polite">
-    Ремастер включён. Если новый визуальный слой даст ошибку, включится базовое окружение.
-   </small>
-  <section id="referenceViewSetup" aria-label="Эталонные ракурсы R1">
-   <strong>G-01 · Эталонные ракурсы R1</strong>
-   <small>Четыре фиксированных ракурса для сравнения с художественным образцом.
-   Только камера: персонаж остаётся на сервере в прежней точке, прогресс не меняется.
-   Для точного сравнения выбери «Высокое» и портретный экран.</small>
-   <label for="referenceViewSelect">Контрольная позиция</label>
-   <select id="referenceViewSelect" aria-label="Выбор эталонного ракурса"></select>
-   <button type="button" id="referenceViewEnter">Открыть ракурс R1</button>
-  </section>
   <label class="camera-follow-row" for="showFps"><input id="showFps" type="checkbox" role="switch" aria-describedby="fpsHelp"><span>Показывать FPS</span></label>
   <small id="fpsHelp" class="settings-help">FPS, P95 времени кадра и просадки измеряются локально. Для сравнения проверь поворот камеры, бой и дом.</small>
   <div class="fps-diagnostics-actions"><button type="button" id="copyFpsReport">Скопировать FPS-отчёт</button><button type="button" id="resetFpsReport">Сбросить замеры</button></div>
@@ -806,7 +688,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=260').catch(error=>{
+  import('./planet.js?v=261').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

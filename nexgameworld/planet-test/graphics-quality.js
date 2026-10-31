@@ -8,12 +8,12 @@ export const GRAPHICS_PRESETS=Object.freeze({
  }),
  balanced:Object.freeze({
   label:'Сбалансированное',dpr:1.3,grass:.78,flowers:.80,shrubs:.8,pebbles:.72,
-  reeds:.82,waterShimmer:.30,waterColor:0x64b1b6,shadowSize:1024,detail:.68,
+  reeds:.82,waterShimmer:.30,waterColor:0x64b1b6,shadowSize:512,detail:.68,
   exposure:1.14,fogNear:105,fogFar:290
  }),
  high:Object.freeze({
   label:'Высокое',dpr:1.65,grass:1,flowers:1,shrubs:1,pebbles:1,
-  reeds:1,waterShimmer:.40,waterColor:0x68b5bd,shadowSize:2048,detail:1,
+  reeds:1,waterShimmer:.40,waterColor:0x68b5bd,shadowSize:1024,detail:1,
   exposure:1.13,fogNear:145,fogFar:390
  })
 });

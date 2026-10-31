@@ -1,13 +1,7 @@
 // P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
-import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=4';
-import {createG11ForestTrunkGeometry} from './trunk-silhouette-g11.js?v=1';
-import {createG13RootGeometry,createG13MossLitterGeometry,
- createG13ContactShadowGeometry} from './forest-roots-g13.js?v=1';
-import {createForestBarkTextures,forestBarkQuality,forestBarkUseRoughness,
- forestBarkSpeciesTint} from './forest-bark-texture.js?v=2';
-import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
-const C=ART.canopy,W=ART.wood;
+import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=2';
+import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=1';
 const TAU=Math.PI*2;
 // Match the blocker exactly to the visible trunk's maximum ground radius.
 export const FOREST_TRUNK_BASE_SCALE=.78;
@@ -260,18 +254,29 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   });
   mesh.instanceMatrix.needsUpdate=true;
   mesh.frustumCulled=false;
-  // Layered canopy, roots and bark receive the same directional light.
-  // Transparent contact shading stays a compositing layer.
-  mesh.receiveShadow=!material.transparent;
   scene.add(mesh);
   batches.push({mesh,kind});
   return mesh;
  }
- // G-11: one original sculpted old-growth trunk, same instancing and
- // unchanged original 20x18 geometry/collider budget for all 400 trees.
- // New cambium growth collars, scars, asymmetrical root flare and a smooth
- // curved upper bole are computed once, not per frame or per instance.
- const trunks=createG11ForestTrunkGeometry(THREE,proceduralForestTrunkOutline);
+ // The existing 20x18 instanced trunk is re-sculpted ONCE.
+ // Same vertex/index count, same one forest trunk draw call, no added GPU mesh.
+ // Lower buttresses remain inside the current server-authoritative collider.
+ const trunks=new THREE.CylinderGeometry(.52,FOREST_TRUNK_BASE_SCALE,1,20,18);
+ const barkVertices=trunks.getAttribute('position'),barkColors=[];
+ for(let i=0;i<barkVertices.count;i++){
+  const x=barkVertices.getX(i),z=barkVertices.getZ(i),y=barkVertices.getY(i);
+  const angle=Math.atan2(z,x),outline=proceduralForestTrunkOutline(y,angle);
+  // The source CylinderGeometry is only the indexed ring topology. Radius,
+  // roots and centreline are calculated once, before 400-way instancing.
+  barkVertices.setXYZ(i,Math.cos(angle)*outline.radius+outline.curveX,
+   y,Math.sin(angle)*outline.radius+outline.curveZ);
+  barkColors.push(outline.shade*(1-.19*outline.moss),
+   outline.shade*(.91+.12*outline.moss),
+   outline.shade*(.83-.11*outline.moss));
+ }
+ trunks.setAttribute('color',new THREE.Float32BufferAttribute(barkColors,3));
+ barkVertices.needsUpdate=true;trunks.computeVertexNormals();
+ trunks.computeBoundingSphere();
  // Irregular branch whorls and individually lobed crowns replace the old
  // perfect cones and spheres, but keep exactly the same tree locations.
  const leafGeo=makeForestCrownGeometry(THREE,'deciduous',0);
@@ -284,56 +289,55 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  // A failed texture allocation always falls back to the old opaque materials.
  const barkTextures=createForestBarkTextures(THREE);
  const bark=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
-  map:barkTextures?.map||null,bumpMap:barkTextures?.bumpMap||null,bumpScale:.058});
+  map:barkTextures?.map||null,bumpMap:barkTextures?.bumpMap||null,bumpScale:.043});
  const detailedBark=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
   vertexColors:true,map:barkTextures?.map||null,
-  bumpMap:barkTextures?.bumpMap||null,bumpScale:.058});
+  bumpMap:barkTextures?.bumpMap||null,bumpScale:.043});
  const leaves=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
   vertexColors:true,side:THREE.DoubleSide});
  const pine=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
   vertexColors:true,side:THREE.DoubleSide});
- // Reuse one atlas and one 400-tree batch; species differ by instance tint.
- const darkBark=p=>forestBarkSpeciesTint(p,'trunk');
+ const darkBark=p=>p.tint>.52?'#998779':'#806f61';
  const broad=layout.trees.filter(t=>!t.evergreen),ever=layout.trees.filter(t=>t.evergreen);
- // G-13: the former flat buttress triangles become smoothly tapering
- // original radial root bodies, rooted in the G-11 trunk, then buried into
- // the existing soil. Nothing extends past the old 0.78 collider radius.
- const rootGeo=createG13RootGeometry(THREE);
- const rootMesh=add('forest-buttress-roots',layout.trees,rootGeo,detailedBark,
+ // Buttress ribs are inside the existing trunk collision footprint (max .72
+ // of trunk radius vs .78 collision), so they cannot create invisible walls.
+ const ribs=[],ribColors=[],ribCount=5;
+ for(let j=0;j<ribCount;j++){
+  const a=j*TAU/ribCount,gnarl=.05*Math.sin(j*4.7);
+  const point=(r,y,angle)=>[Math.cos(angle)*r,y,Math.sin(angle)*r];
+  // Twisted, tapering buttresses grow from the same trunk silhouette.
+  // The widest rendered solid remains below radius .78.
+  const summit=point(.50,.94+gnarl,a+.04);
+  // The same original ten buttress triangles now reach the trunk's broad
+  // lower bole and sink outward into the forest ground. No extra draw pass.
+  const left=point(.54,.085,a-.27-gnarl);
+  const tip=point(.765,.004,a+.035+gnarl);
+  const right=point(.53,.085,a+.25+gnarl);
+  ribs.push(...summit,...left,...tip,...summit,...tip,...right);
+ }
+ const rootGeo=new THREE.BufferGeometry();
+ rootGeo.setAttribute('position',new THREE.Float32BufferAttribute(ribs,3));
+ rootGeo.computeVertexNormals();
+ add('forest-buttress-roots',layout.trees,rootGeo,
+  new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1}),
   p=>({y:.01,sx:p.radius,sy:2.3+p.radius*.36,sz:p.radius}),
-  darkBark,'root');
- rootMesh.raycast=()=>{}; // decorative roots must never intercept targeting
- // Roots are surrounded by low moss hummocks and individually coloured
- // fallen leaves. A gentle translucent contact shade anchors the trunks to
- // the forest floor without modifying terrain height or collision.
- const groundAccents=add('g13-root-moss-litter',layout.trees,
-  createG13MossLitterGeometry(THREE),
-  new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
-   vertexColors:true,side:THREE.DoubleSide}),
-  p=>({y:.002,sx:p.radius,sy:1,sz:p.radius}),null,'ground');
- const contactShade=add('g13-root-contact-shade',layout.trees,
-  createG13ContactShadowGeometry(THREE),
-  new THREE.MeshBasicMaterial({color:'#ffffff',vertexColors:true,
-   side:THREE.DoubleSide,transparent:true,opacity:.20,depthWrite:false}),
-  p=>({y:.052,sx:p.radius,sy:1,sz:p.radius}),null,'ground');
- groundAccents.raycast=()=>{};
- contactShade.raycast=()=>{};
+  p=>p.tint>.52?'#483d35':'#5b4c3d');
  add('forest-ancient-trunks',layout.trees,trunks,detailedBark,p=>({y:p.height*.5,sx:p.radius,sy:p.height,sz:p.radius}),darkBark);
- add('forest-pine-lower',ever,pineGeo,pine,p=>({y:p.height*.69,sx:p.radius*3.2*(.93+.14*p.tint),sy:p.height*.48,sz:p.radius*3.2*(1.07-.14*p.tint)}),p=>p.tint>.5?C.pineLower[0]:C.pineLower[1]);
- add('forest-pine-crown',ever,pineUpperGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?C.pineUpper[0]:C.pineUpper[1]);
- add('forest-oak-crown',broad,leafGeo,leaves,p=>({y:p.height*.79,sx:p.radius*3.9*(.94+.13*p.tint),sy:p.height*.21,sz:p.radius*3.8*(1.05-.12*p.tint)}),p=>p.tint>.52?C.oakLower[0]:C.oakLower[1]);
- add('forest-oak-upper-crown',broad,upperLeafGeo,leaves,p=>({y:p.height*.94,sx:p.radius*3.1,sy:p.height*.17,sz:p.radius*3.2}),p=>p.tint>.52?C.oakUpper[0]:C.oakUpper[1]);
+ add('forest-pine-lower',ever,pineGeo,pine,p=>({y:p.height*.69,sx:p.radius*3.2*(.93+.14*p.tint),sy:p.height*.48,sz:p.radius*3.2*(1.07-.14*p.tint)}),p=>p.tint>.5?'#3c5a48':'#344d41');
+ add('forest-pine-crown',ever,pineUpperGeo,pine,p=>({y:p.height*.84,sx:p.radius*2.55,sy:p.height*.37,sz:p.radius*2.55}),p=>p.tint>.5?'#526d55':'#3d5f50');
+ add('forest-oak-crown',broad,leafGeo,leaves,p=>({y:p.height*.79,sx:p.radius*3.9*(.94+.13*p.tint),sy:p.height*.21,sz:p.radius*3.8*(1.05-.12*p.tint)}),p=>p.tint>.52?'#42624b':'#526a4b');
+ add('forest-oak-upper-crown',broad,upperLeafGeo,leaves,p=>({y:p.height*.94,sx:p.radius*3.1,sy:p.height*.17,sz:p.radius*3.2}),p=>p.tint>.52?'#547557':'#42634d');
  // Instanced elevated boughs and small outer foliage masses make the crowns
  // feel multi-layered without hundreds of independent draw calls.
  const limbGeo=new THREE.CylinderGeometry(.43,.72,1,7,2);
  add('forest-high-boughs',canopy.limbs,limbGeo,bark,p=>({
   y:p.branchHeight,sx:p.radius*.24,sy:p.length,sz:p.radius*.24,
   rotationZ:p.tilt,offsetAlongAxis:p.length*.46
- }),p=>forestBarkSpeciesTint(p,'branch'),'detail');
+ }),darkBark,'detail');
  add('forest-crown-silhouettes',canopy.tufts,outerTuftGeo,leaves,p=>({
   y:p.branchHeight,sx:p.bulge*1.35,sy:p.bulge*.58,sz:p.bulge*1.16,
   offsetX:p.spread
- }),p=>p.tint>.5?C.oakOuter[0]:C.oakOuter[1],'detail');
+ }),p=>p.tint>.5?'#416047':'#587150','detail');
  // Hanging moss reinforces the enormous vertical scale, entirely visual.
  const mossGeo=new THREE.BufferGeometry(),mossVerts=[];
  for(let k=0;k<5;k++){
@@ -348,7 +352,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  add('forest-hanging-moss',broad.filter((_,i)=>i%2===0),mossGeo,
   new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1}),
   p=>({y:p.height*.76,sx:p.radius*2.6,sy:p.height*.24,sz:p.radius*2.6}),
-  p=>p.tint>.5?C.hangingMoss[0]:C.hangingMoss[1],'detail');
+  p=>p.tint>.5?'#587157':'#6b815b','detail');
  const under=new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1});
  add('forest-ferns',layout.ground,fernGeometry(THREE),under,p=>({y:.05,sx:p.size,sy:p.size,sz:p.size}),p=>p.tint>.5?'#466b4b':'#6b8052','ground');
  // Dry leaf and needle mats at the edges of the trail: no solid collider.
@@ -358,7 +362,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   p=>({y:.07,sx:p.size*.95,sy:1,sz:p.size*.56}),
   p=>p.tint>.68?'#736046':p.tint>.34?'#514934':'#66573d','ground');
  const fallen=new THREE.CylinderGeometry(.7,.8,1,7);
- add('forest-fallen-timber',layout.logs,fallen,bark,p=>({y:p.width*.85,sx:p.width,sy:p.length,sz:p.width,rotationZ:Math.PI/2}),p=>forestBarkSpeciesTint(p,'fallen'),'ground');
+ add('forest-fallen-timber',layout.logs,fallen,bark,p=>({y:p.width*.85,sx:p.width,sy:p.length,sz:p.width,rotationZ:Math.PI/2}),()=> '#514337','ground');
  // The earlier opaque road ribbon has been retired. The forest path is now
  // baked into the one opaque planetary ground texture; this removes the
  // obvious raised strip, edge seams, z-fighting and extra overdraw entirely.
@@ -456,8 +460,6 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
    const relief=barkProfile.bump?barkTextures?.bumpMap||null:null;
    if(material.bumpMap!==relief){material.bumpMap=relief;material.needsUpdate=true;}
    material.bumpScale=barkProfile.bumpScale;
-   const roughness=forestBarkUseRoughness(q,portal)?barkTextures?.roughnessMap||null:null;
-   if(material.roughnessMap!==roughness){material.roughnessMap=roughness;material.needsUpdate=true;}
   }
   // Keep tree/canopy identities paired at all presets; only reduce ground detail.
   const groundFraction=portal?.13:q==='economy'?.28:q==='high'?1:.60;
@@ -465,7 +467,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
    if(kind==='ground')mesh.count=Math.floor(mesh.instanceMatrix.count*groundFraction);
    if(kind==='detail')mesh.count=Math.floor(mesh.instanceMatrix.count*
     (portal?.12:q==='economy'?.35:q==='high'?1:.72));
-   mesh.castShadow=!portal&&q!=='economy'&&kind==='tree';
+   mesh.castShadow=!portal&&q==='high'&&kind==='tree';
   }
   campLight.visible=!portal&&q==='high';
   for(const item of smoke)item.visible=!portal&&q!=='economy';

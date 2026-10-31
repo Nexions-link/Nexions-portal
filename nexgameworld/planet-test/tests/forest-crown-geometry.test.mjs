@@ -8,11 +8,7 @@ test('leaves have a non-spherical lobe outline and compact shared geometry',()=>
  const a=deciduousCrownData(),b=deciduousCrownData(),upper=deciduousCrownData(1);
  assert.deepEqual(a,b);
  assert.notDeepEqual(a.positions,upper.positions);
- assert.equal(a.positions.length/3,
-  (FOREST_CROWN_GEOMETRY_BUDGET.deciduousSegments+1)*
-  (FOREST_CROWN_GEOMETRY_BUDGET.deciduousRings+1)+
-  4*FOREST_CROWN_GEOMETRY_BUDGET.deciduousLeafClusters);
- assert.ok(a.positions.length/3<350,'low-polygon shared canopy');
+ assert.ok(a.positions.length/3<FOREST_CROWN_GEOMETRY_BUDGET.deciduousSegments*16);
  assert.equal(a.positions.length,a.colors.length);
  assert.ok(a.indices.length>0&&a.indices.every(i=>i<a.positions.length/3));
  const row=4,radial=[];
@@ -30,8 +26,7 @@ test('pine tree crowns have separated layered drooping branches',()=>{
  assert.equal(pine.indices.length,0);
  assert.equal(pine.positions.length/9,
   FOREST_CROWN_GEOMETRY_BUDGET.coniferWhorls*
-  FOREST_CROWN_GEOMETRY_BUDGET.coniferBranches*
-  FOREST_CROWN_GEOMETRY_BUDGET.coniferNeedleSprays*2);
+  FOREST_CROWN_GEOMETRY_BUDGET.coniferBranches*2);
  assert.ok(crownDataBounds(pine).radialMax<=1.13);
  assert.ok(crownDataBounds(pine).minY<-.48);
  assert.ok(crownDataBounds(pine).maxY<.5);

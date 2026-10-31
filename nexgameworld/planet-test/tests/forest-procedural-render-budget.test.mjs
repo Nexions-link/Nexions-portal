@@ -104,12 +104,10 @@ test('canopy silhouettes improve but no new foliage triangles or materials',()=>
  const decid=deciduousCrownData(),pine=coniferCrownData();
  assert.equal(decid.positions.length/3,
   (FOREST_CROWN_GEOMETRY_BUDGET.deciduousSegments+1)*
-  (FOREST_CROWN_GEOMETRY_BUDGET.deciduousRings+1)+
-  4*FOREST_CROWN_GEOMETRY_BUDGET.deciduousLeafClusters);
+  (FOREST_CROWN_GEOMETRY_BUDGET.deciduousRings+1));
  assert.equal(pine.positions.length/9,
   FOREST_CROWN_GEOMETRY_BUDGET.coniferWhorls*
-  FOREST_CROWN_GEOMETRY_BUDGET.coniferBranches*
-  FOREST_CROWN_GEOMETRY_BUDGET.coniferNeedleSprays*2);
+  FOREST_CROWN_GEOMETRY_BUDGET.coniferBranches*2);
  assert.equal(pine.indices.length,0);
  assert.ok(decid.positions.every(Number.isFinite));
  assert.ok(pine.positions.every(Number.isFinite));

@@ -1,9 +1,7 @@
-import {createLandscapeMap} from '../landscape.js?v=0.6.45.35';
-import {forestGroundPixel,forestTextureMask} from './forest-ground-texture.js?v=5';
-import {createGlobeSurfaceSampler,seamRadius,seamAlpha,SEAM_MESH_EXTENT,SEAM_MESH_GRID,SEAM_INNER_RADIUS} from './terrain-seam.js?v=1';
-import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=22';
-import {createSphericalMeadow} from './sphere-meadow.js?v=5';
-import {createVillageVisuals} from './village-visuals.js?v=3';
+import {createLandscapeMap} from '../landscape.js?v=0.6.43.96';
+import {forestLocalPoint,forestTrailLatitude} from './whispering-forest.js?v=21';
+import {createSphericalMeadow} from './sphere-meadow.js?v=3';
+import {createVillageVisuals} from './village-visuals.js?v=2';
 import {createTaurenVisualDetails} from './tauren-visual-details.js?v=4';
 import {createTaurenAnatomy} from './tauren-anatomy.js?v=3';
 import {getTaurenSurfaceMaps} from './tauren-fur-textures.js?v=1';
@@ -19,14 +17,7 @@ import {BANDIT_CAMP,BANDIT_CHIEF_PATH} from './bandit-camp-data.js?v=2';
 // Spherical NexGame starting zone prototype.
 // Layout, terrain, village and character geometry derived from the actual main-game
 // start zone, copied into this isolated module. No main game imports or networking.
-import {WORLD_ART_VERTEX as V} from './world-art-style.js?v=1';
 export const START_RADIUS=261;
-// Keep replacement art tied to the *existing* positions: no world design edits.
-export const START_VILLAGE_TREES=Object.freeze([
- [-26,21,1.2],[54,35,1],[34,-26,.95],[-34,-30,1.15],
- [9,49,1.2],[-39,40,1.1],[51,25,1.3],[57,-21,.8],[-47,-7,1.1]
-].map(row=>Object.freeze(row)));
-
 const TAU=Math.PI*2;
 const smooth=(a,b,v)=>{const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)};
 export const LAKE={x:30,z:26,radiusX:17.2,radiusZ:12.5,maxDepth:10.5};
@@ -68,35 +59,15 @@ export function pathWear(x,z){
 }
 export function startColorAt(x,z){
  const near=lakeRadius(x,z),worn=pathWear(x,z);
- let c=V.meadow;const grain=.075*Math.sin(x*.37+z*.13)*Math.cos(z*.23-x*.17);
+ let c=[.37,.50,.28];const grain=.075*Math.sin(x*.37+z*.13)*Math.cos(z*.23-x*.17);
  c=c.map((v,i)=>v+grain*(i===1?.85:1));
- if(worn>.001)c=c.map((v,i)=>v+( V.meadowTrail[i]-v)*worn);
+ if(worn>.001)c=c.map((v,i)=>v+( [ .63,.49,.29][i]-v)*worn);
  if(near<1.24){const sand=1-smooth(1.02,1.24,near),silt=1-smooth(.65,.99,near);
-   c=c.map((v,i)=>v+(V.meadowSand[i]-v)*sand);
-   c=c.map((v,i)=>v+(V.meadowSilt[i]-v)*silt*.82);
+   c=c.map((v,i)=>v+([.68,.62,.43][i]-v)*sand);
+   c=c.map((v,i)=>v+([.20,.43,.47][i]-v)*silt*.82);
  }
  return c;
 }
-
-// The meadow terrain patch is physically separate from the globe. Its last
-// metres must sample the SAME forest soil pixels as the sphere beneath it,
-// otherwise a straight circular texture boundary cuts across the entrance.
-// Samples are strictly visual; terrain heights and collision are unchanged.
-export function blendBiomeSoilAt(x,z,base,radius=START_RADIUS){
- const d=Math.hypot(x,z);
- if(d<52||x<38||d>90)return base;
- const k=d?Math.sin(d/radius)/d:0;
- const lon=Math.atan2(x*k,Math.cos(d/radius));
- const lat=Math.asin(Math.max(-1,Math.min(1,z*k)));
- const forest=forestTextureMask(lon,lat);
- const t=smooth(50,79,d)*smooth(.145,.31,lon)*forest;
- if(t<=0)return base;
- const pixel=forestGroundPixel(lon,lat);
- return [Math.round(base[0]+(pixel[0]-base[0])*t),
-  Math.round(base[1]+(pixel[1]-base[1])*t),
-  Math.round(base[2]+(pixel[2]-base[2])*t),255];
-}
-
 export function localToNormal(x,z,R){
  const d=Math.hypot(x,z);
  if(d<1e-7)return new THREE.Vector3(0,0,1);
@@ -112,33 +83,7 @@ export function normalToLocal(n,R){
 // It avoids importing another library instance and shares the game's single renderer.
 let THREE;
 export function initStartZoneMath(THREELibrary){THREE=THREELibrary;}
-// The identical Catmull-Rom geometry used to bake starter roads is also
-// shared with G-09 vegetation, so grass never follows unsmoothed waypoints.
-export function startVisualRouteSegments(routes=ROUTES){
- const smoothRoute=route=>{
-  const points=[];
-  for(let i=0;i<route.length-1;i++){
-   const p0=route[Math.max(0,i-1)],p1=route[i],
-    p2=route[i+1],p3=route[Math.min(route.length-1,i+2)];
-   for(let step=0;step<3;step++){
-    const t=step/3,t2=t*t,t3=t2*t;
-    points.push([0,1].map(k=>.5*(2*p1[k]+(-p0[k]+p2[k])*t+
-     (2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+
-     (-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3)));
-   }
-  }
-  points.push(route.at(-1));
-  return points;
- };
- return routes.flatMap((route,ri)=>{
-  const curve=smoothRoute(route);
-  return curve.slice(0,-1).map((a,i)=>({
-   ax:a[0],az:a[1],bx:curve[i+1][0],bz:curve[i+1][1],
-   width:ri===4?2.25:ri===1?3.25:3.5
-  }));
- });
-}
-export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=null}={}){
+export function createStartZone(three,scene,getRadius,heightAt){
  initStartZoneMath(three);
  const UP=new THREE.Vector3(0,1,0);
  let textureSeed=531;
@@ -267,16 +212,15 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
   for(const obj of [mesaBase,mesaCap,mesaGrass,boulders])obj.instanceMatrix.needsUpdate=true;
  }
  // Trees use the exact tree layout of the current NexGame zone.
- const nativeTreeRoots=[];
  function tree(x,z,scale){
-  const g=anchor(x,z);g.scale.setScalar(scale);nativeTreeRoots.push(g);
+  const g=anchor(x,z);g.scale.setScalar(scale);
   villageVisuals.addTree(x,z,scale);
   rod(g,wood,0,0,0,.2,4.2,0,.33);for(const s of [-1,1])rod(g,wood,0,2,0,s*1.6,4.8,.2,.18);
   shadowCasters.push(ell(g,leaf,-1.4,4.8,0,2.4,.9,1.75));
   shadowCasters.push(ell(g,leaf2,1.4,5,.2,2.1,.95,1.6));
   shadowCasters.push(ell(g,leaf,0,5.65,0,2.5,.85,1.8));
  }
- for(const [x,z,s] of START_VILLAGE_TREES)tree(x,z,s);
+ for(const [x,z,s] of [[-26,21,1.2],[54,35,1],[34,-26,.95],[-34,-30,1.15],[9,49,1.2],[-39,40,1.1],[51,25,1.3],[57,-21,.8],[-47,-7,1.1]])tree(x,z,s);
  // Grass and rocks approximate the distribution; the main game uses instancing.
  let seed=179311;const rnd=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
  const brush=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),leaf2,175);
@@ -304,20 +248,13 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
   brush.instanceMatrix.needsUpdate=true;
  }
  const terrainGeo=new THREE.BufferGeometry();
- // A high-resolution overlap ring replaces the hard patch cutoff. Border
- // vertices converge on the actual TRIANGULATED globe (not an ideal sphere).
- const globeSampler=globeGeometry?createGlobeSurfaceSampler(THREE,globeGeometry):null;
- const extent=SEAM_MESH_EXTENT,grid=SEAM_MESH_GRID,
-  step=extent*2/grid,points=[],cols=[],indices=[];
+ const extent=87, grid=124,step=extent*2/grid,points=[],cols=[],indices=[];
  for(let j=0;j<=grid;j++)for(let i=0;i<=grid;i++){
   const x=-extent+i*step,z=-extent+j*step;
-  points.push(x,z);
-  // The sRGB soil/path texture already contains albedo. Vertex RGBA is used
-  // for the seam alpha ONLY; tinting again would make the ground too dark.
-  cols.push(1,1,1,seamAlpha(Math.hypot(x,z)));
+  points.push(x,z);const c=startColorAt(x,z);cols.push(...c);
   if(i<grid&&j<grid){
    const cx=x+step*.5,cz=z+step*.5;
-   if(Math.hypot(cx,cz)<91){
+   if(Math.hypot(cx,cz)<84){
     const a=j*(grid+1)+i,b=a+grid+1;
     indices.push(a,a+1,b,b,a+1,b+1);
    }
@@ -326,21 +263,37 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
  // The same procedural meadow and path map as the main NexGame.
  // Curves soften the initial prototype's abrupt angular junctions.
  // Everything is painted on the existing terrain, never new road collision.
- const routeSegments=startVisualRouteSegments();
- const paintedMap=createLandscapeMap(THREE,routeSegments,1280,{
-  blendPixel:blendBiomeSoilAt,
-  shoreAt:(x,z)=>1-smooth(1.015,1.42,lakeRadius(x,z))
+ const smoothRoute=route=>{
+  const points=[];
+  for(let i=0;i<route.length-1;i++){
+   const p0=route[Math.max(0,i-1)],p1=route[i],
+    p2=route[i+1],p3=route[Math.min(route.length-1,i+2)];
+   for(let step=0;step<3;step++){
+    const t=step/3,t2=t*t,t3=t2*t;
+    points.push([0,1].map(k=>.5*(2*p1[k]+(-p0[k]+p2[k])*t+
+     (2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+
+     (-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3)));
+   }
+  }
+  points.push(route.at(-1));
+  return points;
+ };
+ const routeSegments=ROUTES.flatMap((route,ri)=>{
+  const curve=smoothRoute(route);
+  return curve.slice(0,-1).map((a,i)=>({
+   ax:a[0],az:a[1],bx:curve[i+1][0],bz:curve[i+1][1],
+   width:ri===4?2.25:ri===1?3.25:3.5
+  }));
  });
+ const paintedMap=createLandscapeMap(THREE,routeSegments,1280);
  const tileUVs=[];
  for(let i=0;i<points.length;i+=2)tileUVs.push((points[i]+95)/190,1-(points[i+1]+95)/190);
  const verts=new Float32Array(points.length/2*3);
  terrainGeo.setIndex(indices);
  terrainGeo.setAttribute('position',new THREE.BufferAttribute(verts,3));
- terrainGeo.setAttribute('color',new THREE.Float32BufferAttribute(cols,4));
+ terrainGeo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
  terrainGeo.setAttribute('uv',new THREE.Float32BufferAttribute(tileUVs,2));
- const terrainMaterial=new THREE.MeshStandardMaterial({map:paintedMap,vertexColors:true,roughness:1,
-  side:THREE.DoubleSide,transparent:true,alphaTest:.008,depthWrite:true,
-  polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
+ const terrainMaterial=new THREE.MeshStandardMaterial({map:paintedMap,roughness:1,side:THREE.DoubleSide});
  const patch=new THREE.Mesh(terrainGeo,terrainMaterial);
  patch.frustumCulled=false;scene.add(patch);
  // Water and shore geometries remain real-world metre sizes when the radius changes.
@@ -432,11 +385,7 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
   const attr=terrainGeo.attributes.position;
   for(let i=0;i<points.length;i+=2){
    const x=points[i],z=points[i+1],n=localToNormal(x,z,getRadius());
-   const radius=getRadius()+heightAt(n);
-   const distance=Math.hypot(x,z);
-   const sampled=distance>=SEAM_INNER_RADIUS?globeSampler?.sample(n):null;
-   const r=seamRadius(radius,sampled,distance);
-   attr.setXYZ(i/2,n.x*r,n.y*r,n.z*r);
+   const r=getRadius()+heightAt(n)+.12;attr.setXYZ(i/2,n.x*r,n.y*r,n.z*r);
   }
   attr.needsUpdate=true;terrainGeo.computeVertexNormals();terrainGeo.computeBoundingSphere();
   updateSurface(shore);updateSurface(water);updateSurface(shimmerGeometry);refreshAnchors();updateBrush();rebuildReeds();meadow.rebuild();rebuildStones();villageVisuals.rebuild();
@@ -455,21 +404,12 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
   // Shadows are independent of whether the roof is translucent.
   for(const caster of shadowCasters)caster.castShadow=shadowsEnabled;
   patch.receiveShadow=shadowsEnabled;
-  // G-07: native tangent-space normals and per-pixel roughness. Keep the
-  // original baked bump option for graphics mode without a normal texture.
-  const detailed=(preset.detail??0)>=.60&&!preset.portal;
-  const normal=detailed?(preset.microNormal||null):null;
-  const roughness=detailed?(preset.microRoughness||null):null;
-  const bump=detailed&&!normal?(preset.microBump||paintedMap):null;
-  if(terrainMaterial.normalMap!==normal||
-     terrainMaterial.roughnessMap!==roughness||terrainMaterial.bumpMap!==bump){
-   terrainMaterial.normalMap=normal;
-   terrainMaterial.roughnessMap=roughness;
-   terrainMaterial.bumpMap=bump;
-   terrainMaterial.needsUpdate=true;
+  // Standard Three.js bump shading reuses the colour atlas, so no second
+  // texture is needed on iPhone. The ground mesh never changes its shape.
+  const bump=(preset.detail??0)>=.60&&!preset.portal?(preset.microBump||paintedMap):null;
+  if(terrainMaterial.bumpMap!==bump){
+   terrainMaterial.bumpMap=bump;terrainMaterial.needsUpdate=true;
   }
-  terrainMaterial.normalScale.set((preset.detail??0)>.9?.40:.22,
-   (preset.detail??0)>.9?.40:.22);
   terrainMaterial.bumpScale=(preset.detail??0)>.9?.052:.024;
  }
  function updateInteriorView(x,z,dt=1/60){
@@ -482,11 +422,7 @@ export function createStartZone(three,scene,getRadius,heightAt,{globeGeometry=nu
   roofTransparency.setProgress(envelopeFade);
   wallTransparency.setProgress(envelopeFade);
  }
- function setExternalTreesActive(enabled){
-  for(const root of nativeTreeRoots)root.visible=!enabled;
-  villageVisuals.setExternalTreesActive(enabled);
- }
- return {rebuild,updateInteriorView,setGraphics,meadow,setExternalTreesActive,treeAnchors:START_VILLAGE_TREES,
+ return {rebuild,updateInteriorView,setGraphics,meadow,
   animate(t){houseRat.animate(t);banditCampVisuals.animate(t);
    flame.scale.y=1+Math.sin(t*9)*.12;
    rippleTexture.offset.set(t*.006,t*.003);
