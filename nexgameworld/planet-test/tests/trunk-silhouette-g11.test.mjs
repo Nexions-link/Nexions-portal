@@ -116,5 +116,5 @@ test('G-11 affects only geometries; original camera, player controls and server 
  assert.match(planet,/new THREE\.PerspectiveCamera\(58, innerWidth \/ innerHeight, \.48, 1300\)/);
  assert.match(planet,/cameraPitch:previousWorld\?\.cameraPitch\?\?\.36/);
  assert.doesNotMatch(module,/WebSocket|localStorage|fetch\(|camera\.|playerPosition|createCollider/);
- assert.match(planet,/from '\.\/whispering-forest\.js\?v=23'/);
+ assert.match(planet,/from '\.\/whispering-forest\.js\?v=24'/);
 });

@@ -2,7 +2,8 @@
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
 import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=2';
 import {createG11ForestTrunkGeometry} from './trunk-silhouette-g11.js?v=1';
-import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=1';
+import {createForestBarkTextures,forestBarkQuality,forestBarkUseRoughness,
+ forestBarkSpeciesTint} from './forest-bark-texture.js?v=2';
 import {WORLD_ART_PALETTE as ART} from './world-art-style.js?v=1';
 const C=ART.canopy,W=ART.wood;
 const TAU=Math.PI*2;
@@ -278,15 +279,16 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  // A failed texture allocation always falls back to the old opaque materials.
  const barkTextures=createForestBarkTextures(THREE);
  const bark=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
-  map:barkTextures?.map||null,bumpMap:barkTextures?.bumpMap||null,bumpScale:.043});
+  map:barkTextures?.map||null,bumpMap:barkTextures?.bumpMap||null,bumpScale:.058});
  const detailedBark=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
   vertexColors:true,map:barkTextures?.map||null,
-  bumpMap:barkTextures?.bumpMap||null,bumpScale:.043});
+  bumpMap:barkTextures?.bumpMap||null,bumpScale:.058});
  const leaves=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
   vertexColors:true,side:THREE.DoubleSide});
  const pine=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1,
   vertexColors:true,side:THREE.DoubleSide});
- const darkBark=p=>p.tint>.52?W.bark[0]:W.bark[1];
+ // Reuse one atlas and one 400-tree batch; species differ by instance tint.
+ const darkBark=p=>forestBarkSpeciesTint(p,'trunk');
  const broad=layout.trees.filter(t=>!t.evergreen),ever=layout.trees.filter(t=>t.evergreen);
  // Buttress ribs are inside the existing trunk collision footprint (max .72
  // of trunk radius vs .78 collision), so they cannot create invisible walls.
@@ -322,7 +324,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
  add('forest-high-boughs',canopy.limbs,limbGeo,bark,p=>({
   y:p.branchHeight,sx:p.radius*.24,sy:p.length,sz:p.radius*.24,
   rotationZ:p.tilt,offsetAlongAxis:p.length*.46
- }),darkBark,'detail');
+ }),p=>forestBarkSpeciesTint(p,'branch'),'detail');
  add('forest-crown-silhouettes',canopy.tufts,outerTuftGeo,leaves,p=>({
   y:p.branchHeight,sx:p.bulge*1.35,sy:p.bulge*.58,sz:p.bulge*1.16,
   offsetX:p.spread
@@ -351,7 +353,7 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
   p=>({y:.07,sx:p.size*.95,sy:1,sz:p.size*.56}),
   p=>p.tint>.68?'#736046':p.tint>.34?'#514934':'#66573d','ground');
  const fallen=new THREE.CylinderGeometry(.7,.8,1,7);
- add('forest-fallen-timber',layout.logs,fallen,bark,p=>({y:p.width*.85,sx:p.width,sy:p.length,sz:p.width,rotationZ:Math.PI/2}),()=>W.fallen,'ground');
+ add('forest-fallen-timber',layout.logs,fallen,bark,p=>({y:p.width*.85,sx:p.width,sy:p.length,sz:p.width,rotationZ:Math.PI/2}),p=>forestBarkSpeciesTint(p,'fallen'),'ground');
  // The earlier opaque road ribbon has been retired. The forest path is now
  // baked into the one opaque planetary ground texture; this removes the
  // obvious raised strip, edge seams, z-fighting and extra overdraw entirely.
@@ -449,6 +451,8 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt}){
    const relief=barkProfile.bump?barkTextures?.bumpMap||null:null;
    if(material.bumpMap!==relief){material.bumpMap=relief;material.needsUpdate=true;}
    material.bumpScale=barkProfile.bumpScale;
+   const roughness=forestBarkUseRoughness(q,portal)?barkTextures?.roughnessMap||null:null;
+   if(material.roughnessMap!==roughness){material.roughnessMap=roughness;material.needsUpdate=true;}
   }
   // Keep tree/canopy identities paired at all presets; only reduce ground detail.
   const groundFraction=portal?.13:q==='economy'?.28:q==='high'?1:.60;

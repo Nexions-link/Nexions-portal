@@ -21,7 +21,14 @@ test('bark atlas is opaque, deterministic and never flat brown',()=>{
 
 test('bark UVs tile with continuous horizontal and vertical borders',()=>{
  for(const [u,v] of [[.1,.3],[.88,.91],[.35,.67]]){
-  assert.deepEqual(forestBarkPixel(u,v),forestBarkPixel(u+1,v-1));
+  const a=forestBarkPixel(u,v),b=forestBarkPixel(u+1,v-1);
+  // Shader-visible channels must match exactly. Intermediate floating
+  // responses may differ by machine epsilon after modular UV wrap.
+  assert.deepEqual(a.color,b.color);
+  assert.equal(a.relief,b.relief);
+  assert.equal(a.roughness,b.roughness);
+  assert.ok(Math.abs(a.fissure-b.fissure)<1e-9);
+  assert.ok(Math.abs(a.moss-b.moss)<1e-9);
  }
  const nearSeam=forestBarkPixel(.0001,.5).color[0];
  const otherSide=forestBarkPixel(.9999,.5).color[0];
@@ -45,7 +52,9 @@ test('quality preset avoids mobile bump cost while keeping color texture',()=>{
  });
  assert.equal(textures.map.colorSpace,'srgb');
  assert.equal(textures.bumpMap.colorSpace,'none');
- assert.deepEqual(textures.map.tile,[2,7]);
+ assert.deepEqual(textures.map.tile,[2,4]);
+ assert.equal(textures.roughnessMap.colorSpace,'none');
+ assert.deepEqual(textures.roughnessMap.tile,[2,4]);
  assert.equal(textures.map.image.width,256);
  assert.equal(textures.map.image.height,512);
 });
