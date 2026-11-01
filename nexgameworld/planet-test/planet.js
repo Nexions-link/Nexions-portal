@@ -21,7 +21,9 @@ import {createForestUnderstory} from './forest-understory.js?v=4';
 import {createForestWildflowers} from './forest-wildflowers.js?v=1';
 import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=9';
 import {createR2MaterialMaps} from './r2-materials.js?v=1';
-import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
+import {createSurfaceMicrodetail} from './surface-microdetail.js?v=3';
+import {createForestCanopyShadows} from './forest-canopy-shadows.js?v=1';
+import {createForestTerrainAtlas} from './forest-terrain-atlas.js?v=1';
 import {createSoilScatter} from './soil-scatter.js?v=2';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
 import {createForestEcology} from './forest-ecology.js?v=9';
@@ -263,7 +265,8 @@ try {
   // fragment shader to make the planet vanish on mobile Safari.
   const groundMaterial=new THREE.MeshStandardMaterial({map:groundTexture,vertexColors:true,roughness:1,
     flatShading:false,transparent:false,depthWrite:true,side:THREE.FrontSide});
-  const ground=new THREE.Mesh(groundGeo,groundMaterial);
+  const forestTerrain=isPortalPreview||!r2Materials?null:createForestTerrainAtlas(THREE,{geometry:groundGeo,material:groundMaterial,renderer});
+  const ground=new THREE.Mesh(groundGeo,forestTerrain?[groundMaterial,forestTerrain.material]:groundMaterial);
   scene.add(ground);
   // Reposition vertex data from immutable unit directions, so switching size
   // never accumulates distortion or scales terrain elevation in metres.
@@ -384,6 +387,7 @@ try {
   // Construct expensive surface tiles only on a rich quality preset. Economy
   // mode and portal first render should not bake a large microtexture at all.
   let surfaceMicrodetail=null,soilScatter=null;
+  const canopyShadows=isPortalPreview?null:createForestCanopyShadows(THREE,{scene,radius:R,heightAt});
   const whisperingForest=createWhisperingForest(THREE,{scene,radius:R,heightAt,r2Vegetation,artRemaster});
   const roadsideDetails=isPortalPreview?null:createRoadsideDetails(THREE,{scene,radius:R,heightAt,startRoute:ROUTES[1]});
   const forestEcology=isPortalPreview?null:createForestEcology(THREE,{scene,radius:R,heightAt});
@@ -449,7 +453,7 @@ try {
    profile:frameProfiler,quality:qualityName,version:r2VersionLabel(),
    r2:r2Flags(),dpr:renderer.getPixelRatio()});
   function r2VersionLabel(){
-   return $('planetBuildWidget')?.dataset.build||'0.6.45.76';
+   return $('planetBuildWidget')?.dataset.build||'0.6.45.78';
   }
   function applyGraphicsQuality(){
     const profile=GRAPHICS_PRESETS[qualityName];
@@ -501,7 +505,9 @@ try {
       groundMaterial.needsUpdate=true;
     }
     groundMaterial.normalScale.set(.24,.24);
+    forestTerrain?.sync(qualityName,isPortalPreview);
     whisperingForest.setQuality(qualityName,isPortalPreview);
+    canopyShadows?.setQuality(qualityName,isPortalPreview);
     roadsideDetails?.setQuality(qualityName,isPortalPreview);
     forestEcology?.setQuality(qualityName,isPortalPreview);
     forestLightPools?.setQuality(qualityName,isPortalPreview);
@@ -1350,6 +1356,7 @@ try {
     });
     renderer.shadowMap.needsUpdate=redrawShadows;
     if(redrawShadows){
+      canopyShadows?.update(state.normal);
       // Keep the 62-metre shadow frustum centred around the active character.
       tangentBasis(state.normal);
       sun.target.position.copy(actor.position);

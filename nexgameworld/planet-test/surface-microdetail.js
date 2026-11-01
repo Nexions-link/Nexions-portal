@@ -217,14 +217,16 @@ export function createSurfaceMicrodetail(THREE,{scene,radius,heightAt}){
   textures.push(reliefGlobe,reliefVillage);
   for(const kind of ['start','forest']){
    const geometry=terrainGeometry(THREE,kind,radius,heightAt);
-   const material=new THREE.MeshBasicMaterial({
+   const Material=kind==='forest'?THREE.MeshStandardMaterial:THREE.MeshBasicMaterial;
+   const material=new Material({
+    ...(kind==='forest'?{roughness:1}:{}),
     map:albedo,color:'#ffffff',vertexColors:true,transparent:true,depthWrite:false,
     opacity:.5,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,
     polygonOffsetUnits:-1
    });
    const mesh=new THREE.Mesh(geometry,material);
    mesh.name='surface-microdetail-'+kind+'-decorative-no-collision';
-   mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;
+   mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=kind==='forest';
    scene.add(mesh);objects.push({mesh,material});
   }
   const contact=contacts(THREE,scene,radius,heightAt);
