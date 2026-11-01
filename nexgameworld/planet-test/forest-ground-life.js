@@ -123,17 +123,66 @@ function saplingGeometry(THREE){
  g.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
  g.computeVertexNormals();return g;
 }
-function twigGeometry(THREE){
- const vertices=[];
- for(let j=0;j<2;j++){
-  const a=j*1.23,dx=Math.cos(a),dz=Math.sin(a),px=-dz,pz=dx;
-  const r=j?.58:.82,w=.045;
-  vertices.push(dx*(-r)+px*w,.08,dz*(-r)+pz*w,
-   dx*r,.055,dz*r,
-   dx*(-r)-px*w,.08,dz*(-r)-pz*w);
+// G-22 — 2 fallen limbs, one damp rotten stump, small cones and needles.
+// Existing 310 decorative deadwood instances become woodland micro-stories.
+// No additional InstancedMesh or colliders. 32 triangles per instance.
+export function forestRottingWoodData(){
+ const positions=[],colors=[];
+ const bark=[.44,.34,.25],edge=[.64,.48,.32],
+  dark=[.26,.24,.18],moss=[.28,.47,.27],cut=[.66,.56,.38];
+ const tri=(a,b,c,ca,cb,cc)=>{
+  positions.push(...a,...b,...c);
+  colors.push(...ca,...cb,...cc);
+ };
+ for(let k=0;k<2;k++){
+  const a=k*1.25+.27,dx=Math.cos(a),dz=Math.sin(a),tx=-dz,tz=dx;
+  const origin=k===0?[-.16,-.12]:[.23,.18];
+  const r=k===0?.78:.54,w=k===0?.073:.049;
+  const from=[origin[0]-dx*r,.047,origin[1]-dz*r];
+  const to=[origin[0]+dx*r,.07,origin[1]+dz*r];
+  const l=[from[0]+tx*w,.055,from[2]+tz*w],h=[from[0]-tx*w,.052,from[2]-tz*w];
+  const tipL=[to[0]+tx*w*.35,.088,to[2]+tz*w*.35];
+  const tipR=[to[0]-tx*w*.35,.084,to[2]-tz*w*.35];
+  tri(l,h,tipL,dark,bark,edge);
+  tri(h,tipR,tipL,bark,dark,edge);
  }
- const g=new THREE.BufferGeometry();
- g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+ // A short irregular weathered stump with green moss growing around the
+ // northern edge; the old path remains traversable because these are props.
+ const cx=.27,cz=-.30,segments=8;
+ for(let k=0;k<segments;k++){
+  const a=k*Math.PI*2/segments,b=(k+1)*Math.PI*2/segments;
+  const ra=.21+.018*Math.sin(k*2.6),rb=.21+.018*Math.sin((k+1)*2.6);
+  const y=.21+.028*Math.sin(k*1.8+.3);
+  const A=[cx+Math.cos(a)*ra,.04,cz+Math.sin(a)*ra];
+  const B=[cx+Math.cos(b)*rb,.04,cz+Math.sin(b)*rb];
+  const U=[cx+Math.cos(a)*ra*.8,y,cz+Math.sin(a)*ra*.8];
+  const V=[cx+Math.cos(b)*rb*.8,y-.014,cz+Math.sin(b)*rb*.8];
+  tri(A,B,U,k%3===0?moss:dark,bark,k%4===0?moss:edge);
+  tri(B,V,U,bark,edge,k%3===0?moss:cut);
+ }
+ // Two tiny pine cones, each formed from four dark, staggered scales.
+ for(const [x,z,scale] of [[-.30,.32,.80],[.47,.39,.63]]){
+  for(let k=0;k<4;k++){
+   const a=k*Math.PI/2,dx=Math.cos(a),dz=Math.sin(a);
+   tri([x+dx*.12*scale,.045,z+dz*.12*scale],
+    [x-dz*.10*scale,.055,z+dx*.10*scale],
+    [x,.20*scale+.05,z],bark,dark,edge);
+  }
+ }
+ // Brown pine-needle fragments, deliberately low and readable against the
+ // existing grass without creating a separate decal material.
+ for(let k=0;k<4;k++){
+  const a=k*2.39,dx=Math.cos(a),dz=Math.sin(a),tx=-dz,tz=dx;
+  const px=-.12+dx*.39,pz=.03+dz*.39,w=.021;
+  tri([px+tx*w,.035,pz+tz*w],[px-tx*w,.035,pz-tz*w],
+   [px+dx*.23,.041,pz+dz*.23],dark,edge,bark);
+ }
+ return {positions,colors,triangles:positions.length/9};
+}
+function twigGeometry(THREE){
+ const data=forestRottingWoodData(),g=new THREE.BufferGeometry();
+ g.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
+ g.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
  g.computeVertexNormals();return g;
 }
 export function createForestGroundLife(THREE,{scene,radius,heightAt}){
@@ -148,7 +197,7 @@ export function createForestGroundLife(THREE,{scene,radius,heightAt}){
  function add(kind,geometry){
   const rows=layout[kind],mesh=new THREE.InstancedMesh(geometry,
    new THREE.MeshStandardMaterial({color:'#ffffff',
-    vertexColors:kind!=='deadwood',side:THREE.DoubleSide,roughness:1,
+    vertexColors:true,side:THREE.DoubleSide,roughness:1,
     metalness:0,flatShading:kind!=='grass'}),rows.length);
   mesh.name='forest-'+kind+'-decorative-no-collision';
   mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;

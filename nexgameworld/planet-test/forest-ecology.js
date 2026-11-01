@@ -1,7 +1,7 @@
 // Deterministic visual-only forest ecology: does not create actual mobs or loot.
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 import {forestFernData,forestFernAgeProfile} from './forest-botanical-geometry.js?v=2';
-import {forestShrubLeafData,forestMushroomCapData} from './forest-art-ecology.js?v=1';
+import {forestShrubLeafData,forestMushroomCapData,FOREST_FUNGUS_CENTRES} from './forest-art-ecology.js?v=2';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestDistance,
  createForestLayout} from './whispering-forest.js';
 const TAU=Math.PI*2;
@@ -84,19 +84,33 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
   return vertexGeometry(forestMushroomCapData());
  }
  function mushroomStemGeometry(){
-  // Same source CylinderGeometry radial/vertical topology and collision-free
-  // scale; sculpt its existing verts for a tapered, mildly crooked stalk.
-  const stem=new THREE.CylinderGeometry(.31,.39,1,6);
-  const pos=stem.getAttribute('position'),colors=[];
-  for(let i=0;i<pos.count;i++){
-   const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
-   const r=1+.11*Math.sin(y*4.2+Math.atan2(z,x)*3);
-   pos.setXYZ(i,x*r+.055*y*y,y,z*r+.032*y);
-   const upper=Math.max(0,Math.min(1,y+.5));
-   colors.push(.64+.32*upper,.59+.31*upper,.47+.28*upper);
+  // Three crossed tapered low-poly stalks in ONE existing instance.
+  // Cap geometry uses wider horizontal scales (.55 vs .28), so the centres
+  // below have matching x/z world positions and staggered ages.
+  const positions=[],colors=[];
+  const base=[.45,.40,.31],light=[.79,.71,.55],moss=[.29,.43,.27];
+  const tri=(a,b,c,ca,cb,cc)=>{
+   positions.push(...a,...b,...c);colors.push(...ca,...cb,...cc);
+  };
+  for(const p of FOREST_FUNGUS_CENTRES){
+   const cx=p.x*(.55/.28),cz=p.z*(.55/.28);
+   const top=(.61+.45*(p.drop-.28*p.scale)-.28)/.48;
+   const low=-.5;
+   const w=.105*p.scale/.67;
+   for(const side of [0,1]){
+    const axis=side===0?[w,0]:[0,w];
+    const a=[cx-axis[0],low,cz-axis[1]];
+    const b=[cx+axis[0],low,cz+axis[1]];
+    const c=[cx+axis[0]*.63,top,cz+axis[1]*.63];
+    const d=[cx-axis[0]*.63,top,cz-axis[1]*.63];
+    tri(a,b,c,moss,base,light);
+    tri(a,c,d,moss,light,base);
+   }
   }
-  stem.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-  pos.needsUpdate=true;stem.computeVertexNormals();return stem;
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  geo.computeVertexNormals();return geo;
  }
  const leaves=mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),stones=mat('#ffffff',{flatShading:true,vertexColors:true});
  instance('forest-shrubs',layout.shrubs,shrubLeafGeometry(),leaves,

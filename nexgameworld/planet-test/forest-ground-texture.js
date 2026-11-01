@@ -121,9 +121,22 @@ export function forestGroundPixel(lon,lat,{r2=false,art=false}={}){
  const tuft=coverage*(.70+.30*fine)*(.83+.17*cross);
  const green=[67+18*fine,116+13*cross,53+10*fine];
  const carpetSoil=tuft>0?litSoil.map((c,i)=>mix(c,green[i],tuft)):litSoil;
- return [Math.round(mix(255,clamp(carpetSoil[0]/255)*255,mask)),
-  Math.round(mix(255,clamp(carpetSoil[1]/255)*255,mask)),
-  Math.round(mix(255,clamp(carpetSoil[2]/255)*255,mask)),255];
+ // G-22: damp moss tight around the TRUE fixed root positions, using the
+ // already calculated G-18 tree-contact field and ground-noise samples.
+ // Brown needle fibres and fallen woody fragments gather in the shelter;
+ // all details are baked into the old opaque texture, never an overlay.
+ const rootMoss=art?Math.min(.33,(light?.contact??0)*2.35)*
+  smooth(.29,.79,wet)*(1-road.wear)*forestBlend:0;
+ const needlePatch=art?Math.min(.11,(light?.canopy??0)*.92)*
+  smooth(.35,.79,scratch*.40+grit*.25+(1-wet)*.35)*
+  (1-road.wear)*forestBlend:0;
+ const mossTone=[56+7*fine,92+13*cross,48+8*fine];
+ const needles=[108+13*grit,78+7*grit,51+5*grit];
+ const forestDetritus=carpetSoil.map((c,i)=>
+  mix(mix(c,mossTone[i],rootMoss),needles[i],needlePatch));
+ return [Math.round(mix(255,clamp(forestDetritus[0]/255)*255,mask)),
+  Math.round(mix(255,clamp(forestDetritus[1]/255)*255,mask)),
+  Math.round(mix(255,clamp(forestDetritus[2]/255)*255,mask)),255];
 }
 // The tile has an irregular geometric edge. Feather its outermost
 // existing texels to the EXACT neighbouring globe texture colour; the

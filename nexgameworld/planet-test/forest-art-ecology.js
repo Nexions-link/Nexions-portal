@@ -37,32 +37,41 @@ export function forestShrubLeafData(){
  }
  return valid({positions,colors});
 }
+// G-22: three tiny caps in the EXISTING decorative mushroom batch.
+// Mushroom centres use a local-to-world scale matched by the shared stem
+// geometry in forest-ecology.js. None are collectible/click targets.
+export const FOREST_FUNGUS_CENTRES=Object.freeze([
+ Object.freeze({x:0,z:0,scale:.67,drop:0}),
+ Object.freeze({x:.43,z:.42,scale:.44,drop:-.27}),
+ Object.freeze({x:-.36,z:-.31,scale:.38,drop:-.35})
+]);
 export function forestMushroomCapData(){
  const positions=[],colors=[],sectors=9;
  const emit=(a,b,c,ca,cb,cc)=>{
   positions.push(...a,...b,...c);colors.push(...ca,...cb,...cc);
  };
- const top=[0,.48,0],bottom=[0,-.28,0];
- const topTint=[.81,.71,.53],light=[.99,.88,.69];
- const mid=[.75,.56,.40],edge=[.52,.34,.26];
- const gill=[.79,.72,.60],gillDark=[.47,.39,.34];
- const radial=(angle,rad,y)=>[Math.cos(angle)*rad,y,Math.sin(angle)*rad];
- // Three connected bands: luminous crown, steep scalloped rim, shaded gills.
- // 4 triangles per sector; still one InstancedMesh for all 145 mushrooms.
- for(let i=0;i<sectors;i++){
-  const a=i*TAU/sectors,b=(i+1)*TAU/sectors;
-  const r1=1+.065*Math.sin(i*2.4+.7),r2=1+.065*Math.sin((i+1)*2.4+.7);
-  const shoulderA=radial(a,r1*.68,.24+.045*Math.sin(i*1.8));
-  const shoulderB=radial(b,r2*.68,.24+.045*Math.sin((i+1)*1.8));
-  const rimA=radial(a,r1,-.12-.045*Math.cos(i*2.2));
-  const rimB=radial(b,r2,-.12-.045*Math.cos((i+1)*2.2));
-  const highlight=i%4===0?light:topTint;
-  emit(top,shoulderA,shoulderB,highlight,topTint,topTint);
-  emit(shoulderA,rimA,rimB,mid,edge,edge);
-  emit(shoulderA,rimB,shoulderB,mid,edge,topTint);
-  // Distinct warm underside, so an upward camera view does not see a
-  // flat uniformly brown base. Double sided opaque material needs no alpha.
-  emit(rimA,bottom,rimB,gill,gillDark,gill);
+ const radial=(cx,cz,a,r,y)=>[cx+Math.cos(a)*r,y,cz+Math.sin(a)*r];
+ for(const [cluster,item] of FOREST_FUNGUS_CENTRES.entries()){
+  const {x,z,scale,drop}=item;
+  const top=[x,.48*scale+drop,z],bottom=[x,-.28*scale+drop,z];
+  const warm=cluster===0?[.81,.71,.53]:cluster===1?[.78,.65,.48]:[.71,.62,.48];
+  const light=cluster===0?[.99,.88,.69]:[.90,.81,.65];
+  const middle=[.72,.54,.39],edge=[.48,.32,.25];
+  const gill=[.76,.69,.57],gillDark=[.45,.37,.31];
+  for(let i=0;i<sectors;i++){
+   const a=i*TAU/sectors,b=(i+1)*TAU/sectors;
+   const rippleA=1+.065*Math.sin(i*2.4+cluster*.8+.7);
+   const rippleB=1+.065*Math.sin((i+1)*2.4+cluster*.8+.7);
+   const shoulderA=radial(x,z,a,scale*rippleA*.68,drop+scale*(.24+.045*Math.sin(i*1.8)));
+   const shoulderB=radial(x,z,b,scale*rippleB*.68,drop+scale*(.24+.045*Math.sin((i+1)*1.8)));
+   const rimA=radial(x,z,a,scale*rippleA,drop+scale*(-.12-.045*Math.cos(i*2.2)));
+   const rimB=radial(x,z,b,scale*rippleB,drop+scale*(-.12-.045*Math.cos((i+1)*2.2)));
+   const highlight=i%4===0?light:warm;
+   emit(top,shoulderA,shoulderB,highlight,warm,warm);
+   emit(shoulderA,rimA,rimB,middle,edge,edge);
+   emit(shoulderA,rimB,shoulderB,middle,edge,warm);
+   emit(rimA,bottom,rimB,gill,gillDark,gill);
+  }
  }
  return valid({positions,colors});
 }
