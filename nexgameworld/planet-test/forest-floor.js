@@ -57,6 +57,44 @@ export function forestFloorLayout(seed=768451){
  }
  return Object.freeze({moss:Object.freeze(moss),litter:Object.freeze(litter)});
 }
+// G-24. Six draped facets per old litter position: separate paired leaves,
+// one seed wing and one slender pine needle. No new mesh or collider.
+export const FOREST_LITTER_TRIANGLES=6;
+export function forestLitterPatchData(item){
+ if(!item||![item.lon,item.lat,item.size,item.angle].every(Number.isFinite)||
+  item.size<=0||!['leaf','twig'].includes(item.kind))
+  throw new TypeError('Invalid forest litter point');
+ const triangles=[],spread=item.size*(item.kind==='twig'?.82:1);
+ const turn=(x,z)=>[x*Math.cos(item.angle)-z*Math.sin(item.angle),
+  x*Math.sin(item.angle)+z*Math.cos(item.angle)];
+ const point=(x,z,h)=>[...turn(x,z),h];
+ const phase=(Number.isFinite(item.variation)?item.variation:.5)*9.13+item.angle;
+ for(let k=0;k<2;k++){
+  const a=k*2.39996323+.48*Math.sin(phase+k*1.71);
+  const dx=Math.cos(a),dz=Math.sin(a),tx=-dz,tz=dx;
+  const cx=(k===0?-.22:.28)*spread,cz=(k===0?.13:-.12)*spread;
+  const len=spread*(.39+.13*k),width=spread*(.095+.025*(k%2));
+  const root=point(cx-dx*len*.45,cz-dz*len*.45,.115);
+  const tip=point(cx+dx*len*.75,cz+dz*len*.75,.127+.008*k);
+  const left=point(cx+tx*width,cz+tz*width,.122);
+  const right=point(cx-tx*width,cz-tz*width,.116);
+  triangles.push({corners:[root,left,tip],kind:'leaf',shade:.84+.07*k});
+  triangles.push({corners:[root,tip,right],kind:'leaf',shade:.76+.09*k});
+ }
+ const wx=spread*.11,wz=spread*.30;
+ triangles.push({kind:'seed',shade:.92,corners:[
+  point(wx-.06*spread,wz,.114),
+  point(wx+.095*spread,wz+.045*spread,.119),
+  point(wx+.17*spread,wz+.18*spread,.121)
+ ]});
+ const angle=phase+1.75,dx=Math.cos(angle),dz=Math.sin(angle),tx=-dz,tz=dx;
+ const x=-.17*spread,z=-.31*spread,w=.015*spread;
+ triangles.push({kind:'twig',shade:.85,corners:[
+  point(x+tx*w,z+tz*w,.111),point(x-tx*w,z-tz*w,.112),
+  point(x+dx*.43*spread,z+dz*.43*spread,.117)
+ ]});
+ return triangles;
+}
 export function createForestFloor(THREE,{scene,radius,heightAt}){
  const layout=forestFloorLayout();
  const objects=[],material=new THREE.MeshBasicMaterial({
@@ -113,27 +151,28 @@ export function createForestFloor(THREE,{scene,radius,heightAt}){
  function buildLitter(){
   const vertices=[],colors=[];
   for(const item of layout.litter){
-   const tints=forestFloorColors(item.lon,item.lat,item.variation*2-1);
-   const twig=item.kind==='twig',segments=twig?2:3;
-   for(let i=0;i<segments;i++){
-    const a=item.angle+i*TAU/segments,c=item.size,off=.105;
-    const unit=(x,z)=>point(item.lon+x/(radius*Math.cos(item.lat)),
-     item.lat+z/radius,off);
-    const x=Math.cos(a),z=Math.sin(a),dx=-z,dz=x;
-    const width=twig?.045:.11;
-    const origin=[x*c*.50,z*c*.50];
-    const tip=[x*c*(twig?1.8:1.6),z*c*(twig?1.8:1.6)];
-    const col=twig?tints.twig:tints.leaves;
-    vertices.push(...unit(origin[0]+dx*width,origin[1]+dz*width),
-     ...unit(tip[0],tip[1]),...unit(origin[0]-dx*width,origin[1]-dz*width));
-    colors.push(...col,...col,...col);
+   const tones=forestFloorColors(item.lon,item.lat,item.variation*2-1);
+   const pigments={leaf:tones.leaves,twig:tones.twig,
+    seed:[.72,.60,.37].map((c,i)=>c*(.81+.19*tones.leaves[i]))};
+   for(const part of forestLitterPatchData(item)){
+    const color=pigments[part.kind];
+    for(const [x,z,off] of part.corners){
+     // Each microvertex follows globe curvature and actual height, instead
+     // of hovering in a flat polygon above a spherical terrain facet.
+     vertices.push(...point(item.lon+x/(radius*Math.cos(item.lat)),
+      item.lat+z/radius,off));
+     colors.push(...color.map(v=>Math.min(1,v*part.shade)));
+    }
    }
   }
   const geom=new THREE.BufferGeometry();
   geom.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
   geom.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-  const mesh=new THREE.Mesh(geom,leafMaterial);mesh.name='forest-floor-leaves-and-twigs-no-collision';
-  mesh.frustumCulled=false;scene.add(mesh);objects.push({mesh,verticesPerItem:9,count:layout.litter.length,key:'litter'});
+  const mesh=new THREE.Mesh(geom,leafMaterial);
+  mesh.name='forest-floor-leaves-and-twigs-no-collision';
+  mesh.frustumCulled=false;scene.add(mesh);
+  objects.push({mesh,verticesPerItem:FOREST_LITTER_TRIANGLES*3,
+   count:layout.litter.length,key:'litter'});
  }
  buildMoss();buildLitter();
  function setQuality(quality='balanced',preview=false){

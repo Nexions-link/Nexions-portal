@@ -15,11 +15,11 @@ import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TR
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=31';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=2';
 import {r2LightingProfile} from './r2-lighting.js?v=1';
-import {createForestFloor} from './forest-floor.js?v=2';
+import {createForestFloor} from './forest-floor.js?v=3';
 import {createForestGroundLife} from './forest-ground-life.js?v=5';
 import {createForestUnderstory} from './forest-understory.js?v=4';
 import {createForestWildflowers} from './forest-wildflowers.js?v=1';
-import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=8';
+import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=9';
 import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
 import {createSoilScatter} from './soil-scatter.js?v=2';

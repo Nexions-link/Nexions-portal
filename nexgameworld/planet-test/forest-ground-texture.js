@@ -134,9 +134,19 @@ export function forestGroundPixel(lon,lat,{r2=false,art=false}={}){
  const needles=[108+13*grit,78+7*grit,51+5*grit];
  const forestDetritus=carpetSoil.map((c,i)=>
   mix(mix(c,mossTone[i],rootMoss),needles[i],needlePatch));
- return [Math.round(mix(255,clamp(forestDetritus[0]/255)*255,mask)),
-  Math.round(mix(255,clamp(forestDetritus[1]/255)*255,mask)),
-  Math.round(mix(255,clamp(forestDetritus[2]/255)*255,mask)),255];
+ // G-24. Leaf and samara granules visually connect the larger curved,
+ // terrain-draped litter fragments, especially between tree roots and
+ // beyond the road shoulders. Reuses current texture and noise samples.
+ // The original start-zone apron and compacted road remain unchanged.
+ const floorCover=art?forestBlend*(1-road.wear)*
+  Math.min(.16,(light?.canopy??0)*.68+(light?.contact??0)*.36+
+   .018*forestBlend)*smooth(.39,.83,grit*.47+fine*.33+cross*.20):0;
+ const litterTint=[151+10*fine,105+8*grit,60+7*cross];
+ const detailedFloor=floorCover>0?
+  forestDetritus.map((c,i)=>mix(c,litterTint[i],floorCover)):forestDetritus;
+ return [Math.round(mix(255,clamp(detailedFloor[0]/255)*255,mask)),
+  Math.round(mix(255,clamp(detailedFloor[1]/255)*255,mask)),
+  Math.round(mix(255,clamp(detailedFloor[2]/255)*255,mask)),255];
 }
 // The tile has an irregular geometric edge. Feather its outermost
 // existing texels to the EXACT neighbouring globe texture colour; the
