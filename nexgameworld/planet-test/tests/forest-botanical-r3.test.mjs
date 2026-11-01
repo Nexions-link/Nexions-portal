@@ -35,7 +35,7 @@ test('forest grass and saplings change leaf silhouettes but preserve geometry bu
  assert.ok(sapling.colors.every(v=>v>=0&&v<=1));
  assert.deepEqual(forestSaplingLeafData(),sapling);
  assert.deepEqual(forestGroundLifeBudget('balanced'),
-  {grass:1210,saplings:195,deadwood:195});
+  {grass:1450,saplings:195,deadwood:195});
  assert.deepEqual(forestUnderstoryBudget('balanced'),
   {ferns:335,leaves:620,boulders:105,ivy:190});
 });

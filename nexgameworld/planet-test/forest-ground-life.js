@@ -4,6 +4,7 @@
 import {forestTrailLatitude,forestDistance,forestMoodAt,FOREST_CAMP,
  FOREST_SITE_CLEARINGS,createForestLayout} from './whispering-forest.js';
 import {forestCanopyShadeAt} from './forest-lighting.js';
+import {forestGrassCarpetProfile} from './forest-grass-carpet.js?v=1';
 const TAU=Math.PI*2;
 export const FOREST_GROUND_LIFE_CAPS=Object.freeze({
  grass:2100,saplings:360,deadwood:310
@@ -12,7 +13,9 @@ export function forestGroundLifeBudget(quality='balanced',preview=false){
  if(preview)return {grass:0,saplings:0,deadwood:0};
  if(quality==='economy')return {grass:430,saplings:55,deadwood:65};
  if(quality==='high')return {...FOREST_GROUND_LIFE_CAPS};
- return {grass:1210,saplings:195,deadwood:195};
+ // A small increase uses the SAME grass instanced draw batch;
+ // coarse grass terrain is drawn less often than 3D silhouettes.
+ return {grass:1450,saplings:195,deadwood:195};
 }
 export function forestGroundLifeLayout(seed=706419){
  let state=seed>>>0;
@@ -32,12 +35,17 @@ export function forestGroundLifeLayout(seed=706419){
  }
  for(let i=0;i<12000&&Object.keys(places).some(k=>places[k].length<FOREST_GROUND_LIFE_CAPS[k]);i++){
   const lon=.25+rand()*1.19;
-  const lat=forestTrailLatitude(lon)+(rand()-.5)*.76;
   const kindRoll=rand(),kind=kindRoll<.73?'grass':kindRoll<.85?'saplings':'deadwood';
+  // Put living grass in coherent road-facing carpets rather than thinning
+  // it over the full 200m forest width. All legacy tree/quest spaces remain.
+  const spread=kind==='grass'?(rand()<.83?.205:.52):.76;
+  const lat=forestTrailLatitude(lon)+(rand()-.5)*spread;
   if(places[kind].length>=FOREST_GROUND_LIFE_CAPS[kind])continue;
-  const variation=rand(),size=kind==='grass'?.34+rand()*.62:
+  const variation=rand(),size=kind==='grass'?.61+rand()*.63:
    kind==='saplings'?.65+rand()*1.25:.32+rand()*.95;
   if(!valid(lon,lat,size,kind==='deadwood'?6.3:kind==='saplings'?6.9:4.6))continue;
+  const carpet=kind==='grass'?forestGrassCarpetProfile(lon,lat):null;
+  if(carpet&&rand()>.51+.48*carpet.density)continue;
   const shade=forestCanopyShadeAt(lon,lat);
   // Drier sunbreaks carry straw; old damp canopy carries darker meadow grass.
   places[kind].push(Object.freeze({lon,lat,size,variation,
@@ -49,21 +57,30 @@ export function forestCurvedGrassData(){
  const verts=[],colours=[],blades=7;
  const append=(v,c)=>{verts.push(...v);colours.push(...c)};
  const tri=(a,b,c,ca,cb,cc)=>{append(a,ca);append(b,cb);append(c,cc)};
- for(let i=0;i<blades;i++){
-  const a=i*TAU/blades+.1,dx=Math.cos(a),dz=Math.sin(a),tx=-dz,tz=dx;
-  const extent=.19+(i%3)*.049,height=.59+(i%4)*.095,lean=.24+(i%2)*.11;
-  const w=.085+(i%3)*.012;
-  const root=[dx*.055,.02,dz*.055],
-   lowLeft=[root[0]+tx*w,.02,root[2]+tz*w],
-   lowRight=[root[0]-tx*w,.02,root[2]-tz*w];
-  const shoulder=[dx*extent,height*.52,dz*extent];
-  const left=[shoulder[0]+tx*w*.55,shoulder[1],shoulder[2]+tz*w*.55];
-  const right=[shoulder[0]-tx*w*.55,shoulder[1],shoulder[2]-tz*w*.55];
-  const tip=[dx*(extent+lean),height-(i%2)*.055,dz*(extent+lean)];
+ // Three miniature meadow islands in each existing grass instance (3+2+2
+ // blades). There are STILL only 21 triangles and no extra draw batches.
+ // The mixed heights, curved shoulders and crossing azimuths replace the
+ // seven tall, evenly radial flat fans.
+ const islands=[[-.36,-.21,3],[.35,-.13,2],[-.02,.34,2]];
+ let blade=0;
+ for(const [cx,cz,count] of islands)for(let j=0;j<count;j++){
+  const i=blade++,a=i*2.399963229728653+j*.17;
+  const dx=Math.cos(a),dz=Math.sin(a),tx=-dz,tz=dx;
+  const height=.35+(i%4)*.115+(j%2)*.035;
+  const reach=.10+(i%3)*.063,lean=.13+(i%3)*.075;
+  const width=.068+(i%3)*.015;
+  const root=[cx+dx*.035,.024,cz+dz*.035];
+  const lowLeft=[root[0]+tx*width,.022,root[2]+tz*width];
+  const lowRight=[root[0]-tx*width,.022,root[2]-tz*width];
+  const shoulder=[root[0]+dx*reach,height*.55,root[2]+dz*reach];
+  const left=[shoulder[0]+tx*width*.65,shoulder[1],shoulder[2]+tz*width*.65];
+  const right=[shoulder[0]-tx*width*.65,shoulder[1],shoulder[2]-tz*width*.65];
+  const tip=[root[0]+dx*(reach+lean),height,
+   root[2]+dz*(reach+lean)];
   const shade=i%3;
-  const dark=[.29+.04*shade,.49+.055*shade,.25+.025*shade];
-  const mid=[.48+.05*shade,.71+.04*shade,.38+.04*shade];
-  const light=[.70+.035*shade,.85+.025*shade,.48+.04*shade];
+  const dark=[.29+.035*shade,.46+.055*shade,.23+.026*shade];
+  const mid=[.47+.055*shade,.66+.05*shade,.34+.042*shade];
+  const light=[.69+.036*shade,.83+.024*shade,.43+.038*shade];
   tri(lowLeft,lowRight,left,dark,dark,mid);
   tri(lowRight,right,left,dark,mid,mid);
   tri(left,right,tip,mid,mid,light);
@@ -132,7 +149,7 @@ export function createForestGroundLife(THREE,{scene,radius,heightAt}){
   const rows=layout[kind],mesh=new THREE.InstancedMesh(geometry,
    new THREE.MeshStandardMaterial({color:'#ffffff',
     vertexColors:kind!=='deadwood',side:THREE.DoubleSide,roughness:1,
-    metalness:0,flatShading:true}),rows.length);
+    metalness:0,flatShading:kind!=='grass'}),rows.length);
   mesh.name='forest-'+kind+'-decorative-no-collision';
   mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;
   for(let i=0;i<rows.length;i++){

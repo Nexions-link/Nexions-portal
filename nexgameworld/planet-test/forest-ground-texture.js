@@ -5,6 +5,7 @@ import {r2ForestGrade} from './r2-materials.js?v=1';
 import {paintForestGround} from './art-world-grade.js?v=1';
 import {landscapeGroundPixel} from '../landscape.js?v=0.6.45.68';
 import {forestContactLightAt} from './forest-contact-light.js?v=1';
+import {forestGrassCarpetProfile} from './forest-grass-carpet.js?v=1';
 const PI=Math.PI,TAU=PI*2;
 const clamp=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t)};
@@ -110,9 +111,19 @@ export function forestGroundPixel(lon,lat,{r2=false,art=false}={}){
  const light=art?forestContactLightAt(lon,lat,{roadWear:road.wear}):null;
  const shadow=light?.light??1;
  const litSoil=art?blendedSoil.map((c,i)=>c*shadow*(i===0?.995:i===1?1:1.012)):blendedSoil;
- return [Math.round(mix(255,clamp(litSoil[0]/255)*255,mask)),
-  Math.round(mix(255,clamp(litSoil[1]/255)*255,mask)),
-  Math.round(mix(255,clamp(litSoil[2]/255)*255,mask)),255];
+ // G-19: weave fine mottled groundcover into the EXISTING opaque forest
+ // atlas. The same spatial profile groups the actual 3D grass tufts along
+ // both woodland verges. This fills empty flat patches at distant LOD without
+ // an extra texture, shadow pass, transparent overlay or runtime cost.
+ const sward=art?forestGrassCarpetProfile(lon,lat):null;
+ const coverage=sward?Math.min(.30,sward.paint*.31):0;
+ const fine=noise(x*.91+19,z*.91-11),cross=noise(x*1.57-31,z*1.57+7);
+ const tuft=coverage*(.70+.30*fine)*(.83+.17*cross);
+ const green=[67+18*fine,116+13*cross,53+10*fine];
+ const carpetSoil=tuft>0?litSoil.map((c,i)=>mix(c,green[i],tuft)):litSoil;
+ return [Math.round(mix(255,clamp(carpetSoil[0]/255)*255,mask)),
+  Math.round(mix(255,clamp(carpetSoil[1]/255)*255,mask)),
+  Math.round(mix(255,clamp(carpetSoil[2]/255)*255,mask)),255];
 }
 // The tile has an irregular geometric edge. Feather its outermost
 // existing texels to the EXACT neighbouring globe texture colour; the

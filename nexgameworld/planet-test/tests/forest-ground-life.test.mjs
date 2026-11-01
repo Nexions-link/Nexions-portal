@@ -26,7 +26,7 @@ test('dense undergrowth is reproducible and leaves paths and important clearings
 });
 test('grass and leaves have quality budgets, portal preview omits all',()=>{
  assert.deepEqual(forestGroundLifeBudget('economy'),{grass:430,saplings:55,deadwood:65});
- assert.deepEqual(forestGroundLifeBudget('balanced'),{grass:1210,saplings:195,deadwood:195});
+ assert.deepEqual(forestGroundLifeBudget('balanced'),{grass:1450,saplings:195,deadwood:195});
  assert.deepEqual(forestGroundLifeBudget('high'),{grass:2100,saplings:360,deadwood:310});
  assert.deepEqual(forestGroundLifeBudget('high',true),{grass:0,saplings:0,deadwood:0});
 });
