@@ -61,8 +61,8 @@ test('botanical details are active in main scene without UI or settings',()=>{
  const p=readFileSync(new URL('../planet.js',import.meta.url),'utf8');
  const ecology=readFileSync(new URL('../forest-ecology.js',import.meta.url),'utf8');
  const forest=readFileSync(new URL('../whispering-forest.js',import.meta.url),'utf8');
- assert.match(ecology,/forestFernData\(\{fronds:6,segments:1\}\)/);
- assert.match(forest,/forestFernData\(\{fronds:6,segments:1\}\)/);
+ assert.match(ecology,/forestFernData\(\{fronds:6,segments:1,age:'young'\}\)/);
+ assert.match(forest,/forestFernData\(\{fronds:6,segments:1,age:'old'\}\)/);
  assert.match(p,/createForestGroundLife\(THREE,\{scene,radius:R,heightAt\}\)/);
  assert.match(p,/createForestUnderstory\(THREE,\{scene,radius:R,heightAt\}\)/);
  assert.doesNotMatch(p,/r3UnderstoryToggle|botanicalEditor/);

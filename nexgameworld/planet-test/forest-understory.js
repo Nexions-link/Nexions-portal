@@ -5,7 +5,7 @@ import {createForestLayout,forestDistance,forestTrailLatitude,forestMoodAt,
  FOREST_CAMP,FOREST_SITE_CLEARINGS} from './whispering-forest.js';
 import {forestCanopyShadeAt} from './forest-lighting.js';
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
-import {forestFernData} from './forest-botanical-geometry.js?v=1';
+import {forestFernData,forestFernAgeProfile} from './forest-botanical-geometry.js?v=2';
 
 const TAU=Math.PI*2,R=261;
 export const FOREST_UNDERSTORY_CAPS=Object.freeze({
@@ -144,6 +144,7 @@ export function createForestUnderstory(THREE,{scene,radius,heightAt}){
   boulders:['#6b7169','#6d7769','#5a6864','#787f74'],
   ivy:['#3c6846','#5b8653','#386149','#7b9962']
  };
+ const deepFernTint=new THREE.Color('#37664b');
  const normalAt=p=>normal.set(Math.cos(p.lat)*Math.sin(p.lon),Math.sin(p.lat),
   Math.cos(p.lat)*Math.cos(p.lon));
  function createGeo(data){
@@ -162,6 +163,9 @@ export function createForestUnderstory(THREE,{scene,radius,heightAt}){
   mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;
   for(let i=0;i<rows.length;i++){
    const p=rows[i],n=normalAt(p);
+   // G-20: age and canopy light vary each existing fern instance without
+   // splitting the shared 84-triangle batch or moving a single plant.
+   const fernGrowth=kind==='ferns'?forestFernAgeProfile(p.variation,p.shade):null;
    const h=kind==='ivy'?.02:kind==='boulders'?p.size*.25:.055;
    dummy.position.copy(n).multiplyScalar(radius+heightAt(n)+h);
    dummy.quaternion.copy(tilt.setFromUnitVectors(up,n))
@@ -171,11 +175,15 @@ export function createForestUnderstory(THREE,{scene,radius,heightAt}){
    }else if(kind==='boulders'){
     dummy.scale.set(p.size*.78,p.size*.32,p.size*.66);
    }else if(kind==='ferns'){
-    dummy.scale.set(p.size*1.10,p.size*.98,p.size*1.10);
+    dummy.scale.set(p.size*1.10*fernGrowth.width,
+     p.size*.98*fernGrowth.height,p.size*1.10*fernGrowth.width);
    }else dummy.scale.set(p.size,1,p.size);
    dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
    const palette=palettes[kind][Math.floor((kind==='ivy'?p.tint:p.variation)*4)];
-   mesh.setColorAt(i,tint.set(palette));
+   tint.set(palette);
+   if(fernGrowth)tint.lerp(deepFernTint,p.shade*.18)
+    .multiplyScalar(fernGrowth.light);
+   mesh.setColorAt(i,tint);
   }
   mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);
   batches.push({kind,mesh,count:rows.length});

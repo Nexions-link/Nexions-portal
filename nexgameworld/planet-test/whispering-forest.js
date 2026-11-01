@@ -2,7 +2,7 @@
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
 import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=6';
 import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=2';
-import {forestFernData} from './forest-botanical-geometry.js?v=1';
+import {forestFernData,forestFernAgeProfile} from './forest-botanical-geometry.js?v=2';
 const TAU=Math.PI*2;
 // Match the blocker exactly to the visible trunk's maximum ground radius.
 export const FOREST_TRUNK_BASE_SCALE=.78;
@@ -268,7 +268,7 @@ export function blocksForestAtLocal(x,z,actorRadius=.42,radius=261,height=0){
 function fernGeometry(THREE){
  // The six legacy forest fern blades now share the bent-pinnule sculpt.
  // Twelve triangles per plant, exactly as before.
- const fern=forestFernData({fronds:6,segments:1});
+ const fern=forestFernData({fronds:6,segments:1,age:'old'});
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.Float32BufferAttribute(fern.positions,3));
  geo.setAttribute('color',new THREE.Float32BufferAttribute(fern.colors,3));
@@ -472,7 +472,11 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
   p=>p.tint>.5?'#587157':'#6b815b','detail');
  const under=new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1});
  const fernMaterial=new THREE.MeshStandardMaterial({color:'#ffffff',side:THREE.DoubleSide,roughness:1,vertexColors:true});
- add('forest-ferns',layout.ground,fernGeometry(THREE),fernMaterial,p=>({y:.05,sx:p.size,sy:p.size,sz:p.size}),p=>p.tint>.5?'#4c8359':'#71885b','ground');
+ add('forest-ferns',layout.ground,fernGeometry(THREE),fernMaterial,p=>{
+  const growth=forestFernAgeProfile(p.tint,.55);
+  return {y:.05,sx:p.size*growth.width,
+   sy:p.size*growth.height,sz:p.size*growth.width};
+ },p=>p.tint>.5?'#4c8359':'#71885b','ground');
  // Dry leaf and needle mats at the edges of the trail: no solid collider.
  const litterGeo=new THREE.CircleGeometry(1,7);
  litterGeo.rotateX(-Math.PI/2);

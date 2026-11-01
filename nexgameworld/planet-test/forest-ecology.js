@@ -1,6 +1,6 @@
 // Deterministic visual-only forest ecology: does not create actual mobs or loot.
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
-import {forestFernData} from './forest-botanical-geometry.js?v=1';
+import {forestFernData,forestFernAgeProfile} from './forest-botanical-geometry.js?v=2';
 import {forestShrubLeafData,forestMushroomCapData} from './forest-art-ecology.js?v=1';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestDistance,
  createForestLayout} from './whispering-forest.js';
@@ -65,7 +65,7 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
  function brackenGeometry(){
   // Reuse the same six-frond silhouette as the nearby forest ferns.
   // Six fans x two triangles = the original twelve triangles/instance.
-  const sculpt=forestFernData({fronds:6,segments:1});
+  const sculpt=forestFernData({fronds:6,segments:1,age:'young'});
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(sculpt.positions,3));
   geo.setAttribute('color',new THREE.Float32BufferAttribute(sculpt.colors,3));
@@ -104,7 +104,9 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
   p=>p.variation>.65?'#567e53':p.variation>.3?'#426c51':'#799165');
  instance('forest-deep-bracken',layout.bracken,brackenGeometry(),
   mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),p=>({
-   x:p.size*1.12,y:p.size*(.74+.25*p.variation),z:p.size*1.12,h:.035
+   x:p.size*1.12*forestFernAgeProfile(p.variation,.48).width,
+   y:p.size*(.74+.25*p.variation)*forestFernAgeProfile(p.variation,.48).height,
+   z:p.size*1.12*forestFernAgeProfile(p.variation,.48).width,h:.035
   }),p=>p.variation>.7?'#47744a':p.variation>.34?'#598451':'#77925a');
  instance('forest-stones',layout.rocks,createWeatheredStoneGeometry(THREE,'forest'),stones,
   p=>({x:p.size*.73,y:p.size*.29,z:p.size*.58,h:p.size*.24}),
