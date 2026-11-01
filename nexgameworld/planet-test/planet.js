@@ -17,6 +17,7 @@ import {r2LightingProfile} from './r2-lighting.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=2';
 import {createForestGroundLife} from './forest-ground-life.js?v=4';
 import {createForestUnderstory} from './forest-understory.js?v=4';
+import {createForestWildflowers} from './forest-wildflowers.js?v=1';
 import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=7';
 import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
@@ -389,6 +390,7 @@ try {
   const forestAtmosphere=isPortalPreview?null:createForestAtmosphere(THREE,{scene,radius:R,heightAt,r2Lighting});
   const forestFloor=isPortalPreview?null:createForestFloor(THREE,{scene,radius:R,heightAt});
   const forestGroundLife=isPortalPreview?null:createForestGroundLife(THREE,{scene,radius:R,heightAt});
+  const forestWildflowers=isPortalPreview?null:createForestWildflowers(THREE,{scene,radius:R,heightAt,grassLayout:forestGroundLife.layout.grass});
   const forestUnderstory=isPortalPreview?null:createForestUnderstory(THREE,{scene,radius:R,heightAt});
   relocateInstances();
   const hero=createTauren(THREE,scene,{player:true});
@@ -502,6 +504,7 @@ try {
     forestAtmosphere?.setQuality(qualityName,isPortalPreview);
     forestFloor?.setQuality(qualityName,isPortalPreview);
     forestGroundLife?.setQuality(qualityName,isPortalPreview);
+    forestWildflowers?.setQuality(qualityName,isPortalPreview);
     forestUnderstory?.setQuality(qualityName,isPortalPreview);
     surfaceMicrodetail?.setQuality(qualityName,isPortalPreview);
     soilScatter?.setQuality(qualityName,isPortalPreview);
