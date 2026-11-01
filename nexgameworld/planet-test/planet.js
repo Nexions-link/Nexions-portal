@@ -10,14 +10,14 @@ import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=29';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=29';
+import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=30';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=30';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=2';
 import {r2LightingProfile} from './r2-lighting.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=2';
 import {createForestGroundLife} from './forest-ground-life.js?v=3';
 import {createForestUnderstory} from './forest-understory.js?v=3';
-import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=5';
+import {createForestGroundTexture,forestTextureMask} from './forest-ground-texture.js?v=6';
 import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {createSurfaceMicrodetail} from './surface-microdetail.js?v=2';
 import {createSoilScatter} from './soil-scatter.js?v=2';

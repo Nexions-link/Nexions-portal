@@ -4,6 +4,7 @@ import {forestTrailLatitude} from './whispering-forest.js';
 import {r2ForestGrade} from './r2-materials.js?v=1';
 import {paintForestGround} from './art-world-grade.js?v=1';
 import {landscapeGroundPixel} from '../landscape.js?v=0.6.45.68';
+import {forestContactLightAt} from './forest-contact-light.js?v=1';
 const PI=Math.PI,TAU=PI*2;
 const clamp=v=>Math.max(0,Math.min(1,v));
 const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t)};
@@ -103,9 +104,15 @@ export function forestGroundPixel(lon,lat,{r2=false,art=false}={}){
   const entrance=meadow.slice(0,3).map((c,i)=>mix(c,meadowRoad[i],worn));
   blendedSoil=entrance.map((c,i)=>mix(c,rgb[i],forestBlend));
  }
- return [Math.round(mix(255,clamp(blendedSoil[0]/255)*255,mask)),
-  Math.round(mix(255,clamp(blendedSoil[1]/255)*255,mask)),
-  Math.round(mix(255,clamp(blendedSoil[2]/255)*255,mask)),255];
+ // G-18: subtle real-tree root contact and broken canopy penumbra painted
+ // directly into the existing opaque globe pixels, once during texture bake.
+ // Suppress this in the original start zone and on readable road surfaces.
+ const light=art?forestContactLightAt(lon,lat,{roadWear:road.wear}):null;
+ const shadow=light?.light??1;
+ const litSoil=art?blendedSoil.map((c,i)=>c*shadow*(i===0?.995:i===1?1:1.012)):blendedSoil;
+ return [Math.round(mix(255,clamp(litSoil[0]/255)*255,mask)),
+  Math.round(mix(255,clamp(litSoil[1]/255)*255,mask)),
+  Math.round(mix(255,clamp(litSoil[2]/255)*255,mask)),255];
 }
 // The tile has an irregular geometric edge. Feather its outermost
 // existing texels to the EXACT neighbouring globe texture colour; the

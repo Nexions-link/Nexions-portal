@@ -1,6 +1,6 @@
 // P2.3.9: deterministic old-growth forest; only visible crowns evolve.
 // Rendering is client-only; quest rewards and player movement remain server-controlled.
-import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=5';
+import {makeForestCrownGeometry} from './forest-crown-geometry.js?v=6';
 import {createForestBarkTextures,forestBarkQuality} from './forest-bark-texture.js?v=2';
 import {forestFernData} from './forest-botanical-geometry.js?v=1';
 const TAU=Math.PI*2;

@@ -7,6 +7,20 @@ const angularWindow=(angle,centre,width)=>{
  return Math.exp(-Math.pow(delta/width,2));
 };
 
+// G-18: sunlight reaches outer and upper leaves, while sheltered interior
+// foliage is cooler and darker. All values are baked into the SAME RGB
+// vertex colors, so mobile GPUs render the identical indexed geometry.
+export function forestLeafLightTints(height,angle,{cavity=0,kind='deciduous'}={}){
+ if(!Number.isFinite(height)||!Number.isFinite(angle))throw new RangeError('Invalid leaf light');
+ const top=clamp(height),sheltered=1-top;
+ const sun=.5+.5*Math.cos(angle-.84);
+ const bounce=.5+.5*Math.sin(angle*3.7+top*5.1);
+ const inside=clamp(.47*sheltered+.37*cavity+.16*(1-sun));
+ const gain=clamp(.77+.29*top+.15*sun-.18*inside+.04*bounce,.62,1.22);
+ const warm=clamp(top*.65+sun*.35,.0,1);
+ if(kind==='conifer')return [gain*(.95+.09*warm),gain*(.98+.055*top),gain*(1-.085*warm)];
+ return [gain*(.97+.13*warm),gain*(.98+.065*top),gain*(1-.11*warm)];
+}
 export function deepenForestCanopy(data,kind,variant=0){
  if(!data||!Array.isArray(data.positions)||!Array.isArray(data.colors)||
    data.positions.length!==data.colors.length)throw new TypeError('Invalid forest canopy');
@@ -36,9 +50,10 @@ export function deepenForestCanopy(data,kind,variant=0){
     positions[i+1]+=s*(.036*lobe+.027*rim-.025*pocket-.038*opening);
     const light=clamp(.88+.26*v+.10*Math.max(0,lobe)-.24*pocket-.20*opening,.50,1.15);
     // Warm outer leaf groups, cool shadow volumes; no painted-on lights.
-    colors[i]=clamp(colors[i]*light*(.91+.09*Math.max(0,lobe)));
-    colors[i+1]=clamp(colors[i+1]*light*(.95+.07*v));
-    colors[i+2]=clamp(colors[i+2]*light*(.91+.10*pocket));
+    const tint=forestLeafLightTints(1-v,a,{cavity:pocket*.7+opening*.3});
+    colors[i]=clamp(colors[i]*light*(.91+.09*Math.max(0,lobe))*tint[0]);
+    colors[i+1]=clamp(colors[i+1]*light*(.95+.07*v)*tint[1]);
+    colors[i+2]=clamp(colors[i+2]*light*(.91+.10*pocket)*tint[2]);
    }
   }
  }else if(kind==='conifer'){
@@ -67,9 +82,11 @@ export function deepenForestCanopy(data,kind,variant=0){
      positions[i+1]+=.018*twist;
     }
     const sun=clamp((tip?.89:side?1.11:.73)+.09*twist+.055*layer/whorls-.16*opening,.48,1.2);
-    colors[i]=clamp(colors[i]*sun*.94);
-    colors[i+1]=clamp(colors[i+1]*sun*1.02);
-    colors[i+2]=clamp(colors[i+2]*sun*.92);
+    const needleLight=forestLeafLightTints((layer+.7)/5,
+     TAU*b/branches,{kind:'conifer',cavity:tip?.13:side?.25:.76});
+    colors[i]=clamp(colors[i]*sun*.94*needleLight[0]);
+    colors[i+1]=clamp(colors[i+1]*sun*1.02*needleLight[1]);
+    colors[i+2]=clamp(colors[i+2]*sun*.92*needleLight[2]);
    }
   }
  }else throw new RangeError('Unknown canopy species');
