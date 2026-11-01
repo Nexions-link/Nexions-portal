@@ -585,7 +585,11 @@ export function createWhisperingForest(THREE,{scene,radius,heightAt,r2Vegetation
    if(kind==='ground')mesh.count=Math.floor(mesh.instanceMatrix.count*groundFraction);
    if(kind==='detail')mesh.count=Math.floor(mesh.instanceMatrix.count*
     (portal?.12:q==='economy'?.35:q==='high'?1:.72));
-   mesh.castShadow=!portal&&q==='high'&&kind==='tree';
+   // Balanced now projects inexpensive trunk silhouettes onto the adjoining
+   // globe; high retains full conifer/deciduous crown shadows, economy none.
+   // No new scene object or per-frame shadow caster allocation.
+   mesh.castShadow=!portal&&(q==='high'&&kind==='tree'||
+    q==='balanced'&&mesh.name==='forest-ancient-trunks');
   }
   campLight.visible=!portal&&q==='high';
   for(const item of smoke)item.visible=!portal&&q!=='economy';

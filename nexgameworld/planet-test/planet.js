@@ -10,8 +10,8 @@ import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
-import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=28';
-import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=28';
+import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=29';
+import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=29';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=2';
 import {r2LightingProfile} from './r2-lighting.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=2';
@@ -38,7 +38,7 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath} from './start-zone.js?v=58';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath,startTerrainSeamNormalWeight} from './start-zone.js?v=59';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -140,7 +140,11 @@ function heightAt(n) {
 // recess the coarse background sphere under it to prevent z-fighting.
 function backgroundHeightAt(n) {
   const local=normalToLocal(n,R);
-  return heightAt(n)-(1-smooth(70,85,local.d))*3.4;
+  // Match the visual tile's gently extended eastern edge. Previously the
+  // spherical support rose to meet the high-res tile at the OLD 84 m line,
+  // leaving overlapping facets and a visible shading/texture discontinuity.
+  const east=smooth(44,69,local.x);
+  return heightAt(n)-(1-smooth(70,85+9*east,local.d))*3.4;
 }
 function colorAt(n, h) {
   const weights = biomeWeights(Math.atan2(n.x, n.z));
@@ -233,6 +237,26 @@ try {
   }
   groundGeo.setAttribute('color', new THREE.BufferAttribute(colorData, 3));
   groundGeo.computeVertexNormals();
+  // At the two-mesh joint, use the same smoothly radial normals as the
+  // high-resolution tile. Elsewhere retain the original terrain relief.
+  function unifyGroundSeamNormals(){
+    const normals=groundGeo.attributes.normal;
+    const n=new THREE.Vector3();
+    for(let i=0;i<pos.count;i++){
+      const j=i*3;
+      n.set(groundDirections[j],groundDirections[j+1],groundDirections[j+2]);
+      const local=normalToLocal(n,R);
+      const w=startTerrainSeamNormalWeight(local.x,local.z);
+      if(w<=0)continue;
+      const ax=normals.getX(i)*(1-w)+n.x*w;
+      const ay=normals.getY(i)*(1-w)+n.y*w;
+      const az=normals.getZ(i)*(1-w)+n.z*w;
+      const len=Math.hypot(ax,ay,az)||1;
+      normals.setXYZ(i,ax/len,ay/len,az/len);
+    }
+    normals.needsUpdate=true;
+  }
+  unifyGroundSeamNormals();
   // Guaranteed opaque stock Three.js ground material. Never allow a failed custom
   // fragment shader to make the planet vanish on mobile Safari.
   const groundMaterial=new THREE.MeshStandardMaterial({map:groundTexture,vertexColors:true,roughness:1,
@@ -250,7 +274,7 @@ try {
     }
     pos.needsUpdate = true;
     groundGeo.computeVertexNormals();
-    groundGeo.attributes.normal.needsUpdate = true;
+    unifyGroundSeamNormals();
     groundGeo.computeBoundingSphere();
     groundGeo.computeBoundingBox();
   }
@@ -437,6 +461,10 @@ try {
     }
     sun.castShadow=enabled;
     renderer.shadowMap.enabled=enabled;
+    // The old village terrain received shadows but the adjacent globe did
+    // not; make the single existing sphere a receiver as well, sharing the
+    // same sunlight, shadow map and quality presets (no extra caster pass).
+    ground.receiveShadow=enabled;
     shadowBudget.reset();
     shadowActive=enabled;
     // Smaller bias improves contact at tree bases without an extra shadow

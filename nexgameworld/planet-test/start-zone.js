@@ -53,6 +53,23 @@ export function startHeightAt(x,z){
  return bank+(native-bank)*smooth(1.025,1.24,r);
 }
 // Original lake physics: shallow water is traversable, deep lakebed is not.
+// Reuse the original 124x124 grid and untouched inner meadow. The eastern
+// outermost vertices gradually extend up to 9 metres into the forest;
+// no new geometry, draw call, collision geometry or camera adjustment.
+export function startTerrainVisualPoint(x,z){
+ const d=Math.hypot(x,z);
+ if(!d)return {x,z};
+ const east=smooth(44,69,x);
+ const rim=smooth(65,84,d);
+ const radius=d+9*east*rim;
+ return {x:x*radius/d,z:z*radius/d};
+}
+// Coarse-sphere and high-resolution tile lighting converge to the same
+// radial normal at the actual seam, eliminating a hard specular break.
+export function startTerrainSeamNormalWeight(x,z){
+ const distance=Math.hypot(x,z);
+ return smooth(45,72,x)*smooth(73,88,distance)*(1-smooth(108,124,distance));
+}
 export function canWadeAtLocal(x,z){
  return Math.max(0,LAKE_SURFACE-startHeightAt(x,z))<=1.12;
 }
@@ -256,7 +273,11 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
  const extent=87, grid=124,step=extent*2/grid,points=[],cols=[],indices=[];
  for(let j=0;j<=grid;j++)for(let i=0;i<=grid;i++){
   const x=-extent+i*step,z=-extent+j*step;
-  points.push(x,z);const c=startColorAt(x,z);cols.push(...c);
+  // Only the outer east-side visual positions move; the existing radial
+  // index boundary remains fixed at 84 in original grid coordinates.
+  const visual=startTerrainVisualPoint(x,z);
+  points.push(visual.x,visual.z);
+  const c=startColorAt(x,z);cols.push(...c);
   if(i<grid&&j<grid){
    const cx=x+step*.5,cz=z+step*.5;
    if(Math.hypot(cx,cz)<84){
@@ -398,7 +419,21 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
    const x=points[i],z=points[i+1],n=localToNormal(x,z,getRadius());
    const r=getRadius()+heightAt(n)+.12;attr.setXYZ(i/2,n.x*r,n.y*r,n.z*r);
   }
-  attr.needsUpdate=true;terrainGeo.computeVertexNormals();terrainGeo.computeBoundingSphere();
+  attr.needsUpdate=true;terrainGeo.computeVertexNormals();
+  const normals=terrainGeo.attributes.normal;
+  for(let i=0;i<points.length;i+=2){
+   const x=points[i],z=points[i+1];
+   const w=startTerrainSeamNormalWeight(x,z);
+   if(w<=0)continue;
+   const n=localToNormal(x,z,getRadius());
+   const k=i/2;
+   const ax=normals.getX(k)*(1-w)+n.x*w;
+   const ay=normals.getY(k)*(1-w)+n.y*w;
+   const az=normals.getZ(k)*(1-w)+n.z*w;
+   const len=Math.hypot(ax,ay,az)||1;
+   normals.setXYZ(k,ax/len,ay/len,az/len);
+  }
+  normals.needsUpdate=true;terrainGeo.computeBoundingSphere();
   updateSurface(shore);updateSurface(water);updateSurface(shimmerGeometry);refreshAnchors();updateBrush();rebuildReeds();meadow.rebuild();rebuildStones();villageVisuals.rebuild();
  }
  rebuild();
