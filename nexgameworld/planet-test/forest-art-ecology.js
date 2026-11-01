@@ -10,30 +10,71 @@ function valid(data){
   throw new Error('Invalid old-growth ornamental geometry');
  return {...data,triangles:data.positions.length/9};
 }
-export function forestShrubLeafData(){
+// G-23: three original close-range shrub families. The same 18-triangle
+// budget per plant is split into broad lobes, slender lanceolate leaves,
+// or sharply toothed smaller leaf plates. Separate instanced geometries make
+// each species genuinely distinct, without textures, shaders or collisions.
+export const FOREST_SHRUB_FAMILIES=Object.freeze(['broad','lanceolate','toothed']);
+export function forestShrubFamilyProfile(variation,shade=0){
+ if(!Number.isFinite(variation)||!Number.isFinite(shade))
+  throw new RangeError('Invalid shrub profile');
+ const v=clamp(variation),s=clamp(shade);
+ const family=v<.34?'broad':v<.69?'lanceolate':'toothed';
+ const light=1.05-.20*s+.06*(v-.5);
+ return {family,light,
+  width:family==='broad'?.92+.16*v:family==='lanceolate'?.70+.13*v:.82+.13*v,
+  height:family==='broad'?.87+.08*v:family==='lanceolate'?1.06+.12*v:.94+.08*v,
+  shade:s};
+}
+export function forestShrubLeafData(family='broad'){
+ if(!FOREST_SHRUB_FAMILIES.includes(family))
+  throw new RangeError('Unsupported shrub family');
  const positions=[],colors=[];
- function face(a,b,c,ca,cb,cc){
-  positions.push(...a,...b,...c);
-  colors.push(...ca,...cb,...cc);
- }
- // Nine individual upward-arching shoots, two leaf facets each. This is
- // precisely the previous 18 triangles/instance, not a new foliage batch.
- for(let i=0;i<9;i++){
-  const az=i*TAU/9+.065*Math.sin(i*2.41),dx=Math.cos(az),dz=Math.sin(az);
-  const tx=-dz,tz=dx,reach=.54+(i%3)*.115;
-  const h=.62+(i%4)*.105,lean=.08*Math.sin(i*1.93);
-  const base=[dx*.095,.075,dz*.095];
-  const stalk=[dx*reach*.39,h*.37,dz*reach*.39];
-  const spine=[dx*reach*.71+tx*lean,h*.78,dz*reach*.71+tz*lean];
-  const tip=[dx*(reach+.11)+tx*lean*1.4,h*.92-.07*(i%3===0),
-   dz*(reach+.11)+tz*lean*1.4];
-  const width=.185+(i%3)*.029;
-  const left=[spine[0]+tx*width,spine[1]-.027,spine[2]+tz*width];
-  const right=[spine[0]-tx*width,spine[1]-.064,spine[2]-tz*width];
-  const shadow=[.31,.49,.28],middle=[.54+.035*(i%3),.73,.42];
-  const sun=[.77,.91,.57],cool=[.40,.65,.43];
-  face(stalk,left,tip,shadow,sun,middle);
-  face(stalk,tip,right,shadow,middle,cool);
+ const face=(a,b,c,ca,cb,cc)=>{
+  positions.push(...a,...b,...c);colors.push(...ca,...cb,...cc);
+ };
+ const count=family==='toothed'?6:9;
+ for(let i=0;i<count;i++){
+  const angle=i*TAU/count+.105*Math.sin(i*2.41);
+  const dx=Math.cos(angle),dz=Math.sin(angle),tx=-dz,tz=dx;
+  const vigor=.83+.09*(i%3)+.06*Math.sin(i*2.53);
+  const lean=.075*Math.sin(i*1.93);
+  const reach=(family==='broad'?.57:family==='lanceolate'?.77:.62)*vigor;
+  const h=(family==='broad'?.71:family==='lanceolate'?.87:.72)*vigor;
+  const start=[dx*.12,.085,dz*.12];
+  const stem=[dx*reach*.36,h*.37,dz*reach*.36];
+  const top=[dx*(reach+.11)+tx*lean*1.2,
+    h+.065*(i%2),dz*(reach+.11)+tz*lean*1.2];
+  const spine=[dx*reach*.72+tx*lean,h*.77,
+    dz*reach*.72+tz*lean];
+  const width=(family==='broad'?.24:family==='lanceolate'?.095:.18)*
+    (1+.10*(i%3));
+  const left=[spine[0]+tx*width,spine[1]+.026,
+    spine[2]+tz*width];
+  const right=[spine[0]-tx*width,spine[1]-.068,
+    spine[2]-tz*width];
+  const shaded=[.28+.026*(i%3),.45,.29],
+    center=[.45+.041*(i%3),.65,.40],
+    sun=[.72+.034*(i%3),.87,.55],
+    underside=[.36,.56,.38];
+  if(family==='broad'){
+   // Broad, softly cupped oak-like leaf pairs.
+   face(stem,left,top,shaded,sun,center);
+   face(stem,top,right,shaded,center,underside);
+  }else if(family==='lanceolate'){
+   // Slender, upward arcing lanceolate blades expose different side light.
+   const spike=[top[0]+dx*.07,top[1]+.055,top[2]+dz*.07];
+   face(stem,left,spike,shaded,sun,center);
+   face(stem,spike,right,shaded,center,underside);
+  }else{
+   // Sawtooth-side leaf plate with individually stepped outside edge.
+   // Six leaves x three faces = the SAME original 18-triangle budget.
+   const tooth=[spine[0]-tx*width*1.30+dx*.075,
+    spine[1]+.010,spine[2]-tz*width*1.30+dz*.075];
+   face(stem,left,top,shaded,sun,center);
+   face(stem,top,tooth,shaded,center,underside);
+   face(stem,tooth,right,shaded,sun,underside);
+  }
  }
  return valid({positions,colors});
 }

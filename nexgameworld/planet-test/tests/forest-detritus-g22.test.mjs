@@ -77,7 +77,7 @@ test('G-22 old mushroom and wood positions, quest clearings and tree blockers st
  const ecology=createForestEcology(THREE,{scene,radius:261,heightAt:()=>0});
  const life=createForestGroundLife(THREE,{scene:leafScene,radius:261,heightAt:()=>0});
  const bundles=scene.children.filter(x=>x.isInstancedMesh&&x.name.startsWith('forest-'));
- assert.equal(bundles.length,5);
+ assert.equal(bundles.length,7,'G-23 keeps the five original ecological types while splitting shrubs into three botanical silhouettes');
  const caps=scene.getObjectByName('forest-mushroom-caps');
  const stems=scene.getObjectByName('forest-mushroom-stems');
  assert.equal(caps.count,Math.floor(145*.65));

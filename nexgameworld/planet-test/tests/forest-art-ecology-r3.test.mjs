@@ -38,17 +38,18 @@ test('visual ecology keeps all fixed shrub, mushroom, wildlife and stone anchors
  assert.equal(old.shrubs.length,500);
  assert.equal(old.fungi.length,145);
  assert.equal(old.rocks.length,190);
- const shrub=scene.getObjectByName('forest-shrubs');
+ const shrubs=['broad','lanceolate','toothed'].map(f=>
+  scene.getObjectByName('forest-shrubs-'+f));
  const cap=scene.getObjectByName('forest-mushroom-caps');
  const stem=scene.getObjectByName('forest-mushroom-stems');
- assert.ok(shrub?.isInstancedMesh&&cap?.isInstancedMesh&&stem?.isInstancedMesh);
- assert.equal(shrub.instanceMatrix.count,500);
+ assert.ok(shrubs.every(b=>b?.isInstancedMesh)&&cap?.isInstancedMesh&&stem?.isInstancedMesh);
+ assert.equal(shrubs.reduce((n,b)=>n+b.instanceMatrix.count,0),500);
  assert.equal(cap.instanceMatrix.count,145);
  assert.equal(stem.instanceMatrix.count,145);
- assert.equal(shrub.geometry.attributes.position.count,54);
+ for(const shrub of shrubs)assert.equal(shrub.geometry.attributes.position.count,54);
  assert.equal(cap.geometry.attributes.position.count,324);
- assert.ok(shrub.material.vertexColors&&cap.material.vertexColors&&stem.material.vertexColors);
- assert.equal(scene.children.filter(x=>x.isInstancedMesh&&x.name.startsWith('forest-')).length,5);
+ assert.ok(shrubs.every(b=>b.material.vertexColors)&&cap.material.vertexColors&&stem.material.vertexColors);
+ assert.equal(scene.children.filter(x=>x.isInstancedMesh&&x.name.startsWith('forest-')).length,7);
  assert.deepEqual(forestColliders(),colliders);
  assert.deepEqual(createForestLayout(),trees);
 });
@@ -74,7 +75,7 @@ test('R3-04 remains main-game art only, without preload, shaders or extra UI',()
  const module=readFileSync(new URL('../forest-ecology.js',import.meta.url),'utf8');
  assert.match(world,/createForestEcology\(THREE,\{scene,radius:R,heightAt\}\)/);
  assert.match(module,/forestMushroomCapData\(\)/);
- assert.match(module,/forestShrubLeafData\(\)/);
+ assert.match(module,/forestShrubLeafData\(family\)/);
  assert.doesNotMatch(module,/onBeforeCompile|ShaderMaterial|addCollider/);
  assert.doesNotMatch(world,/r3EcologyToggle|preloadAllForestTextures/);
 });

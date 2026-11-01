@@ -1,7 +1,9 @@
 // Deterministic visual-only forest ecology: does not create actual mobs or loot.
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 import {forestFernData,forestFernAgeProfile} from './forest-botanical-geometry.js?v=2';
-import {forestShrubLeafData,forestMushroomCapData,FOREST_FUNGUS_CENTRES} from './forest-art-ecology.js?v=2';
+import {forestShrubLeafData,forestShrubFamilyProfile,FOREST_SHRUB_FAMILIES,
+ forestMushroomCapData,FOREST_FUNGUS_CENTRES} from './forest-art-ecology.js?v=3';
+import {forestCanopyShadeAt} from './forest-lighting.js';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestDistance,
  createForestLayout} from './whispering-forest.js';
 const TAU=Math.PI*2;
@@ -77,8 +79,8 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
   geo.setAttribute('color',new THREE.Float32BufferAttribute(data.colors,3));
   geo.computeVertexNormals();return geo;
  }
- function shrubLeafGeometry(){
-  return vertexGeometry(forestShrubLeafData());
+ function shrubLeafGeometry(family){
+  return vertexGeometry(forestShrubLeafData(family));
  }
  function mushroomCapGeometry(){
   return vertexGeometry(forestMushroomCapData());
@@ -113,9 +115,30 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
   geo.computeVertexNormals();return geo;
  }
  const leaves=mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),stones=mat('#ffffff',{flatShading:true,vertexColors:true});
- instance('forest-shrubs',layout.shrubs,shrubLeafGeometry(),leaves,
-  p=>({x:p.size,y:p.size*1.20,z:p.size,h:.045}),
-  p=>p.variation>.65?'#567e53':p.variation>.3?'#426c51':'#799165');
+ // G-23: three genuinely different leaf silhouettes share the ORIGINAL
+ // 500 shrub anchors and 18 triangles per plant. Just two extra static
+ // draw calls, never per-shrub meshes or gameplay obstruction changes.
+ const shrubGroups=Object.fromEntries(FOREST_SHRUB_FAMILIES.map(k=>[k,[]]));
+ for(const p of layout.shrubs){
+  const profile=forestShrubFamilyProfile(p.variation,
+   forestCanopyShadeAt(p.lon,p.lat));
+  shrubGroups[profile.family].push({...p,profile});
+ }
+ const shrubPalettes={
+  broad:['#75965b','#65834d','#89a467','#527b50'],
+  lanceolate:['#437b58','#57936c','#376e59','#7a9f79'],
+  toothed:['#617f43','#799254','#436a40','#96a565']
+ };
+ for(const family of FOREST_SHRUB_FAMILIES){
+  const items=shrubGroups[family];
+  instance('forest-shrubs-'+family,items,shrubLeafGeometry(family),leaves,
+   p=>({x:p.size*p.profile.width,
+    y:p.size*1.20*p.profile.height,
+    z:p.size*p.profile.width,h:.045}),
+   p=>new THREE.Color(shrubPalettes[family][Math.min(3,Math.floor(p.variation*4))])
+    .lerp(new THREE.Color('#35574a'),p.profile.shade*.19)
+    .multiplyScalar(p.profile.light));
+ }
  instance('forest-deep-bracken',layout.bracken,brackenGeometry(),
   mat('#ffffff',{side:THREE.DoubleSide,vertexColors:true}),p=>({
    x:p.size*1.12*forestFernAgeProfile(p.variation,.48).width,
