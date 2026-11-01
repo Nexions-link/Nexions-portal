@@ -3,6 +3,7 @@ import {screenMoveVector,turnTowardsAngle} from '../movement-controls.js?v=0.3.7
 import {readPlanetView,writePlanetView} from './world-save.js?v=3';
 import {cameraObstruction,createCameraProbe,isInLonghouse,canWalkCamp} from './sphere-physics.js?v=17';
 import {settleCameraLook} from './camera-look-smoothing.js?v=1';
+import {FIRST_SPAWN_CAMERA,isFirstCharacterSpawn} from './spawn-camera.js?v=1';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=2';
 import {createR2AdaptiveRenderBudget,createR2SceneSnapshot,compareR2SceneSnapshots} from './r2-performance.js?v=1';
@@ -395,12 +396,15 @@ try {
   relocateInstances();
   const hero=createTauren(THREE,scene,{player:true});
   const actor=hero.root;
+  // Only a newly created, untouched character gets the camp showcase angle.
+  // Returning characters and later respawns retain the existing camera rules.
+  const firstSpawnCamera=isFirstCharacterSpawn(accountProfile)?FIRST_SPAWN_CAMERA:null;
   const state = {
     normal:accountProfile?new THREE.Vector3(...accountProfile.positionNormal):previousWorld?new THREE.Vector3(...previousWorld.normal):unitAt(0,0),
     lonUnwrapped:previousWorld?.lonUnwrapped??0,meters:previousWorld?.meters??0,
-    heading:accountProfile?.heading??previousWorld?.heading??0,cameraHeading:previousWorld?.cameraHeading??0,
-    cameraPitch:previousWorld?.cameraPitch??.36,zoom:previousWorld?.zoom??cameraSettings?.zoom??13,
-    cameraFollow:previousWorld?.cameraFollow??cameraSettings?.follow??false,
+    heading:accountProfile?.heading??previousWorld?.heading??0,cameraHeading:previousWorld?.cameraHeading??firstSpawnCamera?.heading??0,
+    cameraPitch:previousWorld?.cameraPitch??firstSpawnCamera?.pitch??.36,zoom:previousWorld?.zoom??firstSpawnCamera?.zoom??cameraSettings?.zoom??13,
+    cameraFollow:previousWorld?.cameraFollow??firstSpawnCamera?.follow??cameraSettings?.follow??false,
     orbit:false,orbitAngle:previousWorld?.orbitAngle??.45,
     orbitElevation:previousWorld?.orbitElevation??.34,
     orbitDistance:previousWorld?.orbitDistance??3.22,legCycle:0
@@ -445,7 +449,7 @@ try {
    profile:frameProfiler,quality:qualityName,version:r2VersionLabel(),
    r2:r2Flags(),dpr:renderer.getPixelRatio()});
   function r2VersionLabel(){
-   return $('planetBuildWidget')?.dataset.build||'0.6.45.59';
+   return $('planetBuildWidget')?.dataset.build||'0.6.45.76';
   }
   function applyGraphicsQuality(){
     const profile=GRAPHICS_PRESETS[qualityName];
