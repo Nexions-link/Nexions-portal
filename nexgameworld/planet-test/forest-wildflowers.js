@@ -1,7 +1,7 @@
 // G-21: botanical wildflower islands in the existing forest grass clearings.
 // One shared instanced draw call, fully decorative; no new collisions,
 // textures, network state, shader overrides or animation-frame updates.
-import {forestGroundLifeLayout} from './forest-ground-life.js?v=4';
+import {forestGroundLifeLayout} from './forest-ground-life.js?v=6';
 import {forestGrassCarpetProfile} from './forest-grass-carpet.js?v=1';
 import {forestCanopyShadeAt} from './forest-lighting.js';
 import {forestTrailLatitude} from './whispering-forest.js';

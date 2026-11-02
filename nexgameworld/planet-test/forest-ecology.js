@@ -4,9 +4,40 @@ import {forestFernData,forestFernAgeProfile} from './forest-botanical-geometry.j
 import {forestShrubLeafData,forestShrubFamilyProfile,FOREST_SHRUB_FAMILIES,
  forestMushroomCapData,FOREST_FUNGUS_CENTRES} from './forest-art-ecology.js?v=3';
 import {forestCanopyShadeAt} from './forest-lighting.js';
+import {forestHabitatAt} from './forest-habitat.js?v=1';
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestDistance,
  createForestLayout} from './whispering-forest.js';
 const TAU=Math.PI*2;
+// Cluster ornamental fungi in wet pockets using an independent fixed seed.
+// Keep the original 145 instances: no new meshes, collision or wildlife changes.
+export function forestFungalColonies(source,trees){
+ const centers=[];
+ for(const p of [...source].sort((a,b)=>
+  forestHabitatAt(b.lon,b.lat).mushroom-forestHabitatAt(a.lon,a.lat).mushroom)){
+  if(forestHabitatAt(p.lon,p.lat).mushroom<.19)continue;
+  if(centers.every(c=>forestDistance(p.lon,p.lat,c.lon,c.lat)>8))centers.push(p);
+  if(centers.length===22)break;
+ }
+ if(!centers.length)return source;
+ let seed=920525;
+ const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+ return source.map((p,i)=>{
+  if(i%5===0)return p;
+  const center=centers[(i*7)%centers.length];
+  for(let k=0;k<5;k++){
+   const a=rand()*TAU,dist=.75+rand()*2.9;
+   const lon=center.lon+Math.cos(a)*dist/(261*Math.cos(center.lat));
+   const lat=center.lat+Math.sin(a)*dist/261;
+   if(Math.abs(lat-forestTrailLatitude(lon))*261<5.25||
+    forestDistance(lon,lat,FOREST_CAMP.lon,FOREST_CAMP.lat)<FOREST_CAMP.clearingRadius+.25||
+    FOREST_SITE_CLEARINGS.some(s=>forestDistance(lon,lat,s.lon,s.lat)<s.radius+.25)||
+    trees.some(t=>forestDistance(lon,lat,t.lon,t.lat)<t.radius*.78+.40)||
+    forestHabitatAt(lon,lat).mushroom<.16)continue;
+   return {...p,lon,lat};
+  }
+  return p;
+ });
+}
 export function forestEcologyLayout(seed=97431){
  let s=seed>>>0;
  const rand=()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);
@@ -40,9 +71,11 @@ export function forestEcologyLayout(seed=97431){
  // so additional foliage never re-rolls animals, rocks, or mushrooms.
  for(let i=0;i<480;i++){
   const p=sample(.7,7.4);
-  if(p&&p.lon>.42&&p.lon<1.38)bracken.push(p);
+  if(p&&p.lon>.42&&p.lon<1.38&&
+   rand()<.74+.26*forestHabitatAt(p.lon,p.lat).fern)bracken.push(p);
  }
- return {shrubs,rocks,fungi,bracken,wildlife};
+ // Run only after old sampling to preserve shrubs, rocks and animal anchors.
+ return {shrubs,rocks,fungi:forestFungalColonies(fungi,trees),bracken,wildlife};
 }
 export function createForestEcology(THREE,{scene,radius,heightAt}){
  const layout=forestEcologyLayout(),up=new THREE.Vector3(0,1,0),n=new THREE.Vector3();
@@ -136,7 +169,8 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
     y:p.size*1.20*p.profile.height,
     z:p.size*p.profile.width,h:.045}),
    p=>new THREE.Color(shrubPalettes[family][Math.min(3,Math.floor(p.variation*4))])
-    .lerp(new THREE.Color('#35574a'),p.profile.shade*.19)
+    .lerp(new THREE.Color('#35574a'),p.profile.shade*.19+
+     forestHabitatAt(p.lon,p.lat).moisture*.12)
     .multiplyScalar(p.profile.light));
  }
  instance('forest-deep-bracken',layout.bracken,brackenGeometry(),
@@ -153,7 +187,8 @@ export function createForestEcology(THREE,{scene,radius,heightAt}){
  instance('forest-mushroom-caps',layout.fungi,mushroomCapGeometry(),
   mat('#ffffff',{vertexColors:true,side:THREE.DoubleSide}),
   p=>({x:p.size*.55,y:p.size*.45,z:p.size*.55,h:p.size*.61}),
-  p=>p.variation>.68?'#b3865b':p.variation>.32?'#9e715b':'#826953');
+  p=>new THREE.Color(p.variation>.68?'#b3865b':p.variation>.32?'#9e715b':'#826953')
+   .lerp(new THREE.Color('#5b6950'),forestHabitatAt(p.lon,p.lat).moisture*.17));
  const fur=mat('#4c423a'),russet=mat('#91755c'),muzzle=mat('#b29a79'),eyes=mat('#22241f');
  const animals=[];
  function mesh(parent,geometry,material,x,y,z,sx=1,sy=1,sz=1){

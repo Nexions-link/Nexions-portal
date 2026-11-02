@@ -4,6 +4,7 @@
 import {forestTrailLatitude,forestDistance,forestMoodAt,FOREST_CAMP,
  FOREST_SITE_CLEARINGS,createForestLayout} from './whispering-forest.js';
 import {forestCanopyShadeAt} from './forest-lighting.js';
+import {forestHabitatAt} from './forest-habitat.js?v=1';
 import {forestGrassCarpetProfile} from './forest-grass-carpet.js?v=1';
 const TAU=Math.PI*2;
 export const FOREST_GROUND_LIFE_CAPS=Object.freeze({
@@ -46,8 +47,10 @@ export function forestGroundLifeLayout(seed=706419){
   if(!valid(lon,lat,size,kind==='deadwood'?6.3:kind==='saplings'?6.9:4.6))continue;
   const carpet=kind==='grass'?forestGrassCarpetProfile(lon,lat):null;
   if(carpet&&rand()>.51+.48*carpet.density)continue;
-  const shade=forestCanopyShadeAt(lon,lat);
-  // Drier sunbreaks carry straw; old damp canopy carries darker meadow grass.
+  const shade=forestCanopyShadeAt(lon,lat),habitat=forestHabitatAt(lon,lat);
+  if(kind==='grass'&&rand()>.62+.38*habitat.grass)continue;
+  if(kind==='saplings'&&rand()>.68+.32*habitat.shrub)continue;
+  // Open road-facing verges favour grass; deeper woodland favours saplings.
   places[kind].push(Object.freeze({lon,lat,size,variation,
    yaw:rand()*TAU,shade}));
  }

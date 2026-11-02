@@ -4,6 +4,7 @@
 import {createForestLayout,forestDistance,forestTrailLatitude,forestMoodAt,
  FOREST_CAMP,FOREST_SITE_CLEARINGS} from './whispering-forest.js';
 import {forestCanopyShadeAt} from './forest-lighting.js';
+import {forestHabitatAt} from './forest-habitat.js?v=1';
 import {createWeatheredStoneGeometry} from './stone-surface.js?v=1';
 import {forestFernData,forestFernAgeProfile} from './forest-botanical-geometry.js?v=2';
 
@@ -55,8 +56,10 @@ export function forestUnderstoryLayout(seed=522817){
   const variation=rand(),size=kind==='boulders'?.42+rand()*1.14:
    kind==='ferns'?.57+rand()*1.35:.42+rand()*.96;
   if(!free(lon,lat,size))continue;
-  const shade=forestCanopyShadeAt(lon,lat);
-  // Leaf colour and fern density respond to canopy; openings stay readable.
+  const shade=forestCanopyShadeAt(lon,lat),habitat=forestHabitatAt(lon,lat);
+  // Damp shade favours ferns; litter is more visible near sunnier gaps.
+  if(kind==='ferns'&&rand()>.66+.34*habitat.fern)continue;
+  if(kind==='leaves'&&rand()>.76+.24*(1-habitat.grass))continue;
   groups[kind].push(Object.freeze({lon,lat,size,
    yaw:rand()*TAU,variation,shade}));
  }

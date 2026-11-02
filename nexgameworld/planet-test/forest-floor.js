@@ -3,6 +3,7 @@
 import {forestDistance,forestMoodAt,forestTrailLatitude,FOREST_CAMP,
  FOREST_SITE_CLEARINGS,FOREST_TREE_CAP,forestColliders} from './whispering-forest.js';
 import {forestCanopyShadeAt} from './forest-lighting.js';
+import {forestHabitatAt} from './forest-habitat.js?v=1';
 const TAU=Math.PI*2;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const ease=x=>{const a=clamp(x);return a*a*(3-2*a)};
@@ -44,13 +45,14 @@ export function forestFloorLayout(seed=768451){
   const finalSize=type<.51?size*(.8+variation*.75):.15+size*.31;
   if(mood<=0.035||!open(lon,lat,finalSize))continue;
   // More vegetation in the shaded interior but leave illuminated breaks visible.
-  const shade=forestCanopyShadeAt(lon,lat);
+  const habitat=forestHabitatAt(lon,lat);
   if(type<.51&&moss.length<FOREST_FLOOR_COUNTS.moss){
-   if(rand()>.25+.67*mood*.7+.20*shade)continue;
+   // Damp shaded pockets form connected carpets; openings keep bare soil.
+   if(rand()>.22+.43*mood+.25*habitat.moss)continue;
    moss.push(Object.freeze({lon,lat,size:finalSize,
     variation,angle,kind:'moss'}));
   }else if(litter.length<FOREST_FLOOR_COUNTS.litter){
-   if(rand()>.37+.48*mood)continue;
+   if(rand()>.33+.38*mood+.22*(1-habitat.grass))continue;
    litter.push(Object.freeze({lon,lat,size:finalSize,
     variation,angle,kind:variation>.82?'twig':'leaf'}));
   }
