@@ -24,11 +24,16 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npx --yes esbuild index.js --bundle --minify --legal-comments=none --platform=node --format=cjs --target=node24 --outfile=bundle/index.js
+      - name: Compress deployable bundle
+        working-directory: santa/neon-function/bundle
+        run: |
+          zip -9 function.zip index.js
+          base64 -w0 function.zip > function.zip.b64
       - name: Save deployable bundle
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add santa/neon-function/bundle/index.js
+          git add santa/neon-function/bundle/index.js santa/neon-function/bundle/function.zip.b64
           if ! git diff --cached --quiet; then
             git commit -m 'Build deployable Secret Santa server bundle'
             git push
