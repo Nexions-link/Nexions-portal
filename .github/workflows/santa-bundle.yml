@@ -23,7 +23,7 @@ jobs:
         working-directory: santa/neon-function
         run: |
           npm install --no-audit --no-fund
-          npx --yes esbuild index.js --bundle --minify --legal-comments=none --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=bundle/index.js
+          npx --yes esbuild index.js --bundle --minify --legal-comments=none --platform=node --format=esm --target=node24 --banner:js=\'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);\' --outfile=bundle/index.js
       - name: Compress deployable bundle
         working-directory: santa/neon-function/bundle
         run: |
