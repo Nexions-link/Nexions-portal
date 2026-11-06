@@ -1,0 +1,35 @@
+name: Bundle Santa Neon API
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'santa/neon-function/index.js'
+      - 'santa/neon-function/package.json'
+      - '.github/workflows/santa-bundle.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies and bundle
+        working-directory: santa/neon-function
+        run: |
+          npm install --no-audit --no-fund
+          npx --yes esbuild index.js --bundle --platform=node --format=cjs --target=node24 --outfile=bundle/index.js
+      - name: Save deployable bundle
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add santa/neon-function/bundle/index.js
+          if ! git diff --cached --quiet; then
+            git commit -m 'Build deployable Secret Santa server bundle'
+            git push
+          fi
