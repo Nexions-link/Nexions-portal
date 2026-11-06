@@ -23,7 +23,7 @@ jobs:
         working-directory: santa/neon-function
         run: |
           npm install --no-audit --no-fund
-          npx --yes esbuild index.js --bundle --platform=node --format=cjs --target=node24 --outfile=bundle/index.js
+          npx --yes esbuild index.js --bundle --minify --legal-comments=none --platform=node --format=cjs --target=node24 --outfile=bundle/index.js
       - name: Save deployable bundle
         run: |
           git config user.name 'github-actions[bot]'
