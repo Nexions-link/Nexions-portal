@@ -1,0 +1,73 @@
+name: Verify Secret Santa live API
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/santa-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify live Neon API including complete Secret Santa flow
+        env:
+          SANTA_API: https://br-holy-flower-barqypee-santa.compute.c-8.eu-central-1.aws.neon.tech/santa/api
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error, secrets, base64, time
+          api=os.environ["SANTA_API"]
+          def request(path,method="GET",body=None,password=None):
+              headers={"Accept":"application/json"}
+              if body is not None: headers["Content-Type"]="application/json"
+              if password:
+                  headers["Authorization"]="Basic "+base64.b64encode(("admin:"+password).encode()).decode()
+              data=json.dumps(body).encode() if body is not None else None
+              r=urllib.request.Request(api+path,data=data,headers=headers,method=method)
+              try:
+                  with urllib.request.urlopen(r,timeout=35) as f:
+                      return f.status,json.loads(f.read())
+              except urllib.error.HTTPError as e:
+                  msg=e.read().decode()[:350]
+                  print("HTTP error",e.code, path.split("/")[1] if "/" in path else path,msg)
+                  raise
+          for attempt in range(4):
+              try:
+                  status,body=request("/rooms/not-a-room/admin")
+                  raise AssertionError("Expected 404")
+              except urllib.error.HTTPError as e:
+                  if e.code==404: break
+                  if attempt==3: raise
+                  time.sleep(3)
+              except Exception:
+                  if attempt==3: raise
+                  time.sleep(3)
+          print("API routing reachable")
+          pwd="test-"+secrets.token_urlsafe(22)
+          s,new=request("/rooms","POST",{"title":"Santa automated smoke test","budget":1200,"eventDate":"2026-12-31","password":pwd})
+          assert s==201 and "room" in new,(s,new)
+          room=new["room"]
+          print("Room creation OK")
+          tickets=[]
+          for name in ["Test-A","Test-B","Test-C"]:
+              s,item=request("/rooms/"+room+"/join","POST",{"name":name,"wishes":"Test gift"})
+              assert s==201 and "ticket" in item
+              tickets.append((name,item["ticket"]))
+          print("Three participants registered")
+          s,admin=request("/rooms/"+room+"/admin",password=pwd)
+          assert s==200 and len(admin["participants"])==3 and not admin["drawn"]
+          print("Organizer authentication OK")
+          s,draw=request("/rooms/"+room+"/draw","POST",{},password=pwd)
+          assert s==200 and draw.get("ok")
+          print("Draw successful")
+          recipient_names=[]
+          for name,ticket in tickets:
+              s,card=request("/tickets/"+ticket)
+              assert s==200 and card.get("recipient") and card["recipient"]["name"]!=name
+              recipient_names.append(card["recipient"]["name"])
+          assert len(set(recipient_names))==3
+          s,admin=request("/rooms/"+room+"/admin",password=pwd)
+          assert admin["drawn"]
+          print("Private tickets, recipient uniqueness, and persisted draw OK")
+          PY
