@@ -2,7 +2,7 @@
 // against an incoming enemy within the front hemisphere of the equipped shield.
 // The player's root faces local +Z; radial normal replaces global world-up.
 import {MELEE_FACING_COSINE} from './melee-facing.js?v=1';
-import {armorReduction} from '../items.js?v=0.3.5.17';
+import {armorReduction} from '../items.js?v=64600';
 import {SHIELD_BLOCK_SECONDS} from '../shield-block.js?v=0.3.7.1';
 export const MELEE_ANIMATION_SECONDS=.8;
 export const MELEE_IMPACT_SECONDS=.34;

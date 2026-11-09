@@ -1,3 +1,4 @@
+import {mountCharacterCreation} from './planet-test/character-creation.js?v=64600';
 const API='https://api.nexions.ru/api/ngw';
 const $=id=>document.getElementById(id);
 const views=['login','register','recoveryCodes','recover','characters'];
@@ -152,7 +153,7 @@ async function loadCharacters(){
   const card=document.createElement('div');card.className='hero';
   const desc=document.createElement('div');
   const title=document.createElement('strong');title.textContent=character.nickname;
-  const detail=document.createElement('p');detail.className='hint';detail.textContent='Воин · уровень '+character.level;
+  const detail=document.createElement('p');detail.className='hint';detail.textContent=(character.raceId==='orc'?'Орк':'Таурен')+' · '+(character.classId==='hunter'?'Охотник':'Воин')+' · уровень '+character.level;
   desc.append(title,detail);
   const button=document.createElement('button');button.type='button';button.textContent='Выбрать';
   button.addEventListener('click',()=>{
@@ -173,7 +174,7 @@ async function loadCharacters(){
  $('characterForm').hidden=(data.characters||[]).length>=data.slots;
 }
 $('characterForm').addEventListener('submit',event=>submit(event,async form=>{
- await api('/characters',{method:'POST',authorized:true,body:{nickname:String(form.get('nickname'))}});
+ await api('/characters',{method:'POST',authorized:true,body:{nickname:String(form.get('nickname')),raceId:String(form.get('raceId')),classId:String(form.get('classId'))}});
  $('heroName').value='';await loadCharacters();
 }));
 $('openPasswordChange').addEventListener('click',()=>{
@@ -215,3 +216,5 @@ if(token){api('/me',{authorized:true}).then(data=>{
   feedback('Не удалось проверить сохранённый вход. Возможно, сервер временно недоступен.',true);
  }
 })}
+
+mountCharacterCreation(document.getElementById("characterForm"));

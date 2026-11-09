@@ -88,6 +88,6 @@ test('no model replacements or camera/equipment/network mutations',()=>{
  assert.match(source,/heroSculpt:true/);
  assert.match(source,/createTaurenFurLockGeometry\(THREE\)/);
  assert.match(source,/taurenHorn\(head,s,heroSculpt\)/);
- assert.match(world,/createTauren\(THREE,scene,\{player:true\}\)/);
+ assert.match(world,/createTauren\(THREE,scene,\{player:true,raceId:accountProfile\?\.raceId,classId:accountProfile\?\.classId\}\)/);
  assert.doesNotMatch(source,/Skinning|GLTFLoader|addCollider/);
 });

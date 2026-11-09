@@ -184,5 +184,15 @@ export function animateSphericalTauren(actor,{
  actor.arms[0].shoulder.rotation.x-=incoming.shieldBrace;
  actor.arms[0].elbow.rotation.x-=incoming.shieldBrace*.38;
  actor.arms[1].shoulder.rotation.x+=incoming.weaponBrace;
+
+ if(user.classId==='hunter'){
+  const draw=playing?Math.sin(Math.min(1,attack)*Math.PI):guard*.35;
+  actor.arms[0].shoulder.rotation.x=-.65-draw*.65;
+  actor.arms[0].shoulder.rotation.z=-.18;
+  actor.arms[0].elbow.rotation.x=-.22;
+  actor.arms[1].shoulder.rotation.x=-.75-draw*.65;
+  actor.arms[1].shoulder.rotation.y=-.65*draw;
+  actor.arms[1].elbow.rotation.x=-.8-draw*.55;
+ }
  return {crouch:bend,block:block.power,attack:playing?swing:0,dagger:stabbing?.extend||0};
 }

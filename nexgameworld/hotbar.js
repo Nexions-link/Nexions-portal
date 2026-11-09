@@ -1,7 +1,7 @@
 // NexGame · Alpha 0.3.5.3
 // Hotbar data is independent of Three.js and touch/desktop rendering.
 // New classes and usable items can extend these registries without changing the UI.
-import {getClassAbilities,getAbilityDefinition} from './skills.js?v=0.6.43.53';
+import {getClassAbilities,getAbilityDefinition} from './skills.js?v=64600';
 
 export const HOTBAR_SLOT_COUNT=8;
 export const DEFAULT_HOTBAR=Object.freeze([
@@ -11,6 +11,8 @@ export const DEFAULT_HOTBAR=Object.freeze([
  Object.freeze({kind:'ability',id:'heavyStrike'}),
  null,null,null,null
 ]);
+export const HUNTER_HOTBAR=Object.freeze([{kind:'ability',id:'autoShot'},{kind:'ability',id:'arcaneShot'},{kind:'item',id:'healingPotion'},{kind:'ability',id:'concussiveShot'},null,null,null,null]);
+export const defaultHotbarForClass=id=>id==='hunter'?HUNTER_HOTBAR:DEFAULT_HOTBAR;
 export const USABLE_ITEMS=Object.freeze({
  healingPotion:Object.freeze({
   id:'healingPotion',name:'Лечебный настой',shortName:'Настой',

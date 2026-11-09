@@ -3,9 +3,15 @@
 export const CLASS_DEFINITIONS=Object.freeze({
  warrior:Object.freeze({id:'warrior',name:'Воин',resource:'rage',resourceName:'Ярость',resourceMax:100,startingResource:0,resourceColor:'#b75b38',playable:true}),
  shaman:Object.freeze({id:'shaman',name:'Шаман',resource:'mana',resourceName:'Мана',resourceMax:100,startingResource:100,resourceColor:'#417fbf',playable:false}),
- hunter:Object.freeze({id:'hunter',name:'Охотник',resource:'mana',resourceName:'Мана',resourceMax:100,startingResource:100,resourceColor:'#417fbf',playable:false})
+ hunter:Object.freeze({id:'hunter',name:'Охотник',resource:'mana',resourceName:'Мана',resourceMax:100,startingResource:100,resourceColor:'#417fbf',playable:true})
 });
 export const ABILITY_DEFINITIONS=Object.freeze({
+ autoShot:Object.freeze({id:'autoShot',classId:'hunter',name:'Автовыстрел',description:'Стрельба из лука до 30 м. Выстрел раз в 2 секунды; во время движения стрельба приостанавливается.',kind:'toggle',level:1,cooldown:2,gcd:0,resourceCost:0,range:30,requiresTarget:true,requiresFacing:true}),
+ arcaneShot:Object.freeze({id:'arcaneShot',classId:'hunter',name:'Чародейский выстрел',description:'Мгновенный выстрел с дополнительным уроном. 15 маны.',kind:'ranged',level:1,cooldown:6,gcd:1.5,resourceCost:15,damageBonus:12,range:30,requiresTarget:true,requiresFacing:true}),
+ concussiveShot:Object.freeze({id:'concussiveShot',classId:'hunter',name:'Оглушающий выстрел',description:'Замедляет противника на 50% на 4 секунды. 12 маны.',kind:'ranged',level:1,cooldown:10,gcd:1.5,resourceCost:12,damageBonus:0,range:30,requiresTarget:true,requiresFacing:true}),
+ multiShot:Object.freeze({id:'multiShot',classId:'hunter',name:'Залп',description:'Поражает до трёх противников рядом с целью. 25 маны.',kind:'ranged',level:4,cooldown:10,gcd:1.5,resourceCost:25,damageBonus:6,range:30,requiresTarget:true,requiresFacing:true}),
+ aimedShot:Object.freeze({id:'aimedShot',classId:'hunter',name:'Прицельный выстрел',description:'Мощный выстрел по выбранной цели. Требует неподвижности и 30 маны.',kind:'ranged',level:8,cooldown:12,gcd:1.5,resourceCost:30,damageBonus:30,range:35,requiresTarget:true,requiresFacing:true}),
+
  autoAttack:Object.freeze({id:'autoAttack',classId:'warrior',name:'Автоатака',description:'Автоматические удары оружием в ближнем бою.',kind:'toggle',level:1,hotkey:'1',cooldown:0,gcd:0,resourceCost:0,range:3.45,requiresTarget:true,requiresFacing:true}),
  thunderStomp:Object.freeze({id:'thunderStomp',classId:'warrior',name:'Громовая поступь',description:'Оглушает ближайших врагов и наносит урон по области.',kind:'area',level:1,hotkey:'2',cooldown:8,gcd:1.5,resourceCost:0,range:4.5,requiresTarget:false,requiresFacing:false}),
  healingPotion:Object.freeze({id:'healingPotion',classId:'all',name:'Лечебный настой',description:'Восстанавливает 55 здоровья. Между применениями требуется отдых.',kind:'consumable',level:1,hotkey:'3',cooldown:0,gcd:0,resourceCost:0,range:0,requiresTarget:false,requiresFacing:false}),

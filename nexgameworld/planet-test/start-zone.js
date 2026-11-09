@@ -1,3 +1,4 @@
+import {createOrc,equipHunterVisual} from './orc-avatar.js?v=64600';
 import {getActorOutfitMaps} from './actor-outfit-materials.js?v=1';
 import {createSmoothActorForm,getSmoothActorPrimitives} from './smooth-actor-geometry.js?v=1';
 import {createLandscapeMap} from '../landscape.js?v=0.6.45.68';
@@ -489,7 +490,8 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
 
 // Original Tauren procedural mesh as it exists in NexGame's game.js,
 // with networking, equipment and inventory intentionally not copied.
-export function createTauren(THREE,scene,{fur=0x836144,clothColor=null,player=false,remotePlayer=false}={}){
+export function createTauren(THREE,scene,{fur=0x836144,clothColor=null,player=false,remotePlayer=false,raceId='hornfolk',classId='warrior'}={}){
+ if(raceId==='orc'){const actor=createOrc(THREE,scene);if(classId==='hunter')equipHunterVisual(THREE,actor);return actor;}
  const TAU=Math.PI*2;
  const material=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:1,metalness:0,...extra});
  function texture(draw,size=128){const c=document.createElement('canvas');c.width=c.height=size;draw(c.getContext('2d'),size);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
@@ -595,6 +597,7 @@ function makeTauren({fur=0x836144,cloth=M.red,weapon=false,scale=1,heroSculpt=fa
 
   const actor=makeTauren({weapon:false,fur,cloth:clothColor===null?M.red:material(clothColor,{map:outfit.cloth}),heroSculpt:true});
   actor.root.userData.surfaceRevision='smooth-actor-1';
+  if(classId==='hunter')equipHunterVisual(THREE,actor);
   // Refreshed anatomy attaches only to existing joints, without moving the
   // weapon/shield grips. Existing NPCs stay lightweight; remote players receive
   // the shared silhouette at reduced detail.

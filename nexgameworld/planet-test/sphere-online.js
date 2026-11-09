@@ -438,7 +438,7 @@ export function createSphericalPresence({
    if(!visual){
     const colors=[0x836144,0x75513d,0x967055,0x695042];
     const color=colors[peer.id.charCodeAt(0)%colors.length];
-    const actor=createAvatar({fur:color,player:false,remotePlayer:true});
+    const actor=createAvatar({fur:color,player:false,remotePlayer:true,raceId:peer.raceId,classId:peer.classId});
     actor.root.add(nameSprite(THREE,peer.name));
     const hint=chargeEvents.get(peer.id);
     visual={id:peer.id,actor,normal:new THREE.Vector3(...(hint?.fromNormal||peer.normal)),
@@ -455,6 +455,7 @@ export function createSphericalPresence({
    // additional sculpt batches for distant peers on mobile Safari.
    // Cap additional draw calls even if sixteen players crowd onto a
    // single phone screen. Nearest peers win the cosmetic quality slots.
+   if(visual.actor.root.userData.hunterBow)visual.actor.root.userData.hunterBow.visible=peer.equipment?.weapon==='wornBow';
    let modelDetail=0;
    if(distance<12&&detailedAvatarSlots<4){
     modelDetail=.68;detailedAvatarSlots++;

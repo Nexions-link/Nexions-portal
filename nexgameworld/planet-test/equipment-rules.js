@@ -1,4 +1,4 @@
-import {ITEM_CATALOG,deriveStats} from '../items.js?v=0.3.5.17';
+import {ITEM_CATALOG,deriveStats} from '../items.js?v=64600';
 export const EQUIPMENT_LABELS={weapon:'Оружие',shield:'Щит',head:'Голова',chest:'Грудь',legs:'Ноги',hands:'Руки',waist:'Пояс',wrists:'Запястья',feet:'Ступни'};
 const failure=error=>({ok:false,error});
 export function equipFromBag(state,id,inCombat=false){

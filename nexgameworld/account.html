@@ -43,7 +43,7 @@ button.danger-confirm{background:#923c3c;color:#fff0ec;border-color:#e48e82}
 button.danger-confirm:disabled{background:#332d2d;color:#b0a29f;border-color:#564e4d;cursor:not-allowed}
 .dialog-error{color:#ffb1ad;white-space:pre-wrap;overflow-wrap:anywhere}
 a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;font-size:12px;letter-spacing:.14em;color:#aab9ad}
-</style></head><body><main>
+</style><link rel="stylesheet" href="./planet-test/character-creation.css?v=64600"></head><body><main>
 <header><h1>NexGameWorld</h1><p>АЛЬФА · ТЕСТ РЕГИСТРАЦИИ</p></header>
 <div id="feedback" role="status" aria-live="polite" hidden></div>
 <section class="view" id="login">
@@ -84,9 +84,20 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 </section>
 <section class="view" id="characters" hidden>
 <h2>Персонажи</h2><p id="accountName" class="muted"></p><p class="hint">Новые герои начинают на 1-м уровне. Перенос старых сохранений недоступен.</p><div id="characterList"></div>
-<form id="characterForm"><label for="heroName">Имя нового персонажа</label><input id="heroName" name="nickname" required minlength="3" maxlength="24">
-<p class="hint">Сейчас доступен Воин. Настройка внешности и классы появятся позже.</p>
-<button class="primary" type="submit">Создать персонажа</button></form>
+<form id="characterForm" class="creation-forge">
+<div class="creation-heading"><small>NEXGAMEWORLD</small><h2>Создание персонажа</h2><p>Выберите свой путь</p></div>
+<div class="creation-layout">
+<fieldset class="creation-races"><legend>Раса</legend>
+<label class="creation-option"><input type="radio" name="raceId" value="hornfolk" checked><span class="creation-emblem">♉</span><strong>Таурен</strong><small>Хранители равнин</small></label>
+<label class="creation-option"><input type="radio" name="raceId" value="orc"><span class="creation-emblem">♜</span><strong>Орк</strong><small>Дети камня и стали</small></label>
+<p class="creation-race-description"></p></fieldset>
+<div class="creation-stage" tabindex="0" role="img" aria-label="Вращаемая 3D-модель персонажа"><span class="creation-gesture">Проведите по модели, чтобы повернуть</span></div>
+<fieldset class="creation-classes"><legend>Класс</legend>
+<label class="creation-option"><input type="radio" name="classId" value="warrior" checked><span class="creation-emblem">⚔</span><strong>Воин</strong><small>Ближний бой · ярость</small></label>
+<label class="creation-option"><input type="radio" name="classId" value="hunter"><span class="creation-emblem">➶</span><strong>Охотник</strong><small>Дальний бой · мана</small></label>
+<p class="creation-class-description"></p></fieldset>
+</div><div class="creation-footer"><h3 class="creation-title">Таурен · Воин</h3><label for="heroName">Имя героя</label><input id="heroName" name="nickname" required minlength="3" maxlength="24" autocomplete="off" placeholder="Как вас будут звать?">
+<button class="primary" type="submit">Войти в историю</button><p class="hint">Новый герой начинает с 1-го уровня. Раса и класс сохраняются навсегда.</p></div></form>
 
 <div class="account-actions">
 <button id="openPasswordChange" type="button">Сменить пароль</button>
@@ -120,4 +131,4 @@ a{color:#d8c291}header{text-align:center;margin-bottom:14px}header p{margin:5px;
 </form>
 </dialog>
 <footer style="text-align:center;font-size:12px;margin-top:15px"><a href="/">На главную</a></footer>
-</main><script type="module" src="./account.js?v=0.6.45.42"></script></body></html>
+</main><script type="module" src="./account.js?v=64600"></script></body></html>

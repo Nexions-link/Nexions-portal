@@ -1,7 +1,7 @@
 // Rendering-only equipment lookup for server-certified nearby players.
 // The browser chooses assets from its own catalog: network messages never
 // supply a model URL, rarity, tuning, or arbitrary item definition.
-import {ITEM_CATALOG} from '../items.js?v=0.6.43.81';
+import {ITEM_CATALOG} from '../items.js?v=64600';
 import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';

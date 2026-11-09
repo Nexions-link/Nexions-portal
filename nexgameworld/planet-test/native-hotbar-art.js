@@ -11,3 +11,10 @@ export const HOTBAR_SHORT={charge:'Рывок',autoAttack:'Авто',thunderStom
 // Active mode visibly differs from the unsheathed idle sword: crossed glowing
 // blades and warm backdrop communicate that auto-attack is engaged.
 export const HOTBAR_AUTO_ACTIVE='<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#5b3419" stroke="#e8b954" stroke-width="1.5"/><path d="M10 10L38 38M38 10L10 38" stroke="#6c4223" stroke-width="7" stroke-linecap="round"/><path d="M8 8L34 34M40 8L14 34" stroke="#e8e0c5" stroke-width="4" stroke-linecap="round"/><path d="M6 5L15 7L9 16Z M42 5L33 7L39 16Z" fill="#fff1bf"/><path d="M12 28L20 36M28 36L36 28" fill="none" stroke="#ffc458" stroke-width="4"/><path d="M24 3L27 11M24 45L27 37" stroke="#ffdf83" stroke-width="2"/></svg>';
+
+HOTBAR_ART.autoShot='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 6Q43 24 10 42L10 6M6 24H41M32 16L42 24L32 32" fill="none" stroke="#cdb571" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#cdb571"/></svg>';
+HOTBAR_ART.arcaneShot='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 6Q43 24 10 42L10 6M6 24H41M32 16L42 24L32 32" fill="none" stroke="#ab78f0" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#ab78f0"/></svg>';
+HOTBAR_ART.concussiveShot='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 6Q43 24 10 42L10 6M6 24H41M32 16L42 24L32 32" fill="none" stroke="#67c3db" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#67c3db"/></svg>';
+HOTBAR_ART.multiShot='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 6Q43 24 10 42L10 6M6 24H41M32 16L42 24L32 32" fill="none" stroke="#82bd62" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#82bd62"/></svg>';
+HOTBAR_ART.aimedShot='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 6Q43 24 10 42L10 6M6 24H41M32 16L42 24L32 32" fill="none" stroke="#e98a50" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#e98a50"/></svg>';
+Object.assign(HOTBAR_SHORT,{autoShot:'Выстрел',arcaneShot:'Чародейский',concussiveShot:'Оглушающий',multiShot:'Залп',aimedShot:'Прицельный'});

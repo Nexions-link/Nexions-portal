@@ -2,6 +2,7 @@
 // Prices and group drop chances are NexGame values, not Blizzard's drop statistics.
 const gear=(sourceId,name,slot,values)=>({sourceId,name,slot,rarity:'poor',quality:'Низкое качество',requiredLevel:1,stack:1,description:'Потрёпанное, но пригодное снаряжение.',...values});
 export const ITEM_CATALOG={
+ wornBow:gear(null,'Лук следопыта','weapon',{icon:'🏹',rarity:'common',quality:'Обычный',weaponKind:'bow',damageMin:4,damageMax:7,speed:2,buy:8,sell:1,description:'Охотничий лук. Стрелы не расходуются.'}),
  banditCloth:{name:'Истёртый лоскут',icon:'🧵',rarity:'poor',quality:'Низкое качество',sell:2,
   description:'Обрывок походной одежды разбойника. Можно продать торговцу.'},
  banditSeal:{name:'Медная печать разбойника',icon:'🪙',rarity:'uncommon',quality:'Необычный',sell:9,

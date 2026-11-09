@@ -31,18 +31,18 @@ import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=160';
-import {createSphericalPresence} from './sphere-online.js?v=30';
+import {createOfflineRpg} from './offline-rpg.js?v=64600';
+import {createSphericalPresence} from './sphere-online.js?v=64600';
 import {createConnectionIndicator} from './connection-indicator.js?v=1';
 import {syncForestWolfMount} from './mount-visual.js?v=4';
 import {createMountControls} from './mount-controls.js?v=3';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=2';
-import {animateSphericalTauren} from './tauren-animation.js?v=12';
+import {animateSphericalTauren} from './tauren-animation.js?v=64600';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {sampleSphericalFooting} from './foot-placement.js?v=2';
 import {GRAPHICS_PRESETS,resolveGraphicsPreset,effectivePixelRatio,graphicsDensity} from './graphics-quality.js?v=2';
-import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath,startTerrainSeamNormalWeight} from './start-zone.js?v=59';
+import {START_RADIUS,ROUTES,LAKE,normalToLocal,startHeightAt,startColorAt,lakeRadius,canWadeAtLocal,createStartZone,createTauren,initStartZoneMath,startTerrainSeamNormalWeight} from './start-zone.js?v=64600';
 initStartZoneMath(THREE);
 
 // Independent pointer streams for joystick, UI buttons and camera gestures.
@@ -398,7 +398,7 @@ try {
   const forestWildflowers=isPortalPreview?null:createForestWildflowers(THREE,{scene,radius:R,heightAt,grassLayout:forestGroundLife.layout.grass});
   const forestUnderstory=isPortalPreview?null:createForestUnderstory(THREE,{scene,radius:R,heightAt});
   relocateInstances();
-  const hero=createTauren(THREE,scene,{player:true});
+  const hero=createTauren(THREE,scene,{player:true,raceId:accountProfile?.raceId,classId:accountProfile?.classId});
   const actor=hero.root;
   // Only a newly created, untouched character gets the camp showcase angle.
   // Returning characters and later respawns retain the existing camera rules.

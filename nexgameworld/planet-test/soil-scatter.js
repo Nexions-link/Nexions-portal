@@ -1,7 +1,7 @@
 // P2.3.15: close-range soil scatter. Material clues rather than noise:
 // irregular pebble chips, dry needles and leaf ribs. Exactly two instanced
 // draw calls, no terrain deformation, raycast targets or collision changes.
-import {lakeRadius} from './start-zone.js?v=50';
+import {lakeRadius} from './start-zone.js?v=64600';
 import {forestTrailLatitude,forestDistance,FOREST_CAMP,FOREST_SITE_CLEARINGS}
  from './whispering-forest.js';
 const TAU=2*Math.PI,R=261;

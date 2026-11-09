@@ -1,3 +1,5 @@
+import {createHunterProjectiles} from './hunter-projectiles.js?v=64600';
+import {defaultHotbarForClass} from '../hotbar.js?v=64600';
 import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=7';
@@ -14,13 +16,13 @@ import {forestCampPoint,forestLocalPoint} from './whispering-forest.js';
 import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=5';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
-import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=3';
+import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=64600';
 import {getAbilityRangeIndicator,getAbilityResourceIndicator} from './ability-range-visuals.js?v=2';
 import {levelExperienceRequirement,earnedExperienceSince,earlyLevelMilestone} from './level-progression.js?v=1';
 import {compareEquipment,itemStatRows,formatBagEquipmentChanges} from './equipment-comparison.js?v=2';
-import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=0.6.43.81';
-import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=0.6.43.53';
-import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=0.6.43.53';
+import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=64600';
+import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=64600';
+import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=64600';
 import {attachAbilityDrag} from './ability-drag-drop.js?v=1';
 import {attachBagDiscardDrag} from './bag-discard-drag.js?v=1';
 import {goToCharacterSelection} from './character-navigation.js?v=1';
@@ -47,7 +49,7 @@ import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
 import {createSphericalTargetRing} from './spherical-target-ring.js?v=1';
-import {animateSphericalTauren} from './tauren-animation.js?v=12';
+import {animateSphericalTauren} from './tauren-animation.js?v=64600';
 import {beginPlayerHitReaction,resetPlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=3';
 import {createCombatTimeline,MELEE_RANGE,APPROACH_RANGE,rageForHit,rollMeleeDamage} from './combat-timeline.js?v=2';
@@ -57,7 +59,7 @@ import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
 import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
 import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=15';
-import {canWadeAtLocal} from './start-zone.js?v=45';
+import {canWadeAtLocal} from './start-zone.js?v=64600';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceCreatureGait} from './creature-gait.js?v=3';
@@ -87,7 +89,7 @@ const xpRequired=levelExperienceRequirement;
 const pretty=num=>Number(num).toLocaleString('ru-RU',{maximumFractionDigits:1});
 const LABEL=EQUIPMENT_LABELS;
 const EQUIP_SLOTS=['weapon','shield','head','chest','legs','hands','waist','wrists','feet'];
-const ICON={charge:'➤',autoAttack:'⚔️',thunderStomp:'💥',heavyStrike:'🪓',healingPotion:'🧪'};
+const ICON={autoShot:'🏹',arcaneShot:'✦',concussiveShot:'❄',multiShot:'➶',aimedShot:'◎',charge:'➤',autoAttack:'⚔️',thunderStomp:'💥',heavyStrike:'🪓',healingPotion:'🧪'};
 const initial=()=>({level:1,xp:0,gold:30,resource:0,hp:null,inventory:[{id:'wornAxe',qty:1},{id:'healingPotion',qty:3}],equipment:{},kills:0,quest:0,gatherStage:0,gatherAvailable:false,chestInventory:[],buyback:[],hotbar:DEFAULT_HOTBAR});
 function restore(){
  try {
@@ -116,6 +118,9 @@ function restore(){
  }catch{return initial();}
 }
 export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRadius,toNormal,toLocal,heightAt,camera,canvas,preview=false,authenticatedProfile=null}){
+ const hunterProjectiles=createHunterProjectiles(THREE,scene);
+ const classId=authenticatedProfile?.classId==='hunter'?'hunter':'warrior';
+ const classHotbar=defaultHotbarForClass(classId);
  const serverInitial=()=>{
   const safe=initial(),row=authenticatedProfile;
   safe.level=Number.isSafeInteger(row.level)&&row.level>=1&&row.level<=60?row.level:1;
@@ -135,10 +140,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   safe.mountQuest=readMountQuest(row.quests?.mountQuest);
   safe.mounts=Array.isArray(row.quests?.mounts)?[...row.quests.mounts]:[];
   safe.banditWeaponsQuest=row.quests?.banditWeapons||{stage:row.quests?.banditChief?.stage>0?2:0};
-  safe.hotbar=normalizeHotbar(row.actionBar?.length?row.actionBar:DEFAULT_HOTBAR,'warrior',safe.level);
+  safe.hotbar=normalizeHotbar(row.actionBar?.length?row.actionBar:classHotbar,classId,safe.level);
   return safe;
  };
  const state=preview?initial():authenticatedProfile?serverInitial():restore(),runtime=createAbilityRuntime();
+ state.classId=classId;
  const forestAmbience=createForestAmbience({storage:preview?null:localStorage});
  let chiefRewardSelection=null,chiefRewardSubmitting=false,chiefRewardRenderSnapshot=null;
  let serverBagSlots=Array.isArray(authenticatedProfile?.inventory)?
@@ -246,6 +252,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  });
  function updateEquipmentVisuals(){
   const weaponDef=ITEM_CATALOG[state.equipment.weapon?.id];
+  if(hero.root.userData.hunterBow)hero.root.userData.hunterBow.visible=weaponDef?.weaponKind==='bow';
   const shieldDef=ITEM_CATALOG[state.equipment.shield?.id];
   const weaponKind=weaponDef?.weaponKind||null;
   const shieldKind=shieldDef?.rarity==='uncommon'||shieldDef?.rarity==='rare'?'kite':shieldDef?'round':null;
@@ -693,6 +700,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   const mob=mobs.find(e=>e.id===event?.mobId);
   if(!mob||event.life!==mob.life)return;
   if(Number.isFinite(event.hp))mob.hp=Math.max(0,event.hp);
+  if(getAbilityDefinition(event.abilityId)?.classId==='hunter'){
+   const shooter=event.fromId===selfId?hero.root.position:onlinePlayers.find(p=>p.id===event.fromId)?.normal;
+   if(shooter)hunterProjectiles.fire(shooter.isVector3?shooter:new THREE.Vector3(...shooter).multiplyScalar(getRadius()),mob.root.position,event.abilityId);
+  }
   mob.hit=HIT_REACTION_SECONDS;
   mob.visualHitSequence=(mob.visualHitSequence||0)+1;
   combatFeedback.hit(mob,event.damage,event.abilityId);
@@ -739,7 +750,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    state.hp=progress.health;
    if(source==='welcome')state.resource=progress.resource;
   }
-  state.hotbar=normalizeHotbar(progress.actionBar?.length?progress.actionBar:DEFAULT_HOTBAR,'warrior',state.level);
+  state.hotbar=normalizeHotbar(progress.actionBar?.length?progress.actionBar:classHotbar,classId,state.level);
   void updateEquipmentVisuals();
   draw();
   if(!modal.hidden&&['merchant','mentor','herbalist','bag','character','quests','chest','banditQuest','expedition','mounts'].includes(modal.dataset.kind))renderModal();
@@ -1721,7 +1732,7 @@ function resetCreatureImpact(mob){
    msg('Новый уровень: '+state.level+'! Здоровье восстановлено.'+
     (unlocked?' Открыта способность «Рывок»!':''),3.5);
   }
-  state.hotbar=normalizeHotbar(state.hotbar,'warrior',state.level);persist();
+  state.hotbar=normalizeHotbar(state.hotbar,classId,state.level);persist();
  }
  function harm(enemy,damage,skill='autoAttack'){
   if(authenticatedProfile&&!isOnline())return;
@@ -1761,12 +1772,12 @@ function resetCreatureImpact(mob){
  function isLivingHostile(enemy){
   return !!enemy&&['mob','dummy'].includes(enemy.kind)&&enemy.root.visible&&enemy.hp>0&&!enemy.dead&&!enemy.corpse;
  }
- function hitEnemy(enemy,skill='autoAttack'){
-  if(!isLivingHostile(enemy)||distance(enemy)>MELEE_RANGE||!facesTarget(enemy)||timeline.busy)return false;
+ function hitEnemy(enemy,skill=classId==='hunter'?'autoShot':'autoAttack'){
+  if(!isLivingHostile(enemy)||distance(enemy)>(getAbilityDefinition(skill)?.range||MELEE_RANGE)||!facesTarget(enemy)||timeline.busy)return false;
   timeline.start(skill,enemy);lastCombatAt=clock;return true;
  }
  function abilityContext(){
-  return {runtime,classId:'warrior',level:state.level,resource:state.resource,
+  return {runtime,classId:classId,level:state.level,resource:state.resource,
    hasTarget:isLivingHostile(target),range:target?distance(target):Infinity,facing:!target||facesTarget(target),
    hasConsumable:itemCount('healingPotion')>0,needsHealing:state.hp<stats().maxHp};
  }
@@ -1779,6 +1790,8 @@ function resetCreatureImpact(mob){
   }
   if(!modal.hidden||camp.casting||pendingServerGather||state.hp<=0)return false;
   const def=getAbilityDefinition(id);if(!def)return false;
+  if(def.classId!==classId&&def.classId!=='all'){msg('Недоступно этому классу');return false;}
+  if(def.classId==='hunter'&&ITEM_CATALOG[state.equipment.weapon?.id]?.weaponKind!=='bow'){msg('Нужен лук');return false;}
   if(id==='charge'){
    if(!isOnline()||target?.kind!=='mob'){
     msg('Рывок доступен только в онлайн-бою с противником');return false;
@@ -1790,7 +1803,8 @@ function resetCreatureImpact(mob){
    chargeRequestedAt=Date.now();
    return true;
   }
-  if(id==='autoAttack'){
+  if(['autoShot','aimedShot'].includes(id)&&(hero.root.userData.walkBlend||0)>.05){msg('Остановитесь для выстрела');return false;}
+  if(id==='autoAttack'||id==='autoShot'){
    approach=null;
    if(autoplay){autoplay=false;draw();return true;}
    if(!isLivingHostile(target)){
@@ -1798,11 +1812,11 @@ function resetCreatureImpact(mob){
     if(!found){msg('В радиусе 40 м нет противников');return false;}
     target=found;
    }
-   if(distance(target)>APPROACH_RANGE){msg('Цель слишком далеко — подойди на 20 м');draw();return false;}
+   if(distance(target)>(classId==='hunter'?30:APPROACH_RANGE)){msg('Цель слишком далеко');draw();return false;}
    // Toggling autoattack must not reset the weapon's current cooldown.
    autoplay=true;draw();return true;
   }
-  if((id==='heavyStrike'||id==='thunderStomp')&&timeline.busy){msg('Дождитесь окончания удара');return false;}
+  if((id==='heavyStrike'||id==='thunderStomp'||def.classId==='hunter')&&timeline.busy){msg('Дождитесь окончания удара');return false;}
   if(def.requiresTarget&&isLivingHostile(target)&&distance(target)>def.range){
    if(distance(target)>APPROACH_RANGE){msg('Цель слишком далеко');return false;}
    const error=abilityFailure(def,{...abilityContext(),range:null,facing:true});
@@ -1813,13 +1827,13 @@ function resetCreatureImpact(mob){
   if(!result.ok){msg(result.error);return false;}
   approach=null;state.resource=result.resource;
   if(id==='healingPotion'){takeItem('healingPotion');state.hp=Math.min(stats().maxHp,state.hp+55);if(isOnline())multiplayer.sendHeal();msg('Здоровье восстановлено');}
-  else if(id==='heavyStrike'){timeline.start(id,target);lastCombatAt=clock;}
+  else if(id==='heavyStrike'||def.classId==='hunter'){timeline.start(id,target);lastCombatAt=clock;}
   else if(id==='thunderStomp')timeline.start(id);
   persist();draw();return true;
  }
  function useAbility(slot){
   if(authenticatedProfile&&!isOnline())return msg('Сервер недоступен — атаки временно отключены.');
-  const action=actionDefinition(state.hotbar[slot],'warrior',state.level);
+  const action=actionDefinition(state.hotbar[slot],classId,state.level);
   if(!action)return msg('Пустая ячейка');
   return castAction(action.abilityId);
  }
@@ -1830,7 +1844,8 @@ function resetCreatureImpact(mob){
   $('hpFill').style.width=clamp(state.hp/s.maxHp*100,0,100)+'%';
   $('hpText').textContent=Math.ceil(state.hp)+' / '+s.maxHp;
   $('rageFill').style.width=state.resource+'%';
-  $('rageText').textContent='Ярость '+Math.floor(state.resource)+' / 100';
+  $('rageText').textContent=getClassDefinition(classId).resourceName+' '+Math.floor(state.resource)+' / 100';
+  $('rageFill').style.background=getClassDefinition(classId).resourceColor;
   $('resourceBar').setAttribute('aria-valuenow',Math.floor(state.resource));
   $('combatState').textContent=inCombat()?'В бою':
    state.hp<s.maxHp?(clock-lastCombatAt<5?'Отдых после боя':'Восстановление'):'Готов к бою';
@@ -1926,9 +1941,9 @@ function resetCreatureImpact(mob){
    const button=document.createElement('button');button.type='button';button.dataset.slot=String(i);
    button.className='ability';button.title=entry?.id||'Назначить умение';
    const key=document.createElement('kbd');key.textContent=String(i+1);
-   const icon=document.createElement('span');icon.className='planetAbilityIcon';if(entry&&HOTBAR_ART[entry.id])icon.innerHTML=entry.id==='autoAttack'&&autoplay?HOTBAR_AUTO_ACTIVE:HOTBAR_ART[entry.id];else icon.textContent='＋';
+   const icon=document.createElement('span');icon.className='planetAbilityIcon';if(entry&&HOTBAR_ART[entry.id])icon.innerHTML=entry.id==='autoAttack'&&autoplay?HOTBAR_AUTO_ACTIVE:HOTBAR_ART[entry.id];else icon.textContent=ICON[entry?.id]||'＋';
    const caption=document.createElement('span');caption.className='planetAbilityName';
-   const entryDef=entry?actionDefinition(entry,'warrior',state.level):null;
+   const entryDef=entry?actionDefinition(entry,classId,state.level):null;
    caption.textContent=entry?HOTBAR_SHORT[entry.id]||entryDef?.name||'Умение':'Пусто';
    const cooldownShade=document.createElement('span');cooldownShade.className='planetCooldownShade';
    const gcdShade=document.createElement('span');gcdShade.className='planetGcdShade';
@@ -1938,7 +1953,7 @@ function resetCreatureImpact(mob){
    quantity.textContent=entry?.id==='healingPotion'?String(itemCount('healingPotion')):'';
    button.append(key,icon,caption,cooldownShade,gcdShade,cooldownText,quantity);
    button.classList.toggle('is-empty',!entry);
-   if(entry?.id==='autoAttack'&&autoplay)button.classList.add('is-active');
+   if(['autoAttack','autoShot'].includes(entry?.id)&&autoplay)button.classList.add('is-active');
    const ability=entry?getAbilityDefinition(entry.id==='healingPotion'?'healingPotion':entry.id):null;
    if(ability?.cooldown&&runtime.cooldowns[ability.id]>0)button.classList.add('is-cooldown');
    button.addEventListener('click',()=>{if(!spellbook.hidden)return;useAbility(i)});
@@ -1972,12 +1987,12 @@ function resetCreatureImpact(mob){
    const resourceIndicator=getAbilityResourceIndicator(def,{resource:state.resource});
    button.classList.toggle('is-resource-unavailable',resourceIndicator.insufficient);
    button.dataset.hasResource=String(!resourceIndicator.insufficient);
-   const autoActive=entry?.id==='autoAttack'&&autoplay;
+   const autoActive=['autoAttack','autoShot'].includes(entry?.id)&&autoplay;
    button.classList.toggle('is-active',autoActive);
-   if(entry?.id==='autoAttack'){
+   if(['autoAttack','autoShot'].includes(entry?.id)){
     const art=button.querySelector('.planetAbilityIcon');
     if(art&&button.dataset.autoActive!==String(autoActive)){
-     art.innerHTML=autoActive?HOTBAR_AUTO_ACTIVE:HOTBAR_ART.autoAttack;
+     art.innerHTML=entry.id==='autoShot'?HOTBAR_ART.autoShot:(autoActive?HOTBAR_AUTO_ACTIVE:HOTBAR_ART.autoAttack);
      button.dataset.autoActive=String(autoActive);
     }
     button.setAttribute('aria-pressed',String(autoActive));
@@ -2708,7 +2723,7 @@ function resetCreatureImpact(mob){
    msg('Сохраняем ячейку '+(slot+1)+'…',1.2);
    return;
   }
-  state.hotbar=assignHotbarSlot(state.hotbar,slot,entry,'warrior',state.level);
+  state.hotbar=assignHotbarSlot(state.hotbar,slot,entry,classId,state.level);
   // Refresh destination slots and their trash drag handlers, not the popover.
   // Users can assign, replace and remove multiple actions without reopening it.
   persist();draw();
@@ -2716,7 +2731,7 @@ function resetCreatureImpact(mob){
  }
  function renderSpellbook(){
   const list=$('spellbookAbilities');list.replaceChildren();
-  const abilities=availableHotbarActions('warrior',state.level);
+  const abilities=availableHotbarActions(classId,state.level);
   for(const info of [...abilities.abilities,...abilities.items]){
    const tile=document.createElement('button');tile.type='button';
    tile.className='ngw-spell-drag-entry';tile.dataset.abilityId=info.id;
@@ -2727,7 +2742,7 @@ function resetCreatureImpact(mob){
    const content=document.createElement('span');content.className='ngw-spell-drag-content';
    const name=document.createElement('strong');name.textContent=info.name;
    const detail=document.createElement('small');detail.textContent=
-    info.kind==='item'?'Предмет':info.resourceCost?info.resourceCost+' ярости':'Без затрат';
+    info.kind==='item'?'Предмет':info.resourceCost?info.resourceCost+' '+(classId==='hunter'?'маны':'ярости'):'Без затрат';
    content.append(name,detail);tile.append(icon,content);
    // A tap is informational only: no automatic assignment to a free slot.
    tile.addEventListener('click',()=>msg('Удерживай способность и перетащи на ячейку 1–8'));
@@ -2751,7 +2766,7 @@ function resetCreatureImpact(mob){
  // Drag a hotbar action onto it to clear that slot without old selection menus.
  function attachClearDrag(button,slot,entry){
   if(!entry)return;
-  attachAbilityDrag(button,{document,hotbar,entry:{...entry,name:actionDefinition(entry,'warrior',state.level)?.name||entry.id},
+  attachAbilityDrag(button,{document,hotbar,entry:{...entry,name:actionDefinition(entry,classId,state.level)?.name||entry.id},
    trash:$('spellbookTrash'),onDrop:()=>{},onDiscard:()=>setHotbarEntry(slot,null)});
  }
  document.addEventListener('pointerdown',event=>{
@@ -2843,6 +2858,7 @@ function resetCreatureImpact(mob){
   }
   updateServerGatherCast();
   characterPreview.tick(dt);
+  hunterProjectiles.update(dt);
   // Recover a mobile connection that stopped responding after a loot request.
   if(pendingLootTake&&(!isOnline()||Date.now()-pendingLootTake.at>8500)){
    pendingLootTake=null;
@@ -2878,7 +2894,7 @@ function resetCreatureImpact(mob){
    msg('Громовая поступь: '+hits+' целей');
   }else if(impact?.visualOnly){
    // Cosmetic follow-through only: the authoritative charge strike has landed.
-  }else if(impact&&isLivingHostile(impact.target)&&distance(impact.target)<=MELEE_RANGE){
+  }else if(impact&&isLivingHostile(impact.target)&&distance(impact.target)<=(getAbilityDefinition(impact.skill)?.range||MELEE_RANGE)){
    if(facesTarget(impact.target)){
     const bonus=impact.skill==='heavyStrike'?(getAbilityDefinition(impact.skill).damageBonus||0):0;
     if(isOnline()&&impact.target.kind==='mob')multiplayer.sendAttack(impact.skill,impact.target.id);
@@ -2920,7 +2936,7 @@ function resetCreatureImpact(mob){
    }
   }
   if(autoplay&&(!authenticatedProfile||isOnline())&&!approach&&modal.hidden&&!camp.casting&&swing<=0){
-   if(hitEnemy(target))swing=stats().speed;
+   if(classId!=='hunter'||((hero.root.userData.walkBlend||0)<.05&&ITEM_CATALOG[state.equipment.weapon?.id]?.weaponKind==='bow')){if(hitEnemy(target))swing=classId==='hunter'?2:stats().speed;}
   }
   for(const mob of mobs){
    if(isOnline())mob.attackWindup=Math.max(0,(mob.attackWindup||0)-dt);

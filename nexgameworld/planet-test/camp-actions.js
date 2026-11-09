@@ -2,7 +2,7 @@
 // gameplay. All quest parameters and locations are shared with gather-world.js,
 // and progress is stored only in the isolated Planet Test save.
 import {GATHER_QUESTS,GATHER_INTERACT_RANGE,GATHER_CAST_SECONDS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST} from './gather-world.js?v=22';
-import {ITEM_CATALOG,itemStackLimit} from '../items.js?v=0.3.5.17';
+import {ITEM_CATALOG,itemStackLimit} from '../items.js?v=64600';
 const $=id=>document.getElementById(id);
 export function createCampActions({state,herbalist,gathering,mobs,hero,distance,addItem,takeItem,itemCount,
  persist,levelCheck,draw,openWindow,closeWindow,msg,getClock}){
