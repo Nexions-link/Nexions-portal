@@ -114,6 +114,9 @@ jobs:
             --exclude='/*.md' \
             --exclude='/package.json' \
             "$RUNNER_TEMP/nexgame-source/" "nexgameworld/"
+          # Account creation is versioned with the canonical game release.
+          cp "$RUNNER_TEMP/nexgame-source/portal/account.html" nexgameworld/account.html
+          cp "$RUNNER_TEMP/nexgame-source/portal/account.js" nexgameworld/account.js
           # rsync protects excludes from --delete, so explicitly erase files
           # mirrored when the flat prototype was still public.
           rm -f nexgameworld/app.html nexgameworld/game.js
