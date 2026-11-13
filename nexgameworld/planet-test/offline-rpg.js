@@ -2841,10 +2841,14 @@ function resetCreatureImpact(mob){
  function getApproachTarget(){
   if(!modal.hidden||camp.casting||state.hp<=0||timeline.stompProgress>=0)return null;
   if(approach&&(!isLivingHostile(approach.target)||target!==approach.target||distance(approach.target)>APPROACH_RANGE))approach=null;
+  // Auto Shot is a ranged stance: never drive a hunter into melee with the bow.
+  // A manually selected ranged ability may still close only to its own range.
+  if(classId==='hunter'&&!approach)return null;
   const enemy=approach?.target||(autoplay?target:null);
   if(!isLivingHostile(enemy))return null;
-  const d=distance(enemy);
-  return d>3.25&&d<=APPROACH_RANGE?enemy:null;
+  const d=distance(enemy),stopRange=approach?
+   Math.max(MELEE_RANGE,getAbilityDefinition(approach.abilityId)?.range||MELEE_RANGE):3.25;
+  return d>stopRange&&d<=APPROACH_RANGE?enemy:null;
  }
  function stopAutoApproach(){
   if(autoplay||approach){autoplay=false;approach=null;msg('Путь к цели перекрыт');draw();}
@@ -2931,7 +2935,7 @@ function resetCreatureImpact(mob){
   swing-=dt;
   if(approach){
    if(!isLivingHostile(approach.target)||target!==approach.target||distance(approach.target)>APPROACH_RANGE)approach=null;
-   else if(distance(approach.target)<=MELEE_RANGE&&facesTarget(approach.target)&&!timeline.busy){
+   else if(distance(approach.target)<=Math.max(MELEE_RANGE,getAbilityDefinition(approach.abilityId)?.range||MELEE_RANGE)&&facesTarget(approach.target)&&!timeline.busy){
     const id=approach.abilityId;approach=null;castAction(id);
    }
   }
