@@ -1,4 +1,4 @@
-import {ITEM_CATALOG,deriveStats} from '../items.js';
+import {ITEM_CATALOG,deriveStats,equipmentConflict} from '../items.js?v=64604';
 
 // Compare the actual character totals, not misleading isolated gear bonuses.
 const FIELDS=Object.freeze([
@@ -15,6 +15,8 @@ export function compareEquipment(itemId,level,equipment={},items=ITEM_CATALOG){
  if(!candidate?.slot)return null;
  const slot=candidate.slot,currentId=equipment?.[slot]?.id||null;
  const current=items[currentId]||null;
+ const conflict=equipmentConflict(equipment,itemId);
+ const levelMet=level>=(candidate.requiredLevel||1);
  const before=deriveStats(level,equipment);
  const after=deriveStats(level,{...equipment,[slot]:{id:itemId,qty:1}});
  const rows=FIELDS.filter(([key])=>{
@@ -35,7 +37,10 @@ export function compareEquipment(itemId,level,equipment={},items=ITEM_CATALOG){
  return {slot,candidate,currentId,current,before,after,rows,meaningful,
   overall:!meaningful.length?'same':improvement&&regression?'mixed':
    improvement?'better':'worse',
-  requirementsMet:level>=(candidate.requiredLevel||1)};
+  equipmentConflict:conflict,
+  requirementMessage:!levelMet?'Требуется уровень '+candidate.requiredLevel:
+   conflict?'Лук занимает обе руки. Сначала сними лук или щит':'',
+  requirementsMet:levelMet&&!conflict};
 }
 export function itemStatRows(itemId,items=ITEM_CATALOG){
  const item=items[itemId];if(!item)return [];

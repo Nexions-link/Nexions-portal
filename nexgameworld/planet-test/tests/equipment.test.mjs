@@ -37,6 +37,22 @@ test('missing, invalid and level-locked pieces leave equipment and bag unchanged
  }
  const s=fresh(),before=structuredClone(s);assert.equal(equipFromBag(s,'wornAxe').ok,false);assert.deepEqual(s,before);
 });
+test('bow and shield conflict rejects either equip order and preserves the bag',()=>{
+ for(const [equipment,id] of [
+  [{weapon:{id:'wornBow'}},'batteredBuckler'],
+  [{weapon:{id:'wornAxe'},shield:{id:'batteredBuckler'}},'wornBow']
+ ]){
+  const s={...fresh(),equipment,inventory:[{id,qty:1}]},before=structuredClone(s);
+  const result=equipFromBag(s,id);
+  assert.equal(result.ok,false);
+  assert.match(result.error,/обе руки/);
+  assert.deepEqual(s,before);
+ }
+ const s={...fresh(),equipment:{weapon:{id:'wornBow'},shield:{id:'batteredBuckler'}}};
+ assert.equal(unequipToBag(s,'shield').ok,true,'legacy shield remains removable');
+ assert.deepEqual(s.inventory,[{id:'batteredBuckler',qty:1}]);
+ assert.deepEqual(s.equipment,{weapon:{id:'wornBow'}});
+});
 
 
 test('portrait character sheet exposes real slots beside model and weapon/shield below',()=>{
@@ -56,6 +72,38 @@ test('portrait character sheet exposes real slots beside model and weapon/shield
  assert.equal(h.rpg.movementLocked,true);
  h.get('modalClose').click();
  assert.equal(h.rpg.movementLocked,false);
+});
+test('character identity and upcoming spell match each playable race and class',()=>{
+ for(const [raceId,raceName] of [['hornfolk','ТАУРЕН'],['orc','ОРК']]){
+  for(const [classId,className,nextSpell] of [['warrior','ВОИН','Рывок'],['hunter','ОХОТНИК','Залп']]){
+   const profile={raceId,classId,nickname:'Следопыт',level:1,health:120,inventory:[],equipment:{}};
+   const h=harness({authenticatedProfile:profile});
+   h.get('character').click();
+   const children=descendants(h.get('mbody'));
+   assert.ok(children.some(node=>node.textContent===raceName+' · '+className+' · УРОВЕНЬ 1'));
+   assert.ok(children.some(node=>node.className==='character-level-goal'&&node.textContent.includes(nextSpell+' с ')));
+   if(classId==='hunter')assert.equal(children.some(node=>node.className==='character-level-goal'&&node.textContent.includes('Рывок')),false);
+   const weapon=children.find(node=>node.dataset.slot==='weapon');
+   weapon.click();
+   assert.ok(descendants(h.get('mbody')).some(node=>node.textContent.includes('Двуручные луки')));
+   h.get('modalClose').click();
+  }
+ }
+});
+test('legacy inactive shield stays inspectable and removable with an explanation',()=>{
+ const h=harness({authenticatedProfile:{classId:'hunter',raceId:'orc',level:6,health:120,
+  inventory:[],equipment:{weapon:{id:'wornBow'},shield:{id:'infantryBear'}}}});
+ h.get('character').click();
+ let children=descendants(h.get('mbody'));
+ const shield=children.find(node=>node.dataset.slot==='shield');
+ assert.match(shield.attributes['aria-label'],/не действует/);
+ shield.click();children=descendants(h.get('mbody'));
+ assert.ok(children.some(node=>node.textContent==='Щит не действует, пока экипирован двуручный лук. Его можно снять в рюкзак.'));
+ assert.ok(children.some(node=>node.textContent==='Снять в рюкзак'));
+ assert.ok(children.some(node=>node.textContent==='Щит не действует'));
+ children.find(node=>node.dataset.slot==='weapon').click();
+ assert.ok(descendants(h.get('mbody')).some(node=>node.textContent==='Двуручное оружие'));
+ h.get('modalClose').click();
 });
 test('archived-style inspector selects first; requires explicit removal from backpack',()=>{
  const h=harness({save:{equipment:{chest:{id:'chainVest'},weapon:{id:'wornAxe'}}}});

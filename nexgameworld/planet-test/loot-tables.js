@@ -1,6 +1,6 @@
 // Single source of creature drops for NexGameWorld's spherical game and Atlas.
 // Initial probabilities are original NexGameWorld balance, not WoW drop rates.
-import {ITEM_CATALOG,GEAR_LOOT} from '../items.js';
+import {ITEM_CATALOG,GEAR_LOOT} from '../items.js?v=64604';
 export const CREATURE_LOOT_TABLES=Object.freeze({
  dolgonog:{
   name:'Равнинный долгоног',

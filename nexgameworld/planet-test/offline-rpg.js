@@ -1,11 +1,11 @@
 import {createHunterProjectiles} from './hunter-projectiles.js?v=64600';
-import {defaultHotbarForClass} from '../hotbar.js?v=64600';
+import {defaultHotbarForClass} from '../hotbar.js?v=64604';
 import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
-import {renderCharacterSheet} from './character-sheet.js?v=7';
+import {renderCharacterSheet} from './character-sheet.js?v=64604';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
-import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=9';
-import {createQuestTracking} from './quest-tracking-state.js?v=3';
+import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=64604';
+import {createQuestTracking} from './quest-tracking-state.js?v=64604';
 import {forestMoodAt} from './whispering-forest.js';
 import {createForestAmbience} from './forest-ambience.js?v=1';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,EXPEDITION_LEVEL,EXPEDITION_REWARD,readExpedition,expeditionJournal} from './expedition-quest.js?v=1';
@@ -13,16 +13,17 @@ import {FOREST_DEN_SITES,FOREST_HUNT_KILLS,FOREST_HUNT_REWARD,readForestHunt,for
 import {readMountQuest,mountQuestOffer,mountQuestJournal} from './mount-quest.js?v=1';
 import {renderMountCollection} from './mount-collection.js?v=1';
 import {forestCampPoint,forestLocalPoint} from './whispering-forest.js';
-import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=5';
+import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=64604';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=64600';
 import {getAbilityRangeIndicator,getAbilityResourceIndicator} from './ability-range-visuals.js?v=2';
-import {levelExperienceRequirement,earnedExperienceSince,earlyLevelMilestone} from './level-progression.js?v=1';
-import {compareEquipment,itemStatRows,formatBagEquipmentChanges} from './equipment-comparison.js?v=2';
-import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit} from '../items.js?v=64600';
-import {getAbilityDefinition,getClassDefinition,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=64600';
-import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=64600';
+import {levelExperienceRequirement,earnedExperienceSince} from './level-progression.js?v=1';
+import {compareEquipment,itemStatRows,formatBagEquipmentChanges} from './equipment-comparison.js?v=64604';
+import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit,effectiveShield} from '../items.js?v=64604';
+import {equipBowVisual} from './orc-avatar.js?v=64604';
+import {getAbilityDefinition,getClassDefinition,getClassAbilities,rollHunterDamage,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=64604';
+import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=64604';
 import {attachAbilityDrag} from './ability-drag-drop.js?v=1';
 import {attachBagDiscardDrag} from './bag-discard-drag.js?v=1';
 import {goToCharacterSelection} from './character-navigation.js?v=1';
@@ -33,14 +34,14 @@ import {BATTLEFURY_ITEM_ID,BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_FIELDS,BAT
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';
-import {GATHER_QUESTS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=23';
+import {GATHER_QUESTS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=64604';
 import {BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED,BANDIT_WEAPON_RESPAWN_SECONDS,createBanditWeaponWorld} from './bandit-weapons.js?v=1';
-import {createCampActions} from './camp-actions.js?v=21';
+import {createCampActions} from './camp-actions.js?v=64604';
 import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1';
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
 import {createXpFeedback} from './xp-feedback.js?v=1';
-import {createLevelUpFeedback} from './level-up-feedback.js?v=2';
+import {createLevelUpFeedback} from './level-up-feedback.js?v=64604';
 import {createSphericalCombatVfx} from './sphere-combat-vfx.js?v=2';
 import {createQuestMarkerFactory} from './quest-markers.js?v=3';
 import {createCameraTargetFilter} from './camera-targeting.js?v=1';
@@ -49,17 +50,17 @@ import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
 import {createSphericalTargetRing} from './spherical-target-ring.js?v=1';
-import {animateSphericalTauren} from './tauren-animation.js?v=64600';
+import {animateSphericalTauren} from './tauren-animation.js?v=64604';
 import {beginPlayerHitReaction,resetPlayerHitReaction} from './player-hit-reaction.js?v=1';
-import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=3';
+import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=64604';
 import {createCombatTimeline,MELEE_RANGE,APPROACH_RANGE,rageForHit,rollMeleeDamage} from './combat-timeline.js?v=2';
 import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
 import {createEquipmentVisualSwitcher} from './equipment-visual-switcher.js?v=1';
-import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v=1';
+import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v=64604';
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
 import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
 import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=15';
-import {canWadeAtLocal} from './start-zone.js?v=64600';
+import {canWadeAtLocal} from './start-zone.js?v=64604';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceCreatureGait} from './creature-gait.js?v=3';
@@ -71,14 +72,14 @@ import {advanceCreatureStrike,resetCreatureStrike} from './creature-strike.js?v=
 import {createSphericalStomp} from './sphere-skill-effects.js?v=1';
 import {createMobDeath} from './mob-death.js?v=2';
 import {NORMAL_MOB_RESPAWN_SECONDS,advanceCorpseTimer,advanceRespawnTimer,canStoreCorpseRow,takeCorpseRow,takeAllCorpseRows} from './corpse-loot.js?v=4';
-import {rollCreatureLoot} from './loot-tables.js?v=3';
+import {rollCreatureLoot} from './loot-tables.js?v=64604';
 import {creatureByIndex,CREATURE_SPAWNS,BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_KILLS,BANDIT_QUEST_MIN_LEVEL,BANDIT_BOSS_SCALE} from './creature-registry.js?v=6';
 import {createForestWolfVisual} from './forest-wolf-visual.js?v=8';
 import {createBanditVisual} from './bandit-visual.js?v=3';
 import {rollCreatureCoins} from './creature-types.js?v=1';
 import {creatureTypeForMob,CREATURE_TYPE_LABELS,CORPSE_COIN_ID,isValidCorpseCoins} from './creature-types.js?v=1';
 import {DOLGONOG_SPAWNS,mobLevelForIndex,mobBaseExperience,monsterKillExperience,monsterDifficulty,MONSTER_LEVEL_COLORS,monsterMaxHealth,monsterAttackDamage} from './mob-levels.js?v=1';
-import {sellInventorySlot,buyBackFromMerchant,restoreBuyback} from './merchant-trade.js?v=1';
+import {sellInventorySlot,buyBackFromMerchant,restoreBuyback} from './merchant-trade.js?v=64604';
 
 const UP_AXIS=[0,1,0], TAU=Math.PI*2;
 const SPAWNS=DOLGONOG_SPAWNS.slice(0,-1);
@@ -252,8 +253,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  });
  function updateEquipmentVisuals(){
   const weaponDef=ITEM_CATALOG[state.equipment.weapon?.id];
+  const wasBowVisible=hero.root.userData.hunterBow?.visible===true;
+  const previousWeaponKind=hero.root.userData.weaponKind;
+  if(weaponDef?.weaponKind==='bow')equipBowVisual(THREE,hero);
   if(hero.root.userData.hunterBow)hero.root.userData.hunterBow.visible=weaponDef?.weaponKind==='bow';
-  const shieldDef=ITEM_CATALOG[state.equipment.shield?.id];
+  const shieldDef=effectiveShield(state.equipment);
   const weaponKind=weaponDef?.weaponKind||null;
   const shieldKind=shieldDef?.rarity==='uncommon'||shieldDef?.rarity==='rare'?'kite':shieldDef?'round':null;
   let weapon=null,shield=null;
@@ -276,6 +280,9 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   // Pending loads are coalesced; only changed slots are rebuilt.
   void equipmentVisuals.update('weapon',weapon?.key??null,weapon);
   void equipmentVisuals.update('shield',shield?.key??null,shield);
+  hero.root.userData.weaponKind=weaponKind||'none';
+  if(wasBowVisible!==(hero.root.userData.hunterBow?.visible===true)||previousWeaponKind!==(weaponKind||'none'))
+   characterPreview.refresh();
  }
 
  let target=null,autoplay=false,swing=0,clock=0,messageUntil=0,pendingLoot=null,pendingLootTake=null,gatherCast=null,
@@ -622,6 +629,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
     corpse_unavailable:'Тело уже исчезло или недоступно',corpse_empty:'Тело уже обыскано',
     corpse_not_owned:'Эта добыча принадлежит другому персонажу',
     equipment_requirements_not_met:'Это снаряжение пока нельзя надеть',
+    equipment_conflict:'Лук занимает обе руки. Сначала сними лук или щит.',
     mount_quest_locked:'Нужен 10-й уровень и завершённая охота на волков.',
     mount_tracks_unavailable:'Эти следы уже изучены или задание не активно.',
     invalid_mount_tracks:'Следы не найдены.',
@@ -765,13 +773,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(source==='mob'||source!=='welcome'&&source!=='checkpoint'&&(newXp>0||leveled))
    xpFeedback.show(newXp,{levelUp:leveled});
   if(leveled){
-   const unlocked=previousLevel<8&&state.level>=8;
-   levelUpFeedback.show(state.level,{unlockedCharge:unlocked});
+   const unlockedAbilityName=showLevelUp(previousLevel);
    // The separate center-screen level card contains the celebration.
    // Keep ordinary XP/loot toast unchanged for existing quests and tests.
    if(source!=='mob')
     msg('Новый уровень: '+state.level+'! Здоровье восстановлено.'+
-     (unlocked?' Новая способность: «Рывок» — открой книгу способностей.':''),4);
+     (unlockedAbilityName?' Новая способность: «'+unlockedAbilityName+'» — открой книгу способностей.':''),4);
   }
   if(source==='mob')msg(newXp>0?
    'Получено +'+newXp+' опыта. Осмотри тело для получения добычи.':
@@ -807,7 +814,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   beginPlayerHitReaction(hero.root.userData,{damage:event.damage,
    blocked:event.blocked===true,absorbed:event.absorbed||0});
   if(event.blocked){blockRemaining=.65;hero.root.userData.blockRecoil=.65;combatVfx.trigger({root:hero.root},'block');}
-  state.resource=changeResource(state.resource,5,'warrior');lastCombatAt=clock;draw(false);
+  if(classId==='warrior')state.resource=changeResource(state.resource,WARRIOR_RAGE_ON_HURT,classId);
+  lastCombatAt=clock;draw(false);
  }
  // Observers see real impact; the victim already plays the hit in onMobAttack.
  function onMobStrike(event,selfId){
@@ -1720,6 +1728,12 @@ function resetCreatureImpact(mob){
   else if(nearby.kind==='mob'&&nearby.corpse)showCorpseLoot(nearby);
   draw();
  }
+ function showLevelUp(previousLevel){
+  const unlocked=getClassAbilities(classId,state.level)
+   .filter(ability=>ability.level>previousLevel).sort((a,b)=>b.level-a.level)[0];
+  levelUpFeedback.show(state.level,{unlockedAbilityName:unlocked?.name});
+  return unlocked?.name;
+ }
  function levelCheck(){
   const previousLevel=state.level;
   while(state.level<60&&state.xp>=xpRequired(state.level)){
@@ -1727,10 +1741,9 @@ function resetCreatureImpact(mob){
    state.hp=stats().maxHp;
   }
   if(state.level>previousLevel){
-   const unlocked=previousLevel<8&&state.level>=8;
-   levelUpFeedback.show(state.level,{unlockedCharge:unlocked});
+   const unlockedAbilityName=showLevelUp(previousLevel);
    msg('Новый уровень: '+state.level+'! Здоровье восстановлено.'+
-    (unlocked?' Открыта способность «Рывок»!':''),3.5);
+    (unlockedAbilityName?' Открыта способность «'+unlockedAbilityName+'»!':''),3.5);
   }
   state.hotbar=normalizeHotbar(state.hotbar,classId,state.level);persist();
  }
@@ -1738,7 +1751,7 @@ function resetCreatureImpact(mob){
   if(authenticatedProfile&&!isOnline())return;
   if(!isLivingHostile(enemy))return;
   lastCombatAt=clock;
-  state.resource=changeResource(state.resource,rageForHit(skill),'warrior');
+  if(classId==='warrior')state.resource=changeResource(state.resource,rageForHit(skill),classId);
   if(enemy.kind==='dummy'){applyTrainingHit(enemy,damage,clock,skill);combatFeedback.hit(enemy,damage,skill);combatVfx.trigger(enemy,skill==='heavyStrike'?'strong':skill==='thunderStomp'?'stomp':'hit');persist();draw();return;}
   if(enemy.kind!=='mob'||enemy.dead||isOnline())return;
   lastCombatAt=clock;enemy.hp=Math.max(0,enemy.hp-damage);enemy.aggro=true;enemy.returning=false;enemy.hit=HIT_REACTION_SECONDS;
@@ -1791,6 +1804,11 @@ function resetCreatureImpact(mob){
   if(!modal.hidden||camp.casting||pendingServerGather||state.hp<=0)return false;
   const def=getAbilityDefinition(id);if(!def)return false;
   if(def.classId!==classId&&def.classId!=='all'){msg('Недоступно этому классу');return false;}
+  // An active stance can always be turned off, including while moving or
+  // after removing the bow. Requirements apply only when turning it on.
+  if((id==='autoAttack'||id==='autoShot')&&autoplay){
+   autoplay=false;approach=null;draw();return true;
+  }
   if(def.classId==='hunter'&&ITEM_CATALOG[state.equipment.weapon?.id]?.weaponKind!=='bow'){msg('Нужен лук');return false;}
   if(id==='charge'){
    if(!isOnline()||target?.kind!=='mob'){
@@ -1806,7 +1824,6 @@ function resetCreatureImpact(mob){
   if(['autoShot','aimedShot'].includes(id)&&(hero.root.userData.walkBlend||0)>.05){msg('Остановитесь для выстрела');return false;}
   if(id==='autoAttack'||id==='autoShot'){
    approach=null;
-   if(autoplay){autoplay=false;draw();return true;}
    if(!isLivingHostile(target)){
     const found=cycleHostileTarget(mobs,dummy,null,distance);
     if(!found){msg('В радиусе 40 м нет противников');return false;}
@@ -1840,7 +1857,7 @@ function resetCreatureImpact(mob){
  function draw(refreshInteractive=true){
   const s=stats();state.hp=clamp(state.hp,0,s.maxHp);
   nameEl.textContent=authenticatedProfile?.nickname||'Странник';$('levelBadge').textContent=state.level;
-  $('className').textContent='Таурен · Воин';
+  $('className').textContent=(authenticatedProfile?.raceId==='orc'?'Орк':'Таурен')+' · '+getClassDefinition(classId).name;
   $('hpFill').style.width=clamp(state.hp/s.maxHp*100,0,100)+'%';
   $('hpText').textContent=Math.ceil(state.hp)+' / '+s.maxHp;
   $('rageFill').style.width=state.resource+'%';
@@ -2497,7 +2514,7 @@ function resetCreatureImpact(mob){
            }
            if(!comparison.requirementsMet){
             const levelNote=document.createElement('div');levelNote.className='ngw-compare-level';
-            levelNote.textContent='Требуется уровень '+def.requiredLevel;
+            levelNote.textContent=comparison.requirementMessage;
             box.append(levelNote);
            }
            detail.append(box);
@@ -2507,6 +2524,7 @@ function resetCreatureImpact(mob){
             ...(authenticatedProfile?[]:[['🗑 Удалить',()=>{takeItem(item.id,1);draw();}]])];
           for(const [label,action] of commands){
             const b=document.createElement('button');b.type='button';b.className='choice';b.textContent=label;
+            if(label==='Надеть')b.disabled=!compareEquipment(item.id,state.level,state.equipment).requirementsMet;
             b.addEventListener('click',action);detail.append(b);
           }
           for(const el of grid.children)el.classList.remove('active');
@@ -2902,7 +2920,7 @@ function resetCreatureImpact(mob){
    if(facesTarget(impact.target)){
     const bonus=impact.skill==='heavyStrike'?(getAbilityDefinition(impact.skill).damageBonus||0):0;
     if(isOnline()&&impact.target.kind==='mob')multiplayer.sendAttack(impact.skill,impact.target.id);
-    else harm(impact.target,rollMeleeDamage(stats(),bonus),impact.skill);
+    else harm(impact.target,classId==='hunter'?rollHunterDamage(state.level,impact.skill):rollMeleeDamage(stats(),bonus),impact.skill);
    }else if(impact.skill!=='autoAttack')msg('Цель не перед вами',1.1);
   }
   if(!toast.hidden&&clock>messageUntil){toast.classList.remove('show');toast.hidden=true;}

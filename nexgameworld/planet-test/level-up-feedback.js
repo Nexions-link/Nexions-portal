@@ -13,7 +13,7 @@ export function createLevelUpFeedback({document,layer,schedule=setTimeout,cancel
   layer.replaceChildren();
   current=null;
  }
- function show(level,{unlockedCharge=false}={}){
+ function show(level,{unlockedCharge=false,unlockedAbilityName=null}={}){
   if(!Number.isSafeInteger(level)||level<2||level>60)return null;
   // One confirmation can cross several levels; display only the final one.
   // Never celebrate an older/duplicate save from a delayed WebSocket event.
@@ -28,13 +28,14 @@ export function createLevelUpFeedback({document,layer,schedule=setTimeout,cancel
   const ornaments=element('div','ngw-levelup-ornaments','◆  ✦  ◆');
   ornaments.setAttribute('aria-hidden','true');
   card.append(shine,title,number,ornaments,footer);
-  if(unlockedCharge){
-   const unlocked=element('div','ngw-levelup-unlock','Открыта способность «Рывок»');
+  const abilityName=unlockedAbilityName||(unlockedCharge?'Рывок':'');
+  if(abilityName){
+   const unlocked=element('div','ngw-levelup-unlock','Открыта способность «'+abilityName+'»');
    card.append(unlocked);
   }
   card.setAttribute('role','status');
   card.setAttribute('aria-label','Новый уровень '+level+
-   '. Здоровье восстановлено.'+(unlockedCharge?' Открыта способность Рывок.':''));
+   '. Здоровье восстановлено.'+(abilityName?' Открыта способность '+abilityName+'.':''));
   layer.append(card);current=card;
   timer=schedule(()=>{if(current===card)dismiss();},2800);
   return card;

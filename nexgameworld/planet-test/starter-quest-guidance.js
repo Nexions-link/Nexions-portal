@@ -1,7 +1,7 @@
 // Client-only wayfinding. All quest state and rewards remain authoritative on
 // the server; waypoints never mutate objectives or certify interactions.
 import {DOLGONOG_SPAWNS,DOLGONOG_BOSS_INDEX} from './mob-levels.js';
-import {GATHER_QUESTS} from './gather-world.js';
+import {GATHER_QUESTS} from './gather-world.js?v=64604';
 import {BANDIT_SPAWNS,BANDIT_QUEST_GIVER,BANDIT_QUEST_MIN_LEVEL} from './creature-registry.js';
 import {BANDIT_WEAPON_LOCATIONS,BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED} from './bandit-weapons.js';
 import {RELIC_POSITION,SCOUT_POSITION,BOSS_POSITION} from './mentor-chain.js';

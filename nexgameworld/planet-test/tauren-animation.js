@@ -185,7 +185,7 @@ export function animateSphericalTauren(actor,{
  actor.arms[0].elbow.rotation.x-=incoming.shieldBrace*.38;
  actor.arms[1].shoulder.rotation.x+=incoming.weaponBrace;
 
- if(user.classId==='hunter'){
+ if(weaponKind==='bow'){
   const draw=playing?Math.sin(Math.min(1,attack)*Math.PI):guard*.35;
   actor.arms[0].shoulder.rotation.x=-.65-draw*.65;
   actor.arms[0].shoulder.rotation.z=-.18;

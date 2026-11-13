@@ -1,7 +1,7 @@
 // Rendering-only equipment lookup for server-certified nearby players.
 // The browser chooses assets from its own catalog: network messages never
 // supply a model URL, rarity, tuning, or arbitrary item definition.
-import {ITEM_CATALOG} from '../items.js?v=64600';
+import {ITEM_CATALOG,effectiveShield} from '../items.js?v=64604';
 import {AXE_TUNER_DEFAULTS} from '../axe-tuner.js?v=0.3.7.0';
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
@@ -13,6 +13,11 @@ const WEAPON_ASSETS=Object.freeze({
  sword:Object.freeze({file:'plains-sword-v0.1.glb',tuning:SWORD_TUNER_DEFAULTS}),
  dagger:Object.freeze({file:'steppe-dagger-v0.1.glb',tuning:DAGGER_TUNER_DEFAULTS})
 });
+export function remoteWeaponKind(peer){
+ const def=ITEM_CATALOG[peer?.equipment?.weapon];
+ if(def?.slot==='weapon'&&def.weaponKind==='bow')return 'bow';
+ return remoteEquipmentSpec(peer,'weapon')?.kind||'none';
+}
 export function remoteEquipmentSpec(peer,slot){
  if(slot!=='weapon'&&slot!=='shield')return null;
  // Older verified presence packets may carry only the certified Battlefury
@@ -24,6 +29,11 @@ export function remoteEquipmentSpec(peer,slot){
  if(typeof itemId!=='string')return null;
  const def=ITEM_CATALOG[itemId];
  if(!def||def.slot!==slot)return null;
+ // Old certified checkpoints may still retain a shield beside a two-hand bow.
+ // Keep its item data, but never put both models on the left wrist.
+ if(slot==='shield'&&!effectiveShield({
+  weapon:{id:peer?.equipment?.weapon},shield:{id:itemId}
+ }))return null;
  if(slot==='weapon'){
   const kind=def.weaponKind,asset=WEAPON_ASSETS[kind];
   if(!asset)return null;

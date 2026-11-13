@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {createTauren} from './start-zone.js?v=64600';
-import {animateSphericalTauren} from './tauren-animation.js?v=64600';
+import {createTauren} from './start-zone.js?v=64604';
+import {animateSphericalTauren} from './tauren-animation.js?v=64604';
 export function mountCharacterCreation(form){
  const host=form.querySelector('.creation-stage'),race=form.elements.raceId,klass=form.elements.classId;
  let renderer,scene,actor,camera,angle=-.24,last=0;
@@ -13,6 +13,8 @@ export function mountCharacterCreation(form){
   describe();if(!scene)return;
   if(actor){actor.root.removeFromParent();actor.root.traverse(o=>{if(o.geometry&&!o.geometry.userData?.actorShared)o.geometry.dispose();if(o.material)for(const m of [o.material].flat())m.dispose();});}
   actor=createTauren(THREE,scene,{raceId:race.value,classId:klass.value,player:true});
+  // Creation previews the hunter's starting equipment before a profile exists.
+  if(actor.root.userData.hunterBow)actor.root.userData.hunterBow.visible=true;
   actor.root.rotation.y=angle;
  };
  try{
@@ -36,7 +38,8 @@ export function mountCharacterCreation(form){
    const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;
    if(renderer.domElement.width!==Math.round(w*renderer.getPixelRatio())||renderer.domElement.height!==Math.round(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);camera.aspect=w/h;
    camera.position.set(0,2.1,Math.max(6.9,3.8/camera.aspect));camera.lookAt(0,1.65,0);camera.updateProjectionMatrix();
-   animateSphericalTauren(actor,{dt,time:time/1000});actor.root.rotation.y=angle;
+   animateSphericalTauren(actor,{dt,time:time/1000,
+    weaponKind:klass.value==='hunter'?'bow':'none'});actor.root.rotation.y=angle;
    renderer.render(scene,camera);
   });
  }catch(error){host.dataset.failed='true';host.querySelector('.creation-gesture').textContent='3D-просмотр недоступен. Выберите расу и класс ниже.';describe();}

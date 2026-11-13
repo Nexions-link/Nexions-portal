@@ -28,6 +28,24 @@ test('level restrictions are shown separately from a potential upgrade',()=>{
  assert.ok(result.meaningful.length);
  assert.equal(compareEquipment('scalpingStrength',6,{weapon:{id:'wornAxe'}}).requirementsMet,true);
 });
+test('comparison reports two-handed equipment conflicts independently of level requirements',()=>{
+ for(const [itemId,equipment] of [
+  ['wornBow',{weapon:{id:'wornAxe'},shield:{id:'batteredBuckler'}}],
+  ['batteredBuckler',{weapon:{id:'wornBow'}}]
+ ]){
+  const comparison=compareEquipment(itemId,10,equipment);
+  assert.equal(comparison.requirementsMet,false);
+  assert.equal(comparison.equipmentConflict,true);
+  assert.match(comparison.requirementMessage,/обе руки/);
+ }
+ const permitted=compareEquipment('wornBow',10,{weapon:{id:'wornAxe'}});
+ assert.equal(permitted.requirementsMet,true);
+ assert.equal(permitted.equipmentConflict,false);
+ assert.equal(permitted.requirementMessage,'');
+ const levelLocked=compareEquipment('feebleSword',1,{weapon:{id:'wornBow'}});
+ assert.equal(levelLocked.equipmentConflict,false);
+ assert.equal(levelLocked.requirementMessage,'Требуется уровень 3');
+});
 test('bag detail lists DPS and short signed replacement deltas',()=>{
  const h=harness({save:{level:4,inventory:[{id:'feebleSword',qty:1}],
    equipment:{weapon:{id:'wornAxe'}}}});

@@ -1,5 +1,5 @@
 // NexGameWorld spherical offline merchant rules. Never mutate live NexGame saves.
-import {ITEM_CATALOG,itemStackLimit} from '../items.js';
+import {ITEM_CATALOG,itemStackLimit} from '../items.js?v=64604';
 import {canStoreCorpseRow} from './corpse-loot.js';
 export const BUYBACK_LIMIT=10;
 export function sellInventorySlot(state,index){

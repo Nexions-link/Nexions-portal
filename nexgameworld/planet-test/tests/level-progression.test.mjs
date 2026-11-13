@@ -15,14 +15,13 @@ test('iPhone XP progress is consistent from 1 to 10 and charge unlock is determi
  assert.equal(earnedExperienceSince(7,395,8,10),15);
  assert.equal(earnedExperienceSince(8,10,8,10),0);
 });
-test('online and offline frontends use shared XP math, show quest XP and unlock hint',()=>{
+test('online and offline frontends use shared XP math and show quest XP',()=>{
  const online=readFileSync(new URL('../offline-rpg.js',import.meta.url),'utf8');
  const sheet=readFileSync(new URL('../character-sheet.js',import.meta.url),'utf8');
  const world=readFileSync(new URL('../../server/spherical-world.js',import.meta.url),'utf8');
  assert.match(online,/const xpRequired=levelExperienceRequirement;/);
  assert.match(online,/earnedExperienceSince\(previousLevel,previousXp,state.level,state.xp\)/);
  assert.match(online,/source!=='welcome'&&source!=='checkpoint'/);
- assert.match(online,/Новая способность: «Рывок»/);
  assert.match(sheet,/До 10 уровня:/);
  assert.match(world,/p\.hp=levelUp\?p\.maxHp/);
  assert.match(world,/if\(levelUp\)send\(ws,\{type:'playerVitals'/);

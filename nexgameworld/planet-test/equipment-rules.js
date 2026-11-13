@@ -1,4 +1,4 @@
-import {ITEM_CATALOG,deriveStats} from '../items.js?v=64600';
+import {ITEM_CATALOG,deriveStats,equipmentConflict} from '../items.js?v=64604';
 export const EQUIPMENT_LABELS={weapon:'Оружие',shield:'Щит',head:'Голова',chest:'Грудь',legs:'Ноги',hands:'Руки',waist:'Пояс',wrists:'Запястья',feet:'Ступни'};
 const failure=error=>({ok:false,error});
 export function equipFromBag(state,id,inCombat=false){
@@ -8,6 +8,7 @@ export function equipFromBag(state,id,inCombat=false){
  if(state.level<(def.requiredLevel||1))return failure('Требуется '+def.requiredLevel+' уровень');
  const index=state.inventory.findIndex(item=>item?.id===id&&item.qty>0);
  if(index<0)return failure('Предмета нет в рюкзаке');
+ if(equipmentConflict(state.equipment,id))return failure('Лук занимает обе руки. Сначала сними лук или щит');
  const previous=state.equipment[def.slot]?.id,item=state.inventory[index];
  if(previous&&item.qty>1&&state.inventory.length>=12)return failure('Сумка заполнена');
  // Atomic exchange, including a completely full backpack. No HP is granted.

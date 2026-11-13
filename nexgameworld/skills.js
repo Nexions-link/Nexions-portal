@@ -26,6 +26,12 @@ export const WARRIOR_RAGE_DECAY=5; // per second after exiting combat
 const safeNumber=(n,fallback=0)=>Number.isFinite(n)?n:fallback;
 export function getClassDefinition(id){return CLASS_DEFINITIONS[id]||CLASS_DEFINITIONS.warrior}
 export function getAbilityDefinition(id){return ABILITY_DEFINITIONS[id]||null}
+// Practice targets and authoritative PvE use the same ranged damage formula.
+export function rollHunterDamage(level,abilityId,rng=Math.random){
+ const ability=getAbilityDefinition(abilityId);
+ return Math.round(9+Math.max(1,safeNumber(level,1))*2+
+  Math.max(0,Math.min(1,rng()))*4+(ability?.classId==='hunter'?(ability.damageBonus||0):0));
+}
 export function getClassAbilities(classId,level=1){
  return Object.values(ABILITY_DEFINITIONS).filter(a=>(a.classId===classId||a.classId==='all')&&level>=a.level);
 }

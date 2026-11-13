@@ -37,15 +37,23 @@ export function createOrc(THREE,scene){
  root.userData.raceId='orc';
  return {root,body,chest,neck,head,tail,braids,arms,legs,visualDetails:null,anatomy:null};
 }
-export function equipHunterVisual(THREE,actor){
- if(actor.root.userData.hunterBow)return;
- actor.root.userData.classId='hunter';
+export function equipBowVisual(THREE,actor){
+ if(actor.root.userData.hunterBow)return actor.root.userData.hunterBow;
  const bow=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x84532c,roughness:.65}),metal=new THREE.MeshStandardMaterial({color:0xc4ad6c,metalness:.45,roughness:.4});
  const points=[[-.05,-.86,0],[.22,-.55,0],[.30,0,0],[.22,.55,0],[-.05,.86,0]].map(p=>new THREE.Vector3(...p));
  const limb=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),24,.045,7,false),wood);bow.add(limb);
  const string=new THREE.Line(new THREE.BufferGeometry().setFromPoints([points[0],points[4]]),new THREE.LineBasicMaterial({color:0xe5d7b7}));bow.add(string);
  const grip=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.24,10),metal);grip.position.x=.30;bow.add(grip);
- bow.rotation.x=Math.PI/2;actor.arms[0].hand.add(bow);actor.root.userData.hunterBow=bow;
+ bow.rotation.x=Math.PI/2;bow.visible=false;
+ actor.arms[0].hand.add(bow);actor.root.userData.hunterBow=bow;
+ return bow;
+}
+export function equipHunterVisual(THREE,actor){
+ actor.root.userData.classId='hunter';
+ equipBowVisual(THREE,actor);
+ if(actor.root.userData.hunterQuiver)return;
+ const wood=new THREE.MeshStandardMaterial({color:0x84532c,roughness:.65}),metal=new THREE.MeshStandardMaterial({color:0xc4ad6c,metalness:.45,roughness:.4});
  const quiver=new THREE.Mesh(new THREE.CylinderGeometry(.18,.14,.83,12),wood);quiver.position.set(.48,.55,-.48);quiver.rotation.z=-.3;actor.chest.add(quiver);
+ actor.root.userData.hunterQuiver=quiver;
  for(let i=0;i<4;i++){const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.60,5),metal);shaft.position.set(.38+i*.07,1.07,-.49);shaft.rotation.z=-.3;actor.chest.add(shaft);}
 }

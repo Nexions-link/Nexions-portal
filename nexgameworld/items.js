@@ -2,7 +2,7 @@
 // Prices and group drop chances are NexGame values, not Blizzard's drop statistics.
 const gear=(sourceId,name,slot,values)=>({sourceId,name,slot,rarity:'poor',quality:'Низкое качество',requiredLevel:1,stack:1,description:'Потрёпанное, но пригодное снаряжение.',...values});
 export const ITEM_CATALOG={
- wornBow:gear(null,'Лук следопыта','weapon',{icon:'🏹',rarity:'common',quality:'Обычный',weaponKind:'bow',damageMin:4,damageMax:7,speed:2,buy:8,sell:1,description:'Охотничий лук. Стрелы не расходуются.'}),
+ wornBow:gear(null,'Лук следопыта','weapon',{icon:'🏹',rarity:'common',quality:'Обычный',weaponKind:'bow',twoHanded:true,damageMin:4,damageMax:7,speed:2,buy:8,sell:1,description:'Двуручный охотничий лук. Стрелы не расходуются.'}),
  banditCloth:{name:'Истёртый лоскут',icon:'🧵',rarity:'poor',quality:'Низкое качество',sell:2,
   description:'Обрывок походной одежды разбойника. Можно продать торговцу.'},
  banditSeal:{name:'Медная печать разбойника',icon:'🪙',rarity:'uncommon',quality:'Необычный',sell:9,
@@ -63,13 +63,25 @@ export function rollEquipmentLoot(boss=false,rng=Math.random){
 export const itemStackLimit=id=>ITEM_CATALOG[id]?.slot?1:20;
 export const staminaHealth=stamina=>Math.min(stamina,20)+Math.max(0,stamina-20)*10;
 export const armorReduction=(armor,attackerLevel)=>Math.min(.75,armor/(armor+400+85*Math.max(1,attackerLevel)));
+const equippedDefinition=item=>ITEM_CATALOG[typeof item==='string'?item:item?.id];
+// Keep legacy saved shields owned and removable, but inactive with a two-handed weapon.
+export function effectiveShield(equipment){
+ const weapon=equippedDefinition(equipment?.weapon),shield=equippedDefinition(equipment?.shield);
+ return weapon?.twoHanded||shield?.slot!=='shield'?null:shield;
+}
+export function equipmentConflict(equipment,itemId){
+ const def=ITEM_CATALOG[itemId];
+ return !!(def?.slot==='shield'&&equippedDefinition(equipment?.weapon)?.twoHanded||
+  def?.slot==='weapon'&&def.twoHanded&&equippedDefinition(equipment?.shield)?.slot==='shield');
+}
 export function deriveStats(level,equipment){
  let strength=28+(level-1)*2,stamina=22+(level-1)*2,armor=0;
  for(const [slot,item] of Object.entries(equipment||{})){
   const def=ITEM_CATALOG[item?.id];if(!def||def.slot!==slot)continue;
+  if(slot==='shield'&&!effectiveShield(equipment))continue;
   strength+=def.strength||0;stamina+=def.stamina||0;armor+=def.armor||0;
  }
- const weapon=ITEM_CATALOG[equipment?.weapon?.id],shield=ITEM_CATALOG[equipment?.shield?.id];
+ const weapon=ITEM_CATALOG[equipment?.weapon?.id],shield=effectiveShield(equipment);
  const speed=weapon?.slot==='weapon'?weapon.speed:2,attackPower=Math.max(0,level*3+strength*2-20);
  const bonus=attackPower/14*speed;
  const damageMin=(weapon?.slot==='weapon'?weapon.damageMin:1)+bonus,damageMax=(weapon?.slot==='weapon'?weapon.damageMax:2)+bonus;

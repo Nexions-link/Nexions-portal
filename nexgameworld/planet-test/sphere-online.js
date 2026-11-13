@@ -4,7 +4,9 @@ import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?
 import {beginPlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
-import {remoteEquipmentSpec} from './remote-equipment.js?v=1';
+import {remoteEquipmentSpec,remoteWeaponKind} from './remote-equipment.js?v=64604';
+import {equipBowVisual} from './orc-avatar.js?v=64604';
+import {getAbilityDefinition} from '../skills.js?v=64604';
 import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
 import {createEquipmentVisualSwitcher} from './equipment-visual-switcher.js?v=1';
 import {applyWeaponQuality,applyShieldQuality} from '../item-quality.js?v=0.3.7.1';
@@ -354,7 +356,8 @@ export function createSphericalPresence({
    }else if(m.type==='combat'){
     // Only authoritative combat events can animate an observer's avatar.
     if(typeof m.fromId==='string'&&m.fromId!==selfId&&
-       ['autoAttack','heavyStrike','thunderStomp'].includes(m.abilityId))
+       (['autoAttack','heavyStrike','thunderStomp'].includes(m.abilityId)||
+        getAbilityDefinition(m.abilityId)?.classId==='hunter'))
      remoteAttacks.set(m.fromId,{at:Date.now(),abilityId:m.abilityId});
     onCombat?.(m,selfId);
    }
@@ -455,7 +458,10 @@ export function createSphericalPresence({
    // additional sculpt batches for distant peers on mobile Safari.
    // Cap additional draw calls even if sixteen players crowd onto a
    // single phone screen. Nearest peers win the cosmetic quality slots.
-   if(visual.actor.root.userData.hunterBow)visual.actor.root.userData.hunterBow.visible=peer.equipment?.weapon==='wornBow';
+   const weaponKind=remoteWeaponKind(peer);
+   if(weaponKind==='bow')equipBowVisual(THREE,visual.actor);
+   if(visual.actor.root.userData.hunterBow)
+    visual.actor.root.userData.hunterBow.visible=weaponKind==='bow';
    let modelDetail=0;
    if(distance<12&&detailedAvatarSlots<4){
     modelDetail=.68;detailedAvatarSlots++;
@@ -522,7 +528,9 @@ export function createSphericalPresence({
    const attackPhase=attackAge>=0&&attackAge<.8?attackAge/.8:-1;
    const combatAttack=recentAttack?.abilityId==='thunderStomp'
     ?{attack:-1,stomp:attackPhase}:{attack:attackPhase,stomp:-1};
-   const weaponKind=remoteEquipmentSpec(peer,'weapon')?.kind||'none';
+   // Bow geometry is procedural, so the GLB lookup intentionally returns null.
+   // Pose must still use the certified weapon kind after clearing old meshes.
+   visual.actor.root.userData.weaponKind=weaponKind;
    const poseWalk=chargePose?Math.max(chargePose.drive,.2):
     Math.max(movementStrength(visualMetres,dt,4.05),peer.moving?.55:0);
    const poseTurn=turnStrength(previousHeading,visual.heading,dt);

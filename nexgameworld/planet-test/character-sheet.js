@@ -1,4 +1,6 @@
 import {levelProgress} from './level-progression.js';
+import {effectiveShield} from '../items.js?v=64604';
+import {getClassDefinition,getClassAbilities} from '../skills.js?v=64604';
 // NexGameWorld character sheet: preserve the item-inspection language of
 // the archived flat NexGame window, with only the online game's real slots.
 export const CHARACTER_ARMOR_COLUMNS=Object.freeze({
@@ -22,11 +24,12 @@ const SLOT_HINTS={
  head:'Шлемы и головные уборы',chest:'Нагрудники и кожаные куртки',
  hands:'Боевые перчатки',wrists:'Наручи',waist:'Кожаные и металлические пояса',
  legs:'Штаны и поножи',feet:'Сапоги и защита копыт',
- weapon:'Одноручные топоры, мечи и кинжалы',shield:'Щиты для левой руки'
+ weapon:'Двуручные луки, одноручные топоры, мечи и кинжалы',shield:'Щиты для левой руки. Нельзя использовать с двуручным луком'
 };
 export function equipmentPropertyRows(def,pretty=String){
  if(!def)return [];
  const out=[];
+ if(def.twoHanded)out.push('Двуручное оружие');
  if(Number.isFinite(def.armor)&&def.armor>0)out.push('Броня: '+pretty(def.armor));
  if(Number.isFinite(def.strength)&&def.strength>0)out.push('Сила: +'+pretty(def.strength));
  if(Number.isFinite(def.stamina)&&def.stamina>0)out.push('Выносливость: +'+pretty(def.stamina));
@@ -53,20 +56,26 @@ export function renderCharacterSheet({
  document,body,profile,state,stats,items,labels,qualities,xpRequired,pretty,
  onUnequip,onOpenBag,onTuneWeapon=()=>{},preview,reuse=null,selectedSlot=null,onSelectSlot=()=>{}
 }){
+ const classId=profile?.classId||state.classId||'warrior';
+ const raceId=profile?.raceId||state.raceId||'hornfolk';
+ const inactiveShield=!!state.equipment.shield&&!effectiveShield(state.equipment);
+ const slotHint=slot=>slot==='feet'&&raceId==='orc'?'Сапоги и защита ступней':SLOT_HINTS[slot];
  const sheet=document.createElement('section');sheet.className='character-sheet';
  const hero=document.createElement('header');hero.className='character-identity';
  const name=document.createElement('strong');name.textContent=profile?.nickname||'Странник';
  const subtitle=document.createElement('span');
- subtitle.textContent='ТАУРЕН · ВОИН · УРОВЕНЬ '+state.level;
+ subtitle.textContent=(raceId==='orc'?'ОРК':'ТАУРЕН')+' · '+getClassDefinition(classId).name.toLocaleUpperCase('ru-RU')+' · УРОВЕНЬ '+state.level;
  const progress=document.createElement('small');progress.textContent='Опыт '+state.xp+' / '+xpRequired(state.level)+' · '+pretty(state.gold)+' монет';
  hero.append(name,subtitle,progress);
  // Make levels 1–10 and the level-eight Charge unlock predictable without
  // touching the authoritative XP, item ownership or saved action bar.
  const growth=levelProgress(state.level,state.xp);
+ const milestone=getClassAbilities(classId,10).filter(ability=>ability.level>state.level)
+  .sort((a,b)=>a.level-b.level)[0];
  const goal=document.createElement('small');goal.className='character-level-goal';
  goal.textContent=state.level>=10?'Прогресс 1–10: пройден':
   'До 10 уровня: '+pretty(growth.toEarlyCap)+' опыта'+
-  (growth.milestone?' · '+growth.milestone.label+' с '+growth.milestone.level+' ур.':'');
+  (milestone?' · '+milestone.name+' с '+milestone.level+' ур.':'');
  hero.append(goal);sheet.append(hero);
  const sectionLabel=document.createElement('div');sectionLabel.className='character-section-label';
  sectionLabel.textContent='✦  СНАРЯЖЕНИЕ  ✦';sheet.append(sectionLabel);
@@ -96,6 +105,11 @@ export function renderCharacterSheet({
    const quality=document.createElement('small');quality.className='character-detail-quality';
    quality.textContent=[def.quality,labels[slot]].filter(Boolean).join(' · ');
    detail.append(quality);
+   if(slot==='shield'&&inactiveShield){
+    const warning=document.createElement('p');warning.className='character-detail-description';
+    warning.textContent='Щит не действует, пока экипирован двуручный лук. Его можно снять в рюкзак.';
+    detail.append(warning);
+   }
    for(const lineText of equipmentPropertyRows(def,pretty)){
     const line=document.createElement('small');line.className='character-detail-property';
     line.textContent=lineText;detail.append(line);
@@ -109,7 +123,7 @@ export function renderCharacterSheet({
    remove.addEventListener('click',()=>onUnequip(slot,def));
    detail.append(remove);
   }else{
-   const hint=document.createElement('p');hint.textContent=SLOT_HINTS[slot]+'. Ячейка свободна.';
+   const hint=document.createElement('p');hint.textContent=slotHint(slot)+'. Ячейка свободна.';
    detail.append(hint);
   }
  };
@@ -120,8 +134,9 @@ export function renderCharacterSheet({
   button.dataset.slot=slot;
   button.setAttribute('aria-pressed','false');
   button.style.setProperty('--item-color',qualities[def?.rarity]?.color||'#cfb979');
-  button.setAttribute('aria-label',labels[slot]+': '+(def?.name||'пусто'));
-  button.title=def?.name||SLOT_HINTS[slot];
+  const inactive=slot==='shield'&&inactiveShield;
+  button.setAttribute('aria-label',labels[slot]+': '+(def?.name||'пусто')+(inactive?' · не действует':''));
+  button.title=(def?.name||slotHint(slot))+(inactive?' · не действует с двуручным луком':'');
   if(def){
    const icon=document.createElement('span');icon.className='character-socket-icon';
    icon.textContent=def.icon||'◆';icon.setAttribute('aria-hidden','true');button.append(icon);
@@ -131,7 +146,7 @@ export function renderCharacterSheet({
   const label=document.createElement('span');label.className='character-socket-label';
   label.textContent=labels[slot];button.append(label);
   const status=document.createElement('small');status.className='character-socket-status';
-  status.textContent=def?.name||'Пусто';button.append(status);
+  status.textContent=(def?.name||'Пусто')+(inactive?' · не действует':'');button.append(status);
   button.addEventListener('click',()=>choose(button,slot,def));
   allButtons.push(button);return button;
  };
@@ -169,7 +184,7 @@ export function renderCharacterSheet({
   ['Выносливость',pretty(stats.stamina)],['Броня',pretty(stats.armor)],
   ['Сила атаки',pretty(stats.attackPower)],['Урон',pretty(stats.damageMin)+'–'+pretty(stats.damageMax)],
   ['Скорость атаки',pretty(stats.speed)+' с'],['Урон / сек.',pretty(stats.dps)],
-  ['Блок щитом',stats.blockChance?'5% · '+pretty(stats.blockValue):'Нет щита']
+  ['Блок щитом',stats.blockChance?'5% · '+pretty(stats.blockValue):inactiveShield?'Щит не действует':'Нет щита']
  ];
  for(const [label,value] of statRows){
   const cell=document.createElement('div');const dt=document.createElement('dt'),dd=document.createElement('dd');
