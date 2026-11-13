@@ -8,7 +8,7 @@ import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=2';
 import {createR2AdaptiveRenderBudget,createR2SceneSnapshot,compareR2SceneSnapshots} from './r2-performance.js?v=1';
 import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay.js?v=5';
-import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=8';
+import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=9';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,readExpedition} from './expedition-quest.js?v=1';
 import {sphericalSlideStep} from './sphere-slide.js?v=1';
 import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TRAIL_END} from './whispering-forest.js?v=31';
@@ -31,7 +31,7 @@ import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=64602';
+import {createOfflineRpg} from './offline-rpg.js?v=64603';
 import {createSphericalPresence} from './sphere-online.js?v=64600';
 import {createConnectionIndicator} from './connection-indicator.js?v=1';
 import {syncForestWolfMount} from './mount-visual.js?v=4';

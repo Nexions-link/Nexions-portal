@@ -4,7 +4,7 @@ import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=7';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
-import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=8';
+import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=9';
 import {createQuestTracking} from './quest-tracking-state.js?v=3';
 import {forestMoodAt} from './whispering-forest.js';
 import {createForestAmbience} from './forest-ambience.js?v=1';

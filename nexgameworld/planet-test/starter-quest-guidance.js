@@ -161,7 +161,7 @@ export function trackedQuestMap(id,state,inventory=[],position={x:0,z:0}){
  if(id==='forest-hunt'){
   const q=readForestHunt(state.forestHunt);
   if(q.stage===1)return pointMap(FOREST_WOLF_SPAWNS,'Лесные волки','targets');
-  if(q.stage===3)return pointMap(FOREST_DEN_SITES.filter(p=>!q.traces[p.index]),'Следы волков');
+  if(q.stage===3)return pointMap(FOREST_DEN_SITES.filter(p=>!q.traces[p.index]),'Следы волков','landmarks');
   return pointMap([waypoint],waypoint.title);
  }
  if(id==='expedition'){
