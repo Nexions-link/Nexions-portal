@@ -4,8 +4,8 @@ import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=3';
 import {renderCharacterSheet} from './character-sheet.js?v=64604';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
-import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=64606';
-import {createQuestTracking} from './quest-tracking-state.js?v=64606';
+import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=64607';
+import {createQuestTracking} from './quest-tracking-state.js?v=64607';
 import {forestMoodAt} from './whispering-forest.js';
 import {createForestAmbience} from './forest-ambience.js?v=1';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,EXPEDITION_LEVEL,EXPEDITION_REWARD,readExpedition,expeditionJournal} from './expedition-quest.js?v=1';
@@ -13,7 +13,7 @@ import {FOREST_DEN_SITES,FOREST_HUNT_KILLS,FOREST_HUNT_REWARD,readForestHunt,for
 import {readMountQuest,mountQuestOffer,mountQuestJournal} from './mount-quest.js?v=1';
 import {renderMountCollection} from './mount-collection.js?v=1';
 import {forestCampPoint,forestLocalPoint} from './whispering-forest.js';
-import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=64606';
+import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=64607';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=64600';
@@ -21,7 +21,7 @@ import {getAbilityRangeIndicator,getAbilityResourceIndicator} from './ability-ra
 import {levelExperienceRequirement,earnedExperienceSince} from './level-progression.js?v=1';
 import {compareEquipment,itemStatRows,formatBagEquipmentChanges} from './equipment-comparison.js?v=64604';
 import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit,effectiveShield} from '../items.js?v=64604';
-import {equipBowVisual} from './orc-avatar.js?v=64606';
+import {equipBowVisual} from './orc-avatar.js?v=64607';
 import {getAbilityDefinition,getClassDefinition,getClassAbilities,rollHunterDamage,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=64604';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=64604';
 import {attachAbilityDrag} from './ability-drag-drop.js?v=1';
@@ -34,9 +34,9 @@ import {BATTLEFURY_ITEM_ID,BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_FIELDS,BAT
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';
-import {GATHER_QUESTS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=64606';
+import {GATHER_QUESTS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=64607';
 import {BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED,BANDIT_WEAPON_RESPAWN_SECONDS,createBanditWeaponWorld} from './bandit-weapons.js?v=1';
-import {createCampActions} from './camp-actions.js?v=64606';
+import {createCampActions} from './camp-actions.js?v=64607';
 import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1';
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
@@ -60,7 +60,7 @@ import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
 import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
 import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=15';
-import {canWadeAtLocal} from './start-zone.js?v=64606';
+import {canWadeAtLocal} from './start-zone.js?v=64607';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceCreatureGait} from './creature-gait.js?v=3';

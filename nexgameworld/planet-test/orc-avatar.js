@@ -1,40 +1,116 @@
-// Original orc mesh on the same articulated rig as the native hero.
-// Shared rig means terrain feet, mounts, weapons and remote animation stay aligned.
+// Original sculpted orc, built on the established articulated player rig.
+// Geometry and painted maps are shared; materials and animation state are not.
+import {createOrcMaterials} from './orc-materials.js?v=64607';
+import {createOrcHead} from './orc-head.js?v=64607';
+import {orcProfile,orcCurve,orcPlate,orcRibbon,batchOrcJoint} from './orc-geometry.js?v=64607';
 export function createOrc(THREE,scene){
- const root=new THREE.Group();scene.add(root);
- const group=(parent,x=0,y=0,z=0)=>{const g=new THREE.Group();g.position.set(x,y,z);parent.add(g);return g;};
- const mat=(color,roughness=.88)=>new THREE.MeshStandardMaterial({color,roughness});
- const skin=mat(0x66804a),light=mat(0x7e9256),dark=mat(0x314332),leather=mat(0x47352c),trim=mat(0x9f7545),iron=mat(0x535c58,.5),ivory=mat(0xead9a4),hair=mat(0x1a2320),eye=mat(0xdca34b),black=mat(0x111512);
- const sphere=new THREE.SphereGeometry(1,18,12);
- const ell=(p,m,x,y,z,sx,sy,sz)=>{const o=new THREE.Mesh(sphere,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=o.receiveShadow=true;p.add(o);return o;};
- const cone=(p,m,x,y,z,r,h)=>{const o=new THREE.Mesh(new THREE.ConeGeometry(r,h,12),m);o.position.set(x,y,z);o.castShadow=true;p.add(o);return o;};
- const body=group(root,0,1.4),chest=group(body),neck=group(chest,0,1.02,.25),head=group(neck),tail=group(body),braids=[];
- ell(chest,skin,0,.56,0,.78,.85,.43);ell(chest,skin,0,1,-.08,.94,.44,.42);
- for(const s of [-1,1]){ell(chest,light,s*.36,.78,.34,.36,.27,.14);ell(chest,skin,s*.22,.28,.36,.23,.33,.12);}
- ell(head,skin,0,.22,0,.43,.55,.35);ell(head,light,0,-.13,.15,.43,.29,.33);
- ell(head,dark,0,-.18,.435,.30,.035,.035);ell(head,skin,0,.11,.34,.14,.20,.15);
+ const root=new THREE.Group();root.name='orc-root';scene.add(root);
+ const joints=[];
+ const joint=(parent,name,x=0,y=0,z=0)=>{
+  const g=new THREE.Group();g.name=name;g.position.set(x,y,z);
+  g.userData.orcJoint=true;parent.add(g);joints.push(g);return g;
+ };
+ const M=createOrcMaterials(THREE);
+ for(const [name,material] of Object.entries(M))material.name='orc-'+name;
+ const mesh=(parent,name,geometry,material,x=0,y=0,z=0)=>{
+  const m=new THREE.Mesh(geometry,material);m.name=name;m.position.set(x,y,z);
+  m.castShadow=m.receiveShadow=true;parent.add(m);return m;
+ };
+ const form=(parent,name,rings,material,options={})=>mesh(parent,name,orcProfile(THREE,name,rings,options),material);
+ const curve=(parent,name,points,radii,material,options={})=>mesh(parent,name,orcCurve(THREE,name,points,radii,options),material);
+ const plate=(parent,name,outline,material,x,y,z,depth=.035)=>mesh(parent,name,orcPlate(THREE,name,outline,depth),material,x,y,z);
+ const body=joint(root,'orc-body',0,1.4),chest=joint(body,'orc-chest'),
+  neck=joint(chest,'orc-neck',0,1.02,.25),head=joint(neck,'orc-head'),tail=joint(body,'orc-tail'),braids=[];
+ // One continuous back, ribcage, pectoral plane and abdomen replaces the
+ // intersecting chest/abdominal balls. The waist tapers below broad trapezii.
+ form(chest,'torso',[
+  [-.27,.51,.30,-.015],[-.08,.55,.33,0],[.20,.62,.36,-.015],
+  [.43,.77,.40,-.025],[.67,.94,.425,-.045],[.87,.98,.40,-.075],
+  [1.03,.86,.35,-.12],[1.19,.57,.29,-.18],[1.25,.34,.23,-.14]
+ ],M.skin,{segments:32,power:.82,sculpt:(x,y,z)=>{
+  if(z>0){
+   const chestPlane=Math.exp(-(((Math.abs(x)-.40)/.34)**2+((y-.68)/.24)**2));
+   const sternum=Math.exp(-((x/.065)**2+((y-.65)/.30)**2));
+   const abdomen=Math.exp(-((x/.30)**2+((y-.20)/.34)**2));
+   z+=.13*chestPlane-.03*sternum+.035*abdomen;
+  }else{
+   const shoulderBlade=Math.exp(-(((Math.abs(x)-.41)/.30)**2+((y-.73)/.33)**2));
+   const spine=Math.exp(-((x/.075)**2+((y-.59)/.53)**2));
+   z-=.055*shoulderBlade-.033*spine;
+  }
+  return [x,y,z];
+ },shade:(x,y,z)=>{
+  const facing=Math.max(0,Math.min(1,z/.35));
+  const underChest=Math.exp(-(((y-.49)/.065)**2+((Math.abs(x)-.40)/.34)**2));
+  const sternum=Math.exp(-((x/.06)**2+((y-.69)/.25)**2));
+  const oblique=Math.exp(-(((Math.abs(x)-.49)/.08)**2+((y-.20)/.24)**2));
+  const rear=Math.max(0,Math.min(1,-z/.35));
+  const spine=Math.exp(-((x/.075)**2+((y-.61)/.46)**2));
+  return 1-facing*(.16*underChest+.10*sternum+.065*oblique)-rear*.10*spine;
+ }});
+ // A low, broad neck grows from the trapezius rather than a ball on a stalk.
+ form(neck,'neck-column',[[-.13,.36,.27,-.11],[.06,.35,.29,-.10],[.25,.30,.27,-.055]],M.skin,{power:.8});
+ const sculpture=createOrcHead(THREE,M);
+ sculpture.scale.setScalar(.88);sculpture.position.y=.07;head.add(sculpture);
+ // Layered hide trousers, a metal-bound belt and a weighted red front cloth.
+ form(body,'hip-hide',[[-.45,.51,.32,0],[-.23,.63,.37,.01],[-.06,.63,.36,0],[.02,.55,.32,0]],M.leatherDark,{power:.72});
+ form(body,'girdle',[[-.15,.65,.39,.015],[-.12,.68,.41,.015],[.02,.66,.39,.015],[.045,.62,.36,.015]],M.leather,{power:.65});
+ form(body,'girdle-upper-edge',[[.01,.675,.405,.015],[.055,.64,.38,.015]],M.metalDark,{power:.65});
+ form(body,'girdle-lower-edge',[[-.17,.66,.40,.015],[-.135,.68,.41,.015]],M.trim,{power:.65});
+ plate(body,'belt-buckle',[[-.16,-.10],[-.18,.07],[0,.15],[.18,.07],[.16,-.10],[0,-.15]],M.metal,0,-.055,.425,.065);
+ plate(body,'buckle-inlay',[[-.055,-.065],[-.055,.055],[0,.095],[.055,.055],[.055,-.065],[0,-.095]],M.trim,0,-.055,.51,.015);
+ form(body,'front-cloth',[[-.87,.21,.022,.33],[-.68,.27,.035,.39],[-.38,.29,.045,.43],[-.14,.29,.045,.425]],M.cloth,{segments:16,power:.5});
  for(const s of [-1,1]){
-  ell(head,dark,s*.205,.26,.30,.16,.11,.09);ell(head,ivory,s*.20,.25,.37,.10,.052,.025);ell(head,eye,s*.19,.25,.395,.047,.05,.016);ell(head,black,s*.19,.25,.411,.021,.038,.009);
-  ell(head,skin,s*.21,.355,.35,.22,.085,.10).rotation.z=s*.22;
-  const ear=cone(head,skin,s*.50,.28,0,.14,.40);ear.rotation.z=-s*1.0;
-  const tusk=cone(head,ivory,s*.245,-.025,.45,.075,.33);tusk.rotation.z=-s*.20;tusk.rotation.x=.16;
+  mesh(chest,'harness-'+s,orcRibbon(THREE,'harness-'+s,
+   [[s*.56,1.04,.26],[s*.50,.82,.445],[s*.35,.50,.485],[s*.18,.18,.425],[s*.12,-.07,.417]],.17,.035),M.leather);
+  plate(chest,'chest-clasp-'+s,[[-.09,-.09],[-.09,.09],[.09,.09],[.09,-.09]],M.metalDark,s*.33,.47,.48,.025).rotation.z=-s*.28;
+  curve(body,'side-cloth-trim-'+s,[[s*.24,-.20,.47],[s*.26,-.48,.43],[s*.19,-.83,.36]],[.017,.017,.014],M.trim,{sides:5});
  }
- for(let i=0;i<7;i++)ell(head,hair,0,.63-i*.025,-.23+i*.075,.12,.16,.12);
- const knot=group(head,0,.58,-.27);ell(knot,hair,0,.04,0,.16,.17,.17);braids.push(knot);
- ell(body,leather,0,-.12,0,.62,.28,.43);ell(body,trim,0,-.03,.40,.19,.13,.04);
- for(const s of [-1,1])ell(body,leather,s*.22,-.40,.22,.28,.36,.24);
  const arms=[],legs=[];
  for(const s of [-1,1]){
-  const shoulder=group(chest,s*.86,.96,0),elbow=group(shoulder,s*.13,-.69,.015),hand=group(elbow,s*.025,-.69,.035);
-  ell(shoulder,skin,s*.04,-.19,0,.36,.48,.33);ell(elbow,skin,0,-.28,0,.28,.42,.26);ell(elbow,leather,0,-.55,0,.29,.15,.27);
-  ell(hand,skin,0,-.1,.015,.26,.24,.22);for(let i=0;i<4;i++)ell(hand,skin,(i-1.5)*.105,-.26,.055,.065,.14,.10);
-  ell(hand,skin,-s*.22,-.07,.13,.10,.16,.10);arms.push({shoulder,elbow,hand});
-  ell(shoulder,iron,s*.03,.06,-.02,.41,.20,.38);for(let i=0;i<3;i++)cone(shoulder,ivory,s*(.04+i*.1),.28,-.15+i*.13,.055,.25);
-  const hip=group(root,s*.38,1.4),knee=group(hip,0,-.72),foot=group(knee,0,-.68);
-  ell(hip,leather,0,-.29,0,.28,.46,.28);ell(knee,skin,0,-.23,0,.22,.35,.22);ell(knee,leather,0,-.50,0,.23,.23,.23);ell(foot,leather,0,-.04,.13,.25,.18,.38);
+  const shoulder=joint(chest,'orc-shoulder-'+s,s*.86,.96,0),
+   elbow=joint(shoulder,'orc-elbow-'+s,s*.13,-.69,.015),
+   hand=joint(elbow,'orc-hand-'+s,s*.025,-.69,.035);
+  form(shoulder,'upper-arm-'+s,[[.14,.28,.27,-.025,s*.025],[.01,.38,.34,-.005,s*.045],[-.22,.37,.33,.01,s*.07],[-.45,.29,.275,.03,s*.10],[-.68,.22,.215,.015,s*.13],[-.76,.15,.15,.015,s*.13]],M.skin,{power:.85});
+  form(elbow,'forearm-'+s,[[.19,.045,.045,0],[.13,.17,.16,0],[.05,.235,.22,0],[-.08,.275,.255,.015],[-.28,.27,.245,.02],[-.47,.22,.205,.025],[-.69,.17,.16,.035,s*.025]],M.skin,{power:.8});
+  // A single broad palm and curled tapered digits; wrist and grip stay exact.
+  form(hand,'palm-'+s,[[-.29,.20,.15,.055],[-.21,.25,.19,.035],[-.07,.25,.21,.015],[.08,.18,.16,0],[.15,.105,.10,.015],[.18,.025,.025,.015]],M.skin,{segments:20,power:.68});
+  for(let i=0;i<4;i++){
+   const x=(i-1.5)*.105;
+   curve(hand,'finger-'+s+'-'+i,[[x,-.17,.13],[x,-.28,.19],[x,-.35,.13],[x,-.32,.045]],[.067,.072,.059,.025],M.skin,{sides:8});
+   plate(hand,'nail-'+s+'-'+i,[[-.033,-.032],[-.034,.025],[.025,.035],[.033,-.025]],M.ivory,x,-.32,.18,.008);
+  }
+  curve(hand,'thumb-'+s,[[-s*.21,-.04,.12],[-s*.29,-.13,.19],[-s*.25,-.24,.17]],[.095,.105,.065],M.skin,{sides:10});
+  arms.push({shoulder,elbow,hand});
+  // Asymmetrical forged shoulder shells with bone spikes and visible trim.
+  const heavy=s<0;
+  form(shoulder,'pauldron-'+s,[[-.14,.33,.29,-.02,s*.045],[-.02,.48,.405,-.025,s*.06],[.17,.43,.37,-.06,s*.07],[.29,.25,.26,-.08,s*.06]],heavy?M.metal:M.leatherDark,{segments:16,power:.62});
+  form(shoulder,'pauldron-rim-'+s,[[-.14,.35,.31,-.02,s*.045],[-.09,.43,.37,-.025,s*.05]],M.trim,{segments:16,power:.62});
+  for(let i=0;i<(heavy?3:2);i++){
+   const z=-.24+i*.22,x=s*(.11+i*.055);
+   curve(shoulder,'shoulder-spike-'+s+'-'+i,[[x,.20,z],[x+s*.10,.38,z-.025],[x+s*.16,.56-i*.035,z-.065]],
+    [.095,.065,.002],M.ivory,{sides:8});
+  }
+  form(elbow,'bracer-'+s,[[-.62,.20,.19,.035],[-.56,.245,.23,.035],[-.32,.285,.27,.02],[-.26,.265,.25,.02]],M.leatherDark,{segments:16,power:.66});
+  for(const y of [-.58,-.32])form(elbow,'bracer-band-'+s+'-'+y,[[y-.025,.25,.24,.025],[y+.025,.255,.245,.025]],M.metalDark,{segments:16,power:.68});
+  plate(elbow,'bracer-face-'+s,[[-.13,-.16],[-.17,.12],[0,.20],[.17,.12],[.13,-.16],[0,-.21]],M.metal,0,-.44,.26,.04);
+  const hip=joint(root,'orc-hip-'+s,s*.38,1.4),knee=joint(hip,'orc-knee-'+s,0,-.72),foot=joint(knee,'orc-foot-'+s,0,-.68);
+  form(hip,'thigh-'+s,[[.02,.27,.29,0],[-.13,.33,.33,.01],[-.35,.32,.31,.025],[-.57,.265,.25,.025],[-.72,.225,.22,0]],M.leather,{power:.75});
+  form(knee,'shin-'+s,[[.06,.24,.23,0],[-.12,.255,.255,.01],[-.36,.225,.23,.02],[-.59,.19,.18,.015],[-.68,.18,.17,.015]],M.leatherDark,{power:.72});
+  form(knee,'knee-hide-fold-'+s,[[-.17,.19,.18,0],[-.08,.26,.235,0],[.025,.28,.25,0],[.13,.235,.22,0],[.18,.13,.13,0]],M.leather,{segments:20,power:.8});
+  plate(knee,'knee-guard-'+s,[[-.20,-.14],[-.23,.09],[0,.24],[.23,.09],[.20,-.14],[0,-.23]],M.metal,0,-.045,.235,.055);
+  plate(knee,'shin-front-'+s,[[-.14,-.24],[-.18,.14],[0,.22],[.18,.14],[.14,-.24],[0,-.31]],M.metalDark,0,-.36,.22,.035);
+  for(const y of [-.24,-.54])form(knee,'boot-band-'+s+'-'+y,[[y-.025,.24,.235,.025],[y+.025,.245,.24,.025]],M.leather,{segments:16,power:.65});
+  form(foot,'boot-'+s,[[-.17,.29,.41,.17],[-.10,.31,.43,.18],[.02,.30,.40,.17],[.15,.235,.245,.04],[.24,.19,.18,.015]],M.leatherDark,{segments:20,power:.54});
+  form(foot,'boot-sole-'+s,[[-.21,.305,.425,.175],[-.155,.315,.44,.175]],M.black,{segments:20,power:.5});
+  plate(foot,'toe-cap-'+s,[[-.23,-.05],[-.24,.04],[0,.13],[.24,.04],[.23,-.05]],M.metalDark,0,-.035,.58,.035);
   legs.push({hip,knee,foot,sign:s});
  }
- root.userData.raceId='orc';
+ // Merge only rigid surfaces inside each joint. This keeps the new sculpture
+ // cheaper to draw than the old collection of separate green spheres.
+ for(const g of joints)batchOrcJoint(THREE,g);
+ root.userData.raceId='orc';root.userData.characterModel='ngw-orc-sculpt-v1';
+ root.userData.surfaceRevision='sculpted-painted-orc-1';
  return {root,body,chest,neck,head,tail,braids,arms,legs,visualDetails:null,anatomy:null};
 }
 export function equipBowVisual(THREE,actor){
