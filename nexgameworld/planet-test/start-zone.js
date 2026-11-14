@@ -1,4 +1,4 @@
-import {createOrc,equipHunterVisual} from './orc-avatar.js?v=64604';
+import {createOrc,equipHunterVisual} from './orc-avatar.js?v=64605';
 import {getActorOutfitMaps} from './actor-outfit-materials.js?v=1';
 import {createSmoothActorForm,getSmoothActorPrimitives} from './smooth-actor-geometry.js?v=1';
 import {createLandscapeMap} from '../landscape.js?v=0.6.45.68';

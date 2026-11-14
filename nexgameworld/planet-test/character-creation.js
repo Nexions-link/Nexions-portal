@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {createTauren} from './start-zone.js?v=64604';
+import {createTauren} from './start-zone.js?v=64605';
 import {animateSphericalTauren} from './tauren-animation.js?v=64604';
 export function mountCharacterCreation(form){
  const host=form.querySelector('.creation-stage'),race=form.elements.raceId,klass=form.elements.classId;
