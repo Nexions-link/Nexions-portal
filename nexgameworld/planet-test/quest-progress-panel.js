@@ -1,9 +1,9 @@
 // Tiny HUD summaries. Derived from verified live quest progress and inventory,
 // never from map hints or predicted kills.
-import {GATHER_QUESTS} from './gather-world.js?v=64605';
+import {GATHER_QUESTS} from './gather-world.js?v=64606';
 import {BANDIT_QUEST_KILLS} from './creature-registry.js';
 import {BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED} from './bandit-weapons.js';
-import {isAcceptedQuest} from './starter-quest-guidance.js?v=64605';
+import {isAcceptedQuest} from './starter-quest-guidance.js?v=64606';
 import {readExpedition} from './expedition-quest.js';
 import {readForestHunt,FOREST_HUNT_KILLS} from './forest-hunt-quest.js';
 import {readMountQuest} from './mount-quest.js';

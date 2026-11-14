@@ -6,7 +6,7 @@ import {equipBowVisual} from '../orc-avatar.js';
 import {animateSphericalTauren} from '../tauren-animation.js';
 import {installDom} from './harness.mjs';
 
-test('both hunter rigs hold the handle at the palm while the bowstring stays clear',()=>{
+test('both hunter rigs hold the handle with the string clear and facing the drawing hand',()=>{
  installDom();initStartZoneMath(THREE);
  for(const raceId of ['orc','hornfolk']){
   const actor=createTauren(THREE,new THREE.Scene(),{raceId,classId:'hunter',player:true});
@@ -26,7 +26,12 @@ test('both hunter rigs hold the handle at the palm while the bowstring stays cle
     string.localToWorld(new THREE.Vector3().fromBufferAttribute(points,0)),
     string.localToWorld(new THREE.Vector3().fromBufferAttribute(points,1)));
    const distance=line.closestPointToPoint(palm,true,new THREE.Vector3()).distanceTo(palm);
-   assert.ok(distance>.32,raceId+' string must remain outside the widest .29 m palm');
+   assert.ok(distance>.42,raceId+' string must remain outside both the palm and opposed thumb');
+   const stringDirection=line.getCenter(new THREE.Vector3()).sub(palm).normalize();
+   const drawingDirection=actor.arms[1].hand.localToWorld(new THREE.Vector3(0,-.10,.015))
+    .sub(palm).normalize();
+   assert.ok(stringDirection.dot(drawingDirection)>.75,
+    raceId+' string must face the second hand, not the outside of the bow-holding arm');
   }
  }
 });

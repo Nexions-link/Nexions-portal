@@ -4,7 +4,7 @@
 // one 256x256 grain/needle tile for sharp albedo and normal relief.
 // No shader replacement, external asset, interaction target or collider.
 import {forestTrailLatitude,createForestLayout} from './whispering-forest.js';
-import {pathWear} from './start-zone.js?v=64605';
+import {pathWear} from './start-zone.js?v=64606';
 
 const PI=Math.PI,TAU=2*PI,R=261;
 const clamp=(x)=>Math.max(0,Math.min(1,x));

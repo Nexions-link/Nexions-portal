@@ -40,14 +40,15 @@ export function createOrc(THREE,scene){
 export function equipBowVisual(THREE,actor){
  if(actor.root.userData.hunterBow)return actor.root.userData.hunterBow;
  const bow=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x84532c,roughness:.65}),metal=new THREE.MeshStandardMaterial({color:0xc4ad6c,metalness:.45,roughness:.4});
- const points=[[-.05,-.86,0],[.22,-.55,0],[.30,0,0],[.22,.55,0],[-.05,.86,0]].map(p=>new THREE.Vector3(...p));
+ // The recurved tips leave room for the holding hand's opposed thumb.
+ const points=[[-.15,-.86,0],[.22,-.55,0],[.30,0,0],[.22,.55,0],[-.15,.86,0]].map(p=>new THREE.Vector3(...p));
  const limb=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),24,.045,7,false),wood);bow.add(limb);
  const string=new THREE.Line(new THREE.BufferGeometry().setFromPoints([points[0],points[4]]),new THREE.LineBasicMaterial({color:0xe5d7b7}));string.name='bow-string';bow.add(string);
  const grip=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.24,10),metal);grip.name='bow-grip';grip.position.x=.30;bow.add(grip);
- bow.rotation.x=Math.PI/2;
- // Both rigs share palm center (0,-.10,.015). The modeled handle is at
- // x=.30, so offset the entire bow to put the handle, not the string, there.
- bow.position.set(-.30,-.10,.015);bow.visible=false;
+ // Face the string toward the other (drawing) hand, while keeping the
+ // handle centered in the shared palm position (0,-.10,.015).
+ bow.rotation.set(Math.PI/2,0,Math.PI);
+ bow.position.set(.30,-.10,.015);bow.visible=false;
  actor.arms[0].hand.add(bow);actor.root.userData.hunterBow=bow;
  return bow;
 }
