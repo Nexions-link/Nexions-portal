@@ -7,6 +7,7 @@ import {advancePlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {advancePlayerMotion} from './player-motion.js?v=1';
 import {weaponActionDetail} from './weapon-action-detail.js?v=1';
 import {footStrideZ,hoofSwingLift,hoofToeFlex} from './foot-placement.js?v=2';
+import {bowShotPose,bowStanceAngle,bowHeadYaw} from './bow-pose.js?v=64608';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const ease=(a,b,t)=>{const x=clamp((t-a)/(b-a),0,1);return x*x*(3-2*x)};
 const smooth=x=>x*x*(3-2*x);
@@ -15,6 +16,9 @@ export function animateSphericalTauren(actor,{
  attack=-1,stomp=-1,blockRemaining=0,weaponKind='none',terrainFeet=null,charge=null
 }={}){
  const seconds=clamp(Number.isFinite(dt)?dt:0,0,.1),user=actor.root.userData;
+ const bowCycle=weaponKind==='bow'?bowShotPose(attack):null,
+  bowTurn=(bowCycle?.raise||0)*bowStanceAngle(actor);
+ user.poseWeaponKind=weaponKind;
  const motion=advancePlayerMotion(user,seconds,{
   walk,turn,gather,combat,attack,blockRemaining
  });
@@ -37,8 +41,8 @@ export function animateSphericalTauren(actor,{
  const windup=playing&&!stabbing?ease(0,.32,attack)*(1-ease(.38,.65,attack)):0;
  const swing=playing&&!stabbing?ease(.32,.58,attack)*(1-ease(.64,1,attack)):0;
  const block=shieldBlockPose(blockRemaining);
- const posture=combatPose({attack,weaponKind,blockRemaining,recoil,walk:w});
- const detail=weaponActionDetail({weaponKind,attack,walk:w,guard,
+ const posture=combatPose({attack:bowCycle?-1:attack,weaponKind,blockRemaining,recoil,walk:w});
+ const detail=weaponActionDetail({weaponKind,attack:bowCycle?-1:attack,walk:w,guard,
   blocking:block.power>0});
  // Support-side weight shift, slight forward drive and turn banking remain in
  // the already animated torso; foot IK and all equipment attachment joints stay.
@@ -51,13 +55,14 @@ export function animateSphericalTauren(actor,{
  actor.chest.rotation.set(.035*w+.20*bend+block.chestX+.013*acceleration+posture.brace*.6+.033*guard+
    detail.torsoPitch,
   Math.sin(phase)*.065*w+block.chestY+.095*pivot+.065*turnLag-.022*guard+
-   detail.torsoYaw,
+   detail.torsoYaw+bowTurn,
   -stride*.025*w+.038*pivot+posture.impact*.035-detail.torsoRoll);
  actor.chest.scale.y=1+breath*.005;
  actor.neck.rotation.set(-.018*breath+.10*bend-.009*guard,-actor.chest.rotation.y*.65,stride*.015*w);
  // Head remains parented to the original neck joint, including both horns.
  actor.head.rotation.set(.024*Math.sin(time*.85)*idle-.035*stride*w+.060*bend+detail.headPitch,
-  .034*Math.sin(time*.57)*idle+.016*Math.sin(phase)*w+.065*pivot+.025*turnLag,
+  .034*Math.sin(time*.57)*idle+.016*Math.sin(phase)*w+.065*pivot+.025*turnLag-bowTurn*.35+
+   bowHeadYaw(actor)*(bowCycle?.raise||0),
   .012*Math.sin(time*.73)*idle+.018*pivot);
  actor.chest.rotation.z+=.018*Math.sin(time*1.1)*idle+.026*recoil;
  if(stabbing){
@@ -65,8 +70,10 @@ export function animateSphericalTauren(actor,{
   actor.chest.rotation.x+=.10*stabbing.extend;
   actor.body.position.z=.16*stabbing.extend;
  }else{
-  actor.chest.rotation.y+=-profile.torsoWindup*windup+profile.torsoSwing*swing;
-  actor.chest.rotation.x+=.12*swing;
+  if(!bowCycle){
+   actor.chest.rotation.y+=-profile.torsoWindup*windup+profile.torsoSwing*swing;
+   actor.chest.rotation.x+=.12*swing;
+  }
   actor.body.position.z=0;
  }
  actor.body.position.z-=.045*recoil;
@@ -124,6 +131,7 @@ export function animateSphericalTauren(actor,{
  }
  for(let i=0;i<2;i++){
   const arm=actor.arms[i],sign=i?1:-1;
+  arm.elbow.rotation.y=0;arm.elbow.rotation.z=0;
   arm.shoulder.rotation.x=sign*stride*.31*w+sign*.045*pivot
    -(i?profile.shoulderWindup*windup-profile.shoulderSwing*swing:0)
    -(i?.18:.105)*guard+
@@ -185,14 +193,9 @@ export function animateSphericalTauren(actor,{
  actor.arms[0].elbow.rotation.x-=incoming.shieldBrace*.38;
  actor.arms[1].shoulder.rotation.x+=incoming.weaponBrace;
 
- if(weaponKind==='bow'){
-  const draw=playing?Math.sin(Math.min(1,attack)*Math.PI):guard*.35;
-  actor.arms[0].shoulder.rotation.x=-.65-draw*.65;
-  actor.arms[0].shoulder.rotation.z=-.18;
-  actor.arms[0].elbow.rotation.x=-.22;
-  actor.arms[1].shoulder.rotation.x=-.75-draw*.65;
-  actor.arms[1].shoulder.rotation.y=-.65*draw;
-  actor.arms[1].elbow.rotation.x=-.8-draw*.55;
+ if(bowCycle){
+  if(gather)user.hunterBow?.clearPose?.();
+  else user.hunterBow?.updatePose?.({attack,walk:w,time,dt:seconds});
  }
  return {crouch:bend,block:block.power,attack:playing?swing:0,dagger:stabbing?.extend||0};
 }

@@ -18,12 +18,15 @@ test('bow is equipment, not a permanent class pose or a change of class',()=>{
  const quiver=actor.root.userData.hunterQuiver;
  equipHunterVisual(THREE,actor);
  assert.equal(actor.root.userData.hunterQuiver,quiver);
- animateSphericalTauren(actor,{weaponKind:'bow',attack:.5});
- assert.equal(actor.arms[0].shoulder.rotation.x,-1.3);
+ animateSphericalTauren(actor,{weaponKind:'bow',attack:.3});actor.root.updateMatrixWorld(true);
+ assert.ok(actor.arms[1].hand.localToWorld(new THREE.Vector3(0,-.10,.015))
+  .distanceTo(bow.getObjectByName('bow-nock').getWorldPosition(new THREE.Vector3()))<1e-6,
+  'the second hand actually holds the drawn string');
  for(const weaponKind of ['none','axe','sword','dagger']){
   animateSphericalTauren(actor,{weaponKind});
   assert.ok(Math.abs(actor.arms[0].shoulder.rotation.x)<.1,
    'hunter lowers bow arm when '+weaponKind+' is equipped');
+  for(const arm of actor.arms){assert.equal(arm.elbow.rotation.y,0);assert.equal(arm.elbow.rotation.z,0);}
  }
 });
 

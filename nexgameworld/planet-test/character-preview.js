@@ -3,8 +3,13 @@
 export function createCharacterPreview({THREE,heroRoot}){
  let host=null,renderer=null,world=null,avatar=null,camera=null,angle=-.25,acc=0,disabled=false,stand=null,boundGesture=null;
  const warm=0xf9dfa9;
+ function clearAvatar(){
+  if(!avatar)return;
+  avatar.traverse(object=>{if(object.geometry?.userData?.bowPreviewOwned)object.geometry.dispose();});
+  avatar.removeFromParent();avatar=null;
+ }
  function release(){
-  if(avatar){avatar.removeFromParent();avatar=null;}
+  clearAvatar();
   if(stand){stand.removeFromParent();stand.geometry.dispose();stand.material.dispose();stand=null;}
   if(renderer){
    renderer.dispose();
@@ -16,10 +21,17 @@ export function createCharacterPreview({THREE,heroRoot}){
  }
  function refresh(){
   if(!world)return;
-  if(avatar)avatar.removeFromParent();
+  clearAvatar();
   // Clone geometry/texture references but NOT the live actor's world transform.
   // Shared source resources belong to the game and must never be disposed here.
   avatar=heroRoot.clone(true);
+  // A frozen portrait needs its own deforming bow vertices. Otherwise a live
+  // string snap would move through the inspector's already-cloned hand pose.
+  avatar.traverse(object=>{
+   if(object.geometry?.userData?.bowMutable){
+    object.geometry=object.geometry.clone();object.geometry.userData.bowPreviewOwned=true;
+   }
+  });
   avatar.position.set(0,0,0);
   avatar.quaternion.identity();
   avatar.scale.set(1,1,1);

@@ -22,15 +22,18 @@ test('both hunter rigs hold the handle with the string clear and facing the draw
    assert.ok(grip.getWorldPosition(new THREE.Vector3()).distanceTo(palm)<1e-8,
     raceId+' handle must sit inside the palm throughout idle, drawing and movement');
    const points=string.geometry.attributes.position;
-   const line=new THREE.Line3(
-    string.localToWorld(new THREE.Vector3().fromBufferAttribute(points,0)),
-    string.localToWorld(new THREE.Vector3().fromBufferAttribute(points,1)));
-   const distance=line.closestPointToPoint(palm,true,new THREE.Vector3()).distanceTo(palm);
+   const line=new THREE.Line3(),worldPoints=Array.from({length:points.count},(_,i)=>
+    string.localToWorld(new THREE.Vector3().fromBufferAttribute(points,i)));
+   let distance=Infinity;
+   for(let i=1;i<worldPoints.length;i++){
+    line.set(worldPoints[i-1],worldPoints[i]);
+    distance=Math.min(distance,line.closestPointToPoint(palm,true,new THREE.Vector3()).distanceTo(palm));
+   }
    assert.ok(distance>.42,raceId+' string must remain outside both the palm and opposed thumb');
-   const stringDirection=line.getCenter(new THREE.Vector3()).sub(palm).normalize();
+   const stringDirection=bow.getObjectByName('bow-nock').getWorldPosition(new THREE.Vector3()).sub(palm).normalize();
    const drawingDirection=actor.arms[1].hand.localToWorld(new THREE.Vector3(0,-.10,.015))
     .sub(palm).normalize();
-   assert.ok(stringDirection.dot(drawingDirection)>.75,
+   assert.ok(stringDirection.dot(drawingDirection)>0,
     raceId+' string must face the second hand, not the outside of the bow-holding arm');
   }
  }

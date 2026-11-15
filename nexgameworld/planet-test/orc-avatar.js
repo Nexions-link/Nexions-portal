@@ -3,6 +3,7 @@
 import {createOrcMaterials} from './orc-materials.js?v=64607';
 import {createOrcHead} from './orc-head.js?v=64607';
 import {orcProfile,orcCurve,orcPlate,orcRibbon,batchOrcJoint} from './orc-geometry.js?v=64607';
+import {attachBowVisual} from './bow-visual.js?v=64608';
 export function createOrc(THREE,scene){
  const root=new THREE.Group();root.name='orc-root';scene.add(root);
  const joints=[];
@@ -114,19 +115,7 @@ export function createOrc(THREE,scene){
  return {root,body,chest,neck,head,tail,braids,arms,legs,visualDetails:null,anatomy:null};
 }
 export function equipBowVisual(THREE,actor){
- if(actor.root.userData.hunterBow)return actor.root.userData.hunterBow;
- const bow=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x84532c,roughness:.65}),metal=new THREE.MeshStandardMaterial({color:0xc4ad6c,metalness:.45,roughness:.4});
- // The recurved tips leave room for the holding hand's opposed thumb.
- const points=[[-.15,-.86,0],[.22,-.55,0],[.30,0,0],[.22,.55,0],[-.15,.86,0]].map(p=>new THREE.Vector3(...p));
- const limb=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),24,.045,7,false),wood);bow.add(limb);
- const string=new THREE.Line(new THREE.BufferGeometry().setFromPoints([points[0],points[4]]),new THREE.LineBasicMaterial({color:0xe5d7b7}));string.name='bow-string';bow.add(string);
- const grip=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.24,10),metal);grip.name='bow-grip';grip.position.x=.30;bow.add(grip);
- // Face the string toward the other (drawing) hand, while keeping the
- // handle centered in the shared palm position (0,-.10,.015).
- bow.rotation.set(Math.PI/2,0,Math.PI);
- bow.position.set(.30,-.10,.015);bow.visible=false;
- actor.arms[0].hand.add(bow);actor.root.userData.hunterBow=bow;
- return bow;
+ return attachBowVisual(THREE,actor);
 }
 export function equipHunterVisual(THREE,actor){
  actor.root.userData.classId='hunter';
