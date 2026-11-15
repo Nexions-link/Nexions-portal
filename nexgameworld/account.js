@@ -1,4 +1,4 @@
-import {mountCharacterCreation} from './planet-test/character-creation.js?v=64608';
+import {mountCharacterCreation} from './planet-test/character-creation.js?v=64609';
 const API='https://api.nexions.ru/api/ngw';
 const $=id=>document.getElementById(id);
 const views=['login','register','recoveryCodes','recover','characters'];

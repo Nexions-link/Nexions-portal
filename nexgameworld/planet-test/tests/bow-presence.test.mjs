@@ -212,3 +212,23 @@ for(const pause of [850,2000]){
   assert.equal(h.releases.length,1,'discarding the stale cycle does not block the next real shot');
  });
 }
+
+test('remote bow stays on the back at rest, stays drawn between shots and returns after combat',t=>{
+ const h=fixture(t),bow=h.actors[0].root.userData.hunterBow;
+ assert.equal(bow.userData.carry,'back');
+ h.attack();h.advance(0);assert.equal(bow.userData.carry,'hand');
+ h.advance(900);assert.equal(bow.userData.carry,'hand','the attack animation ended but combat has not');
+ h.advance(1100);assert.equal(bow.userData.carry,'hand','a hunter keeps the bow ready between Auto Shots');
+ h.advance(3100);assert.equal(bow.userData.carry,'back','the combat hold expires without replaying an arrow');
+ assert.equal(h.releases.length,0,'skipping the shot cycle must still discard its old projectile');
+ assert.equal(bow.getObjectByName('bow-nocked-arrow').visible,false);
+ assert.equal(getBowReleasePose(THREE,h.actors[0]),null,'stowed weapons have no live release anchor');
+});
+
+test('incoming authoritative mob strike draws an observer bow without fabricating an outgoing shot',t=>{
+ const h=fixture(t),bow=h.actors[0].root.userData.hunterBow;
+ h.emit({type:'mobStrike',targetId:'archer',blocked:false});h.advance(0);
+ assert.equal(bow.userData.carry,'hand');assert.equal(h.releases.length,0);
+ for(let i=0;i<60;i++)h.advance(100);
+ assert.equal(bow.userData.carry,'back');assert.equal(h.releases.length,0);
+});

@@ -7,18 +7,27 @@ import {advancePlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {advancePlayerMotion} from './player-motion.js?v=1';
 import {weaponActionDetail} from './weapon-action-detail.js?v=1';
 import {footStrideZ,hoofSwingLift,hoofToeFlex} from './foot-placement.js?v=2';
-import {bowShotPose,bowStanceAngle,bowHeadYaw} from './bow-pose.js?v=64608';
+import {bowShotPose,bowStanceAngle,bowHeadYaw} from './bow-pose.js?v=64609';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const ease=(a,b,t)=>{const x=clamp((t-a)/(b-a),0,1);return x*x*(3-2*x)};
 const smooth=x=>x*x*(3-2*x);
 export function animateSphericalTauren(actor,{
- dt=1/60,time=0,walk=0,phase=0,turn=0,gather=false,combat=false,
+ dt=1/60,time=0,walk=0,phase=0,turn=0,gather=false,combat=false,bowCombat=combat,
  attack=-1,stomp=-1,blockRemaining=0,weaponKind='none',terrainFeet=null,charge=null
 }={}){
  const seconds=clamp(Number.isFinite(dt)?dt:0,0,.1),user=actor.root.userData;
- const bowCycle=weaponKind==='bow'?bowShotPose(attack):null,
+ const playing=Number.isFinite(attack)&&attack>=0&&attack<=1;
+ // A bow is carried on the back during travel and previews. Combat ownership
+ // comes from the RPG/presence caller; real shots and incoming strikes also
+ // draw it immediately, even before that caller's combat flag catches up.
+ const bowDrawn=weaponKind==='bow'&&!gather&&!!(bowCombat||playing||blockRemaining>0||
+  user.incomingCombatHit||user.blockRecoil>0);
+ const bowCycle=bowDrawn?bowShotPose(attack):null,
   bowTurn=(bowCycle?.raise||0)*bowStanceAngle(actor);
  user.poseWeaponKind=weaponKind;
+ user.poseBowDrawn=bowDrawn;
+ user.hunterBow?.setCarry?.(bowDrawn);
+ if(weaponKind!=='bow'&&user.hunterBow)user.hunterBow.visible=false;
  const motion=advancePlayerMotion(user,seconds,{
   walk,turn,gather,combat,attack,blockRemaining
  });
@@ -36,7 +45,6 @@ export function animateSphericalTauren(actor,{
  const chargeLanding=clamp(Number.isFinite(charge?.landing)?charge.landing:0,0,1);
  // Native weapon-specific phases. Progress 0..1 runs for precisely 0.8 s;
  // physical damage is triggered separately at progress 0.425.
- const playing=attack>=0&&attack<=1;
  const stabbing=playing&&weaponKind==='dagger'?daggerThrustPose(attack):null;
  const windup=playing&&!stabbing?ease(0,.32,attack)*(1-ease(.38,.65,attack)):0;
  const swing=playing&&!stabbing?ease(.32,.58,attack)*(1-ease(.64,1,attack)):0;

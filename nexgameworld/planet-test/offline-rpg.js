@@ -1,12 +1,13 @@
 import {createHunterProjectiles} from './hunter-projectiles.js?v=64608';
-import {getBowReleasePose} from './bow-visual.js?v=64608';
+import {getBowReleasePose} from './bow-visual.js?v=64609';
+import {BOW_COMBAT_HOLD_SECONDS} from './bow-pose.js?v=64609';
 import {defaultHotbarForClass} from '../hotbar.js?v=64604';
 import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=64608';
 import {renderCharacterSheet} from './character-sheet.js?v=64604';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
-import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=64608';
-import {createQuestTracking} from './quest-tracking-state.js?v=64608';
+import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=64609';
+import {createQuestTracking} from './quest-tracking-state.js?v=64609';
 import {forestMoodAt} from './whispering-forest.js';
 import {createForestAmbience} from './forest-ambience.js?v=1';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,EXPEDITION_LEVEL,EXPEDITION_REWARD,readExpedition,expeditionJournal} from './expedition-quest.js?v=1';
@@ -14,7 +15,7 @@ import {FOREST_DEN_SITES,FOREST_HUNT_KILLS,FOREST_HUNT_REWARD,readForestHunt,for
 import {readMountQuest,mountQuestOffer,mountQuestJournal} from './mount-quest.js?v=1';
 import {renderMountCollection} from './mount-collection.js?v=1';
 import {forestCampPoint,forestLocalPoint} from './whispering-forest.js';
-import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=64608';
+import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-panel.js?v=64609';
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=64600';
@@ -22,7 +23,7 @@ import {getAbilityRangeIndicator,getAbilityResourceIndicator} from './ability-ra
 import {levelExperienceRequirement,earnedExperienceSince} from './level-progression.js?v=1';
 import {compareEquipment,itemStatRows,formatBagEquipmentChanges} from './equipment-comparison.js?v=64604';
 import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit,effectiveShield} from '../items.js?v=64604';
-import {equipBowVisual} from './orc-avatar.js?v=64608';
+import {equipBowVisual} from './orc-avatar.js?v=64609';
 import {getAbilityDefinition,getClassDefinition,getClassAbilities,rollHunterDamage,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=64604';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=64604';
 import {attachAbilityDrag} from './ability-drag-drop.js?v=1';
@@ -35,9 +36,9 @@ import {BATTLEFURY_ITEM_ID,BATTLEFURY_TUNER_DEFAULTS,BATTLEFURY_TUNER_FIELDS,BAT
 import {SWORD_TUNER_DEFAULTS} from '../sword-tuner.js?v=0.3.7.0';
 import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';
-import {GATHER_QUESTS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=64608';
+import {GATHER_QUESTS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=64609';
 import {BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED,BANDIT_WEAPON_RESPAWN_SECONDS,createBanditWeaponWorld} from './bandit-weapons.js?v=1';
-import {createCampActions} from './camp-actions.js?v=64608';
+import {createCampActions} from './camp-actions.js?v=64609';
 import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1';
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
@@ -51,7 +52,7 @@ import {sphereFacingYaw,turnSphereYaw,sphereFacingError} from './mob-facing.js?v
 import {BOSS_POSITION,SCOUT_POSITION,RELIC_POSITION,QUEST_LINES,mentorChainNumber,mentorGlyph,mentorJournalRows,migrateMentorQuest,createMentorChain} from './mentor-chain.js?v=1';
 import {createMentorWorld} from './mentor-world.js?v=1';
 import {createSphericalTargetRing} from './spherical-target-ring.js?v=1';
-import {animateSphericalTauren} from './tauren-animation.js?v=64608';
+import {animateSphericalTauren} from './tauren-animation.js?v=64609';
 import {beginPlayerHitReaction,resetPlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {incomingShieldHit,sphericalMeleeFacing} from './sphere-combat.js?v=64604';
 import {createCombatTimeline,MELEE_RANGE,APPROACH_RANGE,rageForHit,rollMeleeDamage} from './combat-timeline.js?v=2';
@@ -61,7 +62,7 @@ import {EQUIPMENT_LABELS,equipFromBag,unequipToBag} from './equipment-rules.js?v
 import {applyWeaponQuality,itemRarity,QUALITY_VISUALS,highestLootRarity} from '../item-quality.js?v=0.3.7.1';
 import {styleShieldGlb} from '../shield-assets.js?v=0.3.7.1';
 import {canWalkCamp,cameraObstruction} from './sphere-physics.js?v=15';
-import {canWadeAtLocal} from './start-zone.js?v=64608';
+import {canWadeAtLocal} from './start-zone.js?v=64609';
 import {moveMobToward,mobSegmentClear} from './mob-navigation.js?v=1';
 import {consumeAnimationTime} from './animation-budget.js?v=1';
 import {advanceCreatureGait} from './creature-gait.js?v=3';
@@ -290,12 +291,12 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  let target=null,autoplay=false,swing=0,clock=0,messageUntil=0,pendingLoot=null,pendingLootTake=null,gatherCast=null,
   blockRemaining=0,approach=null,chargeRequestedAt=0;
  const timeline=createCombatTimeline();
- let bowAttack=null,pendingBowRelease=null,bowGeneration=0;
+ let bowAttack=null,pendingBowRelease=null,bowGeneration=0,bowCombatUntil=-1;
  const recentBowReleases=[],remoteBowReleases=[];
  function cancelBowShot(clearFlights=false){
   bowGeneration++;bowAttack=null;pendingBowRelease=null;recentBowReleases.length=0;
   if(getAbilityDefinition(timeline.current?.skill)?.classId==='hunter')timeline.clear();
-  if(clearFlights){hunterProjectiles.clear();remoteBowReleases.length=0;}
+  if(clearFlights){hunterProjectiles.clear();remoteBowReleases.length=0;bowCombatUntil=-1;}
  }
  function beginTimedAttack(id,enemy){
   const started=timeline.start(id,enemy);
@@ -786,6 +787,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   combatVfx.trigger(mob,event.abilityId==='heavyStrike'?'strong':event.abilityId==='thunderStomp'?'stomp':'hit');
   if(event.fromId===selfId){
    lastCombatAt=clock;
+   bowCombatUntil=clock+BOW_COMBAT_HOLD_SECONDS;
    if(event.chargeImpact===true){
     // Render the server-confirmed impact once, without transmitting a second
     // autoattack that would consume an extra swing or double-award rage.
@@ -880,6 +882,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   if(Number.isFinite(event.hp))state.hp=Math.max(0,event.hp);
   if(state.hp<=0)cancelBowShot();
+  else bowCombatUntil=clock+BOW_COMBAT_HOLD_SECONDS;
   // Damage/block animation begins on server confirmation, never on a timer.
   beginPlayerHitReaction(hero.root.userData,{damage:event.damage,
    blocked:event.blocked===true,absorbed:event.absorbed||0});
@@ -3006,7 +3009,7 @@ function resetCreatureImpact(mob){
   tickAbilityRuntime(runtime,dt);
   // Original NexGame regenerates +3 HP/s and loses 5 rage/s after five
   // seconds of peace. This local test does not depend on network snapshots.
-  if(inCombat())lastCombatAt=clock;
+  if(inCombat()){lastCombatAt=clock;bowCombatUntil=clock+BOW_COMBAT_HOLD_SECONDS;}
   else if(!authenticatedProfile&&clock-lastCombatAt>5){
    const hpBefore=state.hp,rageBefore=state.resource;
    state.hp=Math.min(stats().maxHp,state.hp+3*dt);
@@ -3246,6 +3249,8 @@ function resetCreatureImpact(mob){
  }
  function getAnimationState(){
   return {gather:camp.casting||['casting','finishing'].includes(pendingServerGather?.phase),combat:inCombat(),attack:timeline.attackProgress,
+   bowCombat:state.hp>0&&(!authenticatedProfile||isOnline())&&
+    (inCombat()||clock<bowCombatUntil||autoplay&&isLivingHostile(target)),
    stomp:timeline.stompProgress,blockRemaining,weaponKind:hero.root.userData.weaponKind||'none'};
  }
  function getQuestMapState(){

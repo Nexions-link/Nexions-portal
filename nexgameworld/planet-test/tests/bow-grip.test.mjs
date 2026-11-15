@@ -16,7 +16,7 @@ test('both hunter rigs hold the handle with the string clear and facing the draw
   actor.root.position.set(13,5,-8);
   actor.root.rotation.set(.4,-.8,.2);
   for(const pose of [{attack:-1,walk:0},{attack:.5,walk:0},{attack:-1,walk:1}]){
-   animateSphericalTauren(actor,{weaponKind:'bow',dt:.016,time:1,...pose});
+   animateSphericalTauren(actor,{weaponKind:'bow',combat:true,dt:.016,time:1,...pose});
    actor.root.updateMatrixWorld(true);
    const palm=hand.localToWorld(new THREE.Vector3(0,-.10,.015));
    assert.ok(grip.getWorldPosition(new THREE.Vector3()).distanceTo(palm)<1e-8,

@@ -84,7 +84,7 @@ export function syncForestWolfMount(THREE,actor,{riding=false,time=0,travelled=0
  // The seated silhouette tilts forward into the saddle while the wolf runs.
  actor.body.rotation.x+=.075+(gaitPose?.pitch||0)*.40;
  actor.body.rotation.z+=(gaitPose?.roll||0)*.48;
- for(const arm of actor.root.userData.poseWeaponKind==='bow'?[]:actor.arms||[]){
+ for(const arm of actor.root.userData.poseBowDrawn?[]:actor.arms||[]){
   arm.shoulder.rotation.x-=.30;
   arm.elbow.rotation.x-=.17;
  }

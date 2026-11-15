@@ -10,7 +10,8 @@ test('bow is equipment, not a permanent class pose or a change of class',()=>{
  const actor=createOrc(THREE,new THREE.Scene());
  actor.root.userData.classId='warrior';
  const bow=equipBowVisual(THREE,actor);
- assert.equal(bow.parent,actor.arms[0].hand);
+ assert.equal(bow.parent.name,'bow-back-anchor');
+ assert.equal(bow.parent.parent,actor.chest);
  assert.equal(bow.visible,false,'wait for actual equipment before showing bow');
  assert.equal(equipBowVisual(THREE,actor),bow,'reuse the same bow');
  assert.equal(actor.root.userData.classId,'warrior');

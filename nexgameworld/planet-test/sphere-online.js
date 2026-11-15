@@ -1,13 +1,13 @@
 import {consumeAnimationTime} from './animation-budget.js?v=1';
-import {syncForestWolfMount} from './mount-visual.js?v=64608';
+import {syncForestWolfMount} from './mount-visual.js?v=64609';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';
 import {beginPlayerHitReaction} from './player-hit-reaction.js?v=1';
 import {sampleChargeMotion,chargeTravelHeading,easeChargeHeading} from './charge-motion.js?v=1';
 import {BATTLEFURY_ITEM_ID,normalizeBattlefuryTuning,applyBattlefuryPose} from './battlefury-tuner.js?v=1';
 import {remoteEquipmentSpec,remoteWeaponKind} from './remote-equipment.js?v=64604';
-import {equipBowVisual} from './orc-avatar.js?v=64608';
-import {getBowReleasePose} from './bow-visual.js?v=64608';
-import {BOW_RELEASE_PROGRESS} from './bow-pose.js?v=64608';
+import {equipBowVisual} from './orc-avatar.js?v=64609';
+import {getBowReleasePose} from './bow-visual.js?v=64609';
+import {BOW_RELEASE_PROGRESS,BOW_COMBAT_HOLD_SECONDS} from './bow-pose.js?v=64609';
 import {getAbilityDefinition} from '../skills.js?v=64604';
 import {equipmentGrip,applyEquipmentTransform} from './equipment-grip.js?v=1';
 import {createEquipmentVisualSwitcher} from './equipment-visual-switcher.js?v=1';
@@ -92,7 +92,10 @@ export function createSphericalPresence({
   return {normal:reason==='collision'?server:
    rebaseSphereCorrection(THREE,sample.normal,server,current.normal),reason};
  };
- const peers=new Map(),visuals=new Map(),chargeEvents=new Map(),remoteAttacks=new Map();
+ const peers=new Map(),visuals=new Map(),chargeEvents=new Map(),remoteAttacks=new Map(),remoteCombatUntil=new Map();
+ const markRemoteCombat=id=>{
+  if(peers.has(id))remoteCombatUntil.set(id,Date.now()+BOW_COMBAT_HOLD_SECONDS*1000);
+ };
  let selfMount={mountState:'foot',mountId:null,owned:false};
  const applyMount=mount=>{
   const validId=mount?.mountId==='forest_wolf';
@@ -208,7 +211,7 @@ export function createSphericalPresence({
  const east=new THREE.Vector3(),north=new THREE.Vector3(),fwd=new THREE.Vector3(),
   right=new THREE.Vector3(),matrix=new THREE.Matrix4();
  const stopPeers=()=>{for(const peer of visuals.values())disposeActor(peer.actor.root);
-  visuals.clear();peers.clear();chargeEvents.clear();remoteAttacks.clear();};
+  visuals.clear();peers.clear();chargeEvents.clear();remoteAttacks.clear();remoteCombatUntil.clear();};
  const status=(value,count=null)=>{
   onStatus?.(value,count);
  };
@@ -238,7 +241,7 @@ export function createSphericalPresence({
   for(const id of peers.keys()){
    if(!seen.has(id)){
     peers.delete(id);
-    chargeEvents.delete(id);remoteAttacks.delete(id);
+    chargeEvents.delete(id);remoteAttacks.delete(id);remoteCombatUntil.delete(id);
     const visual=visuals.get(id);
     if(visual){disposeActor(visual.actor.root);visuals.delete(id)}
    }
@@ -347,7 +350,7 @@ export function createSphericalPresence({
     const correction=acknowledgedCorrection(m.normal,m.moveSeq,m.reason);
     onPositionCorrection?.({...m,normal:correction.normal});
    }else if(m.type==='leave'&&typeof m.id==='string'){
-    peers.delete(m.id);chargeEvents.delete(m.id);remoteAttacks.delete(m.id);
+    peers.delete(m.id);chargeEvents.delete(m.id);remoteAttacks.delete(m.id);remoteCombatUntil.delete(m.id);
     const visual=visuals.get(m.id);
     if(visual){disposeActor(visual.actor.root);visuals.delete(m.id)}
     onPlayers?.([...peers.values()]);
@@ -364,6 +367,7 @@ export function createSphericalPresence({
      const previous=remoteAttacks.get(m.fromId),now=Date.now();
      const duplicate=previous?.abilityId===m.abilityId&&previous.events.some(event=>
       event.mobId===m.mobId&&event.life===m.life&&event.hp===m.hp&&event.damage===m.damage);
+     if(!duplicate)markRemoteCombat(m.fromId);
      // One authoritative Multi Shot produces up to three target events.
      // Keep one draw cycle and release all its distinct arrows together.
      if(!duplicate&&m.abilityId==='multiShot'&&previous?.abilityId===m.abilityId&&now-previous.at<800){
@@ -379,6 +383,7 @@ export function createSphericalPresence({
    else if(m.type==='mobAttack')onMobAttack?.(m);
    else if(m.type==='mobStrike'){
     if(typeof m.targetId==='string'&&m.targetId!==selfId){
+     markRemoteCombat(m.targetId);
      const victim=visuals.get(m.targetId);
      if(victim)beginPlayerHitReaction(victim.actor.root.userData,{
       blocked:m.blocked===true,damage:m.blocked===true?0:1});
@@ -438,6 +443,8 @@ export function createSphericalPresence({
   const now=Date.now();
   for(const [id,attack] of remoteAttacks)
    if(now-attack.at>=900||!peers.has(id))remoteAttacks.delete(id);
+  for(const [id,until] of remoteCombatUntil)
+   if(now>=until||!peers.has(id))remoteCombatUntil.delete(id);
   const own=position();
   if(!own)return;
   if(joinedRadius!==null&&joinedRadius!==own.radius){
@@ -478,6 +485,7 @@ export function createSphericalPresence({
    // single phone screen. Nearest peers win the cosmetic quality slots.
    const weaponKind=remoteWeaponKind(peer);
    if(weaponKind!=='bow'||peer.hp===0||peer.health===0){
+    remoteCombatUntil.delete(peer.id);
     const attack=remoteAttacks.get(peer.id);
     if(getAbilityDefinition(attack?.abilityId)?.classId==='hunter')remoteAttacks.delete(peer.id);
    }
@@ -565,6 +573,7 @@ export function createSphericalPresence({
     animateAvatar(visual.actor,{dt:animationDt,time,walk:poseWalk,turn:poseTurn,
      phase:visual.phase,charge:chargePose,
      combat:attackPhase>=0||!!visual.actor.root.userData.incomingCombatHit,
+     bowCombat:(remoteCombatUntil.get(peer.id)||0)>now,
      ...combatAttack,weaponKind});
     syncForestWolfMount(THREE,visual.actor,{riding:peer.mountState==='riding'&&peer.mountId==='forest_wolf',time,travelled:visual.mountTravel,heading:peer.heading});
     if(recentAttack&&!recentAttack.released&&weaponKind==='bow'&&

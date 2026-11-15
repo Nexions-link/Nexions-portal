@@ -55,7 +55,7 @@ test('local bow model and animation kind follow authoritative equipment checkpoi
  const bow=h.hero.root.userData.hunterBow;
  assert.ok(bow);
  assert.equal(bow.visible,true);
- assert.equal(bow.parent,h.hero.arms[0].hand);
+ assert.equal(bow.parent,h.hero.root.getObjectByName('bow-back-anchor'));
  assert.equal(h.rpg.getAnimationState().weaponKind,'bow');
  h.rpg.applyServerProgress({...profile,equipment:{weapon:{id:'wornAxe'}}},'checkpoint');
  assert.equal(bow.visible,false);

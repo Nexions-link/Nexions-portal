@@ -3,7 +3,7 @@
 import {createOrcMaterials} from './orc-materials.js?v=64607';
 import {createOrcHead} from './orc-head.js?v=64607';
 import {orcProfile,orcCurve,orcPlate,orcRibbon,batchOrcJoint} from './orc-geometry.js?v=64607';
-import {attachBowVisual} from './bow-visual.js?v=64608';
+import {attachBowVisual} from './bow-visual.js?v=64609';
 export function createOrc(THREE,scene){
  const root=new THREE.Group();root.name='orc-root';scene.add(root);
  const joints=[];

@@ -70,7 +70,7 @@ test('orc mounting preserves the world root, weapon grip and original dismounted
  actor.root.position.set(5,7,-3);actor.root.rotation.set(.2,-.6,.1);
  const position=actor.root.position.clone(),rotation=actor.root.quaternion.clone();
  for(let frame=0;frame<8;frame++){
-  animateSphericalTauren(actor,{weaponKind:'bow',walk:.6,phase:frame*.3,time:frame/10});
+  animateSphericalTauren(actor,{weaponKind:'bow',combat:true,walk:.6,phase:frame*.3,time:frame/10});
   syncForestWolfMount(THREE,actor,{riding:true,time:frame/10,travelled:.1,heading:frame*.02});
   actor.root.updateMatrixWorld(true);
   assert.ok(actor.root.position.distanceTo(position)<1e-8);

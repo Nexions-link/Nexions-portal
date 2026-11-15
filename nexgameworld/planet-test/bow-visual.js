@@ -1,6 +1,6 @@
 // One articulated bow for both races, remote avatars and character creation.
 // String and limbs belong to this actor because their vertices move each shot.
-import {animateBowPose,BOW_REST_NOCK_X,BOW_DRAW_LENGTH,BOW_RELEASE_PHASE,BOW_NOCK_Y,BOW_NOCK_Z} from './bow-pose.js?v=64608';
+import {animateBowPose,BOW_REST_NOCK_X,BOW_DRAW_LENGTH,BOW_RELEASE_PHASE,BOW_NOCK_Y,BOW_NOCK_Z} from './bow-pose.js?v=64609';
 import {createHunterArrow,HUNTER_ARROW_NOCK_Z} from './hunter-arrow.js?v=64608';
 const masters=new WeakMap();
 function limbMaster(THREE){
@@ -34,8 +34,12 @@ export function attachBowVisual(THREE,actor){
  upper.name='bow-tip-upper';lower.name='bow-tip-lower';bow.add(upper,lower);
  const arrow=createHunterArrow(THREE);arrow.name='bow-nocked-arrow';arrow.rotation.y=Math.PI/2;
  arrow.visible=false;bow.add(arrow);
- bow.rotation.set(Math.PI/2,0,Math.PI);bow.position.set(.30,-.10,.015);bow.visible=false;
- actor.arms[0].hand.add(bow);actor.root.userData.hunterBow=bow;
+ // Equipment owns one bow. Carrying it on the back must not leave a second
+ // copy in the hand, nor accumulate world-space transforms on every switch.
+ const back=new THREE.Group();back.name='bow-back-anchor';
+ back.position.set(.10,.98,actor.root.userData.raceId==='orc'?-.64:-.96);
+ back.rotation.z=.50;actor.chest.add(back);
+ bow.visible=false;actor.root.userData.hunterBow=bow;
  const normal=new THREE.Vector3();
  function shape(draw,wobble=0){
   const x=BOW_REST_NOCK_X-.055*draw,y=.86-.035*draw;
@@ -58,10 +62,27 @@ export function attachBowVisual(THREE,actor){
   arrow.position.set(nock.position.x-HUNTER_ARROW_NOCK_Z,BOW_NOCK_Y,BOW_NOCK_Z);
  }
  shape(0);
- bow.clearPose=()=>{shape(0);arrow.visible=false;};
+ bow.clearPose=()=>{
+  shape(0);arrow.visible=false;bow.userData.draw=0;bow.userData.phase='idle';
+  delete bow.userData.releaseOriginLocal;delete bow.userData.aimDirectionLocal;
+ };
+ bow.setCarry=drawn=>{
+  const carry=drawn?'hand':'back',parent=drawn?actor.arms[0].hand:back;
+  actor.root.userData.poseBowDrawn=!!drawn;
+  if(bow.parent!==parent)parent.add(bow);
+  // Assign the approved local grip afresh. Object3D.attach would preserve a
+  // previous animated world pose and introduce drift under mounted scaling.
+  bow.position.set(drawn?.30:-.30,drawn?-.10:0,drawn?.015:0);
+  bow.rotation.set(drawn?Math.PI/2:0,0,drawn?Math.PI:0);bow.scale.set(1,1,1);
+  if(bow.userData.carry!==carry)bow.clearPose();
+  bow.userData.carry=carry;
+  return bow;
+ };
+ bow.setCarry(false);
  // Keep closures out of serialized userData, which the character inspector
  // clones. Only a few plain phase fields and local vectors belong there.
  bow.updatePose=options=>{
+  bow.setCarry(true);
   const state=animateBowPose(THREE,actor,options);if(!state)return null;
   const age=Math.max(0,(options.attack??-1)-BOW_RELEASE_PHASE);
   const wobble=state.released?.022*Math.sin(age*125)*Math.exp(-age*24):0;
@@ -76,7 +97,7 @@ export function attachBowVisual(THREE,actor){
 export function getBowReleasePose(THREE,actor){
  const bow=actor?.root?.userData.hunterBow;
  const local=bow?.userData.releaseOriginLocal,direction=bow?.userData.aimDirectionLocal;
- if(!bow?.visible||!local||!direction||!actor.chest)return null;
+ if(!bow?.visible||bow.userData.carry!=='hand'||!local||!direction||!actor.chest)return null;
  actor.root.updateWorldMatrix(true,true);
  return {origin:actor.chest.localToWorld(new THREE.Vector3(local.x,local.y,local.z)),
   direction:new THREE.Vector3(direction.x,direction.y,direction.z).transformDirection(actor.chest.matrixWorld)};

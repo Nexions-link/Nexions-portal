@@ -105,3 +105,27 @@ test('disconnect clears a released cosmetic arrow and cancels queued flushes',()
  h.transport.connected=false;h.rpg.onNetworkDisconnect();
  assert.equal(h.flights().length,0);assert.equal(h.rpg.flushBowReleases(),false);
 });
+
+test('local Auto Shot keeps the bow drawn through shot gaps and stows it after stopping combat',()=>{
+ const h=hunter({ability:'autoShot'}),bow=h.hero.root.userData.hunterBow;
+ h.step(0);assert.equal(bow.userData.carry,'back');
+ h.begin();assert.equal(bow.userData.carry,'hand');
+ for(let i=0;i<12;i++)h.step(.1);
+ assert.equal(h.rpg.getAnimationState().attack,-1,'the first shot animation has finished');
+ assert.equal(bow.userData.carry,'hand','Auto Shot remains a ranged combat stance between shots');
+ h.rpg.handleSlotKey('1');
+ for(let i=0;i<60;i++)h.step(.1);
+ assert.equal(bow.userData.carry,'back');
+ assert.equal(bow.getObjectByName('bow-nocked-arrow').visible,false);
+});
+
+test('a fresh authenticated welcome or respawn cannot retain the previous fight carry state',()=>{
+ for(const transition of ['welcome','respawn']){
+  const h=hunter({mob:true});h.begin();h.step(.35);
+  assert.equal(h.hero.root.userData.hunterBow.userData.carry,'hand');
+  if(transition==='welcome')h.rpg.applyServerProgress(h.profile,'welcome');
+  else h.rpg.onNetworkRespawn({hp:120});
+  h.step(0);
+  assert.equal(h.hero.root.userData.hunterBow.userData.carry,'back',transition);
+ }
+});

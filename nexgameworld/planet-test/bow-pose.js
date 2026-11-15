@@ -12,6 +12,8 @@ export const BOW_NOCK_Y=.27;
 export const BOW_NOCK_Z=-.07;
 export const BOW_RELEASE_PHASE=BOW_RELEASE_PROGRESS;
 export const BOW_DRAW_LENGTH=BOW_PULL;
+// Visual retention only: combat authority and ability cooldowns stay unchanged.
+export const BOW_COMBAT_HOLD_SECONDS=5;
 
 export const bowStanceAngle=actor=>actor?.root?.userData?.raceId==='orc'?1.1:1.3;
 export const bowHeadYaw=actor=>actor?.root?.userData?.raceId==='orc'?0:-.35;
