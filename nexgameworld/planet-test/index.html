@@ -529,6 +529,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 })();
 </script>
 <link rel="stylesheet" href="./wow-ui.css?v=64610">
+<link rel="stylesheet" href="./party-interface.css?v=64611">
 </head>
 <body>
 <main id="viewport" aria-label="Сферический мир NexGameWorld"></main>
@@ -567,7 +568,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
  <strong id="allyName">Игрок</strong><span id="allyLevel">Таурен · Воин</span>
  <div class="ally-health"><span id="allyHpFill"></span></div>
  <span id="allyHpText">HP —</span>
- <button type="button" id="allyInvite">Пригласить в группу</button>
+ <div class="wow-ally-actions"><button type="button" id="allyInvite">Пригласить в группу</button><button type="button" id="allyActions" aria-label="Действия игрока" aria-haspopup="menu">⋮</button></div>
 </div>
 <div id="targetPlaceholder" class="frame" aria-label="Слот выбранной цели">
  <span class="target-placeholder-heading">ЦЕЛЬ</span>
@@ -575,7 +576,10 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </div>
 <div id="minimapFrame" role="button" tabindex="0" aria-pressed="false" aria-label="Открыть всю планету — нажать миникарту" title="Вся планета"><canvas id="minimap" width="240" height="240" aria-label="Карта ближайшей местности"></canvas><span class="north">С</span><span id="mapLabel">Лагерь Нараче</span></div>
 <aside id="questProgressPanel" hidden aria-label="Прогресс отслеживаемых заданий"></aside>
+<aside id="ngwPartyFrames" hidden aria-label="Участники группы"></aside>
 </div>
+<aside id="ngwPartyMenu" hidden aria-label="Действия игрока"></aside>
+<div id="ngwPartyPrompt" hidden></div>
 <div id="zoneTitle"><span id="area">Лагерь Нараче</span><small>М У Л Г О Р</small></div>
 <aside id="quest" hidden>
  <button id="questJournalOpen" type="button" aria-label="Открыть журнал заданий">Задания <span aria-hidden="true">↗</span></button>
@@ -605,7 +609,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.46.10" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.46.11" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -731,7 +735,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=64610').catch(error=>{
+  import('./planet.js?v=64611').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

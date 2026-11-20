@@ -627,6 +627,7 @@ export function createSphericalPresence({
   invite:targetId=>send({type:'partyInvite',targetId}),
   respondInvite:(fromId,accept)=>send({type:'partyRespond',fromId,accept}),
   promoteParty:targetId=>send({type:'partyPromote',targetId}),
+  kickParty:targetId=>send({type:'partyKick',targetId}),
   leaveParty:()=>send({type:'partyLeave'}),
   sendChat:(channel,text)=>send({type:'chatSend',channel,text}),
   requestChestStatus:()=>send({type:'chestStatus'}),

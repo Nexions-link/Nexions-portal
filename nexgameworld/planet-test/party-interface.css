@@ -1,0 +1,193 @@
+/* Original party chrome, sharing the inventory/spellbook's Classic palette. */
+#ngwPartyFrames[hidden],#ngwPartyMenu[hidden],#ngwPartyPrompt[hidden],
+#ngwPartyFrames [hidden],.ngw-party-roster [hidden]{display:none!important}
+#hudTop #ngwPartyFrames{
+ grid-column:1;grid-row:3;align-self:start;justify-self:start;min-width:0;
+ width:100%;max-width:240px;margin-top:8px;
+ color:var(--wow-text,#f1dfb5);font:11px/1.3 Georgia,serif;
+ pointer-events:auto;user-select:none;-webkit-user-select:none;
+}
+.wow-party-top{display:flex;align-items:center;gap:4px;margin:0 0 4px}
+.wow-party-heading,.wow-party-collapse{
+ min-height:26px;border:1px solid #7e6b44;border-radius:3px;
+ background:linear-gradient(#363831,#151a1b);color:var(--wow-gold-light,#ecd9a2);
+ box-shadow:inset 0 1px #d2bb7e33,0 1px 3px #0008;
+ font:700 10px/1.2 Georgia,serif;touch-action:manipulation;
+}
+.wow-party-heading{flex:1;text-align:left;padding:4px 8px}
+.wow-party-collapse{width:29px;min-width:29px;padding:0;font:18px/1 Georgia,serif}
+.wow-party-stack{display:flex;flex-direction:column;gap:5px;max-height:264px;overflow-y:auto;touch-action:pan-y!important}
+.wow-party-unit,.wow-party-row{
+ position:relative;display:flex;min-width:0;align-items:stretch;
+ border:1px solid #80704e;border-radius:3px;
+ background:linear-gradient(100deg,#242b27f7,#101719f7);
+ box-shadow:inset 0 0 0 1px #080b0d,0 2px 4px #0007;
+ color:var(--wow-text,#f1dfb5);
+}
+.wow-party-unit.is-selected,.wow-party-row.is-selected{
+ border-color:#e4c677;box-shadow:0 0 0 1px #d3ac4c99,inset 0 0 8px #e7c66822;
+}
+.wow-party-select{
+ display:flex;align-items:center;gap:5px;flex:1;min-width:0;min-height:54px;
+ margin:0;padding:4px 27px 4px 4px;border:0;border-radius:3px;
+ background:transparent!important;text-align:left;color:inherit;touch-action:manipulation;
+}
+.wow-party-select:disabled{opacity:1;cursor:default}
+.wow-party-portrait-slot{position:relative;display:block;flex:none;width:38px;height:38px}
+.wow-party-portrait{
+ display:grid;place-items:center;box-sizing:border-box;width:38px;height:38px;
+ overflow:hidden;border:2px ridge #ad935f;border-radius:50%;
+ background:radial-gradient(circle at 40% 35%,#454c3b,#121a1c 75%);
+ color:#a5997a;font:700 23px Georgia,serif;box-shadow:inset 0 0 7px #000c,0 1px 4px #000;
+}
+.wow-party-portrait svg{width:100%;height:100%;display:block}
+.wow-party-level{
+ position:absolute;right:-2px;bottom:-2px;display:grid;place-items:center;
+ min-width:15px;height:15px;padding:0 2px;border:1px solid #9e874f;border-radius:50%;
+ background:#1c2020;color:#ffdf72;font:700 9px/1 Georgia,serif;
+}
+.wow-party-data{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.wow-party-name-row{display:flex;align-items:center;gap:3px;min-width:0;height:13px}
+.wow-party-name{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+ color:var(--party-class,#e9d8ac);font:700 11px/13px Georgia,serif;text-shadow:1px 1px #000}
+.wow-party-crown{color:#ffdb59;flex:none;font:15px/1 Georgia,serif;text-shadow:0 1px 3px #000}
+.wow-party-health{
+ display:block;position:relative;height:12px;min-height:12px;overflow:hidden;
+ border:1px solid #10130f;border-radius:2px;background:#2c2924;
+ box-shadow:0 0 0 1px #6d6a5544,inset 0 1px 3px #000;
+}
+.wow-party-health-fill{display:block;height:100%;background:linear-gradient(#5b9d3c,#306623);box-shadow:inset 0 1px #c3dc803f}
+.wow-party-health-text{position:absolute;inset:0;display:grid;place-items:center;
+ color:#f8f1d8;font:700 8px/11px system-ui,sans-serif;text-shadow:0 1px 2px #000,1px 0 #000;white-space:nowrap}
+.wow-party-resource{display:block;height:4px;overflow:hidden;border:1px solid #10130f;border-radius:1px;background:#24282b}
+.wow-party-resource-fill{display:block;height:100%}
+.wow-party-health.is-unknown,.wow-party-resource.is-unknown{background:repeating-linear-gradient(135deg,#343937 0 4px,#262c2a 4px 8px)}
+.wow-party-status{display:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:9px/1.2 system-ui,sans-serif;color:var(--wow-muted,#b5ad98)}
+.is-offline .wow-party-portrait,.is-dead .wow-party-portrait{filter:grayscale(1);opacity:.7}
+.is-distant .wow-party-select{opacity:.68}
+.is-offline .wow-party-health-fill,.is-dead .wow-party-health-fill{background:#514c45}
+.wow-party-more{
+ position:absolute;inset:0 0 0 auto;display:grid;place-items:center;width:25px;min-width:25px;min-height:44px;
+ padding:0;margin:0;border:0;border-left:1px solid #796b453d;border-radius:0 2px 2px 0;
+ color:#d2bb80;background:#b8a57108;font:22px/1 Georgia,serif;touch-action:manipulation;
+}
+.wow-party-more:hover,.wow-party-more:active{background:#b8a57126;color:#ffe298}
+.wow-party-select:focus-visible,.wow-party-more:focus-visible,.wow-party-heading:focus-visible,
+.wow-party-collapse:focus-visible,.wow-party-button:focus-visible,.wow-party-menu-action:focus-visible{
+ outline:2px solid #ffe18a;outline-offset:1px;z-index:2;
+}
+#ngwPartyMenu{
+ position:fixed;z-index:59;box-sizing:border-box;width:228px;max-width:calc(100vw - 16px);
+ padding:7px;border:2px ridge var(--wow-gold,#b99a5d);border-radius:3px;
+ background:linear-gradient(#262c2b,#111718);box-shadow:0 8px 24px #000c,inset 0 0 0 1px #000;
+ color:var(--wow-text,#f1dfb5);touch-action:pan-y!important;
+}
+.wow-party-menu-title{display:block;padding:4px 5px 2px;color:var(--wow-gold-light,#ecd9a2);font:700 14px/1.3 Georgia,serif;overflow-wrap:anywhere}
+.wow-party-menu-subtitle{display:block;padding:0 5px 7px;border-bottom:1px solid #8c795545;color:var(--wow-muted,#b5ad98);font:10px/1.3 system-ui,sans-serif}
+.wow-party-menu-action{
+ display:block;box-sizing:border-box;width:100%;min-height:38px;margin:0;padding:8px 7px;
+ border:0;border-radius:2px;background:transparent;color:#efe1bd;
+ font:12px/1.3 Georgia,serif;text-align:left;touch-action:manipulation;
+}
+.wow-party-menu-action:hover,.wow-party-menu-action:active{background:#b99a5d30;color:#fff2b8}
+.wow-party-menu-action.is-danger{color:#eaa08c}
+.wow-party-menu-close{border-top:1px solid #8c795545;color:#b9b09c}
+.wow-party-menu-empty{padding:5px;color:#b4ad99;font:11px/1.4 system-ui,sans-serif}
+#ngwPartyPrompt{
+ position:fixed;inset:0;z-index:61;display:grid;place-items:center;box-sizing:border-box;
+ padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+ background:#06090877;touch-action:manipulation!important;
+}
+.wow-party-dialog{box-sizing:border-box;width:min(360px,100%);padding:0 15px 15px;
+ border:3px ridge var(--wow-gold,#b99a5d);border-radius:4px;
+ background:radial-gradient(ellipse at top,#30342b,#111718 90%);
+ color:var(--wow-text,#f1dfb5);box-shadow:0 12px 48px #000e,inset 0 0 0 1px #000;
+ text-align:center;font:13px/1.5 Georgia,serif;
+}
+.wow-party-dialog-title{margin:0 -15px 14px;padding:11px 10px;
+ border-bottom:2px ridge #9f844c;background:linear-gradient(#782c23,#421511);
+ color:#f1d48b;font:700 17px/1.25 Georgia,serif;text-shadow:0 2px #170c09;
+}
+.wow-party-dialog-message{margin:0 0 12px;overflow-wrap:anywhere}
+.wow-party-dialog-timer{display:block;min-height:15px;color:var(--wow-muted,#b5ad98);font:10px/1.3 system-ui,sans-serif;margin-bottom:12px}
+.wow-party-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wow-party-button{box-sizing:border-box;min-height:38px;padding:8px 13px;
+ border:2px ridge #b59a5e;border-radius:2px;background:linear-gradient(#783326,#421812);
+ color:#f3dfaa;box-shadow:inset 0 1px #d0a56d55,0 1px 3px #0009;
+ font:700 12px/1.25 Georgia,serif;text-shadow:0 1px #000;touch-action:manipulation;
+}
+.wow-party-button:hover,.wow-party-button:active{filter:brightness(1.22)}
+#modal:has(#panel.party-modal){box-sizing:border-box;padding:8px}
+#modal #panel.party-modal{
+ box-sizing:border-box;width:min(510px,calc(100vw - 24px));padding:0 14px 13px;
+ max-height:calc(100dvh - 30px);border:3px ridge var(--wow-gold,#b99a5d);border-radius:4px;
+ background:radial-gradient(ellipse at 30% 0,#34372f,#121718 80%);
+ color:var(--wow-text,#f1dfb5);box-shadow:0 12px 42px #000b,inset 0 0 0 1px #000;
+}
+#modal #panel.party-modal #msub{display:none}
+#modal #panel.party-modal .ornament{display:none}
+#modal #panel.party-modal #mtitle{margin:0 -14px 12px;padding:11px 42px 11px 14px;
+ border-bottom:2px ridge #9f844c;background:linear-gradient(#782c23,#421511);color:#efd38c;
+ font:700 19px/1.25 Georgia,serif;text-shadow:0 2px #160c08;
+}
+#modal #panel.party-modal #modalClose{position:absolute;right:9px;top:8px;display:grid;place-items:center;
+ width:28px;height:28px;min-width:28px;min-height:28px;margin:0;padding:0;border:2px ridge #b69a5e;border-radius:2px;
+ background:linear-gradient(#773a29,#391811);color:#f3dfaa;font:bold 23px/1 Georgia,serif;
+}
+#modal #panel.party-modal #mbody{min-height:0;max-height:calc(100dvh - 108px);overflow-y:auto;padding-right:3px;touch-action:pan-y!important}
+.wow-party-roster-title{margin:0 0 5px;color:var(--wow-gold-light,#ecd9a2);font:700 14px/1.3 Georgia,serif}
+#modal #panel.party-modal .wow-party-roster-note{margin:0 0 9px;color:var(--wow-muted,#b5ad98);font:11px/1.45 system-ui,sans-serif}
+.wow-party-roster-members,.wow-party-nearby{display:flex;flex-direction:column;gap:5px;margin:0 0 10px}
+.wow-party-row .wow-party-select{min-height:62px;padding:5px 35px 5px 6px;gap:8px}
+.wow-party-row .wow-party-portrait-slot,.wow-party-row .wow-party-portrait{width:43px;height:43px}
+.wow-party-row .wow-party-name{font-size:13px;line-height:15px}
+.wow-party-row .wow-party-name-row{height:16px}
+.wow-party-row .wow-party-health{height:13px}
+.wow-party-row .wow-party-health-text{font-size:9px;line-height:12px}
+.wow-party-row .wow-party-status{display:block}
+.wow-party-row .wow-party-more{width:33px;font-size:25px}
+.wow-party-nearby-title{margin:13px 0 7px;padding-top:9px;border-top:1px solid #9d895144;
+ color:var(--wow-gold-light,#ecd9a2);font:700 12px Georgia,serif}
+.party-modal .ngw-chat-log{box-sizing:border-box;max-height:95px;overflow-y:auto;margin:13px 0 6px;padding:7px;
+ border:1px solid #87734b7a;border-radius:2px;background:#080e0fa8;color:#e8ddc1;font:11px/1.4 system-ui,sans-serif;
+ touch-action:pan-y!important;
+}
+.party-modal .ngw-chat-entry{margin:0 0 4px;overflow-wrap:anywhere}
+.party-modal .ngw-chat-entry strong{color:#a8bd83}
+#modal #panel.party-modal input.ngw-chat-message{box-sizing:border-box;width:100%;height:36px;margin:4px 0 7px;padding:7px 9px;
+ border:1px solid #9b8754;border-radius:2px;background:#090f10;color:#e9ddc0;font:13px system-ui,sans-serif;touch-action:manipulation;
+}
+#modal #panel.party-modal .rpgRow{background:transparent;border:0;color:var(--wow-text,#f1dfb5);padding:0;margin-top:5px;gap:7px}
+#modal #panel.party-modal .rpgRow>div{min-width:0;flex:1}
+#modal #panel.party-modal .rpgRow strong{color:#e7d4a5;font:700 12px Georgia,serif}
+#modal #panel.party-modal .rpgRow small{color:#b5ad98;font:10px system-ui,sans-serif}
+#modal #panel.party-modal .rpgRow>button{min-height:35px;padding:7px 10px;border:2px ridge #a58b54;
+ border-radius:2px;background:linear-gradient(#663127,#361813);color:#eedaa8;font:11px Georgia,serif;
+}
+.wow-ally-actions{display:flex;gap:4px;margin-top:5px}
+.wow-ally-actions #allyInvite{flex:1;width:auto;margin:0;min-width:0}
+.wow-ally-actions #allyActions{flex:none;width:30px;min-height:33px;padding:0;border:1px solid #9b8754;
+ border-radius:2px;background:#252d27;color:#e2c486;font:20px Georgia,serif;touch-action:manipulation;
+}
+@media(max-width:760px){
+ .wow-party-select{min-height:50px;padding:3px 24px 3px 3px;gap:4px}
+ .wow-party-portrait-slot,.wow-party-portrait{width:31px;height:31px}
+ .wow-party-name{font-size:10px;line-height:12px}.wow-party-name-row{height:12px}
+ .wow-party-level{min-width:13px;height:13px;font-size:8px}
+ .wow-party-health{height:11px;min-height:11px}.wow-party-health-text{font-size:7.5px;line-height:10px}
+ .wow-party-resource{height:3px}.wow-party-more{width:24px;font-size:20px}
+ #modal #panel.party-modal{width:min(440px,calc(100vw - 16px));padding:0 10px 11px}
+ #modal #panel.party-modal #mtitle{margin:0 -10px 10px;padding-left:11px;font-size:17px}
+ .wow-party-row .wow-party-select{min-height:59px;gap:6px}
+ .wow-party-dialog .wow-party-button{min-height:44px}
+ .wow-party-menu-action{min-height:44px}
+ .wow-ally-actions #allyActions{min-height:27px}
+}
+@media(max-height:510px) and (min-width:600px){
+ #hudTop #ngwPartyFrames{margin-top:4px}
+ .wow-party-stack{max-height:96px}.wow-party-select{min-height:45px}
+ #modal #panel.party-modal{max-height:calc(100dvh - 16px)}
+ #modal #panel.party-modal #mtitle{padding-top:8px;padding-bottom:8px}
+ #modal #panel.party-modal #mbody{max-height:calc(100dvh - 84px)}
+ .wow-party-dialog{padding-bottom:10px}.wow-party-dialog-title{margin-bottom:9px;padding:8px}
+}

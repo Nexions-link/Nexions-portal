@@ -67,7 +67,15 @@ test('progress panel shares the same responsive HUD column and width as player H
  const panel=html.indexOf('<aside id="questProgressPanel"');
  const area=html.indexOf('<div id="zoneTitle"');
  assert.ok(top>=0&&panel>top&&area>panel,'tracker is inside the top HUD, before its closing tag');
- assert.match(html.slice(panel,area),/<aside id="questProgressPanel"[^>]*><\/aside>\s*<\/div>/);
+ // Other HUD widgets may share the column. Verify the actual enclosing div
+ // instead of requiring the tracker to be its final child.
+ let depth=0,hudEnd=-1;
+ for(const match of html.slice(top,area).matchAll(/<\/?div\b[^>]*>/g)){
+  depth+=match[0].startsWith('</')?-1:1;
+  if(depth===0){hudEnd=top+match.index;break;}
+ }
+ assert.ok(hudEnd>panel&&hudEnd<area,'tracker remains inside the hudTop element');
+ assert.match(html.slice(panel,hudEnd),/^<aside id="questProgressPanel"[^>]*><\/aside>/);
  assert.match(css,/#hudTop #questProgressPanel\{[\s\S]*?grid-column:1;grid-row:2;/);
  assert.match(css,/#hudTop #questProgressPanel\{[\s\S]*?width:100%!important;/);
  assert.match(css,/background:linear-gradient\(145deg,#202820f0,#111a16ed\)/);

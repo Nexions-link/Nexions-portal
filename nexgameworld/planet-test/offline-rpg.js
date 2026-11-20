@@ -1,6 +1,7 @@
 import {createHunterProjectiles} from './hunter-projectiles.js?v=64608';
 import {getBowReleasePose} from './bow-visual.js?v=64609';
 import {BOW_COMBAT_HOLD_SECONDS} from './bow-pose.js?v=64609';
+import {createPartyInterface,partyClassInfo} from './party-interface.js?v=64611';
 import {defaultHotbarForClass} from '../hotbar.js?v=64604';
 import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=64608';
@@ -383,52 +384,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  // Refresh the live party and nearby-player list without touching the chat input.
  // iOS Safari closes its keyboard if the focused input is detached.
  function paintPartyRoster(roster){
-  if(!roster)return;
-  const snapshot=JSON.stringify([partyState.groupId,partyState.leaderId,
-   partyState.members.map(member=>[member.id,member.name,member.level,member.online]),
-   onlinePlayers.map(peer=>[peer.id,peer.name,peer.level])]);
-  if(roster.dataset.snapshot===snapshot)return;
-  roster.dataset.snapshot=snapshot;
-  roster.replaceChildren();
-  const row=(label,caption,actions=[])=>{
-   const node=document.createElement('div');node.className='rpgRow';
-   const name=document.createElement('div');name.innerHTML='<strong></strong><small></small>';
-   name.querySelector('strong').textContent=label;
-   name.querySelector('small').textContent=caption;
-   node.append(name);
-   for(const [caption,fn] of actions){
-    const button=document.createElement('button');
-    button.type='button';button.textContent=caption;button.addEventListener('click',fn);
-    node.append(button);
-   }
-   roster.append(node);
-  };
-  row('Группа',partyState.groupId?'Участников: '+partyState.members.length+' / 5':'Вы пока не в группе',
-   partyState.groupId?[['Покинуть',()=>multiplayer.leaveParty()]]:[]);
-  for(const member of partyState.members){
-   const actions=[];
-   if(onlinePlayers.some(peer=>peer.id===member.id))
-    actions.push(['Выбрать',()=>{selectAlly(member.id);closeWindow()}]);
-   if(partyState.leaderId===multiplayer?.selfId&&member.id!==multiplayer?.selfId&&member.online!==false)
-    actions.push(['Назначить лидером',()=>{
-     if(window.confirm('Передать лидерство игроку '+(member.name||'Игрок')+'?'))
-      multiplayer?.promoteParty(member.id);
-    }]);
-   row(member.name||'Игрок',
-    (member.id===partyState.leaderId?'Лидер · ':'')+'Уровень '+(member.level||1)+
-     (member.online===false?' · Переподключается':''),
-    actions);
-  }
-  if((!partyState.groupId||partyState.leaderId===multiplayer?.selfId)
-    &&partyState.members.length<5){
-   row('Игроки в мире','Выбери игрока для приглашения.');
-   for(const peer of onlinePlayers)if(!partyState.members.some(member=>member.id===peer.id))
-    row(peer.name||'Странник','Уровень '+(peer.level||1),[
-     ['Выбрать',()=>{selectAlly(peer.id);closeWindow()}],
-     ['Пригласить',()=>multiplayer.invite(peer.id)]
-    ]);
-   if(!onlinePlayers.length)row('Никого рядом','Другие игроки в этом мире пока не обнаружены.');
-  }
+  partyInterface.renderRoster(roster);
  }
  const rosterKey=rows=>JSON.stringify(rows.map(({id,name,level})=>[id,name,level]).sort((a,b)=>a[0].localeCompare(b[0])));
  function paintChatHistory(){
@@ -448,12 +404,14 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(atBottom)log.scrollTop=log.scrollHeight;
  }
  function paintAllyTarget(){
+  partyInterface.update();
   const ally=selectedAllyId?onlinePlayers.find(player=>player.id===selectedAllyId):null;
   const frame=$('allyFrame');
   frame.hidden=!ally||!isOnline();
   if(!ally||!isOnline())return false;
   $('allyName').textContent=ally.name||'Игрок';
-  $('allyLevel').textContent='Уровень '+(ally.level||1)+' · Таурен · Воин';
+  $('allyLevel').textContent='Уровень '+(ally.level||1)+' · '+
+   (ally.raceId==='orc'?'Орк':ally.raceId==='hornfolk'?'Таурен':'Игрок')+' · '+partyClassInfo(ally.classId).name;
   const max=Number(ally.maxHp)||0,hp=Math.max(0,Number(ally.hp)||0);
   $('allyHpFill').style.width=(max>0?clamp(hp/max*100,0,100):0)+'%';
   $('allyHpText').textContent=max>0?Math.ceil(hp)+' / '+max:'HP —';
@@ -481,9 +439,17 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  }
  const receivedCredits=new Set();
  const isOnline=()=>!!multiplayer?.connected;
- function setMultiplayer(transport){multiplayer=transport||null;}
+ const partyInterface=createPartyInterface({getTransport:()=>multiplayer,
+  getParty:()=>partyState,getPlayers:()=>onlinePlayers,getSelected:()=>selectedAllyId,
+  getSelf:()=>({name:authenticatedProfile?.nickname||'Странник',level:state.level,
+   hp:state.hp,maxHp:stats().maxHp,resource:state.resource,classId,
+   raceId:authenticatedProfile?.raceId||'hornfolk'}),
+  onSelect:id=>{selectAlly(id);if(!modal.hidden&&modal.dataset.kind==='party')closeWindow();},
+  onOpenRoster:()=>openWindow('party'),onNotice:message=>msg(message)});
+ function setMultiplayer(transport){multiplayer=transport||null;partyInterface.update();}
  function onNetworkDisconnect(){
   if(!authenticatedProfile)return;
+  partyInterface.reset();
   cancelBowShot(true);
   pendingBagDiscard=false;
   // A reconnect creates a new socket; authenticated membership can be restored.
@@ -515,7 +481,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!modal.hidden&&modal.dataset.kind==='party')paintPartyRoster($('mbody').querySelector('.ngw-party-roster'));
  }
  function onPartyInvite(event){
-  if(isOnline())multiplayer.respondInvite(event.fromId,window.confirm((event.fromName||'Игрок')+' приглашает в группу. Принять?'));
+  partyInterface.receiveInvite(event);
  }
  function onPartyNotice(event){if(event?.message)msg(event.message);}
  function onChat(event){
@@ -2166,6 +2132,7 @@ function resetCreatureImpact(mob){
   $('panel').classList.toggle('character-modal',kind==='character');
   $('panel').classList.toggle('ngw-mount-modal',kind==='mounts');
   $('panel').classList.toggle('inventory-modal',kind==='bag');
+  $('panel').classList.toggle('party-modal',kind==='party');
   $('panel').classList.toggle('battlefury-modal',kind==='battlefuryTuner');
   $('msub').textContent=isOnline()?'NEXGAMEWORLD · ОБЩИЙ МИР':'NEXGAMEWORLD · ЛОКАЛЬНЫЙ РЕЖИМ';
   // Settings controls are shown exclusively in the dedicated settings view.
@@ -2175,7 +2142,7 @@ function resetCreatureImpact(mob){
   $('panel').classList.toggle('settings-modal',kind==='settings');
   $('panel').classList.toggle('game-menu-modal',kind==='menu');
   title.textContent=({bag:'Рюкзак',character:'Персонаж',mounts:'Коллекция маунтов',quests:'Журнал заданий',
-   merchant:'Торговец',loot:'Добыча',menu:'Меню',settings:'Настройки',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',expedition:'Следопыт Дальний Ветер',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
+   merchant:'Торговец',loot:'Добыча',menu:'Меню',settings:'Настройки',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',expedition:'Следопыт Дальний Ветер',party:'Группа',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
   body.replaceChildren();
   const line=(label,caption,actions=[])=>{
    const row=document.createElement('div');row.className='rpgRow';
@@ -2936,6 +2903,7 @@ function resetCreatureImpact(mob){
   ['targetClear',()=>{targetEntity(null);autoplay=false;draw()}],
   ['allyClear',()=>{selectedAllyId=null;draw()}],
   ['allyInvite',inviteSelectedAlly],
+  ['allyActions',()=>{if(selectedAllyId)partyInterface.openMenu(selectedAllyId,$('allyActions'));}],
   ['dummyReset',()=>{dummy.trainingStats=createTrainingStats();draw();}]
  ];
  for(const [id,fn] of actions){const node=$(id);if(node)bind(node,'click',fn);}
@@ -2947,7 +2915,7 @@ function resetCreatureImpact(mob){
   if(key==='escape'&&!modal.hidden){closeWindow();e.preventDefault();return;}
   if(!modal.hidden)return;
   if(key==='b'&&!e.repeat){toggleSpellbook();e.preventDefault();return;}
-  const shortcut={i:'bag',c:'character',j:'quests',n:'mounts'};
+  const shortcut={i:'bag',c:'character',j:'quests',n:'mounts',g:'party'};
   if(shortcut[key]&&!e.repeat){openWindow(shortcut[key]);e.preventDefault();}
   if(key==='tab'){if(!e.repeat)targetNearest(e.shiftKey?-1:1);e.preventDefault();}
   if(key==='e'){interact();e.preventDefault();}
@@ -3002,6 +2970,7 @@ function resetCreatureImpact(mob){
  }
  function update(dt){
   clock+=dt;
+  partyInterface.tick();
   if(forestAmbience.enabled){
    const normal=playerNormal();
    forestAmbience.update(clock,
