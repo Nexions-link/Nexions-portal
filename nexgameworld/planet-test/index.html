@@ -528,6 +528,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
 })();
 </script>
+<link rel="stylesheet" href="./wow-ui.css?v=64610">
 </head>
 <body>
 <main id="viewport" aria-label="Сферический мир NexGameWorld"></main>
@@ -604,7 +605,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.46.9" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.46.10" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -646,8 +647,14 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
   <strong>Книга способностей</strong>
   <button id="spellbookClose" type="button" aria-label="Закрыть книгу">×</button>
  </header>
- <p>Удерживай умение и перетащи на нужную ячейку панели.</p>
- <div id="spellbookAbilities" class="ngw-spellbook-abilities"></div>
+ <div class="wow-spellbook-body">
+  <nav id="spellbookTabs" class="wow-spellbook-tabs" role="tablist" aria-label="Разделы книги"></nav>
+  <div class="wow-spellbook-page">
+   <div id="spellbookPageHeading"></div>
+   <div id="spellbookAbilities" class="ngw-spellbook-abilities" role="tabpanel"></div>
+  </div>
+ </div>
+ <p class="wow-spellbook-hint">Удерживай и перетаскивай на панель · С клавиатуры: Alt + 1–8</p>
  <div id="spellbookTrash" class="ngw-spellbook-trash">✕ Снять с панели: перетащи сюда значок из ячейки</div>
 </section>
 <div id="actionsBar" role="toolbar" aria-label="Панель из восьми настраиваемых ячеек"></div>
@@ -724,7 +731,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=64609').catch(error=>{
+  import('./planet.js?v=64610').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

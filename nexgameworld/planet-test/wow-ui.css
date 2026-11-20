@@ -1,0 +1,222 @@
+/* Original classic-fantasy window chrome shared by inventory, party and trade. */
+:root{
+ --wow-frame:#111416;--wow-panel:#202426;--wow-gold:#b99a5d;
+ --wow-gold-light:#ecd9a2;--wow-text:#f1dfb5;--wow-muted:#b5ad98;
+ --wow-red:#6a211d;--wow-parchment:#dcc79c;
+ --wow-frame-bg:var(--wow-frame);--wow-frame-edge:var(--wow-gold);--wow-title:var(--wow-gold-light);
+ --wow-edge-shadow:#403829;--wow-edge-light:#d1bc87;
+}
+.wow-frame{
+ color:var(--wow-text);border:4px ridge var(--wow-gold);border-radius:5px;
+ background:repeating-linear-gradient(125deg,#ffffff03 0 1px,transparent 1px 5px),linear-gradient(110deg,#262a2a,#101416);
+ box-shadow:0 12px 35px #000b,inset 0 0 0 1px #000,inset 0 0 22px #0008;
+}
+.wow-button,.wow-tab{
+ border:2px ridge var(--wow-gold);border-radius:3px;
+ background:linear-gradient(#8a3529,#5c211c 48%,#421a17);
+ color:var(--wow-gold-light);box-shadow:inset 0 1px 0 #e2b96a36,0 1px 3px #0008;
+ font:700 12px/1.25 Georgia,serif;text-shadow:0 1px 2px #000;
+ touch-action:manipulation;
+}
+.wow-button:hover,.wow-tab:hover{filter:brightness(1.2)}
+.wow-button:disabled,.wow-tab:disabled{filter:grayscale(.7);opacity:.5}
+.wow-button:focus-visible,.wow-tab:focus-visible{outline:2px solid #ffe8a7;outline-offset:2px}
+.wow-icon{display:grid;place-items:center;border:2px ridge var(--wow-gold);background:#13191a;border-radius:3px;overflow:hidden}
+.wow-item-icon{display:block;width:100%;height:100%;line-height:0}
+.wow-item-icon svg{display:block;width:100%;height:100%}
+.wow-money{display:inline-flex;gap:5px;align-items:center;color:#f4df9d;font:700 13px/1.3 Georgia,serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wow-money::after{content:"";display:inline-block;width:11px;height:11px;border:1px solid #f9e092;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff0aa,#c09634 56%,#73501d 72%);box-shadow:0 1px 2px #000}
+
+/* A floating twelve-slot backpack. The world and its controls keep their size. */
+#modal #panel.inventory-modal{
+ width:min(316px,calc(100vw - 24px))!important;max-height:min(82dvh,626px)!important;
+ padding:48px 14px 12px!important;border:4px ridge var(--wow-gold)!important;border-radius:5px!important;
+ color:var(--wow-text)!important;
+ background:repeating-linear-gradient(125deg,#ffffff03 0 1px,transparent 1px 5px),linear-gradient(110deg,#282b2b,#111517)!important;
+ box-shadow:0 16px 42px #000b,inset 0 0 0 1px #080a0a,inset 0 0 25px #0009!important;
+}
+#modal #panel.inventory-modal::before{
+ content:"";position:absolute;left:4px;right:4px;top:4px;height:33px;
+ border:1px solid #8b713f;border-radius:2px;
+ background:linear-gradient(180deg,#983f2a,#67251e 56%,#381a18);box-shadow:inset 0 1px 0 #e1be765c,0 2px 4px #0008;
+ pointer-events:none;
+}
+#modal #panel.inventory-modal #mtitle{
+ position:absolute!important;left:12px!important;top:6px!important;width:calc(100% - 54px)!important;
+ min-height:31px!important;margin:0!important;padding:6px 4px!important;
+ border:0!important;background:none!important;color:var(--wow-gold-light)!important;
+ font:700 17px/1.2 Georgia,serif!important;text-shadow:0 2px 2px #160c08;
+}
+#modal #panel.inventory-modal #mtitle::after{color:#dec593;opacity:.55}
+#modal #panel.inventory-modal #modalClose{
+ right:8px!important;top:8px!important;width:27px!important;height:27px!important;
+ border:2px ridge #d2b674!important;border-radius:3px!important;
+ background:linear-gradient(#973e2a,#6b241e 55%,#431b18)!important;color:#ffe3a2!important;
+ font:bold 21px/1 Georgia,serif!important;text-shadow:1px 1px 2px #000;
+}
+#modal #panel.inventory-modal #mbody{gap:0;max-height:none!important;overflow:hidden!important}
+#panel.inventory-modal .inventory-summary{
+ display:flex;justify-content:space-between;align-items:center;gap:8px;
+ border:0!important;margin:0 0 9px!important;padding:0!important;
+ color:var(--wow-muted)!important;font:11px/1.3 system-ui,sans-serif!important;
+}
+.inventory-summary .wow-bag-free{color:#dfcf9c;font-variant-numeric:tabular-nums}
+#panel.inventory-modal .inventory-grid{
+ grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;
+ margin:0!important;padding:8px!important;border:1px solid #706044;
+ background:linear-gradient(125deg,#070b0da8,#222625aa);box-shadow:inset 0 2px 10px #000a;
+}
+#panel.inventory-modal .inventory-slot{
+ width:100%!important;padding:2px!important;border:2px ridge var(--item-quality-color,#756851)!important;
+ border-radius:3px!important;background:#080d10!important;box-shadow:inset 0 0 6px #000!important;
+ aspect-ratio:1;overflow:visible!important;
+}
+#panel.inventory-modal .inventory-slot.occupied::after{display:none!important}
+#panel.inventory-modal .inventory-slot .slot-icon{display:block!important;width:100%!important;height:100%!important;font-size:0!important;line-height:0!important}
+#panel.inventory-modal .inventory-slot .slot-icon svg{display:block;width:100%;height:100%}
+#panel.inventory-modal .inventory-slot.empty{border-color:#62543d!important;background:radial-gradient(ellipse,#191e20,#090d10)!important}
+#panel.inventory-modal .inventory-slot.empty .slot-empty-mark{color:#8e79532e;font-size:23px}
+#panel.inventory-modal .inventory-slot.active{outline:2px solid #f9df9b!important;outline-offset:-2px;box-shadow:0 0 8px #e7bd6266!important}
+#panel.inventory-modal .inventory-slot:focus-visible{outline:2px solid #fff0ba!important;outline-offset:2px}
+#panel.inventory-modal .inventory-slot.occupied:hover{filter:brightness(1.2)}
+#panel.inventory-modal .slot-count{right:2px;bottom:1px;z-index:2;padding:0 2px;background:#0b1012a6;color:#fff1cc;font:700 13px/1.2 Georgia,serif;text-shadow:1px 1px 1px #000}
+.wow-bag-footer{display:flex;flex:none;align-items:center;justify-content:space-between;gap:9px;margin:9px 0;padding:7px 2px 9px;border-bottom:1px solid #83704880}
+.wow-bag-current{display:flex;align-items:center;gap:7px;color:#c8ba97;font:10px/1.3 system-ui,sans-serif}
+.wow-bag-current .wow-item-icon{width:30px;height:30px;flex:none;border:2px ridge #b69b61;border-radius:3px}
+.wow-bag-current strong,.wow-bag-current small{display:block;font-size:10px}
+.wow-bag-current strong{color:#ecd69f}
+#panel.inventory-modal .inventory-detail{
+ flex:1 1 auto;min-height:48px!important;max-height:240px;padding:9px!important;
+ background:linear-gradient(125deg,#080d16ed,#101a23ed)!important;
+ border:1px solid #8d805a!important;border-radius:3px!important;color:var(--wow-text)!important;
+ font:12px/1.4 system-ui,sans-serif!important;box-shadow:inset 0 0 8px #0006;
+}
+#panel.inventory-modal .inventory-detail>strong{font:700 14px/1.3 Georgia,serif!important}
+#panel.inventory-modal .inventory-detail p{color:#c4b894!important;font:11px/1.45 system-ui,sans-serif!important}
+#panel.inventory-modal .ngw-item-stats{padding:4px 0!important;background:none!important;border:0!important;color:#f2e5c5!important}
+#panel.inventory-modal .ngw-item-stat{color:#e5ddc5!important}
+#panel.inventory-modal .ngw-gear-compare{background:#131f24!important;border-color:#445a58!important;color:#d5d7c7!important}
+#panel.inventory-modal .ngw-compare-row.better{color:#72d983!important}
+#panel.inventory-modal .ngw-compare-row.worse,#panel.inventory-modal .ngw-compare-level{color:#e77e6d!important}
+#panel.inventory-modal .inventory-detail button.choice{
+ min-height:36px!important;border:2px ridge #b99a5d!important;border-radius:3px!important;
+ background:linear-gradient(#8c3829,#5c201c)!important;color:#f3dfad!important;
+ text-align:center!important;font:700 12px Georgia,serif!important;
+}
+#panel.inventory-modal .ngw-bag-discard-help{margin:8px 0 0!important;color:#9a9585;font:9px/1.35 system-ui,sans-serif}
+
+/* An open parchment spellbook, with persistent drag sources and class tabs. */
+#spellbookPopover{
+ box-sizing:border-box;padding:0!important;overflow:hidden!important;
+ border:4px ridge var(--wow-gold)!important;border-radius:5px!important;
+ color:#3b2b1e!important;background:#20201b!important;
+ box-shadow:0 13px 35px #000b,inset 0 0 0 1px #080a0a!important;
+}
+#spellbookPopover .ngw-spellbook-header{
+ flex:none;min-height:39px;margin:0;padding:3px 7px 3px 12px;
+ color:var(--wow-gold-light);border-bottom:2px ridge #b69a62;
+ background:linear-gradient(#8a3728,#57201c);text-shadow:0 2px 2px #1b0e0a;
+}
+#spellbookPopover .ngw-spellbook-header strong{font:700 17px/1.2 Georgia,serif}
+#spellbookClose{border:2px ridge #cfb578!important;border-radius:3px!important;background:linear-gradient(#963b28,#58201c)!important;color:#ffe3a5!important;min-width:27px!important;min-height:27px!important;width:27px;height:27px;font:700 22px/1 Georgia,serif!important}
+.wow-spellbook-body{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}
+.wow-spellbook-tabs{display:flex;flex:none;flex-direction:column;gap:6px;width:76px;padding:12px 6px;background:linear-gradient(90deg,#38332b,#191e20);border-right:3px ridge #ac8e56}
+.wow-spellbook-tabs button{min-height:52px;padding:7px 2px;font:700 10px/1.3 Georgia,serif;color:#c4b18b;border:2px ridge #84724f;border-radius:3px;background:linear-gradient(#4a4230,#292d28);touch-action:manipulation}
+.wow-spellbook-tabs button[aria-selected="true"]{color:#ffe4a6;border-color:#e5c681;background:linear-gradient(#875137,#532b22);box-shadow:inset 0 0 8px #b58b4455}
+.wow-spellbook-tabs button:focus-visible{outline:2px solid #ffe2a0;outline-offset:1px}
+.wow-spellbook-page{position:relative;display:flex;flex:1;flex-direction:column;min-width:0;min-height:0;padding:11px 12px 12px;background:radial-gradient(ellipse at 5% 15%,#f2e1b6aa,transparent 58%),repeating-linear-gradient(45deg,#78553308 0 1px,transparent 1px 5px),linear-gradient(90deg,#c9ad7c,#e5d1a6 6%,#dcc79c 49%,#b69a6c 50%,#e0cba0 52%,#d5bb8d 97%,#b69a6a);box-shadow:inset 0 0 16px #6d4c2c66}
+#spellbookPageHeading{flex:none;display:flex;justify-content:space-between;gap:6px;align-items:baseline;border-bottom:1px solid #795c3c66;padding:0 0 7px;margin:0 0 7px;font:700 17px/1.15 Georgia,serif;color:#4f351e}
+#spellbookPageHeading small{font:10px/1.2 system-ui,sans-serif;color:#7a5c38;text-align:right}
+#spellbookAbilities{flex:1;min-height:0;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px 12px!important;overflow-y:auto!important;padding:1px 2px 3px;scrollbar-width:thin;scrollbar-color:#8a6c45 #d1b785}
+#spellbookAbilities .ngw-spell-drag-entry{
+ position:relative;align-items:flex-start;gap:7px;min-height:75px;padding:5px 3px;
+ border:0;border-bottom:1px solid #94734c4d;border-radius:0;
+ color:#3c2b1b;background:transparent;box-shadow:none;
+}
+#spellbookAbilities .ngw-spell-drag-entry:not(:disabled):hover{background:#fff3cf4a}
+#spellbookAbilities .ngw-spell-drag-entry:focus-visible{outline:2px solid #8b6130;outline-offset:-2px}
+#spellbookAbilities .ngw-spell-drag-icon{display:grid;flex:none;width:38px;height:38px;overflow:hidden;background:radial-gradient(ellipse at 25% 20%,#57654f,#18272b 70%);border:2px ridge #8f7d50;border-radius:3px;box-shadow:0 1px 4px #533a2e8a}
+#spellbookAbilities .ngw-spell-drag-icon svg{display:block;width:34px;height:34px;filter:drop-shadow(0 1px 2px #0009)}
+#spellbookAbilities [data-ability-id="arcaneShot"] .ngw-spell-drag-icon{background:radial-gradient(circle,#554266,#1b1f34)}
+#spellbookAbilities [data-ability-id="concussiveShot"] .ngw-spell-drag-icon{background:radial-gradient(circle,#336474,#162c39)}
+#spellbookAbilities [data-ability-id="aimedShot"] .ngw-spell-drag-icon{background:radial-gradient(circle,#824f33,#35271c)}
+#spellbookAbilities .ngw-spell-drag-content{gap:3px;overflow:visible}
+#spellbookAbilities .ngw-spell-drag-content strong{font:700 12px/1.25 Georgia,serif;white-space:normal;overflow:visible;color:#4d2e18}
+#spellbookAbilities .ngw-spell-drag-content small{font:10px/1.25 system-ui,sans-serif;color:#795932}
+#spellbookAbilities .wow-spell-status{display:block;color:#336338;font:700 9px/1.2 system-ui,sans-serif}
+#spellbookAbilities .ngw-spell-drag-entry.is-locked{opacity:.62;cursor:default;touch-action:pan-y}
+#spellbookAbilities .is-locked .ngw-spell-drag-icon{filter:grayscale(1);opacity:.7}
+#spellbookAbilities .is-locked .wow-spell-status{color:#8d3024}
+#spellbookPopover .wow-spellbook-hint{flex:none;margin:0!important;padding:6px 10px!important;color:#c7bc9c!important;background:#222522;border-top:1px solid #8e784b;font:10px/1.3 system-ui,sans-serif!important}
+#spellbookTrash{border:1px solid #75523c!important;border-radius:2px!important;background:#241a17!important;color:#c5a284!important;padding:6px!important;margin:0!important;font:10px/1.3 system-ui,sans-serif!important}
+
+/* Loot uses the same frame and the familiar icon/name/quantity rows. */
+#modal[data-kind="loot"]{background:#0d100f30;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;justify-items:start;align-items:center;padding:16px clamp(12px,12vw,190px)}
+#modal[data-kind="loot"] #panel{
+ box-sizing:border-box;width:min(326px,calc(100vw - 24px));max-height:min(78dvh,600px);
+ display:flex;flex-direction:column;overflow:hidden;padding:48px 12px 12px;
+ color:var(--wow-text);border:4px ridge var(--wow-gold);border-radius:5px;
+ background:repeating-linear-gradient(125deg,#ffffff03 0 1px,transparent 1px 5px),linear-gradient(110deg,#282b2b,#111517);
+ box-shadow:0 16px 42px #000b,inset 0 0 0 1px #080a0a;
+}
+#modal[data-kind="loot"] #panel::before{content:"";position:absolute;left:4px;right:4px;top:4px;height:33px;border:1px solid #8b713f;border-radius:2px;background:linear-gradient(#983f2a,#67251e 56%,#381a18);box-shadow:inset 0 1px 0 #e1be765c,0 2px 4px #0008}
+#modal[data-kind="loot"] #panel>.eyebrow,#modal[data-kind="loot"] .ornament,#modal[data-kind="loot"] .panel-corner{display:none}
+#modal[data-kind="loot"] #mtitle{position:absolute;left:15px;top:11px;margin:0;padding:0;color:#ecd9a2;font:700 17px/1.2 Georgia,serif;text-shadow:0 1px 2px #000}
+#modal[data-kind="loot"] #modalClose{position:absolute;top:8px;right:8px;min-width:27px;width:27px;height:27px;min-height:27px;margin:0;padding:0;border:2px ridge #cfb578;border-radius:3px;background:linear-gradient(#963b28,#58201c);color:#ffe3a5;font:700 22px/1 Georgia,serif}
+#modal[data-kind="loot"] #mbody{display:flex;flex:1;flex-direction:column;gap:7px;min-height:0;max-height:none;overflow:hidden}
+#modal[data-kind="loot"] .planet-loot-summary{display:flex;justify-content:space-between;gap:8px;flex:none;color:#a9a38f;font:10px/1.3 system-ui,sans-serif;padding:0 0 7px;border-bottom:1px solid #76613e}
+#modal[data-kind="loot"] .planet-loot-notice{flex:none;margin:0;color:#c3b28e;font:10px/1.4 system-ui,sans-serif}
+#modal[data-kind="loot"] .loot-list{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:6px;margin:0;padding:1px 2px 3px}
+#modal[data-kind="loot"] .loot-item{position:relative;display:flex;flex:none;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:9px;min-height:61px;padding:5px;border:1px solid #65563f;border-radius:3px;background:linear-gradient(90deg,#252b2c,#171b1c);box-shadow:inset 0 1px 0 #ae98601c;text-align:left;touch-action:manipulation}
+#modal[data-kind="loot"] .loot-item:disabled{opacity:.5;filter:grayscale(.6)}
+#modal[data-kind="loot"] .loot-item:hover:not(:disabled){background:#303b3b;border-color:#b39b63}
+#modal[data-kind="loot"] .loot-item:focus-visible{outline:2px solid #efd391;outline-offset:-1px}
+#modal[data-kind="loot"] .loot-item-icon{display:block;flex:none;width:44px;height:44px;padding:1px;border:2px ridge var(--item-quality-color,#9b885f);border-radius:3px;overflow:hidden;background:#090e11}
+#modal[data-kind="loot"] .loot-item-icon svg{display:block;width:100%;height:100%}
+#modal[data-kind="loot"] .loot-item-copy{display:flex;flex:1;flex-direction:column;gap:4px;min-width:0}
+#modal[data-kind="loot"] .loot-item-name{font:700 13px/1.2 Georgia,serif;overflow-wrap:anywhere}
+#modal[data-kind="loot"] .loot-item-stats{font:10px/1.35 system-ui,sans-serif;color:#aaa791;font-weight:400;overflow-wrap:anywhere}
+#modal[data-kind="loot"] .loot-item-count{position:absolute;left:7px;bottom:8px;width:40px;box-sizing:border-box;padding:0 2px;text-align:right;color:#fff0c9;font:700 11px/1.2 Georgia,serif;text-shadow:1px 1px 2px #000,-1px -1px 2px #000;white-space:nowrap;pointer-events:none}
+#modal[data-kind="loot"] .loot-item[data-money="true"]{min-height:56px}
+#modal[data-kind="loot"] .loot-item[data-money="true"] .loot-item-stats{font-size:10px}
+#modal[data-kind="loot"] .planet-loot-actions{flex:none;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:7px;padding-top:7px;border-top:1px solid #76613e;margin-top:2px}
+#modal[data-kind="loot"] .planet-loot-actions .choice{margin:0;min-height:36px;padding:6px;border:2px ridge #ad9156;border-radius:3px;background:linear-gradient(#843326,#51201b);color:#f0d69d;text-align:center;font:700 12px/1.2 Georgia,serif}
+#modal[data-kind="loot"] .planet-loot-actions .planet-loot-leave{background:linear-gradient(#4d493b,#2b2c27);color:#d6c7a3}
+
+@media(max-width:540px){
+ #spellbookPopover .ngw-spellbook-header strong{font-size:15px}
+ .wow-spellbook-tabs{width:64px;padding:10px 5px;gap:5px}
+ .wow-spellbook-tabs button{font-size:10px;min-height:48px}
+ .wow-spellbook-page{padding:10px 8px 8px}
+ #spellbookAbilities{grid-template-columns:minmax(0,1fr)!important;gap:4px!important}
+ #spellbookAbilities .ngw-spell-drag-entry{min-height:58px;padding:5px 3px;align-items:center}
+ #spellbookAbilities .ngw-spell-drag-icon{width:37px;height:37px}
+ #spellbookAbilities .ngw-spell-drag-content strong{font-size:12px}
+ #spellbookPageHeading{font-size:15px}
+ #spellbookPageHeading small{font-size:9px}
+ #spellbookPopover .wow-spellbook-hint{font-size:9px!important;padding:6px!important}
+ #modal[data-kind="loot"]{padding:12px;justify-items:center}
+ #modal[data-kind="loot"] .planet-loot-actions .choice{min-height:42px}
+}
+@media(max-height:650px){
+ #modal #panel.inventory-modal{max-height:88dvh!important;width:min(282px,calc(100vw - 24px))!important;padding:43px 11px 10px!important}
+ #panel.inventory-modal .inventory-grid{gap:4px!important;padding:5px!important}
+ #panel.inventory-modal .inventory-slot{aspect-ratio:auto;height:42px!important}
+ .wow-bag-footer{margin:6px 0;padding:3px 1px 5px}
+ .wow-bag-current .wow-item-icon{width:26px;height:26px}
+ #panel.inventory-modal .inventory-summary{margin-bottom:6px!important}
+ #panel.inventory-modal .ngw-bag-discard-help{font-size:8px;margin-top:5px!important}
+ #spellbookPopover .ngw-spellbook-header{min-height:29px}
+ #spellbookPopover .ngw-spellbook-header strong{font-size:14px}
+ .wow-spellbook-tabs{width:66px;padding:7px 5px}
+ .wow-spellbook-tabs button{min-height:37px}
+ .wow-spellbook-page{padding:6px 8px}
+ #spellbookPageHeading{font-size:14px;margin-bottom:4px;padding-bottom:4px}
+ #spellbookAbilities .ngw-spell-drag-entry{min-height:49px;padding:3px 2px}
+ #spellbookAbilities .ngw-spell-drag-icon{width:31px;height:31px}
+ #spellbookAbilities .ngw-spell-drag-icon svg{width:29px;height:29px}
+ #spellbookPopover .wow-spellbook-hint{padding:4px 8px!important;font-size:9px!important}
+ #spellbookTrash{padding:4px!important;font-size:9px!important}
+ #modal[data-kind="loot"] #panel{max-height:90dvh}
+}
+@media(prefers-reduced-motion:reduce){.wow-frame,.wow-button,.wow-tab{transition:none;animation:none}}

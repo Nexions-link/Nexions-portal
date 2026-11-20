@@ -19,12 +19,13 @@ import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-pa
 // Offline spherical NexGame systems. Use the unchanged production rules for items,
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=64600';
+import {createItemIcon,backpackArtwork} from './inventory-art.js?v=64610';
 import {getAbilityRangeIndicator,getAbilityResourceIndicator} from './ability-range-visuals.js?v=2';
 import {levelExperienceRequirement,earnedExperienceSince} from './level-progression.js?v=1';
 import {compareEquipment,itemStatRows,formatBagEquipmentChanges} from './equipment-comparison.js?v=64604';
 import {ITEM_CATALOG,MERCHANT_STOCK,deriveStats,itemStackLimit,effectiveShield} from '../items.js?v=64604';
 import {equipBowVisual} from './orc-avatar.js?v=64609';
-import {getAbilityDefinition,getClassDefinition,getClassAbilities,rollHunterDamage,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=64604';
+import {ABILITY_DEFINITIONS,getAbilityDefinition,getClassDefinition,getClassAbilities,rollHunterDamage,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=64604';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=64604';
 import {attachAbilityDrag} from './ability-drag-drop.js?v=1';
 import {attachBagDiscardDrag} from './bag-discard-drag.js?v=1';
@@ -986,6 +987,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
  }
  const hotbar=$('actionsBar'),modal=$('modal'),toast=$('toast'),spellbook=$('spellbookPopover');
+ let spellbookTab='class';
  const feedbackLayer=$('combatFeedback');
  if(!feedbackLayer)throw Error('Отсутствует слой чисел урона');
  const combatFeedback=createSphereCombatFeedback({THREE,document,camera,layer:feedbackLayer});
@@ -2173,7 +2175,7 @@ function resetCreatureImpact(mob){
   $('panel').classList.toggle('settings-modal',kind==='settings');
   $('panel').classList.toggle('game-menu-modal',kind==='menu');
   title.textContent=({bag:'Рюкзак',character:'Персонаж',mounts:'Коллекция маунтов',quests:'Журнал заданий',
-   merchant:'Торговец',loot:'Обыск тела',menu:'Меню',settings:'Настройки',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',expedition:'Следопыт Дальний Ветер',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
+   merchant:'Торговец',loot:'Добыча',menu:'Меню',settings:'Настройки',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',expedition:'Следопыт Дальний Ветер',party:'Группа и чат',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
   body.replaceChildren();
   const line=(label,caption,actions=[])=>{
    const row=document.createElement('div');row.className='rpgRow';
@@ -2442,10 +2444,11 @@ function resetCreatureImpact(mob){
     const def=ITEM_CATALOG[item.id],rarity=itemRarity(def?.rarity);
     const button=document.createElement('button');button.type='button';button.className='loot-item';
     button.dataset.rarity=rarity;
+    button.dataset.money=String(isMoney);
+    button.style.setProperty('--item-quality-color',QUALITY_VISUALS[rarity]?.color||'#bda67b');
     button.disabled=!!pendingLootTake;
     button.setAttribute('aria-label',isMoney?'Забрать '+item.qty+' монет':'Взять '+(def?.name||item.id)+', '+item.qty+' шт.');
-    const icon=document.createElement('span');icon.className='loot-item-icon';
-    icon.textContent=isMoney?'🪙':def?.icon||'◆';icon.setAttribute('aria-hidden','true');
+    const icon=createItemIcon(document,item.id,def,'loot-item-icon');
     const copy=document.createElement('span');copy.className='loot-item-copy';
     const name=document.createElement('span');name.className='loot-item-name';
     name.textContent=isMoney?'Монеты':def?.name||item.id;
@@ -2453,11 +2456,11 @@ function resetCreatureImpact(mob){
     const sub=document.createElement('small');sub.className='loot-item-stats';
     const stats=[def?.armor?'Броня '+def.armor:null,def?.strength?'Сила +'+def.strength:null,
      def?.stamina?'Выносливость +'+def.stamina:null].filter(Boolean).join(' · ');
-    sub.textContent=isMoney?'Зачисляются в кошелёк при получении':stats||(def?.slot?LABEL[def.slot]+' · '+(def.quality||'Снаряжение'):
+    sub.textContent=isMoney?'В кошелёк персонажа':stats||(def?.slot?LABEL[def.slot]+' · '+(def.quality||'Снаряжение'):
      def?.description||'Предмет для продажи');
     copy.append(name,sub);
     const count=document.createElement('span');count.className='loot-item-count';
-    count.textContent=isMoney?'+'+item.qty:item.qty>1?'×'+item.qty:'›';
+    count.textContent=isMoney?'+'+item.qty:item.qty>1?'×'+item.qty:'';
     button.append(icon,copy,count);
     button.addEventListener('click',()=>takeLootFromCorpse(corpse,index));
     list.append(button);
@@ -2510,7 +2513,10 @@ function resetCreatureImpact(mob){
     // inspected item selected, and preserve scroll position across redraws.
     const bagScroll=previousBagScroll;
     const summary=document.createElement('div');summary.className='inventory-summary';
-    summary.textContent='Ячейки '+state.inventory.length+' / 12 · Монеты '+pretty(state.gold)+' · Настои '+itemCount('healingPotion');
+    const contents=document.createElement('span');contents.textContent='Рюкзак путника';
+    const free=document.createElement('span');free.className='wow-bag-free';
+    free.textContent='Свободно: '+Math.max(0,12-state.inventory.length)+' / 12';
+    summary.append(contents,free);
     const grid=document.createElement('div');grid.className='inventory-grid';
     const detail=document.createElement('div');detail.className='inventory-detail';
     detail.textContent='Нажми на предмет, чтобы узнать подробности.';
@@ -2525,7 +2531,8 @@ function resetCreatureImpact(mob){
        cell.style.setProperty('--item-quality-color',QUALITY_VISUALS[itemRarity(def.rarity)].color);}
       cell.setAttribute('aria-label',item?(def?.name||'Лечебный настой'):'Пустая ячейка '+(i+1));
       if(item){
-        const icon=document.createElement('span');icon.className='slot-icon';icon.textContent=def?.icon||'🧪';if(item.id===BATTLEFURY_ITEM_ID)icon.classList.add('battlefury-icon');
+        const icon=createItemIcon(document,item.id,def,'slot-icon');
+        if(item.id===BATTLEFURY_ITEM_ID){icon.classList.add('battlefury-icon');icon.innerHTML='';}
         const qty=document.createElement('span');qty.className='slot-count';qty.textContent=item.qty>1?item.qty:'';
         cell.append(icon,qty);
         attachBagDiscardDrag(cell,{document,panel:$('panel'),
@@ -2607,7 +2614,18 @@ function resetCreatureImpact(mob){
       }else{const dot=document.createElement('span');dot.className='slot-empty-mark';dot.textContent='·';cell.append(dot);}
       grid.append(cell);
     }
-    body.append(summary,grid,dropHelp,detail);
+    const footer=document.createElement('footer');footer.className='wow-bag-footer';
+    const currentBag=document.createElement('div');currentBag.className='wow-bag-current';
+    const bagIcon=document.createElement('span');bagIcon.className='wow-item-icon';
+    bagIcon.innerHTML=backpackArtwork;bagIcon.setAttribute('aria-hidden','true');
+    const bagLabel=document.createElement('span');
+    const bagName=document.createElement('strong');bagName.textContent='Рюкзак';
+    const capacity=document.createElement('small');capacity.textContent='12 ячеек';
+    bagLabel.append(bagName,capacity);currentBag.append(bagIcon,bagLabel);
+    const money=document.createElement('span');money.className='wow-money';money.textContent=pretty(state.gold);
+    money.setAttribute('aria-label','Монеты: '+pretty(state.gold));money.title='Монеты';
+    footer.append(currentBag,money);
+    body.append(summary,grid,footer,detail,dropHelp);
     const selected=state.inventory[selectedBagSlot];
     if(selected&&selected.id===selectedBagItemId)
      grid.children[selectedBagSlot]?.click();
@@ -2792,9 +2810,9 @@ function resetCreatureImpact(mob){
   const rect=hotbar.getBoundingClientRect();
   const vw=document.documentElement.clientWidth||globalThis.window?.innerWidth||844;
   const vh=document.documentElement.clientHeight||globalThis.window?.innerHeight||390;
-  const width=Math.min(460,Math.max(220,vw-16));
+  const width=Math.min(590,Math.max(220,vw-16));
   const left=Math.max(8,Math.min(vw-width-8,rect.left+(rect.width-width)/2));
-  const height=Math.max(104,Math.min(360,rect.top-12));
+  const height=Math.max(104,Math.min(440,rect.top-12));
   spellbook.style.width=width+'px';
   spellbook.style.left=left+'px';
   spellbook.style.bottom=Math.max(0,vh-rect.top+8)+'px';
@@ -2824,20 +2842,57 @@ function resetCreatureImpact(mob){
  function renderSpellbook(){
   const list=$('spellbookAbilities');list.replaceChildren();
   const abilities=availableHotbarActions(classId,state.level);
-  for(const info of [...abilities.abilities,...abilities.items]){
+  const tabs=$('spellbookTabs');tabs.replaceChildren();
+  for(const [id,label] of [['class',getClassDefinition(classId).name],['general','Общие']]){
+   const tab=document.createElement('button');tab.type='button';tab.className='wow-tab';
+   tab.textContent=label;tab.dataset.spellbookTab=id;tab.id='spellbook-tab-'+id;tab.setAttribute('role','tab');
+   tab.tabIndex=spellbookTab===id?0:-1;
+   tab.setAttribute('aria-selected',String(spellbookTab===id));tab.setAttribute('aria-controls','spellbookAbilities');
+   tab.addEventListener('click',()=>{spellbookTab=id;renderSpellbook();
+    [...tabs.children].find(node=>node.dataset.spellbookTab===id)?.focus?.();});
+   tab.addEventListener('keydown',event=>{
+    if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    spellbookTab=event.key==='Home'?'class':event.key==='End'?'general':id==='class'?'general':'class';
+    renderSpellbook();[...tabs.children].find(node=>node.dataset.spellbookTab===spellbookTab)?.focus?.();
+   });
+   tabs.append(tab);
+  }
+  const heading=$('spellbookPageHeading');heading.replaceChildren();
+  const sectionName=document.createElement('span');
+  sectionName.textContent=spellbookTab==='general'?'Общие навыки':getClassDefinition(classId).name;
+  const pageNumber=document.createElement('small');
+  pageNumber.textContent='Уровень '+state.level+' · '+(spellbookTab==='general'?'2 / 2':'1 / 2');
+  heading.append(sectionName,pageNumber);
+  list.setAttribute('aria-label',sectionName.textContent);
+  list.setAttribute('aria-labelledby','spellbook-tab-'+spellbookTab);
+  const future=Object.values(ABILITY_DEFINITIONS).filter(def=>def.classId===classId&&def.level>state.level)
+   .map(def=>({...def,kind:'ability',locked:true}));
+  const entries=spellbookTab==='general'?abilities.items:[...abilities.abilities,...future];
+  for(const info of entries){
+   const definition=getAbilityDefinition(info.id);
    const tile=document.createElement('button');tile.type='button';
-   tile.className='ngw-spell-drag-entry';tile.dataset.abilityId=info.id;
-   tile.setAttribute('aria-label',info.name+'. Удерживайте и перетащите на ячейку 1–8');
+   tile.className='ngw-spell-drag-entry'+(info.locked?' is-locked':'');tile.dataset.abilityId=info.id;
+   tile.disabled=!!info.locked;
+   tile.setAttribute('aria-label',info.name+(info.locked?'. Требуется '+info.level+' уровень':'. Удерживайте и перетащите на ячейку 1–8. С клавиатуры: Alt и номер ячейки'));
+   tile.title=(info.description||definition?.description||'')+(info.locked?'\nТребуется '+info.level+' уровень':'');
    const icon=document.createElement('span');icon.className='ngw-spell-drag-icon';
    if(HOTBAR_ART[info.id])icon.innerHTML=HOTBAR_ART[info.id];
    else icon.textContent=ICON[info.id]||'✦';
    const content=document.createElement('span');content.className='ngw-spell-drag-content';
    const name=document.createElement('strong');name.textContent=info.name;
    const detail=document.createElement('small');detail.textContent=
-    info.kind==='item'?'Предмет':info.resourceCost?info.resourceCost+' '+(classId==='hunter'?'маны':'ярости'):'Без затрат';
-   content.append(name,detail);tile.append(icon,content);
+    info.kind==='item'?'Расходуемый предмет':info.resourceCost?info.resourceCost+' '+(classId==='hunter'?'маны':'ярости'):'Без затрат';
+   const status=document.createElement('span');status.className='wow-spell-status';
+   status.textContent=info.locked?'Уровень '+info.level:info.kind==='item'?'В рюкзаке: '+itemCount(info.id):'Изучено';
+   content.append(name,detail,status);tile.append(icon,content);
+   if(info.locked){list.append(tile);continue;}
    // A tap is informational only: no automatic assignment to a free slot.
    tile.addEventListener('click',()=>msg('Удерживай способность и перетащи на ячейку 1–8'));
+   tile.addEventListener('keydown',event=>{
+    if(!event.altKey||event.ctrlKey||event.metaKey||!(/^[1-8]$/).test(event.key))return;
+    event.preventDefault();setHotbarEntry(Number(event.key)-1,{kind:info.kind,id:info.id});
+   });
    attachAbilityDrag(tile,{document,hotbar,entry:info,
     onDrop:(slot,value)=>setHotbarEntry(slot,{kind:value.kind,id:value.id})});
    list.append(tile);
