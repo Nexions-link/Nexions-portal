@@ -47,7 +47,8 @@
 <link rel="stylesheet" href="./xp-feedback.css?v=1">
 <link rel="stylesheet" href="./level-up-feedback.css?v=2">
 <link rel="stylesheet" href="./quest-tracking.css?v=4">
-<link rel="stylesheet" href="./mount-controls.css?v=5">
+<link rel="stylesheet" href="./mount-controls.css?v=64613">
+<link rel="stylesheet" href="./cast-bar.css?v=64613">
 <link rel="stylesheet" href="./mount-collection.css?v=1">
 <style id="ngw-connection-guard">
 #connectionBanner[hidden]{display:none!important}
@@ -531,6 +532,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <link rel="stylesheet" href="./wow-ui.css?v=64610">
 <link rel="stylesheet" href="./item-tooltip.css?v=64612">
 <link rel="stylesheet" href="./party-interface.css?v=64611">
+<link rel="stylesheet" href="./quest-journal.css?v=64613">
 <link rel="stylesheet" href="./player-trade.css?v=64612">
 </head>
 <body>
@@ -611,7 +613,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.46.12" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.46.13" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -635,18 +637,20 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </aside>
 <div id="stick" aria-label="Джойстик: вверх и вниз — движение вперёд и назад, влево и вправо — непрерывный поворот"><div id="nub"></div></div>
 <button id="interact" hidden>Поговорить <kbd>E</kbd></button>
-<div id="gatherCast" role="progressbar" aria-label="Сбор ресурса" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+<div id="gatherCast" class="wow-cast-bar" role="progressbar" aria-label="Сбор ресурса" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+ <span id="gatherCastIcon" class="wow-cast-icon" aria-hidden="true"></span>
  <div class="gather-cast-header"><span id="gatherCastLabel">Сбор...</span><strong id="gatherCastTime">1,5 с</strong></div>
- <div class="gather-cast-track"><div id="gatherCastFill"></div></div>
+ <div class="gather-cast-track"><div id="gatherCastFill" class="wow-cast-fill"></div></div>
 </div>
 <div id="hotbarUtilities">
  <button type="button" class="quick-tool" id="targetNext" aria-label="Выбрать цель. Для перемещения удерживайте кнопку и перетащите" title="Нажатие — выбрать цель · Удержание — переместить"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="15" fill="none" stroke="#e9c479" stroke-width="3"/><circle cx="24" cy="24" r="6" fill="none" stroke="#f5e3ad" stroke-width="3"/><path d="M24 1V13M24 35V47M1 24H13M35 24H47" stroke="#dcb66f" stroke-width="2.8"/></svg><span>Цель</span></button>
  <button type="button" id="spellbookButton" class="quick-tool" aria-label="Открыть книгу заклинаний (P). Для перемещения удерживайте и перетащите" title="Нажатие — книга заклинаний · Удержание — переместить (P)"><span class="quick-tool-emoji" aria-hidden="true">📖</span></button>
  <button type="button" id="mountButton" class="quick-tool" aria-label="Призвать ездовое животное" aria-pressed="false" title="Ездовое животное (M) · Удержание — переместить" hidden><span class="quick-tool-emoji" aria-hidden="true">🐺</span><span id="mountButtonLabel">Маунт</span></button>
 </div>
-<div id="mountCast" role="progressbar" aria-label="Призыв ездового животного" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
- <div class="mount-cast-head"><span>Призыв лесного волка</span><strong id="mountCastTime">2,0 с</strong></div>
- <div class="mount-cast-track"><div id="mountCastFill"></div></div>
+<div id="mountCast" class="wow-cast-bar" role="progressbar" aria-label="Призыв ездового животного" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+ <span id="mountCastIcon" class="wow-cast-icon" aria-hidden="true"></span>
+ <div class="mount-cast-head"><span id="mountCastLabel">Призыв лесного волка</span><strong id="mountCastTime">2,0 с</strong></div>
+ <div class="mount-cast-track"><div id="mountCastFill" class="wow-cast-fill"></div></div>
 </div>
 <section id="spellbookPopover" class="ngw-spellbook-popover" aria-label="Книга способностей" hidden>
  <header class="ngw-spellbook-header">
@@ -737,7 +741,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=64612').catch(error=>{
+  import('./planet.js?v=64613').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

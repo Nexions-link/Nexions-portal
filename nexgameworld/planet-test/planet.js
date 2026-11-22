@@ -31,11 +31,11 @@ import {createForestLightPools,forestCanopyShadeAt,forestLightResponse} from './
 import {installTouchButtons,installSurfaceZoomGuard,createPointerJoystick} from './touch-input.js?v=2';
 import {installDraggableHudButton,SPELLBOOK_POSITION_KEY,MOUNT_POSITION_KEY} from './target-button-drag.js?v=3';
 import {createKeyboardMovement,isEditableTarget} from './keyboard-movement.js?v=1';
-import {createOfflineRpg} from './offline-rpg.js?v=64612';
+import {createOfflineRpg} from './offline-rpg.js?v=64613';
 import {createSphericalPresence} from './sphere-online.js?v=64612';
 import {createConnectionIndicator} from './connection-indicator.js?v=1';
 import {syncForestWolfMount} from './mount-visual.js?v=64609';
-import {createMountControls} from './mount-controls.js?v=3';
+import {createMountControls} from './mount-controls.js?v=64613';
 import {getAccountLaunch,fetchAuthenticatedProfile,AUTH_WORLD_URL} from './account-session.js?v=2';
 import {animateSphericalTauren} from './tauren-animation.js?v=64609';
 import {advanceStridePhase,movementStrength,turnStrength} from './locomotion.js?v=1';

@@ -1,0 +1,126 @@
+/* Original classic quest journal: dark metal frame and two parchment leaves. */
+#modal[data-kind="quests"]{background:#05070665;padding:14px max(10px,env(safe-area-inset-right)) 14px max(10px,env(safe-area-inset-left))}
+#modal[data-kind="quests"] #panel{
+ box-sizing:border-box;display:flex;flex-direction:column;width:min(850px,100%);height:min(610px,88dvh);
+ max-width:none;max-height:88dvh;overflow:hidden;padding:0;border:4px ridge #b99a5d;border-radius:5px;
+ color:#edd8a7;background:repeating-linear-gradient(125deg,#ffffff03 0 1px,transparent 1px 5px),linear-gradient(#2a2b27,#121718);
+ box-shadow:0 18px 50px #000b,inset 0 0 0 1px #000,inset 0 0 22px #0009;
+}
+#modal[data-kind="quests"] #panel::before{
+ content:'!';position:absolute;z-index:2;top:5px;left:10px;display:grid;place-items:center;
+ width:43px;height:43px;box-sizing:border-box;border:4px ridge #b99a5d;border-radius:50%;
+ background:radial-gradient(ellipse at 30% 25%,#69543a,#262f2d 62%,#131c1d);box-shadow:0 2px 5px #000b;
+ color:#f5d24d;font:700 34px/1 Georgia,serif;text-shadow:1px 2px 2px #000;
+}
+#modal[data-kind="quests"] #panel>.eyebrow,#modal[data-kind="quests"] .ornament,#modal[data-kind="quests"] .panel-corner{display:none}
+#modal[data-kind="quests"] #mtitle{
+ flex:none;box-sizing:border-box;min-height:48px;margin:0!important;padding:11px 49px 9px 65px!important;
+ background:linear-gradient(#773128,#4b201d);border-bottom:2px ridge #b89a60;
+ color:#f2dfaa;font:700 20px/1.25 Georgia,serif;text-shadow:0 2px 2px #1a0b08;
+}
+#modal[data-kind="quests"] #modalClose{
+ position:absolute;top:8px;right:8px;min-width:28px;min-height:28px;width:28px;height:28px;margin:0;padding:0;
+ border:2px ridge #c6ad72;border-radius:3px;background:linear-gradient(#973b29,#57201c);color:#ffe4a6;font:700 22px/1 Georgia,serif;
+}
+#modal[data-kind="quests"] #mbody{display:flex;flex:1;min-height:0;max-height:none!important;overflow:hidden!important;margin:0;padding:0}
+.ngw-journal{display:flex;flex:1;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+#mbody .ngw-journal-tabs{display:flex;flex:none;flex-wrap:nowrap;gap:4px;margin:0;padding:8px 10px 0;min-width:0;background:linear-gradient(#262b29,#171d1c)}
+#mbody .ngw-journal-tabs button.choice{
+ flex:0 1 135px;box-sizing:border-box;min-width:0;min-height:32px;padding:5px 8px;
+ border:2px ridge #92794c;border-bottom:0;border-radius:5px 5px 0 0;
+ background:linear-gradient(#494333,#292e27);color:#bfb18e;font:700 12px/1.3 Georgia,serif;text-align:center;
+}
+#mbody .ngw-journal-tabs button.is-selected{background:linear-gradient(#dfc99c,#d7bf90);color:#4b351d;border-color:#c2a970;box-shadow:inset 0 2px 0 #fff0c777}
+.ngw-journal-columns{display:grid;grid-template-columns:minmax(205px,38%) minmax(0,1fr);flex:1;min-height:0;margin:0 8px;border:2px ridge #987744;background:#d9c08e}
+.ngw-journal-sidebar,.ngw-journal-detail{
+ min-width:0;min-height:0;color:#3c2c1c;background:radial-gradient(ellipse at 20% 12%,#fff0c26b,transparent 70%),repeating-linear-gradient(47deg,#7b563009 0 1px,transparent 1px 5px),linear-gradient(90deg,#c5a773,#dfc99a 7%,#dcc394 93%,#c3a16b);
+}
+.ngw-journal-sidebar{display:flex;flex-direction:column;border-right:3px ridge #987744;box-shadow:inset -4px 0 10px #5c3c2444}
+.ngw-journal-count{flex:none;padding:8px 10px 7px;font:700 12px/1.3 Georgia,serif;border-bottom:1px solid #94704366;color:#71512e;text-align:right}
+.ngw-journal-list{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#957543 #c9ae7b;padding:5px 4px 10px}
+#mbody .ngw-journal-group-title{
+ position:relative;display:block;width:100%;min-height:30px;padding:6px 5px 6px 20px;border:0;border-radius:0;
+ background:linear-gradient(90deg,#9c793b55,#9c793b10);color:#654218;text-align:left;font:700 13px/1.3 Georgia,serif;
+}
+.ngw-journal-group-title::before{content:'−';position:absolute;left:4px;top:7px;width:11px;height:11px;border:1px solid #72542e;background:#ecd7a3;font:700 11px/9px serif;text-align:center;color:#624521}
+.ngw-journal-group-title[aria-expanded="false"]::before{content:'+'}
+.ngw-journal-group-rows[hidden]{display:none!important}
+.ngw-journal-row{display:flex;align-items:stretch;gap:1px;min-width:0;margin:2px 0}
+#mbody button.ngw-journal-select{
+ display:flex;align-items:flex-start;gap:4px;flex:1;min-width:0;min-height:35px;padding:7px 3px;border:1px solid transparent;border-radius:0;
+ background:transparent;color:#49321c;font:700 12px/1.35 Georgia,serif;text-align:left;box-shadow:none;
+}
+#mbody button.ngw-journal-select:hover{background:#f9e9bb60}
+#mbody button.ngw-journal-select.is-selected{background:linear-gradient(90deg,#8d6521aa,#b18a3e88);border-color:#8c63275c;color:#fff1bd;text-shadow:0 1px 1px #583c1d}
+#mbody button.ngw-journal-select.is-locked{color:#887154}
+.ngw-journal-row-title{flex:1;min-width:0;overflow-wrap:anywhere}
+.ngw-journal-glyph{display:block;flex:none;width:13px;color:#927015;font:bold 16px/1 Georgia,serif;text-align:center;text-shadow:0 1px #fff0c8}
+.ngw-journal-select.is-complete .ngw-journal-glyph{color:#466829}
+.ngw-journal-select.is-selected .ngw-journal-glyph{color:#ffe990;text-shadow:0 1px #5e3c1c}
+.ngw-journal-level{flex:none;font:11px/1.5 Georgia,serif;color:inherit;opacity:.8}
+#mbody button.ngw-journal-row-track{
+ flex:none;align-self:center;position:relative;width:24px;height:27px;min-width:24px;min-height:27px;padding:0;
+ border:0;border-radius:0;color:#654c26;background:transparent;font:0/0 serif;box-shadow:none;
+}
+.ngw-journal-row-track::before{content:'';position:absolute;inset:7px 5px;border:1px solid #70562f;background:#af935e66;box-shadow:inset 0 1px 2px #38291666}
+.ngw-journal-row-track.is-tracked::after{content:'✓';position:absolute;inset:1px 0 0;color:#3c642c;font:700 21px/25px Georgia,serif;text-shadow:0 1px #ead4a2;text-align:center}
+.ngw-journal-row-track:hover{filter:brightness(1.3)}
+.ngw-journal-row-track[hidden]{display:none!important}
+.ngw-journal-detail{position:relative;overflow:auto;overscroll-behavior:contain;padding:18px 22px 22px;scrollbar-width:thin;scrollbar-color:#957543 #c9ae7b;box-shadow:inset 5px 0 15px #6748252b}
+.ngw-journal-category{margin-bottom:6px;color:#84633b;font:10px/1.3 Georgia,serif;letter-spacing:.05em;text-transform:uppercase}
+#mbody .ngw-journal-title{margin:0 0 6px!important;padding:0;color:#4b3018;font:700 24px/1.2 Georgia,serif;text-shadow:0 1px #f7e2b466;overflow-wrap:anywhere}
+.ngw-journal-status{margin:0 0 16px;padding:0 0 11px;border-bottom:1px solid #98744966;color:#80633e;font:italic 11px/1.4 Georgia,serif}
+#mbody .ngw-journal-detail h4{margin:17px 0 7px;font:700 17px/1.2 Georgia,serif;color:#54391f}
+#mbody .ngw-journal-detail p{margin:0 0 9px;color:#493620;font:13px/1.55 Georgia,serif;overflow-wrap:anywhere}
+#mbody .ngw-journal-detail .ngw-journal-progress{font:700 12px/1.5 Georgia,serif;color:#694b27}
+#mbody .ngw-journal-detail .is-ready{color:#3f652d}
+#mbody .ngw-journal-detail .ngw-journal-giver{margin-top:13px;color:#7a5d37;font:italic 12px/1.45 Georgia,serif}
+.ngw-journal-rewards{display:flex;flex-wrap:wrap;gap:8px 13px;padding:5px 0 0;align-items:center}
+.ngw-journal-reward{color:#574020;font:700 12px/1.4 Georgia,serif}
+.ngw-journal-rewards .wow-money{padding:5px 7px;border:1px solid #997b4f60;background:#a3864b22;border-radius:2px;color:#574020;font-size:12px;flex-direction:row-reverse;gap:5px}
+.ngw-journal-rewards .wow-money::after{width:13px;height:13px;box-shadow:0 1px 2px #5e421c66}
+.ngw-journal-no-reward{color:#866b47;font:italic 12px/1.4 Georgia,serif}
+.ngw-journal-footer{display:flex;align-items:center;gap:10px;flex:none;min-height:48px;padding:8px 10px;background:linear-gradient(#272d29,#161e1d);border-top:1px solid #ab8e5377}
+#mbody .ngw-journal-footer .wow-button{flex:none;min-height:31px;padding:5px 12px;font-size:12px}
+.ngw-journal-help{flex:1;color:#bdb08e;font:10px/1.35 Georgia,serif;text-align:center}
+#mbody .ngw-journal-empty{padding:13px 8px;color:#7c6039;font:italic 12px/1.5 Georgia,serif}
+#mbody .ngw-journal button:focus-visible,.ngw-journal-detail:focus-visible{outline:2px solid #ffedb3;outline-offset:-3px}
+#mbody .ngw-journal-tabs button:focus-visible,.ngw-journal-detail:focus-visible{outline-color:#9a6828}
+.ngw-journal-track[hidden]{display:none!important}
+@media(max-width:600px){
+ #modal[data-kind="quests"]{padding:8px max(6px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
+ #modal[data-kind="quests"] #panel{height:min(720px,91dvh);max-height:91dvh}
+ #modal[data-kind="quests"] #mtitle{font-size:18px;padding-left:59px!important}
+ .ngw-journal-columns{grid-template-columns:1fr;grid-template-rows:minmax(100px,31%) minmax(0,1fr);margin:0 5px}
+ .ngw-journal-sidebar{border-right:0;border-bottom:3px ridge #987744;box-shadow:inset 0 -3px 8px #5c3c2422}
+ .ngw-journal-count{padding:4px 8px;font-size:10px}
+ .ngw-journal-list{padding:3px 4px 6px}
+ #mbody .ngw-journal-group-title{min-height:24px;padding-top:4px;padding-bottom:4px;font-size:12px}
+ .ngw-journal-group-title::before{top:5px}
+ #mbody button.ngw-journal-select{min-height:31px;padding:6px 4px;font-size:12px}
+ .ngw-journal-detail{padding:12px 15px 18px}
+ #mbody .ngw-journal-title{font-size:22px}
+ #mbody .ngw-journal-detail h4{margin-top:14px;font-size:16px}
+ #mbody .ngw-journal-detail p{font-size:13px;line-height:1.5}
+ .ngw-journal-footer{flex-wrap:wrap;gap:5px;padding:6px 8px;min-height:0}
+ .ngw-journal-help{order:3;flex:1 0 100%;font-size:9px;text-align:left}
+ .ngw-journal-close{margin-left:auto}
+ #mbody .ngw-journal-tabs{padding:6px 6px 0;gap:3px}
+ #mbody .ngw-journal-tabs button.choice{flex:1;min-height:31px;padding:5px 3px;font-size:11px}
+}
+@media(max-height:500px) and (min-width:601px){
+ #modal[data-kind="quests"]{padding-top:5px;padding-bottom:5px}
+ #modal[data-kind="quests"] #panel{height:95dvh;max-height:95dvh}
+ #modal[data-kind="quests"] #mtitle{min-height:38px;padding-top:7px!important;padding-bottom:6px!important;font-size:18px}
+ #modal[data-kind="quests"] #panel::before{top:2px;left:12px;width:37px;height:37px;font-size:29px}
+ #modal[data-kind="quests"] #modalClose{top:4px}
+ #mbody .ngw-journal-tabs{padding-top:4px}
+ #mbody .ngw-journal-tabs button.choice{min-height:27px;padding-top:3px;padding-bottom:3px}
+ .ngw-journal-columns{grid-template-columns:minmax(210px,38%) minmax(0,1fr)}
+ .ngw-journal-detail{padding:10px 18px 16px}
+ #mbody .ngw-journal-title{font-size:21px}
+ .ngw-journal-status{margin-bottom:10px;padding-bottom:7px}
+ .ngw-journal-footer{min-height:38px;padding:5px 8px}
+ .ngw-journal-help{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){#modal[data-kind="quests"] #panel{animation:none}}

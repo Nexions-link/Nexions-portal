@@ -61,10 +61,15 @@ test('dagger pickup shows herbalist cast bar, kneels for 1.5 seconds, then relea
   clock.advance(750);
   h.rpg.update(.016);
   assert.equal(h.get('gatherCast').attributes['aria-valuenow'],'100');
+  assert.equal(h.get('gatherCastTime').textContent,'Подтверждение…');
   assert.equal(sent.filter(x=>x.kind==='banditWeaponFinish').length,0,'never sends before the secure timer');
   clock.runTimer();
   assert.deepEqual(sent.at(-1),{kind:'banditWeaponFinish',index:0});
   assert.equal(h.rpg.getAnimationState().gather,true,'hold pose until server confirms pickup');
+  h.rpg.update(.016);
+  assert.equal(h.get('gatherCast').hidden,false,'100% is not a confirmed pickup');
+  assert.equal(h.get('gatherCastTime').textContent,'Подтверждение…','HUD refresh keeps the waiting state');
+  assert.equal(h.rpg.state.inventory.some(item=>item?.id==='banditDagger'),false,'waiting never predicts an inventory grant');
   h.rpg.onEconomyResult({ok:true,kind:'banditWeaponFinish'});
   assert.equal(h.get('gatherCast').hidden,true);
   assert.equal(h.rpg.getAnimationState().gather,false);
@@ -102,6 +107,9 @@ test('online herbalist collecting uses the same visible casting bar and kneeling
   assert.equal(h.rpg.getAnimationState().gather,true);
   clock.runTimer();
   assert.equal(sent.at(-1).kind,'gatherFinish');
+  h.rpg.update(.016);
+  assert.equal(h.get('gatherCastTime').textContent,'Подтверждение…');
+  assert.equal(h.rpg.state.inventory.some(item=>item?.id==='meadowFlower'),false);
   h.rpg.onEconomyResult({ok:true,kind:'gatherFinish'});
   assert.equal(h.get('gatherCast').hidden,true);
   assert.equal(h.rpg.getAnimationState().gather,false);

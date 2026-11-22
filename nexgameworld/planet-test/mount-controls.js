@@ -1,5 +1,6 @@
 // NexGameWorld M1.3 — mount HUD. No client-side grant, timer-based mounting or speed changes.
 // All state transitions are confirmed by the authoritative spherical world.
+import {CAST_HOTBAR_GAP,castBarBottom,paintCastBar,hideCastBar} from './cast-bar.js?v=64613';
 export const MOUNT_ERROR_MESSAGES=Object.freeze({
  level:'Ездовые животные доступны с 10-го уровня.',
  not_owned:'Сначала получи ездового волка в задании 10-го уровня.',
@@ -11,12 +12,8 @@ export const MOUNT_ERROR_MESSAGES=Object.freeze({
  dead:'Нельзя призвать маунта, пока персонаж мёртв.'
 });
 // Exact 20 CSS pixels between the cast frame's lower border and the hotbar's top.
-export const MOUNT_CAST_HOTBAR_GAP=20;
-export function mountCastBottom(viewportHeight,hotbarTop){
- if(!Number.isFinite(viewportHeight)||viewportHeight<=0||
-    !Number.isFinite(hotbarTop)||hotbarTop<0||hotbarTop>viewportHeight)return null;
- return viewportHeight-hotbarTop+MOUNT_CAST_HOTBAR_GAP;
-}
+export const MOUNT_CAST_HOTBAR_GAP=CAST_HOTBAR_GAP;
+export const mountCastBottom=castBarBottom;
 export const mountCastProgress=(now,startedAt,durationMs)=>{
  if(!Number.isFinite(now)||!Number.isFinite(startedAt)||!Number.isFinite(durationMs)||durationMs<=0)return 0;
  return Math.max(0,Math.min(1,(now-startedAt)/durationMs));
@@ -56,8 +53,13 @@ export function createMountControls({document,clock=()=>performance.now(),onSumm
   button.title=title+' · Удержание — переместить';
   button.setAttribute('aria-label',title+'. Для перемещения удерживайте и перетащите');
   button.setAttribute('aria-pressed',String(riding));
-  cast.hidden=!casting;
-  if(casting)positionCast();
+  if(casting){
+   const p=mountCastProgress(clock(),started,duration);
+   paintCastBar(document,'mountCast',{progress:p*100,label:'Призыв лесного волка',
+    timeText:p>=1?'Подтверждение…':((1-p)*duration/1000).toFixed(1)+' с',
+    waiting:p>=1,icon:'forestWolf'});
+   positionCast();
+  }else hideCastBar(document,'mountCast');
  };
  const setLevel=value=>{if(Number.isInteger(value)&&value>=1){level=value;render()}};
  const setConnected=value=>{
@@ -110,9 +112,8 @@ export function createMountControls({document,clock=()=>performance.now(),onSumm
  const tick=()=>{
   if(state!=='casting'||cast.hidden)return;
   const p=mountCastProgress(clock(),started,duration);
-  fill.style.width=(p*100).toFixed(1)+'%';
-  cast.setAttribute('aria-valuenow',String(Math.round(p*100)));
-  time.textContent=p>=1?'Подтверждение…':((1-p)*duration/1000).toFixed(1)+' с';
+  paintCastBar(document,'mountCast',{progress:p*100,
+   timeText:p>=1?'Подтверждение…':((1-p)*duration/1000).toFixed(1)+' с',waiting:p>=1});
  };
  button.addEventListener('click',activate);
  view?.addEventListener?.('resize',positionCast);

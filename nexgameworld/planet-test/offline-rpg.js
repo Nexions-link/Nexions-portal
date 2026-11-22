@@ -10,6 +10,7 @@ import {renderCharacterSheet} from './character-sheet.js?v=64604';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
 import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=64609';
 import {createQuestTracking} from './quest-tracking-state.js?v=64609';
+import {createQuestJournal} from './quest-journal.js?v=64613';
 import {forestMoodAt} from './whispering-forest.js';
 import {createForestAmbience} from './forest-ambience.js?v=1';
 import {EXPEDITION_SCOUT,EXPEDITION_SITES,EXPEDITION_LEVEL,EXPEDITION_REWARD,readExpedition,expeditionJournal} from './expedition-quest.js?v=1';
@@ -43,7 +44,8 @@ import {DAGGER_TUNER_DEFAULTS} from '../dagger-tuner.js?v=0.3.7.0';
 import {SHIELD_TUNER_DEFAULTS} from '../shield-tuner.js?v=0.3.7.0';
 import {GATHER_QUESTS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST,createGatherWorld} from './gather-world.js?v=64609';
 import {BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED,BANDIT_WEAPON_RESPAWN_SECONDS,createBanditWeaponWorld} from './bandit-weapons.js?v=1';
-import {createCampActions} from './camp-actions.js?v=64609';
+import {createCampActions} from './camp-actions.js?v=64613';
+import {paintCastBar,hideCastBar} from './cast-bar.js?v=64613';
 import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1';
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
@@ -365,7 +367,11 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  const trackStorageKey='ngw-quest-tracking-v1:'+
   (authenticatedProfile?.characterId||authenticatedProfile?.id||authenticatedProfile?.nickname||'offline');
  const questTracking=createQuestTracking({state,storage:localStorage,key:trackStorageKey});
- let journalRenderSnapshot=null,questPanelSnapshot='';
+ let journalRenderSnapshot=null,questPanelSnapshot='',journalReturnFocus=null;
+ const questJournal=createQuestJournal({document,
+  isOpen:()=>!$('modal').hidden&&$('modal').dataset.kind==='quests',
+  onTab:tab=>{journalTab=tab;renderModal();},
+  onTrack:id=>{setTrackedQuest(id);draw(false);renderModal();},onClose:closeWindow});
  function setTrackedQuest(id){
   if(id)questTracking.toggle(id);
   else questTracking.select(null);
@@ -579,29 +585,29 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(serverGatherTimer!==null)clearTimeout(serverGatherTimer);
   serverGatherTimer=null;pendingServerGather=null;
   if(!camp.casting){
-   $('gatherCast').hidden=true;
-   $('gatherCastFill').style.width='0%';
-   $('gatherCast').setAttribute('aria-valuenow','0');
+   hideCastBar(document,'gatherCast');
   }
+ }
+ function paintServerGatherCast(job,progress,waiting=false){
+  const itemId=job.kind==='banditWeapon'?BANDIT_WEAPON_ITEM:GATHER_QUESTS[job.stage]?.item;
+  const remaining=Math.max(0,job.durationMs-(Date.now()-job.startedAt));
+  paintCastBar(document,'gatherCast',{
+   progress,waiting,icon:itemId,
+   label:'Сбор: '+(ITEM_CATALOG[itemId]?.name||'Растение'),
+   timeText:waiting?'Подтверждение…':(remaining/1000).toFixed(1).replace('.',',')+' с'
+  });
  }
  function startServerGatherCast(job,castMs){
   if(serverGatherTimer!==null)clearTimeout(serverGatherTimer);
   job.phase='casting';job.startedAt=Date.now();
   job.durationMs=Math.max(1500,Math.min(20000,Number(castMs)||1500));
-  $('gatherCast').hidden=false;
-  $('gatherCastLabel').textContent=job.kind==='banditWeapon'?
-   'Сбор: Кинжал разбойника':'Сбор: '+(ITEM_CATALOG[GATHER_QUESTS[job.stage]?.item]?.name||'Растение');
-  $('gatherCastTime').textContent=(job.durationMs/1000).toFixed(1).replace('.',',')+' с';
-  $('gatherCastFill').style.width='0%';
-  $('gatherCast').setAttribute('aria-valuenow','0');
+  paintServerGatherCast(job,0);
   serverGatherTimer=setTimeout(()=>{
    serverGatherTimer=null;
    if(pendingServerGather!==job)return;
    if(!isOnline()){stopServerGatherCast();return}
    job.phase='finishing';
-   $('gatherCastFill').style.width='100%';
-   $('gatherCastTime').textContent='0,0 с';
-   $('gatherCast').setAttribute('aria-valuenow','100');
+   paintServerGatherCast(job,100,true);
    const sent=job.kind==='banditWeapon'?
     sendAccountAction('banditWeaponFinish',{index:job.index}):
     sendAccountAction('gatherFinish',{stage:job.stage,index:job.index});
@@ -617,10 +623,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
   const elapsed=Math.max(0,Date.now()-job.startedAt);
   const percent=job.phase==='finishing'?100:Math.min(100,elapsed/job.durationMs*100);
-  $('gatherCast').hidden=false;
-  $('gatherCastFill').style.width=percent.toFixed(1)+'%';
-  $('gatherCastTime').textContent=(Math.max(0,job.durationMs-elapsed)/1000).toFixed(1).replace('.',',')+' с';
-  $('gatherCast').setAttribute('aria-valuenow',String(Math.round(percent)));
+  paintServerGatherCast(job,percent,job.phase==='finishing'||percent>=100);
  }
  let lastServerScoutRequest=0;
  function onEconomyResult(event){
@@ -1695,6 +1698,8 @@ function resetCreatureImpact(mob){
  const chestSheet=createChestSheet({items:ITEM_CATALOG,qualityColors:QUALITY_VISUALS,
   move:(...args)=>isOnline()?multiplayer.moveChest(...args):false,notify:msg});
  function openWindow(kind){
+  const openingJournal=kind==='quests'&&(modal.hidden||modal.dataset.kind!=='quests');
+  if(openingJournal)journalReturnFocus=document.activeElement;
   itemTooltip.hide();
   closeSpellbook();
   if(!modal.hidden&&modal.dataset.kind==='chest'&&kind!=='chest')closeWindow();
@@ -1717,8 +1722,10 @@ function resetCreatureImpact(mob){
    if(multiplayer.openChest(items)===false){closeWindow();msg('Нет связи с сервером');return;}
   }
   renderModal();
+  if(openingJournal)questJournal.focus();
  }
  function closeWindow(){
+  const closingJournal=!modal.hidden&&modal.dataset.kind==='quests';
   itemTooltip.hide();
   pendingLootTake=null;
   characterPreview.release();
@@ -1729,6 +1736,11 @@ function resetCreatureImpact(mob){
   }
   modal.hidden=true;pendingLoot=null;
   selectedBagSlot=-1;selectedBagItemId=null;bagRenderSnapshot=null;
+  if(closingJournal){
+   const target=journalReturnFocus&&journalReturnFocus!==document.body&&journalReturnFocus.isConnected!==false&&
+    (!journalReturnFocus.getClientRects||journalReturnFocus.getClientRects().length)?journalReturnFocus:$('journal');
+   target?.focus?.({preventScroll:true});journalReturnFocus=null;
+  }
  }
  let resetProgressView=null;
  function onResetProgress(fn){resetProgressView=typeof fn==='function'?fn:null;}
@@ -2148,13 +2160,12 @@ function resetCreatureImpact(mob){
    const snapshot=JSON.stringify([journalTab,questTracking.trackedIds,state.quest,state.kills,state.level,
     state.gatherStage,state.gatherAvailable,state.banditQuest,state.banditWeaponsQuest,
     state.banditChiefQuest,state.expedition,state.forestHunt,state.mountQuest,state.mounts,state.inventory]);
-   if(journalRenderSnapshot===snapshot&&body.querySelector('.planet-journal-tabs'))return;
+   if(journalRenderSnapshot===snapshot&&body.querySelector('.ngw-journal'))return;
    journalRenderSnapshot=snapshot;
   }
   // Save the scroll offset before clearing DOM. On iOS the old contents
   // may be removed by a server refresh while the player is comparing gear.
   const previousBagScroll=kind==='bag'?body.scrollTop:0;
-  const previousJournalScroll=kind==='quests'?body.scrollTop:0;
   const characterReuse=kind==='character'?{
    viewport:body.querySelector('.character-preview-viewport'),
    gesture:body.querySelector('.character-rotate')}:null;
@@ -2176,7 +2187,8 @@ function resetCreatureImpact(mob){
   $('panel').classList.toggle('game-menu-modal',kind==='menu');
   title.textContent=({bag:'Рюкзак',character:'Персонаж',mounts:'Коллекция маунтов',quests:'Журнал заданий',
    merchant:'Торговец',loot:'Добыча',menu:'Меню',settings:'Настройки',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',expedition:'Следопыт Дальний Ветер',party:'Группа',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
-  itemTooltip.hide();body.replaceChildren();
+  itemTooltip.hide();
+  if(kind!=='quests'||!body.querySelector('.ngw-journal'))body.replaceChildren();
   const line=(label,caption,actions=[])=>{
    const row=document.createElement('div');row.className='rpgRow';
    const name=document.createElement('div');name.innerHTML='<strong></strong><small></small>';
@@ -2695,42 +2707,31 @@ function resetCreatureImpact(mob){
     body.append(mountsButton);
     body.scrollTop=characterScroll;
   }else if(kind==='quests'){
-   const tabs=document.createElement('div');tabs.className='planet-journal-tabs';tabs.setAttribute('role','tablist');
-   const labels={current:'Текущие',available:'Доступные',completed:'Выполненные'};
-   for(const [tab,label] of Object.entries(labels)){
-    const button=document.createElement('button');button.type='button';button.className='choice'+(journalTab===tab?' is-selected':'');
-    button.setAttribute('role','tab');button.setAttribute('aria-selected',String(journalTab===tab));
-    button.textContent=label;button.addEventListener('click',()=>{journalTab=tab;renderModal();});tabs.append(button);
-   }
-   body.append(tabs);
-   if(journalTab!=='completed'){
-    const note=document.createElement('p');note.className='ngw-journal-help';
-    note.textContent='До трёх заданий отслеживаются одновременно. Новые добавляются автоматически; в журнале можно включить или отключить каждое. Мечи — противники, светлая область — сбор.';
-    body.append(note);
-   }
-   const entries=mentorJournalRows(state).map(item=>({...item,routeId:'mentor',npc:'Наставник Каменный Рог'}));
+   const entries=mentorJournalRows(state).map(item=>({...item,routeId:'mentor',region:'Начальные земли',npc:'Наставник Каменный Рог'}));
    if(authenticatedProfile){
     const ex=expeditionJournal(state.expedition,state.level);
     if(ex.status!=='locked')entries.push({...ex,id:'expedition',
       reward:EXPEDITION_REWARD.xp+' опыта · '+EXPEDITION_REWARD.gold+' монет',
+      region:'Шепчущий лес',level:EXPEDITION_LEVEL,description:'За холмами начинается Шепчущий лес. Следопыт Дальний Ветер ждёт помощи в разведке новых земель.',
       npc:ex.status==='available'?'Наставник Каменный Рог':'Следопыт Дальний Ветер'});
     const forestJournal=forestHuntJournal(state.forestHunt,state);
     if(forestJournal.status!=='locked')entries.push({...forestJournal,
       reward:FOREST_HUNT_REWARD.xp+' опыта · '+FOREST_HUNT_REWARD.gold+' монеты',
+      region:'Шепчущий лес',level:5,description:'Волки угрожают лесной стоянке. Помоги следопыту защитить лагерь и изучить следы стаи.',
       npc:'Следопыт Дальний Ветер'});
     const mountJournal=mountQuestJournal(state.mountQuest,state);
-    if(mountJournal.status!=='locked')entries.push({...mountJournal,npc:'Следопыт Дальний Ветер'});
+    if(mountJournal.status!=='locked')entries.push({...mountJournal,region:'Шепчущий лес',level:10,description:'Следопыт Дальний Ветер поможет заслужить доверие лесного волка. Изучи следы и вернись к нему.',npc:'Следопыт Дальний Ветер'});
     const q=state.banditQuest||{stage:0,kills:0};
     entries.push({id:'bandit-trail',
      status:q.stage===0?(state.level>=BANDIT_QUEST_MIN_LEVEL?'available':'locked'):q.stage===3?'completed':'current',
-     title:'1/3 · Разведка лагеря разбойников',objective:'Найти западный лагерь и победить 3 разбойников',
+     title:'1/3 · Разведка лагеря разбойников',region:'Пыльная тропа',level:BANDIT_QUEST_MIN_LEVEL,description:'Следопыт Медная Стрела просит разведать западный лагерь и ослабить разбойников.',objective:'Найти западный лагерь и победить 3 разбойников',
      progress:q.stage===3?'Сдано':q.stage===2?'Готово к сдаче':q.kills+' / '+BANDIT_QUEST_KILLS,
      reward:'85 опыта · 18 монет',npc:'Следопыт Медная Стрела'});
     if(q.stage===3){
      const weaponStage=weaponsStage(),collected=itemCount(BANDIT_WEAPON_ITEM);
      entries.push({id:'bandit-weapons',
       status:weaponStage===0?'available':weaponStage===2?'completed':'current',
-      title:'2/3 · Оружие разбойников',objective:'Собрать 3 кинжала с земли у лагеря',
+      title:'2/3 · Оружие разбойников',region:'Пыльная тропа',level:BANDIT_QUEST_MIN_LEVEL,description:'В лагере остались кинжалы разбойников. Собери оружие и доставь его следопыту Медной Стреле.',objective:'Собрать 3 кинжала с земли у лагеря',
       progress:weaponStage===2?'Сдано':weaponStage===0?'Доступно у следопыта':
        collected>=BANDIT_WEAPON_REQUIRED?'Готово к сдаче':collected+' / '+BANDIT_WEAPON_REQUIRED,
       reward:'90 опыта · 20 монет',npc:'Следопыт Медная Стрела'});
@@ -2738,7 +2739,7 @@ function resetCreatureImpact(mob){
       const chief=state.banditChiefQuest||{stage:0};
       entries.push({id:'bandit-chief',
        status:chief.stage===0?(state.level>=4?'available':'locked'):chief.stage===3?'completed':'current',
-       title:'3/3 · Главарь Пыльной тропы',objective:'Победить главаря у отдельной стоянки',
+       title:'3/3 · Главарь Пыльной тропы',region:'Пыльная тропа',level:4,description:'За разгромленным лагерем скрывается главарь разбойников. Отыщи его отдельную стоянку и положи конец набегам.',objective:'Победить главаря у отдельной стоянки',
        progress:chief.stage===3?'Сдано':chief.stage===2?'Готово к сдаче':chief.stage===1?'0 / 1':'Не принято',
        reward:'180 опыта · 35 монет',npc:'Следопыт Медная Стрела'});
      }
@@ -2749,36 +2750,22 @@ function resetCreatureImpact(mob){
     const status=stage>i?'completed':stage===i?(state.gatherAvailable?'available':'current'):i===1&&stage===0?'available':null;
     if(!status)continue;
     const count=status==='completed'?quest.count:state.inventory.filter(entry=>entry?.id===quest.item).reduce((sum,entry)=>sum+entry.qty,0);
-    entries.push({id:'gather-'+i,status,title:quest.title,
+    entries.push({id:'gather-'+i,status,title:quest.title,region:'Начальные земли',
+     description:quest.hint,
      objective:'Собрать '+quest.count+' шт.: '+(ITEM_CATALOG[quest.item]?.name||quest.item),
      progress:status==='completed'?'Сдано травнице':status==='available'?'Доступно у травницы':'Собрано '+count+' / '+quest.count,
      reward:quest.gold+' монет · '+quest.xp+' опыта',npc:'Травница Тихая Заря'});
    }
-   const visible=entries.filter(entry=>entry.status===journalTab);
-   let hasHint=false;
-   if(journalTab==='available'&&state.level<BANDIT_QUEST_MIN_LEVEL){
-    line('Разбойники Пыльной тропы · ур. 3','Откроется на 3-м уровне у Следопыта Медной Стрелы.');
-    hasHint=true;
+   for(const entry of entries){
+    const routeId=entry.routeId||String(entry.id);
+    entry.trackable=entry.status==='current'&&isAcceptedQuest(routeId,state)&&
+     !!questWaypoint(routeId,state,state.inventory,player());
+    entry.ready=entry.status==='current'&&!!questProgressSummary(routeId,state,state.inventory)?.complete;
+    if(entry.status==='locked')entry.progress=entry.id==='bandit-chief'?
+     'Для финального задания требуется 4-й уровень и сдача трёх кинжалов.':
+     'Откроется на '+entry.level+'-м уровне у '+entry.npc+'.';
    }
-   if(journalTab==='available'&&entries.some(entry=>entry.status==='locked'&&entry.id==='bandit-chief')){
-    line('Главарь Пыльной тропы · ур. 4','Для финального задания требуется 4-й уровень и сдача трёх кинжалов.');
-    hasHint=true;
-   }
-   for(const entry of visible){
-    const routeId=entry.routeId||entry.id;
-    const waypoint=entry.status==='current'&&isAcceptedQuest(routeId,state)?
-     questWaypoint(routeId,state,state.inventory,player()):null;
-    const actions=waypoint?[[(questTracking.trackedIds.includes(routeId)?'✓ Выключить':'Отслеживать'),
-      ()=>{
-       setTrackedQuest(routeId);
-       draw(false);renderModal();
-      }]]:[];
-    line((entry.status==='completed'?'✓ ':entry.status==='available'?'! ':'• ')+entry.title,
-     entry.objective+' · '+entry.progress+(entry.reward?' · '+entry.reward:'')+
-     ' · '+entry.npc,actions);
-   }
-   if(!visible.length&&!hasHint)line('Пока пусто','В этом разделе заданий пока нет.');
-   body.scrollTop=previousJournalScroll;
+   questJournal.render(body,{entries,tab:journalTab,trackedIds:questTracking.trackedIds});
   }else if(kind==='merchant'){
    line('Борун Крепкая Ладонь','Твои монеты: '+pretty(state.gold));
    const tabs=document.createElement('div');tabs.className='planet-journal-tabs';

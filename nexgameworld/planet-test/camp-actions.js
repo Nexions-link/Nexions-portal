@@ -3,6 +3,7 @@
 // and progress is stored only in the isolated Planet Test save.
 import {GATHER_QUESTS,GATHER_INTERACT_RANGE,GATHER_CAST_SECONDS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST} from './gather-world.js?v=64609';
 import {ITEM_CATALOG,itemStackLimit} from '../items.js?v=64604';
+import {paintCastBar,hideCastBar} from './cast-bar.js?v=64613';
 const $=id=>document.getElementById(id);
 export function createCampActions({state,herbalist,gathering,mobs,hero,distance,addItem,takeItem,itemCount,
  persist,levelCheck,draw,openWindow,closeWindow,msg,getClock}){
@@ -17,7 +18,7 @@ export function createCampActions({state,herbalist,gathering,mobs,hero,distance,
  const fighting=()=>mobs.some(m=>m.aggro&&!m.dead&&m.root.visible&&distance(m)<11);
  function cancel(message=''){
   if(!cast)return;
-  cast=null;$('gatherCast').hidden=true;$('gatherCastFill').style.width='0%';
+  cast=null;hideCastBar(document,'gatherCast');
   if(message)msg(message);
  }
  function begin(node){
@@ -26,10 +27,8 @@ export function createCampActions({state,herbalist,gathering,mobs,hero,distance,
   if(fighting())return msg('Нельзя собирать во время боя');
   if(node.pending){lootNode=node;openWindow('gatherLoot');return;}
   cast={node,elapsed:0,hp:state.hp,position:hero.root.position.clone()};
-  $('gatherCast').hidden=false;
-  $('gatherCastLabel').textContent='Сбор: '+ITEM_CATALOG[node.item].name;
-  $('gatherCastTime').textContent='1,5 с';$('gatherCastFill').style.width='0%';
-  $('gatherCast').setAttribute('aria-valuenow','0');
+  paintCastBar(document,'gatherCast',{progress:0,label:'Сбор: '+ITEM_CATALOG[node.item].name,
+   timeText:'1,5 с',icon:node.item});
  }
  function fits(rows,capacity,id,qty){
   let space=(capacity-rows.length)*itemStackLimit(id);
@@ -165,13 +164,12 @@ export function createCampActions({state,herbalist,gathering,mobs,hero,distance,
   }
   cast.elapsed=Math.min(GATHER_CAST_SECONDS,cast.elapsed+dt);
   const percent=cast.elapsed/GATHER_CAST_SECONDS*100;
-  $('gatherCastFill').style.width=percent.toFixed(1)+'%';
-  $('gatherCastTime').textContent=Math.max(0,GATHER_CAST_SECONDS-cast.elapsed).toFixed(1).replace('.',',')+' с';
-  $('gatherCast').setAttribute('aria-valuenow',String(Math.round(percent)));
+  paintCastBar(document,'gatherCast',{progress:percent,
+   timeText:Math.max(0,GATHER_CAST_SECONDS-cast.elapsed).toFixed(1).replace('.',',')+' с'});
   // The main character animation owns this cast pose. Directly rotating
   // hip joints here was overwritten by the frame-by-frame walking animation.
   if(cast.elapsed>=GATHER_CAST_SECONDS){
-   cast=null;$('gatherCast').hidden=true;node.pending=true;lootNode=node;openWindow('gatherLoot');
+   cast=null;hideCastBar(document,'gatherCast');node.pending=true;lootNode=node;openWindow('gatherLoot');
   }
  }
  return {interact,render,update,cancel,available,

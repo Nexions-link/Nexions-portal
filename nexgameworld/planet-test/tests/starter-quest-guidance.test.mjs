@@ -98,5 +98,10 @@ test('relogged herbalist stage two without acceptance is available, not accident
  h.get('journal').click();
  const buttons=descendants(h.get('mbody')).filter(x=>x.textContent==='Доступные');
  buttons[0].click();
+ const gather=descendants(h.get('mbody')).find(x=>x.dataset?.journalQuest==='gather-2');
+ assert.ok(gather,'the available quest is listed independently from accepted quests');
+ gather.click();
  assert.ok(descendants(h.get('mbody')).some(x=>x.textContent.includes('Готово следующее')||x.textContent.includes('Доступно у травницы')));
+ assert.equal(descendants(h.get('mbody')).find(x=>x.className==='wow-button ngw-journal-track').hidden,true,
+  'an offered quest cannot be tracked before acceptance');
 });
