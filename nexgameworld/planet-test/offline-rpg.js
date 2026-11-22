@@ -5,6 +5,7 @@ import {createPartyInterface,partyClassInfo} from './party-interface.js?v=64611'
 import {defaultHotbarForClass} from '../hotbar.js?v=64604';
 import {createChestSheet} from './chest-sheet.js?v=3';
 import {createCharacterPreview} from './character-preview.js?v=64608';
+import {createPlayerTradeUi,TRADE_BAG_MIME} from './player-trade-ui.js?v=64612';
 import {renderCharacterSheet} from './character-sheet.js?v=64604';
 import {renderChiefRewardChoice} from './quest-reward-choice.js?v=1';
 import {questWaypoint,isAcceptedQuest,trackedQuestMap} from './starter-quest-guidance.js?v=64609';
@@ -21,6 +22,8 @@ import {questProgressSummary,renderQuestProgressPanel} from './quest-progress-pa
 // abilities, hotbar, loot and dummy statistics; do not connect to multiplayer or saves.
 import {HOTBAR_ART,HOTBAR_SHORT,HOTBAR_AUTO_ACTIVE} from './native-hotbar-art.js?v=64600';
 import {createItemIcon,backpackArtwork} from './inventory-art.js?v=64610';
+import {createItemTooltip} from './item-tooltip.js?v=64612';
+import {interfaceShortcut} from './interface-shortcuts.js?v=64612';
 import {getAbilityRangeIndicator,getAbilityResourceIndicator} from './ability-range-visuals.js?v=2';
 import {levelExperienceRequirement,earnedExperienceSince} from './level-progression.js?v=1';
 import {compareEquipment,itemStatRows,formatBagEquipmentChanges} from './equipment-comparison.js?v=64604';
@@ -29,7 +32,7 @@ import {equipBowVisual} from './orc-avatar.js?v=64609';
 import {ABILITY_DEFINITIONS,getAbilityDefinition,getClassDefinition,getClassAbilities,rollHunterDamage,createAbilityRuntime,tickAbilityRuntime,abilityFailure,activateAbility,changeResource,WARRIOR_RAGE_ON_HURT,WARRIOR_RAGE_DECAY} from '../skills.js?v=64604';
 import {DEFAULT_HOTBAR,normalizeHotbar,assignHotbarSlot,availableHotbarActions,actionDefinition} from '../hotbar.js?v=64604';
 import {attachAbilityDrag} from './ability-drag-drop.js?v=1';
-import {attachBagDiscardDrag} from './bag-discard-drag.js?v=1';
+import {attachBagDiscardDrag} from './bag-discard-drag.js?v=64612';
 import {goToCharacterSelection} from './character-navigation.js?v=1';
 import {TRAINING_DUMMY,createTrainingStats,applyTrainingHit,updateTrainingTarget} from '../training.js?v=0.3.5.1';
 import {PLAINSTRIDER_REQUIRED_CLIPS,validatePlainstriderGltf,advancePlainstriderVisual,resetPlainstriderVisual,resetWalkingClip,PLAINSTRIDER_VISUAL_SCALE} from '../plainstrider-model.js?v=0.6.43.35';
@@ -157,7 +160,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  // The UI compacts occupied cells, but mutations must keep real server slots.
  function syncServerBag(rows){
   if(!authenticatedProfile||!Array.isArray(rows))return false;
-  serverBagSlots=Array.from({length:12},(_,i)=>rows[i]?{...rows[i]}:null);
+  serverBagSlots=Array.from({length:Math.max(12,Math.min(108,rows.length))},(_,i)=>rows[i]?{...rows[i]}:null);
   state.inventory=serverBagSlots.filter(Boolean).map(row=>({...row}));
   return true;
  }
@@ -445,9 +448,33 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    hp:state.hp,maxHp:stats().maxHp,resource:state.resource,classId,
    raceId:authenticatedProfile?.raceId||'hornfolk'}),
   onSelect:id=>{selectAlly(id);if(!modal.hidden&&modal.dataset.kind==='party')closeWindow();},
-  onOpenRoster:()=>openWindow('party'),onNotice:message=>msg(message)});
+  onOpenRoster:()=>openWindow('party'),onTrade:inviteTrade,onNotice:message=>msg(message)});
  function setMultiplayer(transport){multiplayer=transport||null;partyInterface.update();}
+ const playerTrade=createPlayerTradeUi({
+  getInventory:()=>serverBagSlots,getGold:()=>state.gold,
+  getPlayerName:()=>authenticatedProfile?.nickname||'Вы',isConnected:isOnline,
+  respond:(...args)=>multiplayer?.tradeRespond?.(...args)??false,
+  offer:(...args)=>multiplayer?.tradeOffer?.(...args)??false,
+  accept:(...args)=>multiplayer?.tradeAccept?.(...args)??false,
+  cancel:(...args)=>multiplayer?.tradeCancel?.(...args)??false,
+  notice:message=>msg(message),openInventory:()=>{
+   if(!modal.hidden&&modal.dataset.kind==='bag')closeWindow();else openWindow('bag');
+  },
+  renderItemIcon:(id,doc)=>createItemIcon(doc,id,ITEM_CATALOG[id]),
+  bindItemTooltip:(node,id)=>itemTooltip.bind(node,id)
+ });
+ function inviteTrade(id=selectedAllyId){
+  if(!authenticatedProfile)return msg('Обмен доступен авторизованным персонажам.');
+  if(!id||!isOnline()||!onlinePlayers.some(player=>player.id===id))return msg('Игрок недоступен для обмена.');
+  if(inCombat())return msg('Обмен недоступен во время боя.');
+  return multiplayer.tradeInvite?.(id)||msg('Не удалось отправить приглашение к обмену.');
+ }
+ function onTradeInvite(event){if(isOnline()){itemTooltip.hide();playerTrade.onInvite(event)}}
+ function onTradeState(event){if(isOnline()){itemTooltip.hide();playerTrade.onState(event)}}
+ function onTradeClosed(event){itemTooltip.hide();playerTrade.onClosed(event)}
+ function onTradeNotice(event){itemTooltip.hide();playerTrade.onNotice(event)}
  function onNetworkDisconnect(){
+  playerTrade.disconnect();
   if(!authenticatedProfile)return;
   partyInterface.reset();
   cancelBowShot(true);
@@ -773,6 +800,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   state.xp=progress.experience;
   state.gold=progress.gold;
   if(Array.isArray(progress.inventory))syncServerBag(progress.inventory);
+  playerTrade.refreshInventory();
   if(progress.equipment&&typeof progress.equipment==='object')
    state.equipment=progress.equipment;
   if(progress.quests?.mentor?.step!==undefined)
@@ -953,6 +981,8 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   }
  }
  const hotbar=$('actionsBar'),modal=$('modal'),toast=$('toast'),spellbook=$('spellbookPopover');
+ const itemTooltip=createItemTooltip({document,items:ITEM_CATALOG,qualities:QUALITY_VISUALS,
+  getLevel:()=>state.level,getEquipment:()=>state.equipment});
  let spellbookTab='class';
  const feedbackLayer=$('combatFeedback');
  if(!feedbackLayer)throw Error('Отсутствует слой чисел урона');
@@ -1665,6 +1695,7 @@ function resetCreatureImpact(mob){
  const chestSheet=createChestSheet({items:ITEM_CATALOG,qualityColors:QUALITY_VISUALS,
   move:(...args)=>isOnline()?multiplayer.moveChest(...args):false,notify:msg});
  function openWindow(kind){
+  itemTooltip.hide();
   closeSpellbook();
   if(!modal.hidden&&modal.dataset.kind==='chest'&&kind!=='chest')closeWindow();
   if(kind==='chest'){clearChestRetry();chestSheet.reset();}
@@ -1688,6 +1719,7 @@ function resetCreatureImpact(mob){
   renderModal();
  }
  function closeWindow(){
+  itemTooltip.hide();
   pendingLootTake=null;
   characterPreview.release();
   if(modal.dataset.kind==='chest'){
@@ -1836,14 +1868,15 @@ function resetCreatureImpact(mob){
    hasTarget:isLivingHostile(target),range:target?distance(target):Infinity,facing:!target||facesTarget(target),
    hasConsumable:itemCount('healingPotion')>0,needsHealing:state.hp<stats().maxHp};
  }
- function castAction(id){
+ function castAction(id,{fromBag=false}={}){
   if(id==='healingPotion'&&itemCount('healingPotion')===0){msg('Лечебных настоев нет в рюкзаке');return false;}
   if(authenticatedProfile&&id==='healingPotion')return sendAccountAction('usePotion');
   if(authenticatedProfile&&!isOnline()){
    msg('Связь с сервером отсутствует. Боевые действия приостановлены.');
    return false;
   }
-  if(!modal.hidden||camp.casting||pendingServerGather||state.hp<=0)return false;
+  const usingFromBag=fromBag&&id==='healingPotion'&&modal.dataset.kind==='bag';
+  if((!modal.hidden&&!usingFromBag)||camp.casting||pendingServerGather||state.hp<=0)return false;
   const def=getAbilityDefinition(id);if(!def)return false;
   if(def.classId!==classId&&def.classId!=='all'){msg('Недоступно этому классу');return false;}
   // An active stance can always be turned off, including while moving or
@@ -2143,7 +2176,7 @@ function resetCreatureImpact(mob){
   $('panel').classList.toggle('game-menu-modal',kind==='menu');
   title.textContent=({bag:'Рюкзак',character:'Персонаж',mounts:'Коллекция маунтов',quests:'Журнал заданий',
    merchant:'Торговец',loot:'Добыча',menu:'Меню',settings:'Настройки',herbalist:'Травница Тихая Заря',chest:'Сундук',gatherLoot:'Собранный ресурс',mentor:'Наставник Каменный Рог',banditQuest:'Следопыт Медная Стрела',expedition:'Следопыт Дальний Ветер',party:'Группа',battlefuryTuner:'Тюнер · Боевой гнев'})[kind]||'NexGameWorld';
-  body.replaceChildren();
+  itemTooltip.hide();body.replaceChildren();
   const line=(label,caption,actions=[])=>{
    const row=document.createElement('div');row.className='rpgRow';
    const name=document.createElement('div');name.innerHTML='<strong></strong><small></small>';
@@ -2429,6 +2462,7 @@ function resetCreatureImpact(mob){
     const count=document.createElement('span');count.className='loot-item-count';
     count.textContent=isMoney?'+'+item.qty:item.qty>1?'×'+item.qty:'';
     button.append(icon,copy,count);
+    itemTooltip.bind(button,item.id);
     button.addEventListener('click',()=>takeLootFromCorpse(corpse,index));
     list.append(button);
    });
@@ -2489,7 +2523,9 @@ function resetCreatureImpact(mob){
     detail.textContent='Нажми на предмет, чтобы узнать подробности.';
     const dropHelp=document.createElement('small');
     dropHelp.className='ngw-bag-discard-help';
-    dropHelp.textContent='Удерживай предмет и перетащи за пределы рюкзака, чтобы удалить всю стопку.';
+    dropHelp.textContent=playerTrade.active?
+     'Для обмена перетащите предмет в своё предложение или выберите его в окне обмена.':
+     'Удерживай предмет и перетащи за пределы рюкзака, чтобы удалить всю стопку.';
     for(let i=0;i<12;i++){
       const item=state.inventory[i],def=item&&ITEM_CATALOG[item.id];
       const cell=document.createElement('button');cell.type='button';
@@ -2502,7 +2538,35 @@ function resetCreatureImpact(mob){
         if(item.id===BATTLEFURY_ITEM_ID){icon.classList.add('battlefury-icon');icon.innerHTML='';}
         const qty=document.createElement('span');qty.className='slot-count';qty.textContent=item.qty>1?item.qty:'';
         cell.append(icon,qty);
+        if(authenticatedProfile){
+         cell.draggable=playerTrade.active;
+         cell.addEventListener('pointerdown',()=>{cell.draggable=playerTrade.active;});
+         cell.addEventListener('dragstart',event=>{
+          if(!playerTrade.active){event.preventDefault?.();return;}
+          const physical=serverBagSlot(i);
+          if(physical<0||!event.dataTransfer){event.preventDefault?.();return;}
+          event.dataTransfer.setData(TRADE_BAG_MIME,String(physical));
+          event.dataTransfer.effectAllowed='copy';
+         });
+        }
+        itemTooltip.bind(cell,item.id);
+        let inputType='mouse';
+        cell.addEventListener('pointerdown',event=>{inputType=event.pointerType||'mouse';});
+        cell.addEventListener('contextmenu',event=>{
+         event.preventDefault();
+         // A long press still belongs to touch dragging/discard confirmation.
+         if(event.pointerType==='touch'||inputType==='touch'||event.button!==2)return;
+         itemTooltip.hide();
+         const current=state.inventory[i];
+         if(!current||current.id!==item.id||current.qty!==item.qty)return;
+         if(def?.slot){
+          const comparison=compareEquipment(item.id,state.level,state.equipment);
+          if(!comparison.requirementsMet){msg(comparison.requirementMessage);return;}
+          equip(item.id);
+         }else if(item.id==='healingPotion')castAction('healingPotion',{fromBag:true});
+        });
         attachBagDiscardDrag(cell,{document,panel:$('panel'),
+         canDiscard:()=>!playerTrade.active,
          item:{id:item.id,qty:item.qty,name:def?.name||'Предмет'},
          onDiscard:()=>{
           if(pendingBagDiscard)return msg('Предыдущее удаление ещё сохраняется');
@@ -2909,14 +2973,21 @@ function resetCreatureImpact(mob){
  for(const [id,fn] of actions){const node=$(id);if(node)bind(node,'click',fn);}
  bind($('modalClose'),'click',closeWindow);
  document.addEventListener('keydown',e=>{
+  if(e.defaultPrevented)return;
   if(e.target?.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/i.test(e.target?.tagName||''))return;
-  const key=e.key.toLowerCase();
+  const key=String(e.key||'').toLowerCase();
   if(key==='escape'&&!spellbook.hidden){closeSpellbook();e.preventDefault();return;}
   if(key==='escape'&&!modal.hidden){closeWindow();e.preventDefault();return;}
+  const panel=interfaceShortcut(e);
+  if(panel==='spellbook'&&(modal.hidden||modal.dataset.kind==='bag')){
+   if(!modal.hidden)closeWindow();toggleSpellbook();e.preventDefault();return;
+  }
+  if(panel&&(!modal.hidden&&modal.dataset.kind===panel)){
+   closeWindow();e.preventDefault();return;
+  }
   if(!modal.hidden)return;
-  if(key==='b'&&!e.repeat){toggleSpellbook();e.preventDefault();return;}
-  const shortcut={i:'bag',c:'character',j:'quests',n:'mounts',g:'party'};
-  if(shortcut[key]&&!e.repeat){openWindow(shortcut[key]);e.preventDefault();}
+  if(panel){openWindow(panel);e.preventDefault();return;}
+  if(e.altKey||e.ctrlKey||e.metaKey)return;
   if(key==='tab'){if(!e.repeat)targetNearest(e.shiftKey?-1:1);e.preventDefault();}
   if(key==='e'){interact();e.preventDefault();}
  });
@@ -2970,6 +3041,7 @@ function resetCreatureImpact(mob){
  }
  function update(dt){
   clock+=dt;
+  itemTooltip.refresh();
   partyInterface.tick();
   if(forestAmbience.enabled){
    const normal=playerNormal();
@@ -3293,6 +3365,7 @@ function resetCreatureImpact(mob){
    if(!modal.hidden&&modal.dataset.kind==='mounts')renderModal();
   },
   setMultiplayer,onNetworkDisconnect,networkCharacter,onOnlinePlayers,onPartyState,onPartyInvite,onPartyNotice,onChat,onChestState,onChestStatus,onChestResult,
+  inviteTrade,onTradeInvite,onTradeState,onTradeClosed,onTradeNotice,
   onVitals,onCombatEvent,onChargeAccepted,onChargeRejected,onKillCredit,applyServerProgress,onEconomyResult,onMobAttack,onMobStrike,onMobTelegraph,onMobHowl,onNetworkRespawn,onMobSnapshot,
   // Only the active owner's cosmetic pose is sent; item entitlement remains on server.
   getBattlefuryPose:()=>authenticatedProfile&&state.equipment.weapon?.id===BATTLEFURY_ITEM_ID?

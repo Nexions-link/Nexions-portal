@@ -13,13 +13,13 @@ export function isBagWorldDrop(document,panel,x,y,margin=10){
   !!node.closest?.('#viewport');
 }
 export function attachBagDiscardDrag(source,{
- document,panel,item,onDiscard,holdMs=260,
+ document,panel,item,onDiscard,canDiscard=()=>true,holdMs=260,
  schedule=(fn,ms)=>setTimeout(fn,ms),unschedule=timer=>clearTimeout(timer)
 }){
  let hold=null,suppressClick=false;
  function paint(x,y){
   if(!hold?.dragging)return;
-  const free=isBagWorldDrop(document,panel,x,y);
+  const free=canDiscard()&&isBagWorldDrop(document,panel,x,y);
   if(hold.ghost){
    hold.ghost.style.left=x+'px';
    hold.ghost.style.top=y+'px';
@@ -32,7 +32,7 @@ export function attachBagDiscardDrag(source,{
   if(!hold||event.pointerId!==hold.id)return;
   if(hold.timer!==null)unschedule(hold.timer);
   const dragging=hold.dragging;
-  const discard=dragging&&!cancel&&
+  const discard=dragging&&!cancel&&canDiscard()&&
    isBagWorldDrop(document,panel,event.clientX,event.clientY);
   if(dragging){
    suppressClick=true;
@@ -46,13 +46,14 @@ export function attachBagDiscardDrag(source,{
   if(discard)onDiscard(item);
  }
  source.addEventListener('pointerdown',event=>{
-  if(hold||event.pointerType==='mouse'&&event.button!==0)return;
+  if(!canDiscard()||hold||event.pointerType==='mouse'&&event.button!==0)return;
   suppressClick=false;
   const startX=event.clientX,startY=event.clientY,id=event.pointerId;
   hold={id,startX,startY,timer:null,dragging:false,ghost:null};
   source.setPointerCapture?.(id);
   hold.timer=schedule(()=>{
    if(!hold||hold.id!==id)return;
+   if(!canDiscard()){finish({pointerId:id},true);return;}
    hold.timer=null;hold.dragging=true;
    source.classList.add('ngw-bag-item-dragging');
    const ghost=document.createElement('div');

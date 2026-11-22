@@ -75,6 +75,7 @@ export function createSphericalPresence({
  THREE,scene,createAvatar,animateAvatar,getPosition,getCharacter,getBattlefuryPose,getRadius,heightAt,onStatus,
  onPlayers,onMobs,onVitals,onCombat,onBowRelease,onKillCredit,onMobAttack,onMobStrike,onMobTelegraph,onMobHowl,onRespawn,onChargeLanded,
  onPartyState,onPartyInvite,onPartyNotice,onChat,onChatRejected,
+ onTradeInvite,onTradeState,onTradeClosed,onTradeNotice,
  onChestState,onChestStatus,onChestResult,onCombatRejected,onChargeAccepted,onDisconnect,
  onVerifiedProgress,onAuthRejected,onEconomyResult,onPositionCorrection,
  onMountChange=null,onMountRejected=null,onMountCast=null,
@@ -400,6 +401,10 @@ export function createSphericalPresence({
    else if(m.type==='partyState')onPartyState?.(m);
    else if(m.type==='partyInvite')onPartyInvite?.(m);
    else if(m.type==='partyNotice')onPartyNotice?.(m);
+   else if(m.type==='tradeInvite')onTradeInvite?.(m);
+   else if(m.type==='tradeState')onTradeState?.(m);
+   else if(m.type==='tradeClosed')onTradeClosed?.(m);
+   else if(m.type==='tradeNotice')onTradeNotice?.(m);
    else if(m.type==='chat')onChat?.(m);
    else if(m.type==='chatRejected')onChatRejected?.(m);
    else if(m.type==='chestState')onChestState?.(m);
@@ -629,6 +634,11 @@ export function createSphericalPresence({
   promoteParty:targetId=>send({type:'partyPromote',targetId}),
   kickParty:targetId=>send({type:'partyKick',targetId}),
   leaveParty:()=>send({type:'partyLeave'}),
+  tradeInvite:targetId=>auth&&send({type:'tradeInvite',targetId}),
+  tradeRespond:(tradeId,accept)=>auth&&send({type:'tradeRespond',tradeId,accept}),
+  tradeOffer:(tradeId,revision,items,gold)=>auth&&send({type:'tradeOffer',tradeId,revision,items,gold}),
+  tradeAccept:(tradeId,revision,accept=true)=>auth&&send({type:'tradeAccept',tradeId,revision,accept}),
+  tradeCancel:tradeId=>auth&&send({type:'tradeCancel',tradeId}),
   sendChat:(channel,text)=>send({type:'chatSend',channel,text}),
   requestChestStatus:()=>send({type:'chestStatus'}),
   openChest:inventory=>{

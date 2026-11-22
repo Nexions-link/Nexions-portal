@@ -48,3 +48,18 @@ test('game integrates slot-id checking, confirmation and revisioned economy requ
  assert.match(rpg,/sendAccountAction\('inventoryDiscard'/);
  assert.match(rpg,/state\.inventory\.splice\(i,1\)/);
 });
+test('an active exchange prevents capture, discard ghosts and deletion even if a hold began earlier',()=>{
+ const events={},source={classList:{add(){},remove(){}},setPointerCapture(){capture++},hasPointerCapture:()=>false,
+  addEventListener:(type,fn)=>{(events[type]??=[]).push(fn)}};
+ let trading=true,capture=0,discard=0,scheduled=null;
+ const ghost={style:{},classList:{toggle(){}},setAttribute(){},remove(){}};
+ attachBagDiscardDrag(source,{document:{...document,createElement:()=>ghost},panel,item:{name:'Перо'},
+  canDiscard:()=>!trading,onDiscard:()=>discard++,schedule:fn=>(scheduled=fn,1),unschedule(){}});
+ const act=type=>events[type].forEach(fn=>fn({pointerId:9,pointerType:'mouse',button:0,clientX:470,clientY:500,preventDefault(){}}));
+ act('pointerdown');assert.equal(capture,0);assert.equal(scheduled,null,'native trade drag is not captured by discard helper');
+ act('pointerup');assert.equal(discard,0);
+ trading=false;act('pointerdown');assert.equal(capture,1);
+ trading=true;scheduled();act('pointerup');assert.equal(discard,0,'opening trade cancels an already pending discard hold');
+ trading=false;act('pointerdown');scheduled();
+ trading=true;act('pointerup');assert.equal(discard,0,'opening trade also prevents release of an existing discard ghost');
+});

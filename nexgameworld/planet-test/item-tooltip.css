@@ -1,0 +1,28 @@
+.wow-item-tooltip-layer[hidden]{display:none!important}
+.wow-item-tooltip-layer{
+ position:fixed;z-index:90;display:flex;align-items:flex-start;gap:7px;
+ width:max-content;max-width:calc(100vw - 16px);pointer-events:none;
+ color:#f5eddb;font:12px/1.35 system-ui,sans-serif;
+}
+.wow-item-tooltip-card{
+ box-sizing:border-box;width:235px;max-width:calc(100vw - 16px);padding:10px 11px;
+ border:2px ridge #b6a06e;border-radius:4px;background:linear-gradient(125deg,#09121bf5,#101721fa);
+ box-shadow:0 5px 18px #000a,inset 0 0 9px #020609;
+}
+.wow-tooltip-name{display:block;margin:0 0 5px;font:700 14px/1.25 Georgia,serif;overflow-wrap:anywhere;text-shadow:0 1px 2px #000}
+.wow-tooltip-type{display:block;margin:0 0 5px;color:#e3ddc8;font-size:11px}
+.wow-tooltip-stat{display:flex;justify-content:space-between;gap:10px;margin:2px 0;color:#f0e8d4;font-variant-numeric:tabular-nums}
+.wow-tooltip-stat>span:last-child{white-space:nowrap;text-align:right}
+.wow-tooltip-description{margin:7px 0 5px;color:#d9bc7f;font:11px/1.4 system-ui,sans-serif;overflow-wrap:anywhere}
+.wow-tooltip-requirement{margin:6px 0;color:#ff7771;font:11px/1.35 system-ui,sans-serif}
+.wow-tooltip-price{display:block;margin-top:6px;color:#ded5ba;font-size:10px}
+.wow-tooltip-hint{display:block;margin-top:5px;color:#9e9d8d;font:10px/1.3 system-ui,sans-serif}
+.wow-tooltip-equipped{display:block;margin:0 0 5px;color:#e0c78e;font:10px/1.3 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.4px}
+.wow-tooltip-changes{display:flex;flex-direction:column;gap:2px;margin:7px 0 4px;padding-top:5px;border-top:1px solid #6b65464d;font-size:11px}
+.wow-tooltip-change.better{color:#76e486}.wow-tooltip-change.worse{color:#ff7f71}.wow-tooltip-change.same{color:#b7b4a4}
+@media(max-width:560px){
+ .wow-item-tooltip-layer.has-compare .wow-item-tooltip-card{width:calc((100vw - 23px)/2);padding:8px;font-size:11px}
+ .wow-item-tooltip-layer.has-compare .wow-tooltip-name{font-size:12px}
+ .wow-item-tooltip-layer.has-compare .wow-tooltip-type,.wow-item-tooltip-layer.has-compare .wow-tooltip-description{font-size:10px}
+}
+@media(max-height:480px){.wow-item-tooltip-card{padding:8px;font-size:11px}.wow-tooltip-description{font-size:10px;line-height:1.3}}
