@@ -15,6 +15,7 @@ import {forestTrailLatitude,forestLocalPoint,FOREST_ENTRANCE_LONGITUDE,FOREST_TR
 import {createWhisperingForest,forestMoodAt} from './whispering-forest.js?v=31';
 import {createForestAtmosphere} from './forest-atmosphere.js?v=2';
 import {r2LightingProfile} from './r2-lighting.js?v=1';
+import {createSphericalDaylightRig} from './spherical-daylight.js?v=1';
 import {createForestFloor} from './forest-floor.js?v=4';
 import {createForestGroundLife} from './forest-ground-life.js?v=6';
 import {createForestUnderstory} from './forest-understory.js?v=5';
@@ -191,6 +192,7 @@ try {
   const fill = new THREE.DirectionalLight('#b4dbe9', .62);
   fill.position.set(-100, -40, -150);
   scene.add(fill);
+  const daylightRig=isPortalPreview?null:createSphericalDaylightRig(THREE,{sun,fill,skyFill});
   // Near-camera shadows only: never render a whole-planet shadow pass.
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   // Never render an unchanged shadow pass solely because the camera drew.
@@ -1363,13 +1365,10 @@ try {
     renderer.shadowMap.needsUpdate=redrawShadows;
     if(redrawShadows){
       canopyShadows?.update(state.normal);
-      // Keep the 62-metre shadow frustum centred around the active character.
-      tangentBasis(state.normal);
-      sun.target.position.copy(actor.position);
-      sun.position.copy(actor.position).addScaledVector(state.normal,44)
-        .addScaledVector(tangentEast,27).addScaledVector(tangentNorth,20);
-      sun.target.updateMatrixWorld();
     }
+    // Local warm sunlight / cool skylight remain coherent around the sphere,
+    // including economy mode, without increasing shadow refresh frequency.
+    daylightRig?.update(state.normal,actor.position,redrawShadows||!shadowActive);
     drawNativeMinimap();
     renderer.render(scene,camera);
     if(pendingR2Capture&&!captureInFlight){

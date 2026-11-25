@@ -1,0 +1,338 @@
+{
+  "sourceBaseline": "be860f83d50c16550ea37c99c98162e0380e0ecb",
+  "viewport": [
+    390,
+    844
+  ],
+  "deviceScaleFactor": 1.3,
+  "renderer": "Chromium SwiftShader; not physical iPhone",
+  "notes": [
+    "No production account, HTTP profile fixture and disconnected WebSocket. Connection overlay hidden only for screenshots.",
+    "Economy samples exactly match budgets. Balanced snapshots vary with shadow refresh and asynchronous asset/culling state; do not treat single frames as performance benchmarks.",
+    "Existing roughness-on-MeshBasicMaterial warning occurs in both versions. No page errors."
+  ],
+  "before": [
+    {
+      "mode": "before",
+      "quality": "economy",
+      "place": "village",
+      "calls": 926,
+      "triangles": 994713,
+      "textures": 21,
+      "geometries": 417,
+      "lights": 3,
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "camera": [
+        24.148146844065025,
+        -3.6889830655418807,
+        275.900365556782
+      ],
+      "hemi": [
+        0,
+        1,
+        0
+      ],
+      "shadow": false,
+      "sun": [
+        0.4296493686844227,
+        0.7436239073384239,
+        0.5122742472775809
+      ],
+      "fill": [
+        -0.5415303610738824,
+        -0.21661214442955296,
+        -0.8122955416108236
+      ],
+      "overflow": false,
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    },
+    {
+      "mode": "before",
+      "quality": "economy",
+      "place": "forest",
+      "calls": 478,
+      "triangles": 888149,
+      "textures": 13,
+      "geometries": 165,
+      "lights": 3,
+      "position": [
+        0.6287586266031246,
+        -0.010459672969161843,
+        0.7775301825096763
+      ],
+      "camera": [
+        159.2563135008649,
+        -2.806676871423925,
+        216.28742396947504
+      ],
+      "hemi": [
+        0,
+        1,
+        0
+      ],
+      "shadow": false,
+      "sun": [
+        0.4296493686844227,
+        0.7436239073384239,
+        0.5122742472775809
+      ],
+      "fill": [
+        -0.5415303610738824,
+        -0.21661214442955296,
+        -0.8122955416108236
+      ],
+      "overflow": false,
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    },
+    {
+      "mode": "before",
+      "quality": "balanced",
+      "place": "village",
+      "calls": 1080,
+      "triangles": 1343765,
+      "textures": 28,
+      "geometries": 555,
+      "lights": 3,
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "camera": [
+        24.148146844065025,
+        -3.6889830655418807,
+        275.900365556782
+      ],
+      "hemi": [
+        0,
+        1,
+        0
+      ],
+      "shadow": true,
+      "sun": [
+        0.4876952488913449,
+        0.36125573991951476,
+        0.7947626278229324
+      ],
+      "fill": [
+        -0.5415303610738824,
+        -0.21661214442955296,
+        -0.8122955416108236
+      ],
+      "overflow": false,
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    },
+    {
+      "mode": "before",
+      "quality": "balanced",
+      "place": "forest",
+      "calls": 511,
+      "triangles": 1228881,
+      "textures": 20,
+      "geometries": 182,
+      "lights": 3,
+      "position": [
+        0.6287586266031246,
+        -0.010459672969161843,
+        0.7775301825096763
+      ],
+      "camera": [
+        159.2563135008649,
+        -2.806676871423925,
+        216.28742396947504
+      ],
+      "hemi": [
+        0,
+        1,
+        0
+      ],
+      "shadow": true,
+      "sun": [
+        0.88130834689356,
+        0.35292302065533043,
+        0.3142307101275397
+      ],
+      "fill": [
+        -0.5415303610738824,
+        -0.21661214442955296,
+        -0.8122955416108236
+      ],
+      "overflow": false,
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    }
+  ],
+  "after": [
+    {
+      "mode": "after",
+      "quality": "economy",
+      "place": "village",
+      "calls": 926,
+      "triangles": 994713,
+      "textures": 21,
+      "geometries": 417,
+      "lights": 3,
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "camera": [
+        24.148146844065025,
+        -3.6889830655418807,
+        275.900365556782
+      ],
+      "hemi": [
+        0,
+        0,
+        1
+      ],
+      "shadow": false,
+      "sun": [
+        0.4876952488913449,
+        0.36125573991951476,
+        0.7947626278229324
+      ],
+      "fill": [
+        -0.677834389404565,
+        -0.47847133369733996,
+        0.5582165559802299
+      ],
+      "overflow": false,
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    },
+    {
+      "mode": "after",
+      "quality": "economy",
+      "place": "forest",
+      "calls": 478,
+      "triangles": 888149,
+      "textures": 13,
+      "geometries": 165,
+      "lights": 3,
+      "position": [
+        0.6287586266031246,
+        -0.010459672969161843,
+        0.7775301825096763
+      ],
+      "camera": [
+        159.2563135008649,
+        -2.806676871423925,
+        216.28742396947504
+      ],
+      "hemi": [
+        0.6287586266031246,
+        -0.010459672969161843,
+        0.7775301825096763
+      ],
+      "shadow": false,
+      "sun": [
+        0.88130834689356,
+        0.35292302065533043,
+        0.3142307101275397
+      ],
+      "fill": [
+        -0.17922894526576785,
+        -0.4842839220825637,
+        0.8563562739837022
+      ],
+      "overflow": false,
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    },
+    {
+      "mode": "after",
+      "quality": "balanced",
+      "place": "village",
+      "calls": 953,
+      "triangles": 1330955,
+      "textures": 28,
+      "geometries": 445,
+      "lights": 3,
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "camera": [
+        24.148146844065025,
+        -3.6889830655418807,
+        275.900365556782
+      ],
+      "hemi": [
+        0,
+        0,
+        1
+      ],
+      "shadow": true,
+      "sun": [
+        0.4876952488913449,
+        0.36125573991951476,
+        0.7947626278229324
+      ],
+      "fill": [
+        -0.677834389404565,
+        -0.47847133369733996,
+        0.5582165559802299
+      ],
+      "overflow": false,
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    },
+    {
+      "mode": "after",
+      "quality": "balanced",
+      "place": "forest",
+      "calls": 513,
+      "triangles": 1229601,
+      "textures": 20,
+      "geometries": 183,
+      "lights": 3,
+      "position": [
+        0.6287586266031246,
+        -0.010459672969161843,
+        0.7775301825096763
+      ],
+      "camera": [
+        159.2563135008649,
+        -2.806676871423925,
+        216.28742396947504
+      ],
+      "hemi": [
+        0.6287586266031246,
+        -0.010459672969161843,
+        0.7775301825096763
+      ],
+      "shadow": true,
+      "sun": [
+        0.88130834689356,
+        0.35292302065533043,
+        0.3142307101275397
+      ],
+      "fill": [
+        -0.17922894526576785,
+        -0.4842839220825637,
+        0.8563562739837022
+      ],
+      "overflow": false,
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    }
+  ]
+}
