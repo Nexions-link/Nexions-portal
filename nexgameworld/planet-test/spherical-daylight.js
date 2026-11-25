@@ -1,6 +1,20 @@
 // G-26: one painted daylight rig carried in the globe's local tangent frame.
 // Repositions the three EXISTING lights only. No lights, render targets,
 // materials, shadow passes or per-frame Vector3 allocations are introduced.
+export const SPHERICAL_SUN_OFFSETS=Object.freeze({up:44,east:27,north:20});
+
+// Shared with the static forest shafts and dappled ground light. The supplied
+// vector is reused; the direction always points FROM the surface TO the sun.
+export function sphericalSunDirection(normal,target){
+ const length=Math.hypot(normal.x,normal.y,normal.z);
+ if(!Number.isFinite(length)||length<1e-6)throw new RangeError('Invalid daylight normal');
+ const x=normal.x/length,y=normal.y/length,z=normal.z/length;
+ const longitude=Math.atan2(x,z),ex=Math.cos(longitude),ez=-Math.sin(longitude);
+ const {up,east,north}=SPHERICAL_SUN_OFFSETS;
+ return target.set(x*up+ex*east+y*ez*north,
+  y*up+(z*ex-x*ez)*north,z*up+ez*east-y*ex*north).normalize();
+}
+
 export function createSphericalDaylightRig(THREE,{sun,fill,skyFill}){
  const up=new THREE.Vector3(),east=new THREE.Vector3(),north=new THREE.Vector3();
  const finitePoint=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&Number.isFinite(p.z);
@@ -24,8 +38,8 @@ export function createSphericalDaylightRig(THREE,{sun,fill,skyFill}){
   // the traveller, giving economy the same art direction as other presets.
   if(updateSun){
    sun.target.position.copy(anchor);
-   sun.position.copy(anchor).addScaledVector(up,44)
-    .addScaledVector(east,27).addScaledVector(north,20);
+   sun.position.copy(anchor).addScaledVector(up,SPHERICAL_SUN_OFFSETS.up)
+    .addScaledVector(east,SPHERICAL_SUN_OFFSETS.east).addScaledVector(north,SPHERICAL_SUN_OFFSETS.north);
    sun.target.updateMatrixWorld();
   }
   return true;

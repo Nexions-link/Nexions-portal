@@ -2,8 +2,9 @@
 // meshes registered as obstacles. No render targets, textures fetched or lights.
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,forestTrailLatitude,forestMoodAt,
  forestDistance,createForestLayout} from './whispering-forest.js';
-import {forestSunbreakLayout} from './forest-lighting.js';
+import {forestSunbreakLayout} from './forest-lighting.js?v=4';
 import {r2AtmosphereBudget} from './r2-lighting.js?v=1';
+import {sphericalSunDirection} from './spherical-daylight.js?v=2';
 
 const TAU=Math.PI*2;
 const smooth=(a,b,t)=>{const v=Math.max(0,Math.min(1,(t-a)/(b-a)));return v*v*(3-2*v)};
@@ -45,7 +46,8 @@ function discGeometry(THREE,facets=12){
  geo.computeVertexNormals();return geo;
 }
 function sunShaftGeometry(THREE,faces=10){
- // Hollow curved column with top/bottom fading; soft, not a physical light.
+ // Shared straight shaft with top/bottom fading. Instances align its axis
+ // with the real spherical sun rather than a tiny, randomly rotated lean.
  const positions=[],colors=[];
  const rings=[
   {y:0,r:.92,alpha:0},
@@ -57,8 +59,7 @@ function sunShaftGeometry(THREE,faces=10){
   for(let i=0;i<faces;i++){
    const a=i*TAU/faces,b=(i+1)*TAU/faces;
    const v=(ring,angle)=>{
-    const lean=ring.y*-.70;
-    return [Math.cos(angle)*ring.r+lean,ring.y,Math.sin(angle)*ring.r];
+    return [Math.cos(angle)*ring.r,ring.y,Math.sin(angle)*ring.r];
    };
    for(const [r,angle] of [[rings[row],a],[rings[row+1],a],
     [rings[row+1],b],[rings[row],a],[rings[row+1],b],[rings[row],b]]){
@@ -89,13 +90,14 @@ function glowTexture(THREE){
 export function createForestAtmosphere(THREE,{scene,radius,heightAt,r2Lighting=false}){
  const hazeLayout=forestHazeLayout(),shaftLayout=forestSunbreakLayout();
  const up=new THREE.Vector3(0,1,0),n=new THREE.Vector3(),align=new THREE.Quaternion();
- const rotation=new THREE.Quaternion(),object=new THREE.Object3D();
+ const rotation=new THREE.Quaternion(),object=new THREE.Object3D(),sunDirection=new THREE.Vector3();
  const normalAt=(lon,lat)=>n.set(Math.cos(lat)*Math.sin(lon),Math.sin(lat),Math.cos(lat)*Math.cos(lon));
- function place(instanced,items,measure){
+ function place(instanced,items,measure,sunAligned=false){
   items.forEach((p,i)=>{
    const normal=normalAt(p.lon,p.lat),size=measure(p);
    object.position.copy(normal).multiplyScalar(radius+heightAt(normal)+size.offset);
-   object.quaternion.copy(align.setFromUnitVectors(up,normal))
+   const axis=sunAligned?sphericalSunDirection(normal,sunDirection):normal;
+   object.quaternion.copy(align.setFromUnitVectors(up,axis))
     .multiply(rotation.setFromAxisAngle(up,p.yaw));
    object.scale.set(size.x,size.y,size.z);object.updateMatrix();
    instanced.setMatrixAt(i,object.matrix);
@@ -116,20 +118,26 @@ export function createForestAtmosphere(THREE,{scene,radius,heightAt,r2Lighting=f
   blending:THREE.AdditiveBlending,side:THREE.DoubleSide,depthWrite:false
  }),shaftLayout.length);
  rays.name='forest-filtered-sunlight-no-collision';
- place(rays,shaftLayout,p=>({offset:.22,x:p.radius*.94,y:19+3.5*p.tint,z:p.radius*.94}));
+ place(rays,shaftLayout,p=>({offset:.22,x:p.radius*.94,y:19+3.5*p.tint,z:p.radius*.94}),true);
  const dustCount=FOREST_ATMOSPHERE_LIMITS.motes;
  const positions=new Float32Array(dustCount*3),base=new Float32Array(dustCount*3);
  const direction=new Float32Array(dustCount*3),phase=new Float32Array(dustCount);
  let seed=87611;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+ const cross=new THREE.Vector3(),depth=new THREE.Vector3(),anchor=new THREE.Vector3(),mote=new THREE.Vector3();
  for(let i=0;i<dustCount;i++){
   const patch=shaftLayout[Math.floor(i/12)%shaftLayout.length];
-  const lon=patch.lon+(rand()-.5)*4.8/(radius*Math.cos(patch.lat));
-  const lat=patch.lat+(rand()-.5)*4.8/radius;
-  const altitude=1.2+rand()*11.4,normal=normalAt(lon,lat);
-  const height=radius+heightAt(normal)+altitude;
-  base[i*3]=normal.x*height;base[i*3+1]=normal.y*height;base[i*3+2]=normal.z*height;
+  const normal=normalAt(patch.lon,patch.lat);
+  sphericalSunDirection(normal,sunDirection);
+  cross.crossVectors(sunDirection,normal).normalize();
+  depth.crossVectors(sunDirection,cross).normalize();
+  const spread=Math.sqrt(rand())*patch.radius*.94*.72,angle=rand()*TAU;
+  const altitude=1.2+rand()*11.4;
+  anchor.copy(normal).multiplyScalar(radius+heightAt(normal)+.22);
+  mote.copy(anchor).addScaledVector(sunDirection,altitude)
+   .addScaledVector(cross,Math.cos(angle)*spread).addScaledVector(depth,Math.sin(angle)*spread);
+  base[i*3]=mote.x;base[i*3+1]=mote.y;base[i*3+2]=mote.z;
   positions.set(base.subarray(i*3,i*3+3),i*3);
-  direction[i*3]=normal.x;direction[i*3+1]=normal.y;direction[i*3+2]=normal.z;
+  direction[i*3]=sunDirection.x;direction[i*3+1]=sunDirection.y;direction[i*3+2]=sunDirection.z;
   phase[i]=rand()*TAU;
  }
  const dustGeometry=new THREE.BufferGeometry();

@@ -1,0 +1,213 @@
+{
+  "sourceBaseline": "e64fd9266e3c63cb53a4fb210e779281fe5524f6",
+  "viewport": [
+    390,
+    844
+  ],
+  "deviceScaleFactor": 1.3,
+  "renderer": "Chromium SwiftShader; not a physical iPhone",
+  "notes": [
+    "No production account or WebSocket. Profile fixture only. Connection overlay hidden for screenshots.",
+    "Forest balanced captures wait for natural ray visibility. Snapshot can precede dust visibility; budgets shown remain unchanged.",
+    "All cameras, positions, light counts, textures and effect budgets match. Frame samples are not FPS benchmarks.",
+    "Existing roughness-on-MeshBasicMaterial warning occurs before/after. No JS errors or viewport overflow."
+  ],
+  "cases": [
+    {
+      "quality": "economy",
+      "place": "village",
+      "camera": [
+        24.148146844065025,
+        -3.6889830655418807,
+        275.900365556782
+      ],
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "before": {
+        "calls": 926,
+        "triangles": 994713,
+        "textures": 21,
+        "geometries": 417
+      },
+      "after": {
+        "calls": 926,
+        "triangles": 994713,
+        "textures": 21,
+        "geometries": 417
+      },
+      "effectBudget": [
+        {
+          "name": "forest-canopy-sunbreaks",
+          "triangles": 405,
+          "points": 0,
+          "visible": true,
+          "texture": false
+        },
+        {
+          "name": "forest-filtered-sunlight-no-collision",
+          "triangles": 0,
+          "points": 0,
+          "visible": false,
+          "texture": false
+        },
+        {
+          "name": "forest-floating-motes-no-collision",
+          "triangles": 0,
+          "points": 0,
+          "visible": false,
+          "texture": true
+        }
+      ]
+    },
+    {
+      "quality": "economy",
+      "place": "forest",
+      "camera": [
+        127.87123300311448,
+        -4.044289180857901,
+        236.9857923377751
+      ],
+      "position": [
+        0.5140778980260351,
+        -0.015032387835834238,
+        0.857611766522059
+      ],
+      "before": {
+        "calls": 479,
+        "triangles": 888161,
+        "textures": 13,
+        "geometries": 166
+      },
+      "after": {
+        "calls": 479,
+        "triangles": 888161,
+        "textures": 13,
+        "geometries": 166
+      },
+      "effectBudget": [
+        {
+          "name": "forest-canopy-sunbreaks",
+          "triangles": 405,
+          "points": 0,
+          "visible": true,
+          "texture": false
+        },
+        {
+          "name": "forest-filtered-sunlight-no-collision",
+          "triangles": 0,
+          "points": 0,
+          "visible": false,
+          "texture": false
+        },
+        {
+          "name": "forest-floating-motes-no-collision",
+          "triangles": 0,
+          "points": 0,
+          "visible": false,
+          "texture": true
+        }
+      ]
+    },
+    {
+      "quality": "balanced",
+      "place": "village",
+      "camera": [
+        24.148146844065025,
+        -3.6889830655418807,
+        275.900365556782
+      ],
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "before": {
+        "calls": 954,
+        "triangles": 1331597,
+        "textures": 28,
+        "geometries": 446
+      },
+      "after": {
+        "calls": 953,
+        "triangles": 1330955,
+        "textures": 28,
+        "geometries": 445
+      },
+      "effectBudget": [
+        {
+          "name": "forest-canopy-sunbreaks",
+          "triangles": 1053,
+          "points": 0,
+          "visible": true,
+          "texture": false
+        },
+        {
+          "name": "forest-filtered-sunlight-no-collision",
+          "triangles": 540,
+          "points": 0,
+          "visible": false,
+          "texture": false
+        },
+        {
+          "name": "forest-floating-motes-no-collision",
+          "triangles": 0,
+          "points": 90,
+          "visible": false,
+          "texture": true
+        }
+      ]
+    },
+    {
+      "quality": "balanced",
+      "place": "forest",
+      "camera": [
+        127.87123300311448,
+        -4.044289180857901,
+        236.9857923377751
+      ],
+      "position": [
+        0.5140778980260351,
+        -0.015032387835834238,
+        0.857611766522059
+      ],
+      "before": {
+        "calls": 521,
+        "triangles": 1230953,
+        "textures": 20,
+        "geometries": 186
+      },
+      "after": {
+        "calls": 521,
+        "triangles": 1230953,
+        "textures": 20,
+        "geometries": 186
+      },
+      "effectBudget": [
+        {
+          "name": "forest-canopy-sunbreaks",
+          "triangles": 1053,
+          "points": 0,
+          "visible": true,
+          "texture": false
+        },
+        {
+          "name": "forest-filtered-sunlight-no-collision",
+          "triangles": 540,
+          "points": 0,
+          "visible": true,
+          "texture": false
+        },
+        {
+          "name": "forest-floating-motes-no-collision",
+          "triangles": 0,
+          "points": 90,
+          "visible": false,
+          "texture": true
+        }
+      ]
+    }
+  ]
+}

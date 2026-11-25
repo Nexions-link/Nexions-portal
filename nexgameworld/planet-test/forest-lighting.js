@@ -2,6 +2,7 @@
 // no WebSocket, combat, navigation or authoritative physics mutations.
 import {FOREST_CAMP,FOREST_SITE_CLEARINGS,createForestLayout,forestDistance,
  forestMoodAt,forestTrailLatitude} from './whispering-forest.js';
+import {sphericalSunDirection} from './spherical-daylight.js?v=2';
 const TAU=Math.PI*2;
 const clamp01=x=>Math.max(0,Math.min(1,Number.isFinite(x)?x:0));
 const smooth=(a,b,v)=>{const u=clamp01((v-a)/(b-a));return u*u*(3-2*u)};
@@ -57,7 +58,7 @@ export function forestSunbreakLayout(seed=57021){
 
 // Four-channel vertex colours give each pool a soft fading rim without
 // textures, costly additional point lights, or a shader compilation path.
-function sunPoolGeometry(THREE){
+function sunPoolPattern(){
  // Dappled canopy light. Each shared instance scatters nine soft leaf-shaped
  // islands, replacing an artificial perfect glowing disc. One draw call.
  const position=[],color=[],islands=9,facets=9;
@@ -77,10 +78,7 @@ function sunPoolGeometry(THREE){
    make((i+1)*TAU/facets,1,0);
   }
  }
- const geo=new THREE.BufferGeometry();
- geo.setAttribute('position',new THREE.Float32BufferAttribute(position,3));
- geo.setAttribute('color',new THREE.Float32BufferAttribute(color,4));
- geo.computeVertexNormals();return geo;
+ return {position,color};
 }
 
 export function createForestLightPools(THREE,{scene,radius,heightAt,r2Lighting=false}){
@@ -89,26 +87,41 @@ export function createForestLightPools(THREE,{scene,radius,heightAt,r2Lighting=f
   color:r2Lighting?'#ffe5b1':'#f7dba1',vertexColors:true,transparent:true,opacity:r2Lighting?.96:.80,depthWrite:false,
   side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2
  });
- const pool=new THREE.InstancedMesh(sunPoolGeometry(THREE),material,spots.length);
- pool.name='forest-canopy-sunbreaks';pool.frustumCulled=false;
- const up=new THREE.Vector3(0,1,0),n=new THREE.Vector3();
- const align=new THREE.Quaternion(),turn=new THREE.Quaternion(),object=new THREE.Object3D();
- const tint=new THREE.Color();
- for(let i=0;i<spots.length;i++){
-  const p=spots[i];
+ // Bake exactly the old 81 triangles per spot into ONE mesh. Individual
+ // corners now follow the sphere AND local terrain, instead of a floating
+ // tangent plane whose centre alone knew the ground's elevation.
+ const pattern=sunPoolPattern(),vertices=[],colors=[];
+ const n=new THREE.Vector3(),light=new THREE.Vector3(),along=new THREE.Vector3(),across=new THREE.Vector3();
+ const point=new THREE.Vector3(),tint=new THREE.Color();
+ for(const p of spots){
   n.set(Math.cos(p.lat)*Math.sin(p.lon),Math.sin(p.lat),Math.cos(p.lat)*Math.cos(p.lon));
-  object.position.copy(n).multiplyScalar(radius+heightAt(n)+.13);
-  object.quaternion.copy(align.setFromUnitVectors(up,n))
-   .multiply(turn.setFromAxisAngle(up,p.yaw));
-  object.scale.set(p.radius,1,p.radius*.72);object.updateMatrix();
-  pool.setMatrixAt(i,object.matrix);
-  pool.setColorAt(i,tint.set(r2Lighting?(p.tint>.5?'#f6dc9b':'#efcb83'):(p.tint>.5?'#f3dda9':'#e3c993')));
+  sphericalSunDirection(n,light);
+  along.copy(light).addScaledVector(n,-light.dot(n)).normalize();
+  across.crossVectors(n,along).normalize();
+  tint.set(r2Lighting?(p.tint>.5?'#f6dc9b':'#efcb83'):(p.tint>.5?'#f3dda9':'#e3c993'));
+  const cos=Math.cos(p.yaw),sin=Math.sin(p.yaw);
+  for(let j=0;j<pattern.position.length/3;j++){
+   const x=pattern.position[j*3],z=pattern.position[j*3+2];
+   // Internal leaf variation rotates inside a sun-aligned elliptical pool.
+   const dx=(x*cos-z*sin)*p.radius,dz=(x*sin+z*cos)*p.radius*.72;
+   point.copy(n).multiplyScalar(radius).addScaledVector(along,dx).addScaledVector(across,dz).normalize();
+   point.multiplyScalar(radius+heightAt(point)+.13);
+   vertices.push(point.x,point.y,point.z);
+   colors.push(tint.r,tint.g,tint.b,pattern.color[j*4+3]);
+  }
  }
- pool.instanceMatrix.needsUpdate=true;
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+ geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,4));
+ geometry.computeVertexNormals();
+ const pool=new THREE.Mesh(geometry,material);
+ pool.name='forest-canopy-sunbreaks';pool.frustumCulled=false;
  pool.renderOrder=1;
  scene.add(pool);
  function setQuality(preset='balanced',preview=false){
-  pool.count=preview?0:preset==='economy'?5:preset==='high'?spots.length:13;
+  const count=preview?0:Math.min(spots.length,preset==='economy'?5:preset==='high'?spots.length:13);
+  geometry.setDrawRange(0,count*pattern.position.length/3);
+  pool.visible=count>0;
  }
  setQuality();
  return {setQuality,spotCount:spots.length,spots};
