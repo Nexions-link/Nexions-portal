@@ -29,7 +29,7 @@ export function createForestTerrainAtlas(THREE,{geometry,material,renderer}){
  const stats=partitionForestTerrain(THREE,geometry);
  let ready=false,enabled=true,relief=null,sourceRelief=null;
  const texture=new THREE.TextureLoader().load(
-  new URL('./assets/terrain/forest-ground-v78.webp',import.meta.url).href,
+  new URL('./assets/terrain/forest-ground-v64616.webp',import.meta.url).href,
   ()=>{ready=true;applyMap();},undefined,
   ()=>{console.warn('Forest atlas unavailable: original opaque ground retained');});
  texture.colorSpace=THREE.SRGBColorSpace;

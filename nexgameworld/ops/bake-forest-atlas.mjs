@@ -3,6 +3,8 @@ import {createCanvas} from '@napi-rs/canvas';
 import {writeFileSync} from 'node:fs';
 import {FOREST_ATLAS as b} from '../planet-test/forest-terrain-atlas.js';
 import {forestGroundPixel,buildForestGroundPixels,forestRoadProfile} from '../planet-test/forest-ground-texture.js';
+import {createForestPropContactField} from './forest-prop-contact.mjs';
+const propContact=createForestPropContactField();
 const W=2048,H=1024,global=buildForestGroundPixels(W,H,{art:true,r2:true});
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=(a,z,x)=>{const t=clamp((x-a)/(z-a));return t*t*(3-2*t)};
@@ -34,7 +36,13 @@ const image=ctx.createImageData(b.width,b.height);
 for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){
  const lon=b.west+(x+.5)/b.width*(b.east-b.west);
  const lat=b.north-(y+.5)/b.height*(b.north-b.south);
- const rgb=detailedSoil(forestGroundPixel(lon,lat,{art:true,r2:true}),lon,lat);
+ const soil=detailedSoil(forestGroundPixel(lon,lat,{art:true,r2:true}),lon,lat);
+ // G-29 stays entirely offline: the existing local atlas receives contact
+ // depth beneath the props visible in both balanced and high quality.
+ // Apply after soil detail so bright gravel cannot erase a grounded edge,
+ // and before the original edge blend so the atlas seam stays unchanged.
+ const depth=propContact.sample(lon,lat,{roadWear:forestRoadProfile(lon,lat).wear});
+ const rgb=soil.map((v,c)=>c===3?255:v*(1-depth));
  // Two complete globe cells at the perimeter match the old filtered atlas.
  const edge=Math.min(lon-b.west,b.east-lon,lat-b.south,b.north-lat);
  const blend=smooth(.035,.075,edge);
@@ -43,6 +51,8 @@ for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){
  image.data[i+3]=255;
 }
 ctx.putImageData(image,0,0);
-const out=new URL('../planet-test/assets/terrain/forest-ground-v78.webp',import.meta.url);
+const out=new URL('../planet-test/assets/terrain/forest-ground-v64616.webp',import.meta.url);
 writeFileSync(out,canvas.toBuffer('image/webp',92));
-console.log('Baked local forest atlas',b.width,b.height);
+console.log('Baked local forest atlas',b.width,b.height,
+ 'rocks',propContact.anchors.filter(p=>p.kind==='rock').length,
+ 'shrubs',propContact.anchors.filter(p=>p.kind==='shrub').length);

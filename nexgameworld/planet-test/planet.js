@@ -24,7 +24,7 @@ import {createForestGroundTexture,forestTextureMask} from './forest-ground-textu
 import {createR2MaterialMaps} from './r2-materials.js?v=1';
 import {createSurfaceMicrodetail} from './surface-microdetail.js?v=64609';
 import {createForestCanopyShadows} from './forest-canopy-shadows.js?v=1';
-import {createForestTerrainAtlas} from './forest-terrain-atlas.js?v=1';
+import {createForestTerrainAtlas} from './forest-terrain-atlas.js?v=2';
 import {createSoilScatter} from './soil-scatter.js?v=64609';
 import {createRoadsideDetails} from './roadside-details.js?v=2';
 import {createForestEcology} from './forest-ecology.js?v=10';

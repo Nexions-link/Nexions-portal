@@ -1,0 +1,130 @@
+{
+  "sourceBaseline": "4a42e38a321176c906e35d4dd994092916496e32",
+  "viewport": [
+    390,
+    844
+  ],
+  "deviceScaleFactor": 1.3,
+  "renderer": "Chromium SwiftShader; not a physical iPhone",
+  "atlas": {
+    "width": 2048,
+    "height": 1536,
+    "oldBytes": 423276,
+    "newBytes": 423172,
+    "anchors": 446,
+    "rocks": 123,
+    "shrubs": 323
+  },
+  "notes": [
+    "No production account or WebSocket; HTTP profile fixture. Only the test connection overlay is hidden.",
+    "Cameras, positions, light/texture counts and effect geometry budgets match. Raw frame counts may vary with shadow cadence and asynchronous actors; not FPS measurements.",
+    "Contact field is exclusively offline. Runtime shader, geometry and draw batches are unchanged. Economy uses the original global map.",
+    "Both versions have the same inherited MeshBasicMaterial roughness warning, without JS errors or viewport overflow."
+  ],
+  "cases": [
+    {
+      "quality": "economy",
+      "place": "village",
+      "camera": [
+        24.148146844065025,
+        -3.6889830655418807,
+        275.900365556782
+      ],
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "before": {
+        "calls": 926,
+        "triangles": 994713,
+        "textures": 21,
+        "geometries": 417
+      },
+      "after": {
+        "calls": 926,
+        "triangles": 994713,
+        "textures": 21,
+        "geometries": 417
+      }
+    },
+    {
+      "quality": "economy",
+      "place": "forest",
+      "camera": [
+        137.54056399682193,
+        7.663113846974923,
+        231.00532546363263
+      ],
+      "position": [
+        0.5497226307116281,
+        0.028520823153223678,
+        0.8348602229895431
+      ],
+      "before": {
+        "calls": 474,
+        "triangles": 888041,
+        "textures": 13,
+        "geometries": 161
+      },
+      "after": {
+        "calls": 474,
+        "triangles": 888041,
+        "textures": 13,
+        "geometries": 161
+      }
+    },
+    {
+      "quality": "balanced",
+      "place": "village",
+      "camera": [
+        24.148146844065025,
+        -3.6889830655418807,
+        275.900365556782
+      ],
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "before": {
+        "calls": 1080,
+        "triangles": 1343765,
+        "textures": 28,
+        "geometries": 555
+      },
+      "after": {
+        "calls": 1080,
+        "triangles": 1343765,
+        "textures": 28,
+        "geometries": 555
+      }
+    },
+    {
+      "quality": "balanced",
+      "place": "forest",
+      "camera": [
+        137.54056399682193,
+        7.663113846974923,
+        231.00532546363263
+      ],
+      "position": [
+        0.5497226307116281,
+        0.028520823153223678,
+        0.8348602229895431
+      ],
+      "before": {
+        "calls": 517,
+        "triangles": 1230833,
+        "textures": 21,
+        "geometries": 182
+      },
+      "after": {
+        "calls": 517,
+        "triangles": 1230833,
+        "textures": 21,
+        "geometries": 182
+      }
+    }
+  ]
+}
