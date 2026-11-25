@@ -46,6 +46,8 @@ import {GATHER_QUESTS,GATHER_RESPAWN_SECONDS,OFFLINE_CHEST,createGatherWorld} fr
 import {BANDIT_WEAPON_ITEM,BANDIT_WEAPON_REQUIRED,BANDIT_WEAPON_RESPAWN_SECONDS,createBanditWeaponWorld} from './bandit-weapons.js?v=1';
 import {createCampActions} from './camp-actions.js?v=64613';
 import {paintCastBar,hideCastBar} from './cast-bar.js?v=64613';
+import {createTargetAttackCue} from './target-attack-cue.js?v=1';
+import {createTargetAttackHud} from './target-attack-hud.js?v=1';
 import {OFFLINE_RPG_SAVE_KEY,clearOfflineProgress} from './progress-reset.js?v=1';
 import {HIT_REACTION_SECONDS} from '../combat-feedback.js?v=0.3.7.0';
 import {createSphereCombatFeedback} from './sphere-combat-feedback.js?v=1';
@@ -297,6 +299,10 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
 
  let target=null,autoplay=false,swing=0,clock=0,messageUntil=0,pendingLoot=null,pendingLootTake=null,gatherCast=null,
   blockRemaining=0,approach=null,chargeRequestedAt=0;
+ const targetAttackCue=createTargetAttackCue(),targetAttackHud=createTargetAttackHud({document});
+ function paintTargetAttackCue(){
+  targetAttackHud.paint(targetAttackCue.read(target,{connected:isOnline(),playerAlive:state.hp>0}));
+ }
  const timeline=createCombatTimeline();
  let bowAttack=null,pendingBowRelease=null,bowGeneration=0,bowCombatUntil=-1;
  const recentBowReleases=[],remoteBowReleases=[];
@@ -480,6 +486,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
  function onTradeClosed(event){itemTooltip.hide();playerTrade.onClosed(event)}
  function onTradeNotice(event){itemTooltip.hide();playerTrade.onNotice(event)}
  function onNetworkDisconnect(){
+  targetAttackCue.clear();paintTargetAttackCue();
   playerTrade.disconnect();
   if(!authenticatedProfile)return;
   partyInterface.reset();
@@ -765,6 +772,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(Number.isFinite(event.hp))state.hp=Math.max(0,Math.min(stats().maxHp,event.hp));
   if(Number.isFinite(event.resource))state.resource=clamp(event.resource,0,100);
   if(state.hp<=0)cancelBowShot();
+  paintTargetAttackCue();
  }
  function onCombatEvent(event,selfId){
   const mob=mobs.find(e=>e.id===event?.mobId);
@@ -875,6 +883,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    // A late hit from the mob's previous life may still arrive after respawn.
    // Never cancel the NEW life's windup or animate a phantom strike.
    if(Number.isInteger(event.life)&&event.life!==attacker.life)return;
+   targetAttackCue.finish(event,attacker);paintTargetAttackCue();
    attacker.attackWindup=0;
    attacker.visualStrikeHitSequence=(attacker.visualStrikeHitSequence||0)+1;
   }
@@ -893,6 +902,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!isOnline()||event?.targetId===selfId)return;
   const mob=mobs.find(m=>m.id===event?.mobId);
   if(!mob||mob.corpse||!mob.root.visible||event.life!==mob.life)return;
+  targetAttackCue.finish(event,mob);paintTargetAttackCue();
   mob.attackWindup=0;
   mob.visualStrikeHitSequence=(mob.visualStrikeHitSequence||0)+1;
  }
@@ -918,6 +928,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
   if(!isOnline()||typeof event?.mobId!=='string')return;
   const mob=mobs.find(e=>e.id===event.mobId);
   if(!mob||mob.corpse||!mob.root.visible||event.life!==mob.life)return;
+  targetAttackCue.begin(event,mob);paintTargetAttackCue();
   // Drive both the bandit GLB Attack clip and the longstrider peck from the
   // authoritative windup. The next server hit/cancel or expiry ends this state.
   const seconds=Number.isFinite(event.windupMs)?
@@ -929,6 +940,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    mob.birdVisual.attackRemaining||0,Math.min(1.05,Math.max(.8,seconds+.12)));
  }
  function onNetworkRespawn(event){
+  targetAttackCue.clear();paintTargetAttackCue();
   cancelBowShot(true);
   chargeRequestedAt=0;
   resetPlayerHitReaction(hero.root.userData);
@@ -966,6 +978,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(remote.level===creatureByIndex(mob.index)?.level)mob.level=remote.level;
    mob.corpse=remote.phase==='corpse';mob.dead=mob.corpse?6:0;
    mob.root.visible=remote.phase!=='hidden';
+   targetAttackCue.snapshot(remote,mob);
    if(mob.corpse&&!wasCorpse){
     clearLongstriderHeadPose(mob.birdVisual?.headRig);
     
@@ -982,6 +995,7 @@ export function createOfflineRpg({THREE,scene,hero,makeTauren,playerNormal,getRa
    if(mob.corpse||wasHidden||changedLife)setModelAt(mob);
    updateLootMarker(mob);
   }
+  paintTargetAttackCue();
  }
  const hotbar=$('actionsBar'),modal=$('modal'),toast=$('toast'),spellbook=$('spellbookPopover');
  const itemTooltip=createItemTooltip({document,items:ITEM_CATALOG,qualities:QUALITY_VISUALS,
@@ -1978,6 +1992,7 @@ function resetCreatureImpact(mob){
      (CREATURE_TYPE_LABELS[target.creatureType]||'Существо')+' · '+status:status;
     $('dummyStats').hidden=target.kind!=='dummy';
   }
+  paintTargetAttackCue();
   // The minimap is the only navigation UI. Never overlay distance on the world.
   questTracking.sync();
   const panelRows=questTracking.trackedIds.map(id=>questProgressSummary(id,state,state.inventory)).filter(Boolean);
@@ -3315,6 +3330,7 @@ function resetCreatureImpact(mob){
   combatVfx.update(dt);
   stompEffect.update(dt);
   updateSelection();
+  paintTargetAttackCue();
   if(Math.floor(clock*5)!==Math.floor((clock-dt)*5))draw(false);
  }
  let resetPosition=null;

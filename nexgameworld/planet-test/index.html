@@ -43,6 +43,7 @@
 <link rel="stylesheet" href="./battlefury-tuner.css?v=1">
 <link rel="stylesheet" href="./loot-sheet.css?v=1">
 <link rel="stylesheet" href="./target-hud.css?v=1">
+<link rel="stylesheet" href="./target-attack-cue.css?v=1">
 <link rel="stylesheet" href="./bandit-quest.css?v=3">
 <link rel="stylesheet" href="./xp-feedback.css?v=1">
 <link rel="stylesheet" href="./level-up-feedback.css?v=2">
@@ -553,7 +554,12 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
  </div>
  <div class="bar health"><div id="targetFill"></div><span id="targetHp"></span></div>
  <div id="targetDistance" aria-live="off"></div>
- <div id="targetStatus" aria-live="off"></div>
+ <div id="targetActivityRow">
+  <div id="targetStatus" aria-live="off"></div>
+  <div id="targetAttackCue" role="progressbar" aria-label="Подготовка удара цели · приблизительно" aria-valuemin="0" aria-valuemax="100" aria-live="off" title="Приблизительная подготовка удара. Результат подтверждает сервер." hidden>
+   <span id="targetAttackCueFill" aria-hidden="true"></span><span id="targetAttackCueLabel"></span><span id="targetAttackCueTime"></span>
+  </div>
+ </div>
  <div id="dummyStats" hidden aria-label="Статистика тренировочного манекена">
   <div class="dummy-heading">Тренировочная цель · не атакует</div>
   <div class="dummy-metrics">
@@ -613,7 +619,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 </nav>
 
 
-<aside id="planetBuildWidget" data-build="0.6.46.16" aria-label="Версия сферической NexGameWorld">
+<aside id="planetBuildWidget" data-build="0.6.46.17" aria-label="Версия сферической NexGameWorld">
   <button id="planetVersionBadge" type="button" aria-expanded="false" aria-controls="planetBuildPanel" title="Версия и изменения NexGameWorld">
     <span>Alpha —</span>
     <span id="planetBuildNew" hidden></span>
@@ -741,7 +747,7 @@ html.portal-preview #loading{font:15px system-ui,sans-serif;text-align:center}
 <script src="./build-status.js?v=3" defer></script>
 <script type="module">
   // If a dependency fails to load, show a useful error instead of an endless sky.
-  import('./planet.js?v=64616').catch(error=>{
+  import('./planet.js?v=64617').catch(error=>{
     const loading=document.getElementById('loading');
     const failure=document.getElementById('failure');
     if(loading)loading.classList.add('is-done');

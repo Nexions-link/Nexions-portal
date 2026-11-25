@@ -1,0 +1,169 @@
+{
+  "version": "0.6.46.17",
+  "base": "23dc7af40cb552a86dc92a75a5994067911ab8f1",
+  "renderer": "Chromium SwiftShader, DPR 1.3, economy, isolated HTTP profile and no production WebSocket",
+  "sameCameraAndWebGLBudget": true,
+  "budget": {
+    "camera": {
+      "position": [
+        -25.537633611392163,
+        -23.683174656610284,
+        267.22667520251093
+      ],
+      "quaternion": [
+        0.42086438528826,
+        -0.36752410752903075,
+        -0.602271017821294,
+        0.5701480690780484
+      ],
+      "fov": 58
+    },
+    "render": {
+      "calls": 971,
+      "triangles": 917020,
+      "points": 0,
+      "lines": 0
+    },
+    "memory": {
+      "geometries": 376,
+      "textures": 28
+    }
+  },
+  "sameHudBoundsInAllViewports": true,
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844,
+      "baseline": {
+        "target": {
+          "x": 150.15625,
+          "y": 10,
+          "width": 136.15625,
+          "height": 89.6875
+        },
+        "distance": {
+          "x": 157.15625,
+          "y": 67,
+          "width": 103.15625,
+          "height": 11.6875
+        },
+        "name": {
+          "x": 157.15625,
+          "y": 18,
+          "width": 103.15625,
+          "height": 29
+        },
+        "hp": {
+          "x": 158.15625,
+          "y": 51,
+          "width": 101.15625,
+          "height": 11
+        },
+        "overflow": false
+      },
+      "active": {
+        "visible": true,
+        "value": "50",
+        "text": "Готовит удар · примерно 0,2 с",
+        "height": 89.6875,
+        "distanceHeight": 11.6875,
+        "passThrough": "none",
+        "overflow": false
+      }
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "baseline": {
+        "target": {
+          "x": 302,
+          "y": 10,
+          "width": 240,
+          "height": 90
+        },
+        "distance": {
+          "x": 312,
+          "y": 69,
+          "width": 200,
+          "height": 13
+        },
+        "name": {
+          "x": 312,
+          "y": 20,
+          "width": 200,
+          "height": 29
+        },
+        "hp": {
+          "x": 313,
+          "y": 53,
+          "width": 198,
+          "height": 11
+        },
+        "overflow": false
+      },
+      "active": {
+        "visible": true,
+        "value": "50",
+        "text": "Готовит удар · примерно 0,2 с",
+        "height": 90,
+        "distanceHeight": 13,
+        "passThrough": "none",
+        "overflow": false
+      }
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "baseline": {
+        "target": {
+          "x": 117,
+          "y": 10,
+          "width": 103,
+          "height": 86
+        },
+        "distance": {
+          "x": 124,
+          "y": 67,
+          "width": 70,
+          "height": 11.6875
+        },
+        "name": {
+          "x": 124,
+          "y": 18,
+          "width": 70,
+          "height": 29
+        },
+        "hp": {
+          "x": 125,
+          "y": 51,
+          "width": 68,
+          "height": 11
+        },
+        "overflow": false
+      },
+      "active": {
+        "visible": true,
+        "value": "50",
+        "text": "Готовит удар · примерно 0,2 с",
+        "height": 86,
+        "distanceHeight": 11.6875,
+        "passThrough": "none",
+        "overflow": false
+      }
+    }
+  ],
+  "checks": [
+    "telegraph 50%",
+    "waiting does not change HP",
+    "strike hides cue",
+    "snapshot-only unknown removes numeric ARIA",
+    "target clear/reselect",
+    "disconnect clears",
+    "no JavaScript errors or horizontal overflow"
+  ],
+  "limitations": [
+    "No physical iPhone FPS/P95 measurement",
+    "Server events injected through existing RPG public handlers; real player data untouched",
+    "No active/idle FPS equivalence claimed for DOM overlay"
+  ]
+}

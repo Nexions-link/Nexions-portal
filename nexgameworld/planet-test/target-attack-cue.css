@@ -1,0 +1,25 @@
+/* Replace the existing 12px status line; distance and HUD height stay intact. */
+#hudTop #targetActivityRow{position:relative;height:12px;min-height:12px;max-height:12px;margin-top:2px;overflow:hidden;line-height:12px}
+#hudTop #targetActivityRow #targetStatus{height:12px;line-height:12px;margin:0}
+#hudTop #targetActivityRow [hidden]{display:none!important}
+#hudTop #targetAttackCue{
+ position:absolute;inset:0;overflow:hidden;pointer-events:none;
+ border:1px solid #6e542b;background:#1a140d;
+ box-sizing:border-box;isolation:isolate;
+ font:700 8px/10px system-ui,sans-serif;color:#fff0c7;text-shadow:0 1px 1px #000
+}
+#hudTop #targetAttackCueFill{
+ position:absolute;inset:0;transform-origin:left center;
+ background:linear-gradient(#bf8a36,#81501d);z-index:-1
+}
+#hudTop #targetAttackCueLabel{position:absolute;left:3px;right:34px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#hudTop #targetAttackCueTime{position:absolute;right:2px;font-variant-numeric:tabular-nums}
+#hudTop #targetAttackCue[data-attack-phase="waiting"] #targetAttackCueFill{background:linear-gradient(#a65c30,#65331c)}
+#hudTop #targetAttackCue[data-attack-phase="unknown"] #targetAttackCueFill{opacity:.45}
+@media(max-width:360px){
+ /* Keep the full text in the DOM/ARIA; the narrow status slot uses a short
+    visual label at the same readable size, leaving the timer untouched. */
+ #hudTop #targetAttackCueLabel{font-size:0;text-overflow:clip}
+ #hudTop #targetAttackCueLabel::after{content:'Замах';font:700 8px/10px system-ui,sans-serif}
+ #hudTop #targetAttackCue[data-attack-phase="waiting"] #targetAttackCueLabel::after{content:'Ждёт'}
+}
