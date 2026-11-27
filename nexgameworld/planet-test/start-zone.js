@@ -17,6 +17,7 @@ import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=10';
 import {createRoofTransparency,createSurfaceTransparency} from './roof-transparency.js?v=3';
 import {createHouseRat} from './house-rat.js?v=9';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
+import {createValleyStoneGeometry} from './valley-stone-sculpt.js?v=1';
 import {createBanditCampVisuals} from './bandit-camp-visuals.js?v=3';
 import {BANDIT_CAMP,BANDIT_CHIEF_PATH} from './bandit-camp-data.js?v=2';
 
@@ -206,10 +207,20 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
  const flame=new THREE.Mesh(new THREE.ConeGeometry(.5,1.3,7),new THREE.MeshBasicMaterial({color:'#ffb253'}));flame.position.y=.7;fire.add(flame);embers.push(flame);
  // Sculpted sandstone mesas and isolated boulders in the original valley.
  // A single instanced batch for each material means four additional draw calls.
- const mesaBase=new THREE.InstancedMesh(new THREE.CylinderGeometry(.8,1,1,8),rockDark,VALLEY_MESAS.length);
- const mesaCap=new THREE.InstancedMesh(new THREE.CylinderGeometry(.82,.85,1,8),rockLight,VALLEY_MESAS.length);
- const mesaGrass=new THREE.InstancedMesh(new THREE.CylinderGeometry(.76,.82,1,8),leaf,VALLEY_MESAS.length);
- const boulders=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),rock,VALLEY_ROCKS.length);
+ for(const material of [rockDark,rockLight,leaf,rock]){
+  material.vertexColors=true;
+  // MeshStandardMaterial does not supply ShaderMaterial's attribute defaults.
+  // The shared leaf/rock materials also draw old geometry without a colour
+  // buffer: explicitly keep those props white before their material tint.
+  material.defaultAttributeValues={color:[1,1,1]};
+ }
+ // Only the mesa body uses this material; other village props retain their
+ // original base colours and use the explicit white fallback above.
+ rockDark.color.set('#9b8063');
+ const mesaBase=new THREE.InstancedMesh(createValleyStoneGeometry(THREE,'base'),rockDark,VALLEY_MESAS.length);
+ const mesaCap=new THREE.InstancedMesh(createValleyStoneGeometry(THREE,'cap'),rockLight,VALLEY_MESAS.length);
+ const mesaGrass=new THREE.InstancedMesh(createValleyStoneGeometry(THREE,'grass'),leaf,VALLEY_MESAS.length);
+ const boulders=new THREE.InstancedMesh(createValleyStoneGeometry(THREE,'boulders'),rock,VALLEY_ROCKS.length);
  for(const obj of [mesaBase,mesaCap,mesaGrass,boulders]){obj.frustumCulled=false;scene.add(obj)}
  const stoneDummy=new THREE.Object3D(),stoneQ=new THREE.Quaternion(),stoneYaw=new THREE.Quaternion();
  function rebuildStones(){

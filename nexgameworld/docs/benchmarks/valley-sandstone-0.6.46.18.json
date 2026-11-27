@@ -1,0 +1,527 @@
+{
+  "version": "0.6.46.18",
+  "baseline": "b1ccba481aaa6ec244fd43455079ce4109ef0529",
+  "viewport": [
+    390,
+    844
+  ],
+  "deviceScaleFactor": 1.3,
+  "renderer": "Chromium SwiftShader, not a physical iPhone",
+  "fixture": "isolated HTTP profile/fake WebSocket; fixed dt .05 and six stock camera frames, normalize shadow update for render counters; only before start-zone/planet loaded from baseline; HTML version badge already18 in both",
+  "cases": [
+    {
+      "place": "camp",
+      "quality": "economy",
+      "before": {
+        "calls": 1052,
+        "triangles": 1006881,
+        "textures": 21,
+        "geometries": 521,
+        "materials": 622,
+        "position": [
+          0,
+          0,
+          1
+        ],
+        "camera": [
+          24.148146844065025,
+          -3.6889830655418807,
+          275.900365556782
+        ],
+        "cameraQuaternion": [
+          0.3947677728123454,
+          0.3390410037738049,
+          0.556367541933279,
+          0.64781537616203
+        ],
+        "cameraFov": 58,
+        "frames": 6,
+        "overflow": false
+      },
+      "after": {
+        "calls": 1052,
+        "triangles": 1006881,
+        "textures": 21,
+        "geometries": 521,
+        "materials": 622,
+        "position": [
+          0,
+          0,
+          1
+        ],
+        "camera": [
+          24.148146844065025,
+          -3.6889830655418807,
+          275.900365556782
+        ],
+        "cameraQuaternion": [
+          0.3947677728123454,
+          0.3390410037738049,
+          0.556367541933279,
+          0.64781537616203
+        ],
+        "cameraFov": 58,
+        "frames": 6,
+        "overflow": false
+      },
+      "batches": [
+        {
+          "kind": "base",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "6171fa6808f36a3120a77c2e0557ff8e967b576035cfc721f2b6d81a376d196d",
+          "matricesEqual": true
+        },
+        {
+          "kind": "cap",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "e28c395439ff206151cc9cd4e881e239e0b112f76c7a7c88ef7c04634e82e22f",
+          "matricesEqual": true
+        },
+        {
+          "kind": "grass",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "f02daf35e0281c1d1a9b585a907e6620b496c7d2fc690acedd1be953bd63a099",
+          "matricesEqual": true
+        },
+        {
+          "kind": "boulders",
+          "count": 38,
+          "vertices": 108,
+          "triangles": 36,
+          "index": false,
+          "instanceMatricesSha256": "1048adf22f23ff8bc0c5115e5a959c067e2b0a02e05f4a92038ba5270c2e5b82",
+          "matricesEqual": true
+        }
+      ],
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    },
+    {
+      "place": "rock",
+      "quality": "balanced",
+      "before": {
+        "calls": 694,
+        "triangles": 1237541,
+        "textures": 26,
+        "geometries": 289,
+        "materials": 627,
+        "position": [
+          0.14885956364249395,
+          0.02026780212670879,
+          0.9886506190303624
+        ],
+        "camera": [
+          28.25421910817258,
+          5.484993787294064,
+          269.3660370104082
+        ],
+        "cameraQuaternion": [
+          0.3284600352057169,
+          -0.33994089034472963,
+          -0.618814473850121,
+          0.627393690833666
+        ],
+        "cameraFov": 58,
+        "frames": 6,
+        "overflow": false
+      },
+      "after": {
+        "calls": 694,
+        "triangles": 1237541,
+        "textures": 26,
+        "geometries": 289,
+        "materials": 627,
+        "position": [
+          0.14885956364249395,
+          0.02026780212670879,
+          0.9886506190303624
+        ],
+        "camera": [
+          28.25421910817258,
+          5.484993787294064,
+          269.3660370104082
+        ],
+        "cameraQuaternion": [
+          0.3284600352057169,
+          -0.33994089034472963,
+          -0.618814473850121,
+          0.627393690833666
+        ],
+        "cameraFov": 58,
+        "frames": 6,
+        "overflow": false
+      },
+      "batches": [
+        {
+          "kind": "base",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "6171fa6808f36a3120a77c2e0557ff8e967b576035cfc721f2b6d81a376d196d",
+          "matricesEqual": true
+        },
+        {
+          "kind": "cap",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "e28c395439ff206151cc9cd4e881e239e0b112f76c7a7c88ef7c04634e82e22f",
+          "matricesEqual": true
+        },
+        {
+          "kind": "grass",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "f02daf35e0281c1d1a9b585a907e6620b496c7d2fc690acedd1be953bd63a099",
+          "matricesEqual": true
+        },
+        {
+          "kind": "boulders",
+          "count": 38,
+          "vertices": 108,
+          "triangles": 36,
+          "index": false,
+          "instanceMatricesSha256": "1048adf22f23ff8bc0c5115e5a959c067e2b0a02e05f4a92038ba5270c2e5b82",
+          "matricesEqual": true
+        }
+      ],
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    },
+    {
+      "place": "mesas",
+      "quality": "balanced",
+      "before": {
+        "calls": 621,
+        "triangles": 1232273,
+        "textures": 23,
+        "geometries": 234,
+        "materials": 627,
+        "position": [
+          0.24647576886943923,
+          0,
+          0.9691489541655703
+        ],
+        "camera": [
+          54.347636643619,
+          0,
+          263.0587753909882
+        ],
+        "cameraQuaternion": [
+          0.30278509621328525,
+          -0.30278509621328525,
+          -0.6390001451573478,
+          0.6390001451573478
+        ],
+        "cameraFov": 58,
+        "frames": 6,
+        "overflow": false
+      },
+      "after": {
+        "calls": 621,
+        "triangles": 1232273,
+        "textures": 23,
+        "geometries": 234,
+        "materials": 627,
+        "position": [
+          0.24647576886943923,
+          0,
+          0.9691489541655703
+        ],
+        "camera": [
+          54.347636643619,
+          0,
+          263.0587753909882
+        ],
+        "cameraQuaternion": [
+          0.30278509621328525,
+          -0.30278509621328525,
+          -0.6390001451573478,
+          0.6390001451573478
+        ],
+        "cameraFov": 58,
+        "frames": 6,
+        "overflow": false
+      },
+      "batches": [
+        {
+          "kind": "base",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "6171fa6808f36a3120a77c2e0557ff8e967b576035cfc721f2b6d81a376d196d",
+          "matricesEqual": true
+        },
+        {
+          "kind": "cap",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "e28c395439ff206151cc9cd4e881e239e0b112f76c7a7c88ef7c04634e82e22f",
+          "matricesEqual": true
+        },
+        {
+          "kind": "grass",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "f02daf35e0281c1d1a9b585a907e6620b496c7d2fc690acedd1be953bd63a099",
+          "matricesEqual": true
+        },
+        {
+          "kind": "boulders",
+          "count": 38,
+          "vertices": 108,
+          "triangles": 36,
+          "index": false,
+          "instanceMatricesSha256": "1048adf22f23ff8bc0c5115e5a959c067e2b0a02e05f4a92038ba5270c2e5b82",
+          "matricesEqual": true
+        }
+      ],
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    },
+    {
+      "place": "entrance",
+      "quality": "balanced",
+      "before": {
+        "calls": 627,
+        "triangles": 1233183,
+        "textures": 22,
+        "geometries": 236,
+        "materials": 627,
+        "position": [
+          0.28706473728657855,
+          0.0226630055752562,
+          0.9576430570859288
+        ],
+        "camera": [
+          65.35395581885744,
+          6.0795998951286006,
+          260.3917729019225
+        ],
+        "cameraQuaternion": [
+          0.28315550115076266,
+          -0.29528150090348104,
+          -0.6399649401912388,
+          0.6504434431357364
+        ],
+        "cameraFov": 58,
+        "frames": 6,
+        "overflow": false
+      },
+      "after": {
+        "calls": 627,
+        "triangles": 1233183,
+        "textures": 22,
+        "geometries": 236,
+        "materials": 627,
+        "position": [
+          0.28706473728657855,
+          0.0226630055752562,
+          0.9576430570859288
+        ],
+        "camera": [
+          65.35395581885744,
+          6.0795998951286006,
+          260.3917729019225
+        ],
+        "cameraQuaternion": [
+          0.28315550115076266,
+          -0.29528150090348104,
+          -0.6399649401912388,
+          0.6504434431357364
+        ],
+        "cameraFov": 58,
+        "frames": 6,
+        "overflow": false
+      },
+      "batches": [
+        {
+          "kind": "base",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "6171fa6808f36a3120a77c2e0557ff8e967b576035cfc721f2b6d81a376d196d",
+          "matricesEqual": true
+        },
+        {
+          "kind": "cap",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "e28c395439ff206151cc9cd4e881e239e0b112f76c7a7c88ef7c04634e82e22f",
+          "matricesEqual": true
+        },
+        {
+          "kind": "grass",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "f02daf35e0281c1d1a9b585a907e6620b496c7d2fc690acedd1be953bd63a099",
+          "matricesEqual": true
+        },
+        {
+          "kind": "boulders",
+          "count": 38,
+          "vertices": 108,
+          "triangles": 36,
+          "index": false,
+          "instanceMatricesSha256": "1048adf22f23ff8bc0c5115e5a959c067e2b0a02e05f4a92038ba5270c2e5b82",
+          "matricesEqual": true
+        }
+      ],
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    },
+    {
+      "place": "panorama",
+      "quality": "balanced",
+      "before": {
+        "calls": 2382,
+        "triangles": 1504140,
+        "textures": 54,
+        "geometries": 1037,
+        "materials": 627,
+        "position": [
+          -0.6362132956719084,
+          0.02120710985573028,
+          0.7712216937443188
+        ],
+        "camera": [
+          -181.26774263686102,
+          5.729414692792001,
+          200.61462703071203
+        ],
+        "cameraQuaternion": [
+          -0.5517445696963277,
+          0.5663726078863405,
+          0.431242054048641,
+          -0.4345460731229184
+        ],
+        "cameraFov": 58,
+        "frames": 6,
+        "overflow": false
+      },
+      "after": {
+        "calls": 2382,
+        "triangles": 1504140,
+        "textures": 54,
+        "geometries": 1037,
+        "materials": 627,
+        "position": [
+          -0.6362132956719084,
+          0.02120710985573028,
+          0.7712216937443188
+        ],
+        "camera": [
+          -181.26774263686102,
+          5.729414692792001,
+          200.61462703071203
+        ],
+        "cameraQuaternion": [
+          -0.5517445696963277,
+          0.5663726078863405,
+          0.431242054048641,
+          -0.4345460731229184
+        ],
+        "cameraFov": 58,
+        "frames": 6,
+        "overflow": false
+      },
+      "batches": [
+        {
+          "kind": "base",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "6171fa6808f36a3120a77c2e0557ff8e967b576035cfc721f2b6d81a376d196d",
+          "matricesEqual": true
+        },
+        {
+          "kind": "cap",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "e28c395439ff206151cc9cd4e881e239e0b112f76c7a7c88ef7c04634e82e22f",
+          "matricesEqual": true
+        },
+        {
+          "kind": "grass",
+          "count": 25,
+          "vertices": 52,
+          "triangles": 32,
+          "index": true,
+          "instanceMatricesSha256": "f02daf35e0281c1d1a9b585a907e6620b496c7d2fc690acedd1be953bd63a099",
+          "matricesEqual": true
+        },
+        {
+          "kind": "boulders",
+          "count": 38,
+          "vertices": 108,
+          "triangles": 36,
+          "index": false,
+          "instanceMatricesSha256": "1048adf22f23ff8bc0c5115e5a959c067e2b0a02e05f4a92038ba5270c2e5b82",
+          "matricesEqual": true
+        }
+      ],
+      "warnings": [
+        "THREE.Material: 'roughness' is not a property of THREE.MeshBasicMaterial."
+      ]
+    }
+  ],
+  "budget": {
+    "batches": 4,
+    "logicalMesas": 25,
+    "logicalBoulders": 38,
+    "componentInstances": 113,
+    "triangles": 3768,
+    "staticColorBytes": 3168,
+    "newMaterials": 0,
+    "newTextures": 0,
+    "newPasses": 0,
+    "newFrameLoops": 0
+  },
+  "independentReview": {
+    "actualMesaRaySamples": 289440,
+    "misses": 0,
+    "minRadius": 0.8902845598629278,
+    "maxRadius": 0.9956206582117576,
+    "unchangedColliderRadius": 0.85,
+    "degenerateTriangles": 0,
+    "inwardTriangles": 0
+  },
+  "limits": [
+    "No physical iPhone FPS/P95 measurement",
+    "Inherited upper-boulder collider mismatch not claimed fixed",
+    "No exact match to unavailable original R1 attachment claimed"
+  ],
+  "notes": [
+    "Additional panorama uses a far western world point with the same stock camera. A separate art PNG only hides HUD; primary screenshots retain the normal interface."
+  ]
+}
