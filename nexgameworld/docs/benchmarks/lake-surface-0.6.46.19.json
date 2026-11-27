@@ -1,0 +1,459 @@
+{
+  "version": "0.6.46.19",
+  "baseline": "d1c80da85a22bdb45e990cbcd4fc85996fb7cc97",
+  "viewport": [
+    390,
+    844
+  ],
+  "deviceScaleFactor": 1.3,
+  "renderer": "Chromium SwiftShader; not physical iPhone",
+  "fixture": "HTTP character fixture/fake WebSocket; dt=.05 and6frames; east test-only orientation seed pi; stock pitch/zoom/FOV/camera algorithm unchanged. Baseline runtime/start-zone from main18; version badge may show19 after metadata change. Shadow update frozen for comparable counters.",
+  "budget": {
+    "lakeMeshes": 3,
+    "triangles": 5220,
+    "addedShoreRGBBytes": 6552,
+    "newMaterials": 0,
+    "newTextures": 0,
+    "newPasses": 0,
+    "newFramePaint": 0
+  },
+  "cases": [
+    {
+      "place": "west",
+      "quality": "balanced",
+      "cameraAndPosition": {
+        "position": [
+          0.04206345964288615,
+          0.09942272279227636,
+          0.9941558165375494
+        ],
+        "camera": [
+          -0.8591923552992277,
+          26.70103230059975,
+          267.5054647831924
+        ],
+        "cameraQuaternion": [
+          0.33737405225394823,
+          -0.3959354284278713,
+          -0.584066513865778,
+          0.6231213306909539
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 6,
+        "overflow": false
+      },
+      "before": {
+        "calls": 754,
+        "triangles": 1238503,
+        "textures": 27,
+        "geometries": 323,
+        "materials": 627
+      },
+      "after": {
+        "calls": 754,
+        "triangles": 1238503,
+        "textures": 27,
+        "geometries": 323,
+        "materials": 627
+      },
+      "layers": [
+        {
+          "kind": "shore",
+          "vertices": 546,
+          "triangles": 900,
+          "positionHash": "1f849eea8be22cd6f70c67e866467c9dcc5570100536f589897a2622d265e708",
+          "indexHash": "19b26cb966af7ca86e7c233362aca99c731436e3bec59f6c1ec505aea05a5a2b",
+          "uvHash": "7da20f688ba4721a6f7246beb4bc7ab39c540145948c9dff9909e3072ddae58c",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 0,
+          "colorBytesAfter": 6552,
+          "colorSizeBefore": 0,
+          "colorSizeAfter": 3,
+          "texture": null
+        },
+        {
+          "kind": "water",
+          "vertices": 1183,
+          "triangles": 2160,
+          "positionHash": "c34ef7035a282303ca0ee6235efaa915708a04fff27b15f434677358ae7b094b",
+          "indexHash": "6e15e365d7eee29c35d84b63bcd33c8e17bc8abc670572c705f659e87674b0f2",
+          "uvHash": "4221b5968834a9ede17f3b267ec68d30ff55f4139c0968d87f68d7c4382223dc",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 14196,
+          "colorBytesAfter": 14196,
+          "colorSizeBefore": 3,
+          "colorSizeAfter": 3,
+          "texture": null
+        },
+        {
+          "kind": "shimmer",
+          "vertices": 1183,
+          "triangles": 2160,
+          "positionHash": "c34ef7035a282303ca0ee6235efaa915708a04fff27b15f434677358ae7b094b",
+          "indexHash": "6e15e365d7eee29c35d84b63bcd33c8e17bc8abc670572c705f659e87674b0f2",
+          "uvHash": "4221b5968834a9ede17f3b267ec68d30ff55f4139c0968d87f68d7c4382223dc",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 14196,
+          "colorBytesAfter": 14196,
+          "colorSizeBefore": 3,
+          "colorSizeAfter": 3,
+          "texture": {
+            "width": 256,
+            "height": 256,
+            "repeat": [
+              5,
+              3
+            ],
+            "wrap": [
+              1000,
+              1000
+            ],
+            "offset": [
+              0.0018,
+              0.0009
+            ]
+          }
+        }
+      ],
+      "pageErrors": 0
+    },
+    {
+      "place": "shallows",
+      "quality": "economy",
+      "cameraAndPosition": {
+        "position": [
+          0.053525481573476356,
+          0.09940446577931322,
+          0.9936064487539605
+        ],
+        "camera": [
+          2.2244840977447033,
+          26.69369396347076,
+          267.4737324331423
+        ],
+        "cameraQuaternion": [
+          0.33400616142173983,
+          -0.3923306291836813,
+          -0.5860060575778137,
+          0.625390647530613
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 6,
+        "overflow": false
+      },
+      "before": {
+        "calls": 713,
+        "triangles": 900733,
+        "textures": 18,
+        "geometries": 259,
+        "materials": 622
+      },
+      "after": {
+        "calls": 713,
+        "triangles": 900733,
+        "textures": 18,
+        "geometries": 259,
+        "materials": 622
+      },
+      "layers": [
+        {
+          "kind": "shore",
+          "vertices": 546,
+          "triangles": 900,
+          "positionHash": "1f849eea8be22cd6f70c67e866467c9dcc5570100536f589897a2622d265e708",
+          "indexHash": "19b26cb966af7ca86e7c233362aca99c731436e3bec59f6c1ec505aea05a5a2b",
+          "uvHash": "7da20f688ba4721a6f7246beb4bc7ab39c540145948c9dff9909e3072ddae58c",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 0,
+          "colorBytesAfter": 6552,
+          "colorSizeBefore": 0,
+          "colorSizeAfter": 3,
+          "texture": null
+        },
+        {
+          "kind": "water",
+          "vertices": 1183,
+          "triangles": 2160,
+          "positionHash": "c34ef7035a282303ca0ee6235efaa915708a04fff27b15f434677358ae7b094b",
+          "indexHash": "6e15e365d7eee29c35d84b63bcd33c8e17bc8abc670572c705f659e87674b0f2",
+          "uvHash": "4221b5968834a9ede17f3b267ec68d30ff55f4139c0968d87f68d7c4382223dc",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 14196,
+          "colorBytesAfter": 14196,
+          "colorSizeBefore": 3,
+          "colorSizeAfter": 3,
+          "texture": null
+        },
+        {
+          "kind": "shimmer",
+          "vertices": 1183,
+          "triangles": 2160,
+          "positionHash": "c34ef7035a282303ca0ee6235efaa915708a04fff27b15f434677358ae7b094b",
+          "indexHash": "6e15e365d7eee29c35d84b63bcd33c8e17bc8abc670572c705f659e87674b0f2",
+          "uvHash": "4221b5968834a9ede17f3b267ec68d30ff55f4139c0968d87f68d7c4382223dc",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 14196,
+          "colorBytesAfter": 14196,
+          "colorSizeBefore": 3,
+          "colorSizeAfter": 3,
+          "texture": {
+            "width": 256,
+            "height": 256,
+            "repeat": [
+              5,
+              3
+            ],
+            "wrap": [
+              1000,
+              1000
+            ],
+            "offset": [
+              0.0018,
+              0.0009
+            ]
+          }
+        }
+      ],
+      "pageErrors": 0
+    },
+    {
+      "place": "east",
+      "quality": "balanced",
+      "cameraAndPosition": {
+        "position": [
+          0.19008574850860618,
+          0.09884458922447523,
+          0.9767789695703771
+        ],
+        "camera": [
+          63.011712607875,
+          26.555927755500033,
+          260.1007121616626
+        ],
+        "cameraQuaternion": [
+          0.40356850513363673,
+          0.46593064722479727,
+          0.5406933863902577,
+          0.5724436702023343
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 6,
+        "overflow": false
+      },
+      "before": {
+        "calls": 819,
+        "triangles": 1264971,
+        "textures": 29,
+        "geometries": 483,
+        "materials": 627
+      },
+      "after": {
+        "calls": 819,
+        "triangles": 1264971,
+        "textures": 29,
+        "geometries": 483,
+        "materials": 627
+      },
+      "layers": [
+        {
+          "kind": "shore",
+          "vertices": 546,
+          "triangles": 900,
+          "positionHash": "1f849eea8be22cd6f70c67e866467c9dcc5570100536f589897a2622d265e708",
+          "indexHash": "19b26cb966af7ca86e7c233362aca99c731436e3bec59f6c1ec505aea05a5a2b",
+          "uvHash": "7da20f688ba4721a6f7246beb4bc7ab39c540145948c9dff9909e3072ddae58c",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 0,
+          "colorBytesAfter": 6552,
+          "colorSizeBefore": 0,
+          "colorSizeAfter": 3,
+          "texture": null
+        },
+        {
+          "kind": "water",
+          "vertices": 1183,
+          "triangles": 2160,
+          "positionHash": "c34ef7035a282303ca0ee6235efaa915708a04fff27b15f434677358ae7b094b",
+          "indexHash": "6e15e365d7eee29c35d84b63bcd33c8e17bc8abc670572c705f659e87674b0f2",
+          "uvHash": "4221b5968834a9ede17f3b267ec68d30ff55f4139c0968d87f68d7c4382223dc",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 14196,
+          "colorBytesAfter": 14196,
+          "colorSizeBefore": 3,
+          "colorSizeAfter": 3,
+          "texture": null
+        },
+        {
+          "kind": "shimmer",
+          "vertices": 1183,
+          "triangles": 2160,
+          "positionHash": "c34ef7035a282303ca0ee6235efaa915708a04fff27b15f434677358ae7b094b",
+          "indexHash": "6e15e365d7eee29c35d84b63bcd33c8e17bc8abc670572c705f659e87674b0f2",
+          "uvHash": "4221b5968834a9ede17f3b267ec68d30ff55f4139c0968d87f68d7c4382223dc",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 14196,
+          "colorBytesAfter": 14196,
+          "colorSizeBefore": 3,
+          "colorSizeAfter": 3,
+          "texture": {
+            "width": 256,
+            "height": 256,
+            "repeat": [
+              5,
+              3
+            ],
+            "wrap": [
+              1000,
+              1000
+            ],
+            "offset": [
+              0.0018,
+              0.0009
+            ]
+          }
+        }
+      ],
+      "pageErrors": 0
+    },
+    {
+      "place": "camp",
+      "quality": "economy",
+      "cameraAndPosition": {
+        "position": [
+          0,
+          0,
+          1
+        ],
+        "camera": [
+          24.148146844065025,
+          -3.6889830655418807,
+          275.900365556782
+        ],
+        "cameraQuaternion": [
+          0.3947677728123454,
+          0.3390410037738049,
+          0.556367541933279,
+          0.64781537616203
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.44,
+        "zoom": 27,
+        "frames": 6,
+        "overflow": false
+      },
+      "before": {
+        "calls": 1052,
+        "triangles": 1006881,
+        "textures": 21,
+        "geometries": 521,
+        "materials": 622
+      },
+      "after": {
+        "calls": 1052,
+        "triangles": 1006881,
+        "textures": 21,
+        "geometries": 521,
+        "materials": 622
+      },
+      "layers": [
+        {
+          "kind": "shore",
+          "vertices": 546,
+          "triangles": 900,
+          "positionHash": "1f849eea8be22cd6f70c67e866467c9dcc5570100536f589897a2622d265e708",
+          "indexHash": "19b26cb966af7ca86e7c233362aca99c731436e3bec59f6c1ec505aea05a5a2b",
+          "uvHash": "7da20f688ba4721a6f7246beb4bc7ab39c540145948c9dff9909e3072ddae58c",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 0,
+          "colorBytesAfter": 6552,
+          "colorSizeBefore": 0,
+          "colorSizeAfter": 3,
+          "texture": null
+        },
+        {
+          "kind": "water",
+          "vertices": 1183,
+          "triangles": 2160,
+          "positionHash": "c34ef7035a282303ca0ee6235efaa915708a04fff27b15f434677358ae7b094b",
+          "indexHash": "6e15e365d7eee29c35d84b63bcd33c8e17bc8abc670572c705f659e87674b0f2",
+          "uvHash": "4221b5968834a9ede17f3b267ec68d30ff55f4139c0968d87f68d7c4382223dc",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 14196,
+          "colorBytesAfter": 14196,
+          "colorSizeBefore": 3,
+          "colorSizeAfter": 3,
+          "texture": null
+        },
+        {
+          "kind": "shimmer",
+          "vertices": 1183,
+          "triangles": 2160,
+          "positionHash": "c34ef7035a282303ca0ee6235efaa915708a04fff27b15f434677358ae7b094b",
+          "indexHash": "6e15e365d7eee29c35d84b63bcd33c8e17bc8abc670572c705f659e87674b0f2",
+          "uvHash": "4221b5968834a9ede17f3b267ec68d30ff55f4139c0968d87f68d7c4382223dc",
+          "geometryAndFlagsExact": true,
+          "colorBytesBefore": 14196,
+          "colorBytesAfter": 14196,
+          "colorSizeBefore": 3,
+          "colorSizeAfter": 3,
+          "texture": {
+            "width": 256,
+            "height": 256,
+            "repeat": [
+              5,
+              3
+            ],
+            "wrap": [
+              1000,
+              1000
+            ],
+            "offset": [
+              0.0018,
+              0.0009
+            ]
+          }
+        }
+      ],
+      "pageErrors": 0
+    }
+  ],
+  "independentReview": {
+    "radii": [
+      170,
+      261,
+      510
+    ],
+    "all387MeshesGeometryWorldAndInstancesExact": true,
+    "geometryCount": 384,
+    "materials": 79,
+    "textures": 6,
+    "framesWithoutRepaint": 1200,
+    "float32SeamExact": true,
+    "centerUniform": true,
+    "legacyAltitudesPreserved": true
+  },
+  "sameSceneShoreAblation": {
+    "width": 506,
+    "height": 1097,
+    "changedPixels": 43861,
+    "maxDelta": 40,
+    "sumDelta": 1236035,
+    "bounds": [
+      0,
+      312,
+      505,
+      754
+    ]
+  },
+  "limits": [
+    "Physical iPhone FPS/P95 not measured",
+    "No new reflections/foam/shader pass",
+    "Legacy water/shimmer .135 altitude retained"
+  ]
+}

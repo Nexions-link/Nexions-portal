@@ -18,6 +18,7 @@ import {createRoofTransparency,createSurfaceTransparency} from './roof-transpare
 import {createHouseRat} from './house-rat.js?v=9';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
 import {createValleyStoneGeometry} from './valley-stone-sculpt.js?v=1';
+import {lakeSurfaceColor,paintLakeRipples} from './lake-surface-paint.js?v=1';
 import {createBanditCampVisuals} from './bandit-camp-visuals.js?v=3';
 import {BANDIT_CAMP,BANDIT_CHIEF_PATH} from './bandit-camp-data.js?v=2';
 
@@ -133,7 +134,7 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
  const detailRed=m('#9d5236',{polygonOffset:true,polygonOffsetFactor:-1.5,polygonOffsetUnits:-1.5});
  const waterMat=new THREE.MeshPhongMaterial({color:'#64b1b6',vertexColors:true,transparent:true,opacity:.90,shininess:65,specular:0x9acbd0,depthWrite:false,side:THREE.DoubleSide});
  const waterTint=new THREE.Color('#64b1b6');
- const shoreMat=new THREE.MeshStandardMaterial({color:'#b4a179',roughness:1,side:THREE.DoubleSide});
+ const shoreMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,side:THREE.DoubleSide});
  const objects=[],meshGroups=[],longhouseRoofs=[],shadowCasters=[];
  const villageVisuals=createVillageVisuals(THREE,{scene,getRadius,toNormal:localToNormal,heightAt});
  function box(p,mat,x,y,z,w,h,d){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);p.add(o);return o}
@@ -354,13 +355,13 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
   const geometry=new THREE.BufferGeometry();
   geometry.setIndex(ix);geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pos.length/2*3),3));
   geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geometry.userData={planar:pos,offsetMode};
-  if(offsetMode==='water'){
-   // Radial depth tint avoids flat, uniformly colored water.
-   const colors=[],deep=new THREE.Color('#6e9bb1'),shallow=new THREE.Color('#d9f0d6');
+  if(offsetMode==='water'||offsetMode==='shore'){
+   // Pigment is baked into the existing rings, never an extra lake layer.
+   // The shore adds only 546 RGB vertices; water keeps its original RGB3.
+   const colors=[];
    for(let j=0;j<=steps;j++){
-    const t=smooth(.12,.98,radiusInner+(radiusOuter-radiusInner)*j/steps);
-    const shade=deep.clone().lerp(shallow,t);
-    for(let i=0;i<=segments;i++)colors.push(shade.r,shade.g,shade.b);
+    const radius=radiusInner+(radiusOuter-radiusInner)*j/steps;
+    for(let i=0;i<=segments;i++)colors.push(...lakeSurfaceColor(offsetMode,radius,i/segments*TAU));
    }
    geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
   }
@@ -370,15 +371,7 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
  const shore=radialGeometry(.97,1.22,5,90,'shore'),water=radialGeometry(0,.992,12,90,'water');
  // The native lake uses a scrolling glint texture. This overlay receives
  // its own radial geometry; a world-Y offset would clip into the globe.
- const rippleTexture=texture((c,size)=>{
-  c.clearRect(0,0,size,size);
-  for(let i=0;i<65;i++){
-   const x=(i*83+27)%size,y=(i*137+43)%size;
-   c.beginPath();c.ellipse(x,y,5+(i%7)*2,1.3+(i%3)*.3,-.13,.12*Math.PI,.85*Math.PI);
-   c.strokeStyle=i%3===0?'rgba(255,255,228,.24)':'rgba(240,255,247,.16)';
-   c.lineWidth=.7+(i%3)*.3;c.stroke();
-  }
- },256);
+ const rippleTexture=texture(paintLakeRipples,256);
  rippleTexture.wrapS=rippleTexture.wrapT=THREE.RepeatWrapping;
  rippleTexture.repeat.set(5,3);
  const shimmerGeometry=water.clone();shimmerGeometry.userData.offsetMode='shimmer';
