@@ -14,6 +14,7 @@ import {getTaurenSurfaceMaps} from './tauren-fur-textures.js?v=2';
 import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
 import {canWalkCamp} from './sphere-physics.js?v=14';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=10';
+import {applyHearthSurfacePaint} from './hearth-surface-paint.js?v=1';
 import {createRoofTransparency,createSurfaceTransparency} from './roof-transparency.js?v=3';
 import {createHouseRat} from './house-rat.js?v=9';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
@@ -155,6 +156,7 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
  // Rebuilt longhouse: matching opaque physics and exterior roof layers.
  const houseAnchor=anchor(LONGHOUSE.x,LONGHOUSE.z,LONGHOUSE.yaw);
  const longhouse=buildHearthHouse(THREE,{root:houseAnchor,villageVisuals});
+ applyHearthSurfacePaint(longhouse);
  const roofTransparency=createRoofTransparency(longhouse.roof,{indoorOpacity:.12,fadeSpeed:9});
  // Structural walls and attached hides fade, not the house floor or the
  // freestanding totems and stepping stones by the front entrance.

@@ -1,0 +1,794 @@
+{
+  "version": "0.6.46.20",
+  "baseline": "67a0c4d23eeea46742c3dfdc89f22039a6622267",
+  "viewport": [
+    390,
+    844
+  ],
+  "deviceScaleFactor": 1.3,
+  "renderer": "Chromium SwiftShader; not a physical iPhone",
+  "fixture": "HTTP character fixture/fake WebSocket; fixed dt .05, 6 frames (inside12); camp retains stock first-spawn orientation; front/side/inside initialize test-only heading pi/pi/2/pi. Stock pitch/zoom/FOV/follow/gestures unchanged. Baseline runtime/start-zone19; camp/front/inside badges19, recaptured side badge20; after20. Shadow updates frozen for identical counter measurement. No production account or writes.",
+  "budget": {
+    "directHouseMeshes": 133,
+    "componentInstances": 533,
+    "triangles": 12450,
+    "geometries": 133,
+    "materials": 24,
+    "textures": 2,
+    "mapPixels": [
+      64,
+      64
+    ],
+    "RGBABytesTotalBeforeAndAfter": 32768,
+    "newTextureObjects": 0,
+    "newPersistentPixelBuffers": 0,
+    "newMaterials": 0,
+    "newPasses": 0,
+    "newPerFramePaint": 0,
+    "intendedCost": "One startup repaint of two existing maps; former untextured facade/gables now sample the existing hide texture in their fragment shader. Equal counters do not establish equal GPU frame time."
+  },
+  "cases": [
+    {
+      "place": "camp",
+      "quality": "economy",
+      "cameraAndPosition": {
+        "position": [
+          0,
+          0,
+          1
+        ],
+        "camera": [
+          24.148146844065025,
+          -3.6889830655418807,
+          275.900365556782
+        ],
+        "cameraQuaternion": [
+          0.3947677728123454,
+          0.3390410037738049,
+          0.556367541933279,
+          0.64781537616203
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.44,
+        "zoom": 27,
+        "frames": 6,
+        "overflow": false
+      },
+      "before": {
+        "calls": 1052,
+        "triangles": 1006881,
+        "textures": 21,
+        "geometries": 521,
+        "materials": 622
+      },
+      "after": {
+        "calls": 1052,
+        "triangles": 1006881,
+        "textures": 21,
+        "geometries": 521,
+        "materials": 622
+      },
+      "houseMeshCount": 137,
+      "allPositionsNormalsIndicesWorldInstancesExact": true,
+      "UVException": "two normalized gable attributes only",
+      "layers": [
+        {
+          "name": "hearth-house-hide-wall-panels",
+          "vertices": 24,
+          "instances": 23,
+          "positionHash": "684624d0687cbb7ce0a1119f1588586e3d1d758cf5bee26b78af640572a1e1bd",
+          "normalHash": "cf38d80691f04d52b9686807b830aec77584c7ecdc0ceed56144923548dd5593",
+          "indexHash": "7d2c65fffb490f18b89d5d949a36ac6fe37f052789bdc3ad49759abb3ecd0898",
+          "instanceHash": "ef11eaace422509acb8445417f3f19cfa9a9e155f7a2a5eaacd6d74a052254a8",
+          "uvBefore": "9acbda3fe508de1f96b8f061ef5888cfba15a3e6ae752467e73665e4dfe3182a",
+          "uvAfter": "9acbda3fe508de1f96b8f061ef5888cfba15a3e6ae752467e73665e4dfe3182a",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        },
+        {
+          "name": "hearth-house-hide-gable",
+          "vertices": 3,
+          "instances": 1,
+          "positionHash": "9ceefd11934d2d74508dc523ec0443991fa1ab2762623160f7826f6a9b791777",
+          "normalHash": "93ffbfc491203a5042ce8729e8bde71460b23b81ce1c3b71292976bcdb6a42bd",
+          "indexHash": "263d99957c7b574c63a265b32da7fff8b8ad831828946bfbff650d7074dd9198",
+          "instanceHash": null,
+          "uvBefore": "32c6e0c1c19f77f9538c02f5e0a7f30e6047661b6fcdb06a9fd8e27823e86a7e",
+          "uvAfter": "aa60dad4fd6ba6836339ec2e7bc4b4d43cc8f57867ac652e395e451781a63ef9",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        },
+        {
+          "name": "hearth-house-hide-gable",
+          "vertices": 3,
+          "instances": 1,
+          "positionHash": "9ceefd11934d2d74508dc523ec0443991fa1ab2762623160f7826f6a9b791777",
+          "normalHash": "93ffbfc491203a5042ce8729e8bde71460b23b81ce1c3b71292976bcdb6a42bd",
+          "indexHash": "263d99957c7b574c63a265b32da7fff8b8ad831828946bfbff650d7074dd9198",
+          "instanceHash": null,
+          "uvBefore": "32c6e0c1c19f77f9538c02f5e0a7f30e6047661b6fcdb06a9fd8e27823e86a7e",
+          "uvAfter": "aa60dad4fd6ba6836339ec2e7bc4b4d43cc8f57867ac652e395e451781a63ef9",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        }
+      ],
+      "texturesBefore": [
+        {
+          "name": "hearth-house-wood-grain",
+          "width": 64,
+          "height": 64,
+          "version": 1
+        },
+        {
+          "name": "hearth-house-hide-grain",
+          "width": 64,
+          "height": 64,
+          "version": 1
+        },
+        {
+          "name": "",
+          "width": 512,
+          "height": 96,
+          "version": 1
+        }
+      ],
+      "texturesAfter": [
+        {
+          "name": "hearth-house-wood-grain",
+          "width": 64,
+          "height": 64,
+          "version": 2
+        },
+        {
+          "name": "hearth-house-hide-grain",
+          "width": 64,
+          "height": 64,
+          "version": 2
+        },
+        {
+          "name": "",
+          "width": 512,
+          "height": 96,
+          "version": 1
+        }
+      ],
+      "errors": 0,
+      "overflow": false
+    },
+    {
+      "place": "front",
+      "quality": "balanced",
+      "cameraAndPosition": {
+        "position": [
+          -0.03447558792045544,
+          -0.0076612417601012095,
+          0.9993761750273178
+        ],
+        "camera": [
+          2.886197050894598,
+          -2.0607174762414333,
+          269.2312338850988
+        ],
+        "cameraQuaternion": [
+          0.3717211632406261,
+          0.3672024533597934,
+          0.6043959174492748,
+          0.6014077734916915
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 6,
+        "overflow": false
+      },
+      "before": {
+        "calls": 516,
+        "triangles": 1207129,
+        "textures": 25,
+        "geometries": 444,
+        "materials": 627
+      },
+      "after": {
+        "calls": 516,
+        "triangles": 1207129,
+        "textures": 25,
+        "geometries": 444,
+        "materials": 627
+      },
+      "houseMeshCount": 137,
+      "allPositionsNormalsIndicesWorldInstancesExact": true,
+      "UVException": "two normalized gable attributes only",
+      "layers": [
+        {
+          "name": "hearth-house-hide-wall-panels",
+          "vertices": 24,
+          "instances": 23,
+          "positionHash": "684624d0687cbb7ce0a1119f1588586e3d1d758cf5bee26b78af640572a1e1bd",
+          "normalHash": "cf38d80691f04d52b9686807b830aec77584c7ecdc0ceed56144923548dd5593",
+          "indexHash": "7d2c65fffb490f18b89d5d949a36ac6fe37f052789bdc3ad49759abb3ecd0898",
+          "instanceHash": "ef11eaace422509acb8445417f3f19cfa9a9e155f7a2a5eaacd6d74a052254a8",
+          "uvBefore": "9acbda3fe508de1f96b8f061ef5888cfba15a3e6ae752467e73665e4dfe3182a",
+          "uvAfter": "9acbda3fe508de1f96b8f061ef5888cfba15a3e6ae752467e73665e4dfe3182a",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        },
+        {
+          "name": "hearth-house-hide-gable",
+          "vertices": 3,
+          "instances": 1,
+          "positionHash": "9ceefd11934d2d74508dc523ec0443991fa1ab2762623160f7826f6a9b791777",
+          "normalHash": "93ffbfc491203a5042ce8729e8bde71460b23b81ce1c3b71292976bcdb6a42bd",
+          "indexHash": "263d99957c7b574c63a265b32da7fff8b8ad831828946bfbff650d7074dd9198",
+          "instanceHash": null,
+          "uvBefore": "32c6e0c1c19f77f9538c02f5e0a7f30e6047661b6fcdb06a9fd8e27823e86a7e",
+          "uvAfter": "aa60dad4fd6ba6836339ec2e7bc4b4d43cc8f57867ac652e395e451781a63ef9",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        },
+        {
+          "name": "hearth-house-hide-gable",
+          "vertices": 3,
+          "instances": 1,
+          "positionHash": "9ceefd11934d2d74508dc523ec0443991fa1ab2762623160f7826f6a9b791777",
+          "normalHash": "93ffbfc491203a5042ce8729e8bde71460b23b81ce1c3b71292976bcdb6a42bd",
+          "indexHash": "263d99957c7b574c63a265b32da7fff8b8ad831828946bfbff650d7074dd9198",
+          "instanceHash": null,
+          "uvBefore": "32c6e0c1c19f77f9538c02f5e0a7f30e6047661b6fcdb06a9fd8e27823e86a7e",
+          "uvAfter": "aa60dad4fd6ba6836339ec2e7bc4b4d43cc8f57867ac652e395e451781a63ef9",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        }
+      ],
+      "texturesBefore": [
+        {
+          "name": "hearth-house-wood-grain",
+          "width": 64,
+          "height": 64,
+          "version": 1
+        },
+        {
+          "name": "hearth-house-hide-grain",
+          "width": 64,
+          "height": 64,
+          "version": 1
+        },
+        {
+          "name": "",
+          "width": 512,
+          "height": 96,
+          "version": 1
+        }
+      ],
+      "texturesAfter": [
+        {
+          "name": "hearth-house-wood-grain",
+          "width": 64,
+          "height": 64,
+          "version": 2
+        },
+        {
+          "name": "hearth-house-hide-grain",
+          "width": 64,
+          "height": 64,
+          "version": 2
+        },
+        {
+          "name": "",
+          "width": 512,
+          "height": 96,
+          "version": 1
+        }
+      ],
+      "errors": 0,
+      "overflow": false
+    },
+    {
+      "place": "side",
+      "quality": "balanced",
+      "cameraAndPosition": {
+        "position": [
+          -0.10317261822625139,
+          -0.07260295356662134,
+          0.9920101924787583
+        ],
+        "camera": [
+          -27.645004012437596,
+          -31.652744128624278,
+          265.8081787874646
+        ],
+        "cameraQuaternion": [
+          0.5666488914857084,
+          -0.04264761662071988,
+          0.029387503059997166,
+          0.8223299758846742
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 6,
+        "overflow": false
+      },
+      "before": {
+        "calls": 543,
+        "triangles": 1244203,
+        "textures": 24,
+        "geometries": 424,
+        "materials": 627
+      },
+      "after": {
+        "calls": 543,
+        "triangles": 1244203,
+        "textures": 24,
+        "geometries": 424,
+        "materials": 627
+      },
+      "houseMeshCount": 137,
+      "allPositionsNormalsIndicesWorldInstancesExact": true,
+      "UVException": "two normalized gable attributes only",
+      "layers": [
+        {
+          "name": "hearth-house-hide-wall-panels",
+          "vertices": 24,
+          "instances": 23,
+          "positionHash": "684624d0687cbb7ce0a1119f1588586e3d1d758cf5bee26b78af640572a1e1bd",
+          "normalHash": "cf38d80691f04d52b9686807b830aec77584c7ecdc0ceed56144923548dd5593",
+          "indexHash": "7d2c65fffb490f18b89d5d949a36ac6fe37f052789bdc3ad49759abb3ecd0898",
+          "instanceHash": "ef11eaace422509acb8445417f3f19cfa9a9e155f7a2a5eaacd6d74a052254a8",
+          "uvBefore": "9acbda3fe508de1f96b8f061ef5888cfba15a3e6ae752467e73665e4dfe3182a",
+          "uvAfter": "9acbda3fe508de1f96b8f061ef5888cfba15a3e6ae752467e73665e4dfe3182a",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        },
+        {
+          "name": "hearth-house-hide-gable",
+          "vertices": 3,
+          "instances": 1,
+          "positionHash": "9ceefd11934d2d74508dc523ec0443991fa1ab2762623160f7826f6a9b791777",
+          "normalHash": "93ffbfc491203a5042ce8729e8bde71460b23b81ce1c3b71292976bcdb6a42bd",
+          "indexHash": "263d99957c7b574c63a265b32da7fff8b8ad831828946bfbff650d7074dd9198",
+          "instanceHash": null,
+          "uvBefore": "32c6e0c1c19f77f9538c02f5e0a7f30e6047661b6fcdb06a9fd8e27823e86a7e",
+          "uvAfter": "aa60dad4fd6ba6836339ec2e7bc4b4d43cc8f57867ac652e395e451781a63ef9",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        },
+        {
+          "name": "hearth-house-hide-gable",
+          "vertices": 3,
+          "instances": 1,
+          "positionHash": "9ceefd11934d2d74508dc523ec0443991fa1ab2762623160f7826f6a9b791777",
+          "normalHash": "93ffbfc491203a5042ce8729e8bde71460b23b81ce1c3b71292976bcdb6a42bd",
+          "indexHash": "263d99957c7b574c63a265b32da7fff8b8ad831828946bfbff650d7074dd9198",
+          "instanceHash": null,
+          "uvBefore": "32c6e0c1c19f77f9538c02f5e0a7f30e6047661b6fcdb06a9fd8e27823e86a7e",
+          "uvAfter": "aa60dad4fd6ba6836339ec2e7bc4b4d43cc8f57867ac652e395e451781a63ef9",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        }
+      ],
+      "texturesBefore": [
+        {
+          "name": "hearth-house-wood-grain",
+          "width": 64,
+          "height": 64,
+          "version": 1
+        },
+        {
+          "name": "hearth-house-hide-grain",
+          "width": 64,
+          "height": 64,
+          "version": 1
+        },
+        {
+          "name": "",
+          "width": 512,
+          "height": 96,
+          "version": 1
+        }
+      ],
+      "texturesAfter": [
+        {
+          "name": "hearth-house-wood-grain",
+          "width": 64,
+          "height": 64,
+          "version": 2
+        },
+        {
+          "name": "hearth-house-hide-grain",
+          "width": 64,
+          "height": 64,
+          "version": 2
+        },
+        {
+          "name": "",
+          "width": 512,
+          "height": 96,
+          "version": 1
+        }
+      ],
+      "errors": 0,
+      "overflow": false
+    },
+    {
+      "place": "inside",
+      "quality": "economy",
+      "cameraAndPosition": {
+        "position": [
+          -0.10707298405887761,
+          -0.007648070289919829,
+          0.9942217474515269
+        ],
+        "camera": [
+          -18.056503010348674,
+          -2.0385941966632117,
+          266.13900210926965
+        ],
+        "cameraQuaternion": [
+          0.34947650733842067,
+          0.3450771092469331,
+          0.6175202438004949,
+          0.6143750548231076
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 12,
+        "overflow": false
+      },
+      "before": {
+        "calls": 352,
+        "triangles": 864017,
+        "textures": 14,
+        "geometries": 219,
+        "materials": 622
+      },
+      "after": {
+        "calls": 352,
+        "triangles": 864017,
+        "textures": 14,
+        "geometries": 219,
+        "materials": 622
+      },
+      "houseMeshCount": 137,
+      "allPositionsNormalsIndicesWorldInstancesExact": true,
+      "UVException": "two normalized gable attributes only",
+      "layers": [
+        {
+          "name": "hearth-house-hide-wall-panels",
+          "vertices": 24,
+          "instances": 23,
+          "positionHash": "684624d0687cbb7ce0a1119f1588586e3d1d758cf5bee26b78af640572a1e1bd",
+          "normalHash": "cf38d80691f04d52b9686807b830aec77584c7ecdc0ceed56144923548dd5593",
+          "indexHash": "7d2c65fffb490f18b89d5d949a36ac6fe37f052789bdc3ad49759abb3ecd0898",
+          "instanceHash": "ef11eaace422509acb8445417f3f19cfa9a9e155f7a2a5eaacd6d74a052254a8",
+          "uvBefore": "9acbda3fe508de1f96b8f061ef5888cfba15a3e6ae752467e73665e4dfe3182a",
+          "uvAfter": "9acbda3fe508de1f96b8f061ef5888cfba15a3e6ae752467e73665e4dfe3182a",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        },
+        {
+          "name": "hearth-house-hide-gable",
+          "vertices": 3,
+          "instances": 1,
+          "positionHash": "9ceefd11934d2d74508dc523ec0443991fa1ab2762623160f7826f6a9b791777",
+          "normalHash": "93ffbfc491203a5042ce8729e8bde71460b23b81ce1c3b71292976bcdb6a42bd",
+          "indexHash": "263d99957c7b574c63a265b32da7fff8b8ad831828946bfbff650d7074dd9198",
+          "instanceHash": null,
+          "uvBefore": "32c6e0c1c19f77f9538c02f5e0a7f30e6047661b6fcdb06a9fd8e27823e86a7e",
+          "uvAfter": "aa60dad4fd6ba6836339ec2e7bc4b4d43cc8f57867ac652e395e451781a63ef9",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        },
+        {
+          "name": "hearth-house-hide-gable",
+          "vertices": 3,
+          "instances": 1,
+          "positionHash": "9ceefd11934d2d74508dc523ec0443991fa1ab2762623160f7826f6a9b791777",
+          "normalHash": "93ffbfc491203a5042ce8729e8bde71460b23b81ce1c3b71292976bcdb6a42bd",
+          "indexHash": "263d99957c7b574c63a265b32da7fff8b8ad831828946bfbff650d7074dd9198",
+          "instanceHash": null,
+          "uvBefore": "32c6e0c1c19f77f9538c02f5e0a7f30e6047661b6fcdb06a9fd8e27823e86a7e",
+          "uvAfter": "aa60dad4fd6ba6836339ec2e7bc4b4d43cc8f57867ac652e395e451781a63ef9",
+          "mapBefore": null,
+          "mapAfter": {
+            "name": "hearth-house-hide-grain",
+            "width": 64,
+            "height": 64,
+            "repeat": [
+              2,
+              2
+            ],
+            "colorSpace": "srgb"
+          }
+        }
+      ],
+      "texturesBefore": [
+        {
+          "name": "hearth-house-wood-grain",
+          "width": 64,
+          "height": 64,
+          "version": 1
+        },
+        {
+          "name": "hearth-house-hide-grain",
+          "width": 64,
+          "height": 64,
+          "version": 1
+        },
+        {
+          "name": "",
+          "width": 512,
+          "height": 96,
+          "version": 1
+        }
+      ],
+      "texturesAfter": [
+        {
+          "name": "hearth-house-wood-grain",
+          "width": 64,
+          "height": 64,
+          "version": 2
+        },
+        {
+          "name": "hearth-house-hide-grain",
+          "width": 64,
+          "height": 64,
+          "version": 2
+        },
+        {
+          "name": "",
+          "width": 512,
+          "height": 96,
+          "version": 1
+        }
+      ],
+      "errors": 0,
+      "overflow": false
+    }
+  ],
+  "stockCameraPixelComparison": {
+    "case": "stock camp economy",
+    "region": "PNG x[0,507), y[165,600); badge x>=360 y210..260 excluded",
+    "changedPixelsDeltaGreater1": 90911,
+    "testedPixels": 213048,
+    "maxRGBDelta": 35,
+    "note": "Same frozen fixture before/after; evidence of visible surface changes, not GPU timing or physical iPhone measurement"
+  },
+  "independentSceneReview": {
+    "generatedAt": "2026-11-28T05:07:56.830Z",
+    "reviewer": "audit20",
+    "baselineSourceSHA": "67a0c4d23eeea46742c3dfdc89f22039a6622267",
+    "branch": "improve/hearth-surfaces-64620",
+    "sourceVerification": {
+      "baselineFile": "baseline-start-zone.js",
+      "baselineStartZoneSHA256": "1b6d88aa16a020ca3470900b1e78117212f80dcf093137adae886d0010296471",
+      "currentStartZoneSHA256": "82af0ee3aba04aeb2d5f44c907b96d2e06a840b3c93eb814adc63d276bff1e89",
+      "paintDisabledCurrentExactlyEqualsBaseline": true,
+      "baselineDependencies": "Current on-disk dependencies, unchanged by this patch; real villageVisuals included."
+    },
+    "setup": {
+      "radius": 261,
+      "heightAt": "constant 0",
+      "renderer": "none; actual THREE scene graph with test DOM harness",
+      "scope": "Complete actual createStartZone, with real villageVisuals instead of roof stub"
+    },
+    "counts": {
+      "baseline": {
+        "meshes": 387,
+        "geometry": 383,
+        "materials": 78,
+        "textures": 5,
+        "triangles": 129321
+      },
+      "current": {
+        "meshes": 387,
+        "geometry": 383,
+        "materials": 78,
+        "textures": 5,
+        "triangles": 129321
+      },
+      "equal": true
+    },
+    "equalityScope": [
+      "Mesh traversal sequence, names, types and geometry types",
+      "SHA-256 of every mesh position and normal array",
+      "SHA-256 of every mesh index array",
+      "Every local position, quaternion and scale",
+      "SHA-256 of every instance matrix and instance color array",
+      "Every UV array except the two intentionally normalized gables",
+      "Material map names except facade and two gables",
+      "Counts of meshes, geometries, materials, textures and triangles"
+    ],
+    "exceptions": [
+      {
+        "i": 123,
+        "name": "hearth-house-hide-wall-panels",
+        "key": "maps",
+        "before": [
+          null
+        ],
+        "after": [
+          "hearth-house-hide-grain"
+        ]
+      },
+      {
+        "i": 191,
+        "name": "hearth-house-hide-gable",
+        "key": "uv",
+        "before": "32c6e0c1c19f77f9538c02f5e0a7f30e6047661b6fcdb06a9fd8e27823e86a7e",
+        "after": "aa60dad4fd6ba6836339ec2e7bc4b4d43cc8f57867ac652e395e451781a63ef9"
+      },
+      {
+        "i": 191,
+        "name": "hearth-house-hide-gable",
+        "key": "maps",
+        "before": [
+          null
+        ],
+        "after": [
+          "hearth-house-hide-grain"
+        ]
+      },
+      {
+        "i": 192,
+        "name": "hearth-house-hide-gable",
+        "key": "uv",
+        "before": "32c6e0c1c19f77f9538c02f5e0a7f30e6047661b6fcdb06a9fd8e27823e86a7e",
+        "after": "aa60dad4fd6ba6836339ec2e7bc4b4d43cc8f57867ac652e395e451781a63ef9"
+      },
+      {
+        "i": 192,
+        "name": "hearth-house-hide-gable",
+        "key": "maps",
+        "before": [
+          null
+        ],
+        "after": [
+          "hearth-house-hide-grain"
+        ]
+      }
+    ],
+    "tests": [
+      {
+        "command": "node --test planet-test/tests/hearth-surface-paint.test.mjs planet-test/tests/hearth-house.test.mjs",
+        "cwd": "/workspace/Nexgame-main",
+        "exitCode": 0,
+        "result": "Both test files passed; no failures, cancellations or skips",
+        "durationMs": 9459.131594,
+        "covered": [
+          "Original texture/image/pixel-buffer identity and filtering/repeat/alpha",
+          "House geometry/transforms/instance data/resource counts",
+          "Facade/gable texture assignment and normalized gable UV",
+          "Reversible roof/wall fade with shared maps and permanent floor",
+          "Doorway/chest collision contract and shared module URL",
+          "Stable pixels through quality, radius, animation and interior updates"
+        ]
+      }
+    ],
+    "limitations": [
+      "No WebGL renderer, GPU program count, frame-time or target-phone performance measured here.",
+      "Counts cannot prove equal GPU cost: three formerly untextured meshes now sample the existing hide map.",
+      "Paint performs one-time startup CPU calculation for two 64x64 maps and temporary buffers.",
+      "Texture contents intentionally differ; this scene comparison compares resource counts/map names rather than pixel equality.",
+      "Visual quality and stock-camera readability require the separate A/B capture review.",
+      "No accounts, player writes, network requests, publication or tracked-source mutations performed."
+    ],
+    "conclusion": "No unintended geometry, transform, instance-data or resource-count regression found. Only intended map assignments and gable UV normalization differ."
+  },
+  "localValidation": {
+    "npmCheck": "pass",
+    "npmTest": "pass, Node24 reporter 8 graphics +168 main file results",
+    "focusedNewTests": 5,
+    "serverTestsPass": 157,
+    "serverDatabaseSkip": 1,
+    "auditTestsPass": 10,
+    "syntaxAllPlanetJSandMJS": "pass",
+    "releaseConsistency": "pass",
+    "databaseCoverage": "Must be verified by PostgreSQL PR CI before merge"
+  },
+  "limitations": [
+    "Physical iPhone FPS/P95 was not measured.",
+    "Additional map sampling has a real shader cost; no target-device frame-time claim.",
+    "Artistic R1 acceptance and G27 real shadows are not completed by this feature.",
+    "Production publication requires the full AGENTS.md gate; this benchmark records local evidence only."
+  ]
+}
