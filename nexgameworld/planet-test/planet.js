@@ -6,6 +6,7 @@ import {settleCameraLook} from './camera-look-smoothing.js?v=1';
 import {FIRST_SPAWN_CAMERA,isFirstCharacterSpawn} from './spawn-camera.js?v=1';
 import {createFrameProfiler,selectFrameScene} from './frame-performance.js?v=1';
 import {createShadowRefreshBudget} from './render-budget.js?v=2';
+import {createStableShadowProjection} from './stable-shadow-projection.js?v=1';
 import {createR2AdaptiveRenderBudget,createR2SceneSnapshot,compareR2SceneSnapshots} from './r2-performance.js?v=1';
 import {paintTrackedQuestOnMinimap,paintMinimapPlaces} from './quest-map-overlay.js?v=5';
 import {QUEST_GIVERS,trackedQuestMap} from './starter-quest-guidance.js?v=64609';
@@ -219,6 +220,7 @@ try {
   sun.shadow.camera.near=1;sun.shadow.camera.far=120;
   sun.shadow.bias=-.00035;sun.shadow.normalBias=.035;
   sun.shadow.camera.updateProjectionMatrix();
+  const shadowProjection=isPortalPreview?null:createStableShadowProjection(THREE,sun);
 
   // Build a genuine closed triangulated sphere, rather than a flat wrapping map.
   const groundGeo = new THREE.SphereGeometry(R, 180, 112);
@@ -1369,6 +1371,7 @@ try {
     // Local warm sunlight / cool skylight remain coherent around the sphere,
     // including economy mode, without increasing shadow refresh frequency.
     daylightRig?.update(state.normal,actor.position,redrawShadows||!shadowActive);
+    if(redrawShadows)shadowProjection?.update();
     drawNativeMinimap();
     renderer.render(scene,camera);
     if(pendingR2Capture&&!captureInFlight){

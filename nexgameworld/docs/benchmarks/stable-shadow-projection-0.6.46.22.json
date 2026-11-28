@@ -1,0 +1,1729 @@
+{
+  "version": "0.6.46.22",
+  "baseline": "929b2106ffe0304f9cf7739147437c2d129b0c23",
+  "viewport": [
+    390,
+    844
+  ],
+  "deviceScaleFactor": 1.3,
+  "renderer": "Chromium SwiftShader, not physical iPhone",
+  "fixture": "Fake HTTP character/fake WebSocket, no production account/writes. RAF gameplay held until explicit10bird/4raider/Lid_Hinge installation AND networkidle, then exactly6 frames dt .05; fixes initial capture load-vs-animation phase difference without production edits. Camp stock first-spawn camera; forest heading0 testseed only, stock pitch/zoom/FOV/follow unchanged. Shadow updates frozen for final counter measurement.",
+  "budget": {
+    "mapSizesBeforeAndAfter": [
+      512,
+      1024
+    ],
+    "shadowFrustumMetres": [
+      62,
+      62
+    ],
+    "nearFar": [
+      1,
+      120
+    ],
+    "filter": "PCFSoftShadowMap",
+    "maxProjectionShiftTexels": 0.5,
+    "maxWorldShiftBalancedMetres": 0.060546875,
+    "maxWorldShiftHighMetres": 0.0302734375,
+    "newMaps": 0,
+    "newLights": 0,
+    "newMaterials": 0,
+    "newPasses": 0,
+    "newCadence": 0,
+    "newPerRefreshHelperAllocations": 0,
+    "setupPooledVectors": 3,
+    "setupViewDescriptor": 1,
+    "realCPUCost": "Extra shadow-camera pose/projection/rounding on existing scheduled refresh; not zero CPU work. Half-texel coverage edge shift can legitimately change casters at shadow border."
+  },
+  "cases": [
+    {
+      "place": "camp-economy",
+      "quality": "economy",
+      "cameraAndPosition": {
+        "position": [
+          0,
+          0,
+          1
+        ],
+        "actor": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          261.06,
+          1
+        ],
+        "camera": [
+          24.148146844065025,
+          -3.6889830655418807,
+          275.900365556782
+        ],
+        "cameraQuaternion": [
+          0.3947677728123454,
+          0.3390410037738049,
+          0.556367541933279,
+          0.64781537616203
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.44,
+        "zoom": 27,
+        "frames": 6
+      },
+      "before": {
+        "calls": 1052,
+        "triangles": 1006881,
+        "textures": 21,
+        "geometries": 463,
+        "materials": 622
+      },
+      "after": {
+        "calls": 1052,
+        "triangles": 1006881,
+        "textures": 21,
+        "geometries": 463,
+        "materials": 622
+      },
+      "sceneGeometryHashBefore": "e55513fd1cda768c3324f127f2abc049b57137809506522dde97361cd3d4a6c1",
+      "sceneGeometryHashAfter": "e55513fd1cda768c3324f127f2abc049b57137809506522dde97361cd3d4a6c1",
+      "allSceneBuffersWorldInstancesExact": true,
+      "lightsBeforeAndAfter": [
+        {
+          "position": [
+            27,
+            20,
+            305.06
+          ],
+          "target": [
+            0,
+            0,
+            261.06
+          ],
+          "color": [
+            0.9937265485020427,
+            0.8554532022163612,
+            0.5686779426715731
+          ],
+          "intensity": 2.46
+        },
+        {
+          "position": [
+            -34,
+            -24,
+            289.06
+          ],
+          "target": [
+            0,
+            0,
+            261.06
+          ],
+          "color": [
+            0.44626953845325984,
+            0.6883571002600134,
+            0.8017674244264684
+          ],
+          "intensity": 0.66
+        },
+        {
+          "position": [
+            0,
+            0,
+            1
+          ],
+          "target": null,
+          "color": [
+            0.8987107280712501,
+            0.7926247559340838,
+            0.5854470528410461
+          ],
+          "intensity": 1.92
+        }
+      ],
+      "shadowBefore": {
+        "enabled": false,
+        "type": 2,
+        "autoUpdate": false,
+        "mapSize": [
+          256,
+          256
+        ],
+        "mapActual": null,
+        "frustum": [
+          -31,
+          31,
+          31,
+          -31,
+          1,
+          120,
+          1
+        ],
+        "bias": -0.00035,
+        "normalBias": 0.032,
+        "radius": 1,
+        "view": null,
+        "projection": [
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          -0.01680672268907563,
+          0,
+          0,
+          0,
+          -1.0168067226890756,
+          1
+        ],
+        "matrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "originPixel": [
+          0,
+          0
+        ]
+      },
+      "shadowAfter": {
+        "enabled": false,
+        "type": 2,
+        "autoUpdate": false,
+        "mapSize": [
+          256,
+          256
+        ],
+        "mapActual": null,
+        "frustum": [
+          -31,
+          31,
+          31,
+          -31,
+          1,
+          120,
+          1
+        ],
+        "bias": -0.00035,
+        "normalBias": 0.032,
+        "radius": 1,
+        "view": {
+          "enabled": false,
+          "fullWidth": 1,
+          "fullHeight": 1,
+          "offsetX": 0,
+          "offsetY": 0,
+          "width": 1,
+          "height": 1
+        },
+        "projection": [
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          -0.01680672268907563,
+          0,
+          0,
+          0,
+          -1.0168067226890756,
+          1
+        ],
+        "matrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "originPixel": [
+          0,
+          0
+        ]
+      },
+      "errors": 0,
+      "overflow": false
+    },
+    {
+      "place": "camp-balanced",
+      "quality": "balanced",
+      "cameraAndPosition": {
+        "position": [
+          0,
+          0,
+          1
+        ],
+        "actor": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          261.06,
+          1
+        ],
+        "camera": [
+          24.148146844065025,
+          -3.6889830655418807,
+          275.900365556782
+        ],
+        "cameraQuaternion": [
+          0.3947677728123454,
+          0.3390410037738049,
+          0.556367541933279,
+          0.64781537616203
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.44,
+        "zoom": 27,
+        "frames": 6
+      },
+      "before": {
+        "calls": 1080,
+        "triangles": 1343765,
+        "textures": 28,
+        "geometries": 497,
+        "materials": 627
+      },
+      "after": {
+        "calls": 1080,
+        "triangles": 1343765,
+        "textures": 28,
+        "geometries": 497,
+        "materials": 627
+      },
+      "sceneGeometryHashBefore": "9394f8df99aa8644105649753c0621003c8d4d419d720e446116f64bc5e5dd36",
+      "sceneGeometryHashAfter": "9394f8df99aa8644105649753c0621003c8d4d419d720e446116f64bc5e5dd36",
+      "allSceneBuffersWorldInstancesExact": true,
+      "lightsBeforeAndAfter": [
+        {
+          "position": [
+            27,
+            20,
+            305.06
+          ],
+          "target": [
+            0,
+            0,
+            261.06
+          ],
+          "color": [
+            0.9937265485020427,
+            0.8554532022163612,
+            0.5686779426715731
+          ],
+          "intensity": 2.46
+        },
+        {
+          "position": [
+            -34,
+            -24,
+            289.06
+          ],
+          "target": [
+            0,
+            0,
+            261.06
+          ],
+          "color": [
+            0.44626953845325984,
+            0.6883571002600134,
+            0.8017674244264684
+          ],
+          "intensity": 0.66
+        },
+        {
+          "position": [
+            0,
+            0,
+            1
+          ],
+          "target": null,
+          "color": [
+            0.8987107280712501,
+            0.7926247559340838,
+            0.5854470528410461
+          ],
+          "intensity": 1.92
+        }
+      ],
+      "shadowBefore": {
+        "enabled": true,
+        "type": 2,
+        "autoUpdate": false,
+        "mapSize": [
+          512,
+          512
+        ],
+        "mapActual": [
+          512,
+          512
+        ],
+        "frustum": [
+          -31,
+          31,
+          31,
+          -31,
+          1,
+          120,
+          1
+        ],
+        "bias": -0.00035,
+        "normalBias": 0.032,
+        "radius": 1,
+        "view": null,
+        "projection": [
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          -0.01680672268907563,
+          0,
+          0,
+          0,
+          -1.0168067226890756,
+          1
+        ],
+        "matrix": [
+          0.013747140784655897,
+          -0.0030474614756895984,
+          -0.004098279402448277,
+          0,
+          0,
+          0.015039786727245886,
+          -0.0030357625203320565,
+          0,
+          -0.008435745481493392,
+          -0.004966233515938606,
+          -0.006678677544730524,
+          0,
+          2.7022357153986647,
+          1.7964849216709324,
+          2.2003628047237007,
+          0.9999999999999999
+        ],
+        "originPixel": [
+          1383.5446862841166,
+          919.8002798955176
+        ]
+      },
+      "shadowAfter": {
+        "enabled": true,
+        "type": 2,
+        "autoUpdate": false,
+        "mapSize": [
+          512,
+          512
+        ],
+        "mapActual": [
+          512,
+          512
+        ],
+        "frustum": [
+          -31,
+          31,
+          31,
+          -31,
+          1,
+          120,
+          1
+        ],
+        "bias": -0.00035,
+        "normalBias": 0.032,
+        "radius": 1,
+        "view": {
+          "enabled": true,
+          "fullWidth": 512,
+          "fullHeight": 512,
+          "offsetX": -0.4553137158834488,
+          "offsetY": 0.19972010448248056,
+          "width": 512,
+          "height": 512
+        },
+        "projection": [
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          -0.01680672268907563,
+          0,
+          0.0017785692026696933,
+          0.000780156658134704,
+          -1.0168067226890756,
+          1
+        ],
+        "matrix": [
+          0.013747140784655897,
+          -0.0030474614756895984,
+          -0.004098279402448277,
+          0,
+          0,
+          0.015039786727245886,
+          -0.0030357625203320565,
+          0,
+          -0.008435745481493392,
+          -0.004966233515938606,
+          -0.006678677544730524,
+          0,
+          2.7031249999999996,
+          1.7968749999999998,
+          2.2003628047237007,
+          0.9999999999999999
+        ],
+        "originPixel": [
+          1384,
+          920.0000000000001
+        ]
+      },
+      "errors": 0,
+      "overflow": false
+    },
+    {
+      "place": "forest-balanced",
+      "quality": "balanced",
+      "cameraAndPosition": {
+        "position": [
+          0.5140778980260351,
+          -0.015032387835834238,
+          0.857611766522059
+        ],
+        "actor": [
+          0.007728691626890938,
+          0.9998870072742985,
+          0.012893409548423052,
+          0,
+          0.514077898026035,
+          -0.015032387835834271,
+          0.8576117665220588,
+          0,
+          0.8577086813638239,
+          -5.551115123125783e-17,
+          -0.514135991653113,
+          0,
+          134.23540845476933,
+          -3.925239207797105,
+          223.93856304025462,
+          1
+        ],
+        "camera": [
+          127.87123300311448,
+          -4.044289180857901,
+          236.9857923377751
+        ],
+        "cameraQuaternion": [
+          0.21050657253869418,
+          -0.2033880501131457,
+          -0.6800717953897353,
+          0.6721775339183585
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 6
+      },
+      "before": {
+        "calls": 521,
+        "triangles": 1230953,
+        "textures": 20,
+        "geometries": 186,
+        "materials": 627
+      },
+      "after": {
+        "calls": 521,
+        "triangles": 1230953,
+        "textures": 20,
+        "geometries": 186,
+        "materials": 627
+      },
+      "sceneGeometryHashBefore": "2d11660009d523db6bdd2ff5ae6039e40d56fe37ee4570d3397ee90f31e754c5",
+      "sceneGeometryHashAfter": "2d11660009d523db6bdd2ff5ae6039e40d56fe37ee4570d3397ee90f31e754c5",
+      "allSceneBuffersWorldInstancesExact": true,
+      "lightsBeforeAndAfter": [
+        {
+          "position": [
+            180.16754419727593,
+            15.411075872912159,
+            248.04967718355962
+          ],
+          "target": [
+            134.23540845476933,
+            -3.925239207797105,
+            223.93856304025462
+          ],
+          "color": [
+            0.9786603523050732,
+            0.8172346560851067,
+            0.5316924680666474
+          ],
+          "intensity": 2.4147827269748423
+        },
+        {
+          "position": [
+            119.2820058340829,
+            -28.343434241783626,
+            265.122874389916
+          ],
+          "target": [
+            134.23540845476933,
+            -3.925239207797105,
+            223.93856304025462
+          ],
+          "color": [
+            0.4345756410971847,
+            0.6652740516463809,
+            0.7866861798186102
+          ],
+          "intensity": 0.6633085809530603
+        },
+        {
+          "position": [
+            0.5140778980260351,
+            -0.015032387835834238,
+            0.857611766522059
+          ],
+          "target": null,
+          "color": [
+            0.8625040077578264,
+            0.7941546744754525,
+            0.6093567038129235
+          ],
+          "intensity": 1.8911251116823828
+        }
+      ],
+      "shadowBefore": {
+        "enabled": true,
+        "type": 2,
+        "autoUpdate": false,
+        "mapSize": [
+          512,
+          512
+        ],
+        "mapActual": [
+          512,
+          512
+        ],
+        "frustum": [
+          -31,
+          31,
+          31,
+          -31,
+          1,
+          120,
+          1
+        ],
+        "bias": -0.00035,
+        "normalBias": 0.032,
+        "radius": 1,
+        "view": null,
+        "projection": [
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          -0.01680672268907563,
+          0,
+          0,
+          0,
+          -1.0168067226890756,
+          1
+        ],
+        "matrix": [
+          0.007496527061854773,
+          -0.004987902417783032,
+          -0.0069719528082953005,
+          0,
+          0,
+          0.015113273701721441,
+          -0.002935023030167435,
+          0,
+          -0.014281028099985127,
+          -0.0026182950691652444,
+          -0.003659780831984676,
+          0,
+          2.6917735393078597,
+          1.8152135682800516,
+          2.200755570928361,
+          0.9999999999999999
+        ],
+        "originPixel": [
+          1378.1880521256244,
+          929.3893469593867
+        ]
+      },
+      "shadowAfter": {
+        "enabled": true,
+        "type": 2,
+        "autoUpdate": false,
+        "mapSize": [
+          512,
+          512
+        ],
+        "mapActual": [
+          512,
+          512
+        ],
+        "frustum": [
+          -31,
+          31,
+          31,
+          -31,
+          1,
+          120,
+          1
+        ],
+        "bias": -0.00035,
+        "normalBias": 0.032,
+        "radius": 1,
+        "view": {
+          "enabled": true,
+          "fullWidth": 512,
+          "fullHeight": 512,
+          "offsetX": 0.188052125624381,
+          "offsetY": -0.3893469593865575,
+          "width": 512,
+          "height": 512
+        },
+        "projection": [
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          -0.01680672268907563,
+          0,
+          -0.0007345786157202383,
+          -0.0015208865601037116,
+          -1.0168067226890756,
+          1
+        ],
+        "matrix": [
+          0.007496527061854773,
+          -0.004987902417783032,
+          -0.0069719528082953005,
+          0,
+          0,
+          0.015113273701721441,
+          -0.002935023030167435,
+          0,
+          -0.014281028099985127,
+          -0.0026182950691652444,
+          -0.003659780831984676,
+          0,
+          2.6914062499999996,
+          1.8144531249999998,
+          2.200755570928361,
+          0.9999999999999999
+        ],
+        "originPixel": [
+          1378,
+          929.0000000000001
+        ]
+      },
+      "errors": 0,
+      "overflow": false
+    },
+    {
+      "place": "forest-high",
+      "quality": "high",
+      "cameraAndPosition": {
+        "position": [
+          0.5140778980260351,
+          -0.015032387835834238,
+          0.857611766522059
+        ],
+        "actor": [
+          0.007728691626890938,
+          0.9998870072742985,
+          0.012893409548423052,
+          0,
+          0.514077898026035,
+          -0.015032387835834271,
+          0.8576117665220588,
+          0,
+          0.8577086813638239,
+          -5.551115123125783e-17,
+          -0.514135991653113,
+          0,
+          134.23540845476933,
+          -3.925239207797105,
+          223.93856304025462,
+          1
+        ],
+        "camera": [
+          127.87123300311448,
+          -4.044289180857901,
+          236.9857923377751
+        ],
+        "cameraQuaternion": [
+          0.21050657253869418,
+          -0.2033880501131457,
+          -0.6800717953897353,
+          0.6721775339183585
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 6
+      },
+      "before": {
+        "calls": 534,
+        "triangles": 1446516,
+        "textures": 22,
+        "geometries": 188,
+        "materials": 627
+      },
+      "after": {
+        "calls": 534,
+        "triangles": 1446516,
+        "textures": 22,
+        "geometries": 188,
+        "materials": 627
+      },
+      "sceneGeometryHashBefore": "e4f0c23eb3c08f685889d53481414483afb9cfa576572d4464d7b1062ac0b07b",
+      "sceneGeometryHashAfter": "e4f0c23eb3c08f685889d53481414483afb9cfa576572d4464d7b1062ac0b07b",
+      "allSceneBuffersWorldInstancesExact": true,
+      "lightsBeforeAndAfter": [
+        {
+          "position": [
+            180.16754419727593,
+            15.411075872912159,
+            248.04967718355962
+          ],
+          "target": [
+            134.23540845476933,
+            -3.925239207797105,
+            223.93856304025462
+          ],
+          "color": [
+            0.9786603523050732,
+            0.8172346560851067,
+            0.5316924680666474
+          ],
+          "intensity": 2.4147827269748423
+        },
+        {
+          "position": [
+            119.2820058340829,
+            -28.343434241783626,
+            265.122874389916
+          ],
+          "target": [
+            134.23540845476933,
+            -3.925239207797105,
+            223.93856304025462
+          ],
+          "color": [
+            0.4345756410971847,
+            0.6652740516463809,
+            0.7866861798186102
+          ],
+          "intensity": 0.6633085809530603
+        },
+        {
+          "position": [
+            0.5140778980260351,
+            -0.015032387835834238,
+            0.857611766522059
+          ],
+          "target": null,
+          "color": [
+            0.8625040077578264,
+            0.7941546744754525,
+            0.6093567038129235
+          ],
+          "intensity": 1.8911251116823828
+        }
+      ],
+      "shadowBefore": {
+        "enabled": true,
+        "type": 2,
+        "autoUpdate": false,
+        "mapSize": [
+          1024,
+          1024
+        ],
+        "mapActual": [
+          1024,
+          1024
+        ],
+        "frustum": [
+          -31,
+          31,
+          31,
+          -31,
+          1,
+          120,
+          1
+        ],
+        "bias": -0.00035,
+        "normalBias": 0.027,
+        "radius": 1,
+        "view": null,
+        "projection": [
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          -0.01680672268907563,
+          0,
+          0,
+          0,
+          -1.0168067226890756,
+          1
+        ],
+        "matrix": [
+          0.007496527061854773,
+          -0.004987902417783032,
+          -0.0069719528082953005,
+          0,
+          0,
+          0.015113273701721441,
+          -0.002935023030167435,
+          0,
+          -0.014281028099985127,
+          -0.0026182950691652444,
+          -0.003659780831984676,
+          0,
+          2.6917735393078597,
+          1.8152135682800516,
+          2.200755570928361,
+          0.9999999999999999
+        ],
+        "originPixel": [
+          2756.3761042512488,
+          1858.7786939187733
+        ]
+      },
+      "shadowAfter": {
+        "enabled": true,
+        "type": 2,
+        "autoUpdate": false,
+        "mapSize": [
+          1024,
+          1024
+        ],
+        "mapActual": [
+          1024,
+          1024
+        ],
+        "frustum": [
+          -31,
+          31,
+          31,
+          -31,
+          1,
+          120,
+          1
+        ],
+        "bias": -0.00035,
+        "normalBias": 0.027,
+        "radius": 1,
+        "view": {
+          "enabled": true,
+          "fullWidth": 1024,
+          "fullHeight": 1024,
+          "offsetX": 0.376104251248762,
+          "offsetY": 0.221306081226885,
+          "width": 1024,
+          "height": 1024
+        },
+        "projection": [
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          0.03225806451612903,
+          0,
+          0,
+          0,
+          0,
+          -0.01680672268907563,
+          0,
+          -0.0007345786157202383,
+          0.0004322384398962884,
+          -1.0168067226890756,
+          1
+        ],
+        "matrix": [
+          0.007496527061854773,
+          -0.004987902417783032,
+          -0.0069719528082953005,
+          0,
+          0,
+          0.015113273701721441,
+          -0.002935023030167435,
+          0,
+          -0.014281028099985127,
+          -0.0026182950691652444,
+          -0.003659780831984676,
+          0,
+          2.6914062499999996,
+          1.8154296874999998,
+          2.200755570928361,
+          0.9999999999999999
+        ],
+        "originPixel": [
+          2756,
+          1859.0000000000002
+        ]
+      },
+      "errors": 0,
+      "overflow": false
+    }
+  ],
+  "temporalGPU": {
+    "method": "Actual existing512shadowmap readback. Networkidle/GLTF installation barrier, frozen scene/game camera/light direction; translate sun+target together along light-right. Force refresh per QA step only. Steps0.. .4texel stay same cell; .65 crosses. This isolates translation phase, not spherical direction rotation or device frame time.",
+    "before": {
+      "mapSize": [
+        512,
+        512
+      ],
+      "worldStepMetres": 0.12109375,
+      "kind": "Actual existing shadow map, fixed scene/camera/sun-direction; translate sun+target in light-right only. First integer grid origin,0.. .4texel same cell then.65 crossing. Forced redraw is fixture-only; not shipped cadence.",
+      "records": [
+        {
+          "step": 0,
+          "originPixel": [
+            1384.0000000000002,
+            919.8002798955176
+          ],
+          "view": {},
+          "maskHash": "1a2645e75a1cab176e348292f2603fc4a5e320e6d7b4fbee103b84bf3e511cda",
+          "maskChangedFromFirst": 0,
+          "coveredPixels": 27581,
+          "calls": 1080,
+          "triangles": 1343765
+        },
+        {
+          "step": 0.1,
+          "originPixel": [
+            1383.9000000000003,
+            919.8002798955176
+          ],
+          "view": {},
+          "maskHash": "26ebdd66f6ae2f7096e3e2abd6f7ebe593605597c9374b09a22e518782b617a8",
+          "maskChangedFromFirst": 110,
+          "coveredPixels": 27559,
+          "calls": 1080,
+          "triangles": 1343765
+        },
+        {
+          "step": 0.2,
+          "originPixel": [
+            1383.7999999999993,
+            919.8002798955174
+          ],
+          "view": {},
+          "maskHash": "e9ee3ac9033d3bae928845104bdfc35b5234bdd5ebd039f2beb2dda76509ccfa",
+          "maskChangedFromFirst": 257,
+          "coveredPixels": 27560,
+          "calls": 1080,
+          "triangles": 1343765
+        },
+        {
+          "step": 0.3,
+          "originPixel": [
+            1383.7000000000003,
+            919.8002798955177
+          ],
+          "view": {},
+          "maskHash": "b55566c3e35bbc68dd4c02917f56009a1c452b06241bdfaf70f8043318f3ddfa",
+          "maskChangedFromFirst": 368,
+          "coveredPixels": 27551,
+          "calls": 1080,
+          "triangles": 1343765
+        },
+        {
+          "step": 0.4,
+          "originPixel": [
+            1383.6,
+            919.8002798955176
+          ],
+          "view": {},
+          "maskHash": "7eea152707a0cbf66463b5394449ac27bc3c3fc2e96d64384dda753618f2b3ca",
+          "maskChangedFromFirst": 481,
+          "coveredPixels": 27520,
+          "calls": 1080,
+          "triangles": 1343765
+        },
+        {
+          "step": 0.65,
+          "originPixel": [
+            1383.35,
+            919.8002798955177
+          ],
+          "view": {},
+          "maskHash": "7e651816af585825b7d07fef0e3297278bd34fb39d80f42876a9603e2d159aec",
+          "maskChangedFromFirst": 764,
+          "coveredPixels": 27473,
+          "calls": 1080,
+          "triangles": 1343765
+        }
+      ]
+    },
+    "after": {
+      "mapSize": [
+        512,
+        512
+      ],
+      "worldStepMetres": 0.12109375,
+      "kind": "Actual existing shadow map, fixed scene/camera/sun-direction; translate sun+target in light-right only. First integer grid origin,0.. .4texel same cell then.65 crossing. Forced redraw is fixture-only; not shipped cadence.",
+      "records": [
+        {
+          "step": 0,
+          "originPixel": [
+            1384,
+            920.0000000000001
+          ],
+          "view": {
+            "enabled": true,
+            "fullWidth": 512,
+            "fullHeight": 512,
+            "offsetX": 2.2737367544323206e-13,
+            "offsetY": 0.19972010448248056,
+            "width": 512,
+            "height": 512
+          },
+          "maskHash": "5e328ba061c3cdf26e5e0029957d319310e1060bcbd6487aefc777d684384a69",
+          "maskChangedFromFirst": 0,
+          "coveredPixels": 27566,
+          "calls": 1080,
+          "triangles": 1343765
+        },
+        {
+          "step": 0.1,
+          "originPixel": [
+            1384,
+            920.0000000000001
+          ],
+          "view": {
+            "enabled": true,
+            "fullWidth": 512,
+            "fullHeight": 512,
+            "offsetX": -0.09999999999968168,
+            "offsetY": 0.19972010448248056,
+            "width": 512,
+            "height": 512
+          },
+          "maskHash": "5e328ba061c3cdf26e5e0029957d319310e1060bcbd6487aefc777d684384a69",
+          "maskChangedFromFirst": 0,
+          "coveredPixels": 27566,
+          "calls": 1080,
+          "triangles": 1343765
+        },
+        {
+          "step": 0.2,
+          "originPixel": [
+            1384,
+            920
+          ],
+          "view": {
+            "enabled": true,
+            "fullWidth": 512,
+            "fullHeight": 512,
+            "offsetX": -0.2000000000007276,
+            "offsetY": 0.19972010448259425,
+            "width": 512,
+            "height": 512
+          },
+          "maskHash": "5e328ba061c3cdf26e5e0029957d319310e1060bcbd6487aefc777d684384a69",
+          "maskChangedFromFirst": 0,
+          "coveredPixels": 27566,
+          "calls": 1080,
+          "triangles": 1343765
+        },
+        {
+          "step": 0.3,
+          "originPixel": [
+            1384,
+            920.0000000000001
+          ],
+          "view": {
+            "enabled": true,
+            "fullWidth": 512,
+            "fullHeight": 512,
+            "offsetX": -0.29999999999972715,
+            "offsetY": 0.19972010448236688,
+            "width": 512,
+            "height": 512
+          },
+          "maskHash": "5e328ba061c3cdf26e5e0029957d319310e1060bcbd6487aefc777d684384a69",
+          "maskChangedFromFirst": 0,
+          "coveredPixels": 27566,
+          "calls": 1080,
+          "triangles": 1343765
+        },
+        {
+          "step": 0.4,
+          "originPixel": [
+            1384,
+            920.0000000000001
+          ],
+          "view": {
+            "enabled": true,
+            "fullWidth": 512,
+            "fullHeight": 512,
+            "offsetX": -0.40000000000009095,
+            "offsetY": 0.19972010448248056,
+            "width": 512,
+            "height": 512
+          },
+          "maskHash": "5e328ba061c3cdf26e5e0029957d319310e1060bcbd6487aefc777d684384a69",
+          "maskChangedFromFirst": 0,
+          "coveredPixels": 27566,
+          "calls": 1080,
+          "triangles": 1343765
+        },
+        {
+          "step": 0.65,
+          "originPixel": [
+            1383,
+            920.0000000000001
+          ],
+          "view": {
+            "enabled": true,
+            "fullWidth": 512,
+            "fullHeight": 512,
+            "offsetX": 0.34999999999990905,
+            "offsetY": 0.19972010448236688,
+            "width": 512,
+            "height": 512
+          },
+          "maskHash": "958a82934650e274d80e3724ca93e3a6cd4686c9a3b490f7f0e7be4fd5a54d71",
+          "maskChangedFromFirst": 1156,
+          "coveredPixels": 27386,
+          "calls": 1080,
+          "triangles": 1343765
+        }
+      ]
+    },
+    "subcellMaskChangedBefore": 481,
+    "subcellMaskChangedAfter": 0,
+    "wholeCellCrossingAfterPixels": 1156,
+    "samplerCellJump": [
+      -1,
+      0
+    ],
+    "canvasPixelComparison": {
+      "before": {
+        "changedPixelsDeltaGreater1": 12111,
+        "maxRGBDelta": 69,
+        "pixels": 555082
+      },
+      "after": {
+        "changedPixelsDeltaGreater1": 0,
+        "maxRGBDelta": 0,
+        "pixels": 555082
+      }
+    },
+    "actualReadbackGenuine": true,
+    "physicalIPhoneTimingMeasured": false
+  },
+  "independentReview": {
+    "generatedAt": "2026-11-28T11:18:21.891Z",
+    "reviewer": "audit22",
+    "baselineSourceSHA": "929b2106ffe0304f9cf7739147437c2d129b0c23",
+    "libraryRevision": "160",
+    "sourceVerification": {
+      "baselinePlanetHash": "cf6083b04c62af455ba737a2b635e3a130c9a9a298cd8eff37836a6611776492",
+      "currentPlanetHash": "f4547cc5584dad2154c8f5debda07bbff5235b96c8761b94580b4c6706de57c1",
+      "helperHash": "9b80c455798bfd4dfabbfc5d41c395187d6986d99fe72e4f95a756c42b4fbb92",
+      "removingOnlyThreeShadowLinesExactlyRestoresBaseline": true
+    },
+    "sphericalCases": [
+      {
+        "radius": 170,
+        "mapSize": [
+          512,
+          512
+        ],
+        "longitudeLatitudeCases": 49,
+        "repeatUpdatesPerCase": 8,
+        "baseFrustumMetres": [
+          62,
+          62
+        ],
+        "nearFar": [
+          1,
+          120
+        ],
+        "lightsAndTargetUnchanged": true,
+        "gameCameraExact": true,
+        "samplerAndNativeFrustumAgree": true,
+        "resourcesReused": true
+      },
+      {
+        "radius": 261,
+        "mapSize": [
+          512,
+          512
+        ],
+        "longitudeLatitudeCases": 49,
+        "repeatUpdatesPerCase": 8,
+        "baseFrustumMetres": [
+          62,
+          62
+        ],
+        "nearFar": [
+          1,
+          120
+        ],
+        "lightsAndTargetUnchanged": true,
+        "gameCameraExact": true,
+        "samplerAndNativeFrustumAgree": true,
+        "resourcesReused": true
+      },
+      {
+        "radius": 510,
+        "mapSize": [
+          512,
+          512
+        ],
+        "longitudeLatitudeCases": 49,
+        "repeatUpdatesPerCase": 8,
+        "baseFrustumMetres": [
+          62,
+          62
+        ],
+        "nearFar": [
+          1,
+          120
+        ],
+        "lightsAndTargetUnchanged": true,
+        "gameCameraExact": true,
+        "samplerAndNativeFrustumAgree": true,
+        "resourcesReused": true
+      },
+      {
+        "radius": 170,
+        "mapSize": [
+          1024,
+          1024
+        ],
+        "longitudeLatitudeCases": 49,
+        "repeatUpdatesPerCase": 8,
+        "baseFrustumMetres": [
+          62,
+          62
+        ],
+        "nearFar": [
+          1,
+          120
+        ],
+        "lightsAndTargetUnchanged": true,
+        "gameCameraExact": true,
+        "samplerAndNativeFrustumAgree": true,
+        "resourcesReused": true
+      },
+      {
+        "radius": 261,
+        "mapSize": [
+          1024,
+          1024
+        ],
+        "longitudeLatitudeCases": 49,
+        "repeatUpdatesPerCase": 8,
+        "baseFrustumMetres": [
+          62,
+          62
+        ],
+        "nearFar": [
+          1,
+          120
+        ],
+        "lightsAndTargetUnchanged": true,
+        "gameCameraExact": true,
+        "samplerAndNativeFrustumAgree": true,
+        "resourcesReused": true
+      },
+      {
+        "radius": 510,
+        "mapSize": [
+          1024,
+          1024
+        ],
+        "longitudeLatitudeCases": 49,
+        "repeatUpdatesPerCase": 8,
+        "baseFrustumMetres": [
+          62,
+          62
+        ],
+        "nearFar": [
+          1,
+          120
+        ],
+        "lightsAndTargetUnchanged": true,
+        "gameCameraExact": true,
+        "samplerAndNativeFrustumAgree": true,
+        "resourcesReused": true
+      }
+    ],
+    "phaseCases": [
+      {
+        "mapSize": [
+          512,
+          512
+        ],
+        "zoom": 1,
+        "asymmetricFrustum": false,
+        "worldPoints": 27,
+        "motionCases": 13,
+        "subHalfCellPinned": true,
+        "aboveHalfCellWholePixelAdvance": true,
+        "positiveAndNegativeHalfCellBoundaryChecked": true,
+        "oddAndNonSquarePhaseChecked": true,
+        "maxMotionErrorPixels": 0
+      },
+      {
+        "mapSize": [
+          1024,
+          1024
+        ],
+        "zoom": 1,
+        "asymmetricFrustum": false,
+        "worldPoints": 27,
+        "motionCases": 13,
+        "subHalfCellPinned": true,
+        "aboveHalfCellWholePixelAdvance": true,
+        "positiveAndNegativeHalfCellBoundaryChecked": true,
+        "oddAndNonSquarePhaseChecked": true,
+        "maxMotionErrorPixels": 0
+      },
+      {
+        "mapSize": [
+          511,
+          777
+        ],
+        "zoom": 1,
+        "asymmetricFrustum": false,
+        "worldPoints": 27,
+        "motionCases": 13,
+        "subHalfCellPinned": true,
+        "aboveHalfCellWholePixelAdvance": true,
+        "positiveAndNegativeHalfCellBoundaryChecked": true,
+        "oddAndNonSquarePhaseChecked": true,
+        "maxMotionErrorPixels": 2.2737367544323206e-13
+      },
+      {
+        "mapSize": [
+          1024,
+          512
+        ],
+        "zoom": 1.7,
+        "asymmetricFrustum": true,
+        "worldPoints": 27,
+        "motionCases": 13,
+        "subHalfCellPinned": true,
+        "aboveHalfCellWholePixelAdvance": true,
+        "positiveAndNegativeHalfCellBoundaryChecked": true,
+        "oddAndNonSquarePhaseChecked": true,
+        "maxMotionErrorPixels": 9.094947017729282e-13
+      }
+    ],
+    "cadenceCases": [
+      {
+        "quality": "balanced",
+        "enabled": true,
+        "maxHz": 0,
+        "frames": 120,
+        "updates": 60,
+        "cachedFrames": 60,
+        "cachedProjectionExact": true
+      },
+      {
+        "quality": "high",
+        "enabled": true,
+        "maxHz": 0,
+        "frames": 120,
+        "updates": 120,
+        "cachedFrames": 0,
+        "cachedProjectionExact": true
+      },
+      {
+        "quality": "balanced",
+        "enabled": true,
+        "maxHz": 15,
+        "frames": 120,
+        "updates": 30,
+        "cachedFrames": 90,
+        "cachedProjectionExact": true
+      },
+      {
+        "quality": "economy",
+        "enabled": false,
+        "maxHz": 0,
+        "frames": 120,
+        "updates": 0,
+        "cachedFrames": 120,
+        "cachedProjectionExact": true
+      },
+      {
+        "quality": "orbit",
+        "enabled": false,
+        "maxHz": 0,
+        "frames": 120,
+        "updates": 0,
+        "cachedFrames": 120,
+        "cachedProjectionExact": true
+      },
+      {
+        "quality": "preview",
+        "enabled": false,
+        "maxHz": 0,
+        "frames": 120,
+        "updates": 0,
+        "cachedFrames": 120,
+        "cachedProjectionExact": true
+      }
+    ],
+    "invalidCases": [
+      {
+        "case": "map zero",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "map fractional",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "map NaN",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "map infinity",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "map unsafe integer",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "sun NaN",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "target Infinity",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "coincident sun target",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "target missing",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "up zero",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "up huge",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "frustum collapsed",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "frustum overflowing",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "near far reversed",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "zoom zero",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "zoom tiny",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "scale zero",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "scale Infinity",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "scale tiny",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "camera parent",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "camera replaced",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "world parent invalid",
+        "rejected": true,
+        "ownedCameraExact": true
+      },
+      {
+        "case": "disabled update",
+        "rejected": true,
+        "ownedCameraExact": true
+      }
+    ],
+    "constructorCases": [
+      {
+        "type": "null",
+        "rejected": true
+      },
+      {
+        "type": "PointLight",
+        "rejected": true
+      },
+      {
+        "type": "SpotLight",
+        "rejected": true
+      }
+    ],
+    "limitations": [
+      "This verifies real THREE160 matrices and native shadow sampler/frustum math, not GPU images or Safari/iPhone timings.",
+      "Translation stabilization is tested with fixed light direction; spherical direction changes, moving casters/receivers and PCF filtering still alter actual shadows.",
+      "World origin is snapped to integer pixel phase (not a promise to put every world point at a texel centre); odd/even/nonsquare maps and half-cell boundaries are verified.",
+      "A bounded half-texel shift slightly moves coverage at the existing frustum edges; no new shadow area or cascade is added.",
+      "Helper adds one setup view descriptor, three setup vectors and bounded CPU pose/projection work per existing shadow refresh; unchanged GPU resources/cadence do not imply zero CPU cost.",
+      "Internal runtime contract uses an unparented ordinary orthographic shadow camera; renderer path retains the original lighting and game-camera code."
+    ],
+    "summary": {
+      "sphericalCases": 294,
+      "nativeFrustumSamples": 1470,
+      "maxPhaseErrorPixels": 9.094947017729282e-13,
+      "maxOffsetPixels": 0.49881563962344444,
+      "maxDepthCoefficientDelta": 0,
+      "invalidCases": 23,
+      "sourceRuntimeUnchangedApartFromShadowIntegration": true
+    },
+    "conclusion": "No blocking projection, phase, invalid-input, cached-cadence, game-camera or scene/gameplay regression found within the existing runtime contract."
+  },
+  "initialFixtureInvestigation": {
+    "file": "scratch/ngw-64622/scene-hash-investigation.json",
+    "finding": "444 animated GLTF part matrices differed due async model attachment timing; repeated same AFTER runtime also differed. All raw geometry/instance/flags exact. Initial networkidle-only barrier was also insufficient before dynamic world import. Corrected explicit installed-container/Lid_Hinge gate, retained strict assertions and re-captured full pairs."
+  },
+  "localValidation": {
+    "clientCheckFullTest": "pass,871(35graphics+836main),zero failures/skips",
+    "newFocusedTests": 6,
+    "serverPass": 157,
+    "localDatabaseSkip": 1,
+    "auditPass": 10,
+    "allPlanetSyntax": "pass",
+    "releaseConsistency": "pass",
+    "CIDatabaseCoverage": "PostgreSQL CI required before merge"
+  },
+  "limitations": [
+    "Only translation phase at fixed light direction is stabilized; spherical light rotation, moving casters/receivers and PCF still affect real shadows.",
+    "Physical iPhone FPS/P95, full G27/softness/strategy and R1 artistic acceptance remain open.",
+    "Controlled temporal GPU fixture forces map refresh per test step; shipped cadence remains unchanged.",
+    "Publication requires full AGENTS.md gate; this benchmark is local evidence."
+  ]
+}
