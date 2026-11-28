@@ -15,6 +15,7 @@ import {hornPathPoints,hornRadius} from './tauren-horn-profile.js?v=1';
 import {canWalkCamp} from './sphere-physics.js?v=14';
 import {LONGHOUSE,insideHouse,buildHearthHouse} from './hearth-house.js?v=10';
 import {applyHearthSurfacePaint} from './hearth-surface-paint.js?v=1';
+import {createTentCanopyGeometry,paintTentHide} from './tent-canopy-art.js?v=1';
 import {createRoofTransparency,createSurfaceTransparency} from './roof-transparency.js?v=3';
 import {createHouseRat} from './house-rat.js?v=9';
 import {VALLEY_MESAS,VALLEY_ROCKS} from './planet-landmarks.js?v=1';
@@ -126,7 +127,9 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
   t.colorSpace=THREE.SRGBColorSpace;
   return t;
  }
- const hideTexture=texture((c,s)=>{c.fillStyle='#dbc39a';c.fillRect(0,0,s,s);for(let i=0;i<900;i++){c.fillStyle=rand()>.5?'#fff0ca18':'#53392313';c.fillRect(rand()*s,rand()*s,rand()*12,1)}c.strokeStyle='#6d3d2b';c.lineWidth=9;c.beginPath();for(let x=0;x<=s;x+=16){c.lineTo(x,40+(x%32?13:-13))}c.stroke();c.fillStyle='#ac5938';c.fillRect(0,54,s,12);c.fillStyle='#346c66';c.fillRect(0,74,s,6);c.fillStyle='#795034';c.fillRect(0,s-7,s,7)});
+ // Retain the original 3600 seeded draws before the deterministic overpaint:
+ // later village/terrain placement must consume exactly the old random cursor.
+ const hideTexture=texture((c,s)=>{c.fillStyle='#dbc39a';c.fillRect(0,0,s,s);for(let i=0;i<900;i++){c.fillStyle=rand()>.5?'#fff0ca18':'#53392313';c.fillRect(rand()*s,rand()*s,rand()*12,1)}c.strokeStyle='#6d3d2b';c.lineWidth=9;c.beginPath();for(let x=0;x<=s;x+=16){c.lineTo(x,40+(x%32?13:-13))}c.stroke();c.fillStyle='#ac5938';c.fillRect(0,54,s,12);c.fillStyle='#346c66';c.fillRect(0,74,s,6);c.fillStyle='#795034';c.fillRect(0,s-7,s,7);paintTentHide(c,s)});
  hideTexture.wrapS=THREE.RepeatWrapping;
  hideTexture.repeat.set(3,1);
  const m=(c,extra={})=>new THREE.MeshStandardMaterial({color:c,roughness:1,flatShading:true,side:THREE.DoubleSide,...extra});
@@ -180,9 +183,10 @@ export function createStartZone(three,scene,getRadius,heightAt,{r2Materials=fals
  longhouseRoofs.push(...longhouse.roofPlanes);
  shadowCasters.push(...longhouse.roofPlanes);
  function tent(x,z,r,yaw){
-  const g=anchor(x,z,yaw);
+  const g=anchor(x,z,yaw);g.name='camp-hide-tent';
   const rim=cyl(g,hideDark,0,.24,0,r,r,.49,14);
-  const cone=new THREE.Mesh(new THREE.ConeGeometry(r,r*1.42,14),hide);cone.position.y=r*.71;g.add(cone);shadowCasters.push(cone);
+  rim.name='camp-tent-rim';
+  const cone=new THREE.Mesh(createTentCanopyGeometry(THREE,r),hide);cone.name='camp-tent-canopy';cone.position.y=r*.71;g.add(cone);shadowCasters.push(cone);
   villageVisuals.addTent(g,r);
   // Same red entrance fabric and timber structural poles as main NexGame.
   for(let i=0;i<9;i++){const a=i*TAU/9;rod(g,wood,Math.sin(a)*r,0,Math.cos(a)*r,0,r*1.58,0,.09)}

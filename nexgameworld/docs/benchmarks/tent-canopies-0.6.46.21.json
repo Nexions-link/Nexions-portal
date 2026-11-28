@@ -1,0 +1,634 @@
+{
+  "version": "0.6.46.21",
+  "baseline": "c20e04d409bd1ce73c18114f1a69ecc7a5569e81",
+  "viewport": [
+    390,
+    844
+  ],
+  "deviceScaleFactor": 1.3,
+  "renderer": "Chromium SwiftShader; not physical iPhone",
+  "fixture": "HTTP character fixture/fake WebSocket; fixed dt .05/6frames. Camp retains stock first-spawn camera; detail views only initialize test heading (main0, oblique pi/2, small3pi/4). Stock pitch/zoom/FOV/follow/gestures untouched. Baseline planet/start-zone20; metadata badge21 for both. Shadow updates frozen for matching counter measurement. No production account or writes.",
+  "budget": {
+    "tents": 4,
+    "surfaceMeshesBeforeAndAfter": 8,
+    "canopyVerticesBefore": 236,
+    "canopyVerticesAfter": 180,
+    "rimVerticesBeforeAndAfter": 352,
+    "indexedTrianglesBeforeAndAfter": 392,
+    "nondegenerateTrianglesBefore": 336,
+    "nondegenerateTrianglesAfter": 392,
+    "visibleClothSideTrianglesBefore": 56,
+    "visibleClothSideTrianglesAfter": 168,
+    "vertexAttributeBytesSaved": 1792,
+    "surfaceMaterialsBeforeAndAfter": 2,
+    "surfaceCanvasMapsBeforeAndAfter": 1,
+    "surfaceCanvasPixels": [
+      128,
+      128
+    ],
+    "newTextures": 0,
+    "newMaterials": 0,
+    "newPasses": 0,
+    "newLights": 0,
+    "newVertexColors": 0,
+    "newFramePaint": 0,
+    "intendedCost": "56 more genuine triangles overall and112 more visible cloth-side triangles by reusing56 hidden cap and56 degenerate triangles; same indexed count is not zero GPU cost. One startup Canvas overpaint with temporary65536-byte ImageData; no permanent new pixel cache."
+  },
+  "cases": [
+    {
+      "place": "camp",
+      "quality": "economy",
+      "cameraAndPosition": {
+        "position": [
+          0,
+          0,
+          1
+        ],
+        "camera": [
+          24.148146844065025,
+          -3.6889830655418807,
+          275.900365556782
+        ],
+        "cameraQuaternion": [
+          0.3947677728123454,
+          0.3390410037738049,
+          0.556367541933279,
+          0.64781537616203
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.44,
+        "zoom": 27,
+        "frames": 6
+      },
+      "before": {
+        "calls": 1052,
+        "triangles": 1006881,
+        "textures": 21,
+        "geometries": 521,
+        "materials": 622
+      },
+      "after": {
+        "calls": 1052,
+        "triangles": 1006881,
+        "textures": 21,
+        "geometries": 521,
+        "materials": 622
+      },
+      "anchorWorldAndAllNonCanopyGeometryExact": true,
+      "materialMapSettingsExact": true,
+      "canvasBefore": {
+        "width": 128,
+        "height": 128,
+        "pixelHash": "43e22f13667c0f294a4ca22d4bbc8cf6db66462d819de9a9d84af2301b535ff9"
+      },
+      "canvasAfter": {
+        "width": 128,
+        "height": 128,
+        "pixelHash": "925e95253b50a31c2e0d4c2d3179f358f94bd32e17d1ee3764a8fa99d88ada88"
+      },
+      "errors": 0,
+      "overflow": false
+    },
+    {
+      "place": "main",
+      "quality": "balanced",
+      "cameraAndPosition": {
+        "position": [
+          0.022983725280303628,
+          -0.026814346160354233,
+          0.9993761750273178
+        ],
+        "camera": [
+          -5.980699369900706,
+          -7.2132002506069,
+          269.1171868814281
+        ],
+        "cameraQuaternion": [
+          0.3808267068542513,
+          -0.3649500917525107,
+          -0.6059040255293318,
+          0.5955356930728261
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 6
+      },
+      "before": {
+        "calls": 955,
+        "triangles": 1272326,
+        "textures": 32,
+        "geometries": 385,
+        "materials": 627
+      },
+      "after": {
+        "calls": 955,
+        "triangles": 1272326,
+        "textures": 32,
+        "geometries": 385,
+        "materials": 627
+      },
+      "anchorWorldAndAllNonCanopyGeometryExact": true,
+      "materialMapSettingsExact": true,
+      "canvasBefore": {
+        "width": 128,
+        "height": 128,
+        "pixelHash": "43e22f13667c0f294a4ca22d4bbc8cf6db66462d819de9a9d84af2301b535ff9"
+      },
+      "canvasAfter": {
+        "width": 128,
+        "height": 128,
+        "pixelHash": "925e95253b50a31c2e0d4c2d3179f358f94bd32e17d1ee3764a8fa99d88ada88"
+      },
+      "errors": 0,
+      "overflow": false
+    },
+    {
+      "place": "oblique",
+      "quality": "balanced",
+      "cameraAndPosition": {
+        "position": [
+          0.04210992529814928,
+          -0.0574226254065672,
+          0.9974614760895788
+        ],
+        "camera": [
+          11.293871779575786,
+          -27.587501609611166,
+          267.51892662505406
+        ],
+        "cameraQuaternion": [
+          0.5610058943672716,
+          0.0174604539900176,
+          -0.011836747640407715,
+          0.8275429961258433
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 6
+      },
+      "before": {
+        "calls": 578,
+        "triangles": 1270629,
+        "textures": 26,
+        "geometries": 206,
+        "materials": 627
+      },
+      "after": {
+        "calls": 578,
+        "triangles": 1270629,
+        "textures": 26,
+        "geometries": 206,
+        "materials": 627
+      },
+      "anchorWorldAndAllNonCanopyGeometryExact": true,
+      "materialMapSettingsExact": true,
+      "canvasBefore": {
+        "width": 128,
+        "height": 128,
+        "pixelHash": "43e22f13667c0f294a4ca22d4bbc8cf6db66462d819de9a9d84af2301b535ff9"
+      },
+      "canvasAfter": {
+        "width": 128,
+        "height": 128,
+        "pixelHash": "925e95253b50a31c2e0d4c2d3179f358f94bd32e17d1ee3764a8fa99d88ada88"
+      },
+      "errors": 0,
+      "overflow": false
+    },
+    {
+      "place": "small",
+      "quality": "economy",
+      "cameraAndPosition": {
+        "position": [
+          -0.03447288859454716,
+          0.022981925729698108,
+          0.9991413568868535
+        ],
+        "camera": [
+          -0.681309474559026,
+          -2.41918623814543,
+          269.24285941241106
+        ],
+        "cameraQuaternion": [
+          0.48165245017128766,
+          0.19567807759587338,
+          0.3287655287896417,
+          0.7884378442667791
+        ],
+        "cameraFov": 58,
+        "cameraPitch": 0.36,
+        "zoom": 13,
+        "frames": 6
+      },
+      "before": {
+        "calls": 425,
+        "triangles": 895110,
+        "textures": 15,
+        "geometries": 182,
+        "materials": 622
+      },
+      "after": {
+        "calls": 425,
+        "triangles": 895110,
+        "textures": 15,
+        "geometries": 182,
+        "materials": 622
+      },
+      "anchorWorldAndAllNonCanopyGeometryExact": true,
+      "materialMapSettingsExact": true,
+      "canvasBefore": {
+        "width": 128,
+        "height": 128,
+        "pixelHash": "43e22f13667c0f294a4ca22d4bbc8cf6db66462d819de9a9d84af2301b535ff9"
+      },
+      "canvasAfter": {
+        "width": 128,
+        "height": 128,
+        "pixelHash": "925e95253b50a31c2e0d4c2d3179f358f94bd32e17d1ee3764a8fa99d88ada88"
+      },
+      "errors": 0,
+      "overflow": false
+    }
+  ],
+  "canopyBuffers": [
+    {
+      "tentIndex": 0,
+      "before": {
+        "vertices": 59,
+        "triangles": 42,
+        "positionHash": "369c120cb085107f709ff5b1902e901fd30c3d0f4e4a08377eb1c37f8b26fc23",
+        "normalHash": "a31e3fe67693e119686c6edc71353f20985e780426d8280caef28030186ba3d1",
+        "indexHash": "78fa50200b62e2e7c2cae878e07de4246dd074418eeae4bc1fd3c55c311950b9",
+        "uvHash": "4e79fcd3d4dd14628648879291c795fbec59d637b2eeed34ac2219d129438806"
+      },
+      "after": {
+        "vertices": 45,
+        "triangles": 42,
+        "positionHash": "2a529dd3abc22154e77331947b3718796da102d070b4d5e32197cc94e56db762",
+        "normalHash": "8f214e74c8e7fd32e4f779090b5c2121fa044b8590d7597069aa50efb55bdfc0",
+        "indexHash": "e84d4d2b71a2beab0d54ddd163f0ea9ab72f628155e254b2479d7be8c5bc05b2",
+        "uvHash": "dadcb25e479cd5602b568c5596d8038fea92ee3887822626e547693fb4256471"
+      },
+      "rimAndPolesAndStitchMatricesExact": true
+    },
+    {
+      "tentIndex": 1,
+      "before": {
+        "vertices": 59,
+        "triangles": 42,
+        "positionHash": "c821a1676e8dc37a9886155368150b070065ed1d1a96ac2c99ad16daac34374a",
+        "normalHash": "a31e3fe67693e119686c6edc71353f20985e780426d8280caef28030186ba3d1",
+        "indexHash": "78fa50200b62e2e7c2cae878e07de4246dd074418eeae4bc1fd3c55c311950b9",
+        "uvHash": "4e79fcd3d4dd14628648879291c795fbec59d637b2eeed34ac2219d129438806"
+      },
+      "after": {
+        "vertices": 45,
+        "triangles": 42,
+        "positionHash": "63fbc7be650d9335ac50ab26c276085e1aed1b781b628d94aad13c1f72c71a2e",
+        "normalHash": "8467e1485a45bebf77494dcfeac6217b300622d0292a69d0161db547d2508e03",
+        "indexHash": "e84d4d2b71a2beab0d54ddd163f0ea9ab72f628155e254b2479d7be8c5bc05b2",
+        "uvHash": "dadcb25e479cd5602b568c5596d8038fea92ee3887822626e547693fb4256471"
+      },
+      "rimAndPolesAndStitchMatricesExact": true
+    },
+    {
+      "tentIndex": 2,
+      "before": {
+        "vertices": 59,
+        "triangles": 42,
+        "positionHash": "54340bcf59ccb7b31a5c8c5e580d02d8cce5a1cca08b2062a2ecb669fbc2023c",
+        "normalHash": "a31e3fe67693e119686c6edc71353f20985e780426d8280caef28030186ba3d1",
+        "indexHash": "78fa50200b62e2e7c2cae878e07de4246dd074418eeae4bc1fd3c55c311950b9",
+        "uvHash": "4e79fcd3d4dd14628648879291c795fbec59d637b2eeed34ac2219d129438806"
+      },
+      "after": {
+        "vertices": 45,
+        "triangles": 42,
+        "positionHash": "37c99df9ce1f3f4093b6c1f75098c9b49e70f97652353eac8eca2ab16128c9ee",
+        "normalHash": "08eeeb84ffc8b1195ecefe2a2a66267a50fdec5de1f883e3ad6b6dac0c7965c3",
+        "indexHash": "e84d4d2b71a2beab0d54ddd163f0ea9ab72f628155e254b2479d7be8c5bc05b2",
+        "uvHash": "dadcb25e479cd5602b568c5596d8038fea92ee3887822626e547693fb4256471"
+      },
+      "rimAndPolesAndStitchMatricesExact": true
+    },
+    {
+      "tentIndex": 3,
+      "before": {
+        "vertices": 59,
+        "triangles": 42,
+        "positionHash": "94345adfcaa383ffa0b0d63106b7a9313a19dbcfafc56bb3582590acf9dc5d19",
+        "normalHash": "a31e3fe67693e119686c6edc71353f20985e780426d8280caef28030186ba3d1",
+        "indexHash": "78fa50200b62e2e7c2cae878e07de4246dd074418eeae4bc1fd3c55c311950b9",
+        "uvHash": "4e79fcd3d4dd14628648879291c795fbec59d637b2eeed34ac2219d129438806"
+      },
+      "after": {
+        "vertices": 45,
+        "triangles": 42,
+        "positionHash": "03eed1241eb79b7da59b23dc173ee895d63c8dd9f6149765b8d0187627dfe85b",
+        "normalHash": "7e7fe9eb792881ed51dc6f4f03b80292a9fdcfce1b7c04fa430b5cfefa5410aa",
+        "indexHash": "e84d4d2b71a2beab0d54ddd163f0ea9ab72f628155e254b2479d7be8c5bc05b2",
+        "uvHash": "dadcb25e479cd5602b568c5596d8038fea92ee3887822626e547693fb4256471"
+      },
+      "rimAndPolesAndStitchMatricesExact": true
+    }
+  ],
+  "actualTriangleSeamReview": {
+    "scope": "Actual createTentCanopyGeometry helper; base/apex fixed; actual THREE triangles, all9seams sampled at261heights .08r..1.4r, envelope504angles×9heights×4radii",
+    "cases": [
+      {
+        "r": 3,
+        "coneVertices": 45,
+        "indexedTriangles": 42,
+        "minSeamCentreGap": 0.014197762703979988,
+        "minSeamOuterGap": 0.036508159998992706,
+        "minOutwardEnvelopeDelta": 0.0003220856505387337,
+        "rayMisses": 0
+      },
+      {
+        "r": 3.4,
+        "coneVertices": 45,
+        "indexedTriangles": 42,
+        "minSeamCentreGap": 0.016090797626449493,
+        "minSeamOuterGap": 0.03840119492146221,
+        "minOutwardEnvelopeDelta": 0.00036502856304048564,
+        "rayMisses": 0
+      },
+      {
+        "r": 3.8,
+        "coneVertices": 45,
+        "indexedTriangles": 42,
+        "minSeamCentreGap": 0.01798383270390347,
+        "minSeamOuterGap": 0.04029422999891619,
+        "minOutwardEnvelopeDelta": 0.00040797248350020465,
+        "rayMisses": 0
+      },
+      {
+        "r": 4.2,
+        "coneVertices": 45,
+        "indexedTriangles": 42,
+        "minSeamCentreGap": 0.01987710615178706,
+        "minSeamOuterGap": 0.04218750344679956,
+        "minOutwardEnvelopeDelta": 0.00045092036025604076,
+        "rayMisses": 0
+      }
+    ],
+    "minCentre": 0.014197762703979988,
+    "minOuter": 0.036508159998992706,
+    "minEnv": 0.0003220856505387337,
+    "note": "Rod inner radius can intersect cloth: stitches were already surface ornaments, outer/centre visibility is relevant. Entire rod above cloth is not guaranteed. Helper-specific varying billow is bounded by the earlier worst-case uniform .012r review."
+  },
+  "geometryAblation": {
+    "case": "main balanced",
+    "method": "Same stopped frame, same new128-square pigment, existing4canopies replaced temporarily with original main20 ConeGeometry; camera/material/map/time frozen. Shadowmap remains frozen, so this isolates direct geometry/UV/normal effect rather than new shadowmap. No production change.",
+    "changedPixelsDeltaGreater1": 32406,
+    "pixels": 556179,
+    "maxRGBDelta": 167,
+    "region": "full screenshot; UI unchanged",
+    "physicalIPhoneTiming": false
+  },
+  "independentSceneReview": {
+    "generatedAt": "2026-11-28T10:05:48.670Z",
+    "reviewer": "audit21",
+    "baselineSourceSHA": "c20e04d409bd1ce73c18114f1a69ecc7a5569e81",
+    "sourceVerification": {
+      "baselineStartZoneHash": "82af0ee3aba04aeb2d5f44c907b96d2e06a840b3c93eb814adc63d276bff1e89",
+      "currentStartZoneHash": "c8d2e05a25e76983d0ce3f6c5759db44d067c40f9839a39f10572b99493ef7cd",
+      "helperHash": "c116bd8745053cbf33821778ef6d212725a9ba728e365efd9dc49d4fe2fe2159",
+      "removingOnlyTentChangesExactlyRestoresBaseline": true
+    },
+    "setup": {
+      "libraryRevision": "160",
+      "renderer": "none; actual createStartZone with real villageVisuals/test DOM harness",
+      "heightAt": "exported startHeightAt in each radius geodesic chart; global planet base-height blending outside camp is not modeled here"
+    },
+    "geometryCases": [
+      {
+        "radius": 3,
+        "beforeVertices": 59,
+        "afterVertices": 45,
+        "submittedTrianglesBefore": 42,
+        "submittedTrianglesAfter": 42,
+        "nondegenerateNewTriangles": 42,
+        "minTriangleArea": 0.8672056799344646,
+        "minOutwardFaceDot": 1.4191344666370662,
+        "maxBillow": 0.034271789370210026,
+        "maxSeamPositionDelta": 7.347880586115415e-16,
+        "maxSeamNormalDelta": 0,
+        "cameraEnvelopeSurfaceSamples": 2772,
+        "minCameraEnvelopeVerticalMargin": 0.7013340590943016,
+        "stitchRays": 1809,
+        "stitchRayMisses": 0,
+        "minStitchCentreGap": 0.014299215359155237,
+        "minStitchFullRadiusGap": -0.008028012968073088,
+        "stitchNote": "All stitch centres stay outside cloth, but part of a strand cross-section is embedded in the new billow; visible outside portion remains."
+      },
+      {
+        "radius": 3.4,
+        "beforeVertices": 59,
+        "afterVertices": 45,
+        "submittedTrianglesBefore": 42,
+        "submittedTrianglesAfter": 42,
+        "nondegenerateNewTriangles": 42,
+        "minTriangleArea": 1.1138775061713844,
+        "minOutwardFaceDot": 2.0658392437083037,
+        "maxBillow": 0.038841346701862234,
+        "maxSeamPositionDelta": 8.327598068183549e-16,
+        "maxSeamNormalDelta": 0,
+        "cameraEnvelopeSurfaceSamples": 2772,
+        "minCameraEnvelopeVerticalMargin": 0.6948452876833557,
+        "stitchRays": 1809,
+        "stitchRayMisses": 0,
+        "minStitchCentreGap": 0.016205776650673576,
+        "minStitchFullRadiusGap": -0.00612145167655475,
+        "stitchNote": "All stitch centres stay outside cloth, but part of a strand cross-section is embedded in the new billow; visible outside portion remains."
+      },
+      {
+        "radius": 3.8,
+        "beforeVertices": 59,
+        "afterVertices": 45,
+        "submittedTrianglesBefore": 42,
+        "submittedTrianglesAfter": 42,
+        "nondegenerateNewTriangles": 42,
+        "minTriangleArea": 1.3913832714284122,
+        "minOutwardFaceDot": 2.8841009119404672,
+        "maxBillow": 0.043410878172029266,
+        "maxSeamPositionDelta": 9.307315550251684e-16,
+        "maxSeamNormalDelta": 0,
+        "cameraEnvelopeSurfaceSamples": 2772,
+        "minCameraEnvelopeVerticalMargin": 0.6883565529957183,
+        "stitchRays": 1809,
+        "stitchRayMisses": 0,
+        "minStitchCentreGap": 0.01811233906152898,
+        "minStitchFullRadiusGap": -0.004214889265699344,
+        "stitchNote": "All stitch centres stay outside cloth, but part of a strand cross-section is embedded in the new billow; visible outside portion remains."
+      },
+      {
+        "radius": 4.2,
+        "beforeVertices": 59,
+        "afterVertices": 45,
+        "submittedTrianglesBefore": 42,
+        "submittedTrianglesAfter": 42,
+        "nondegenerateNewTriangles": 42,
+        "minTriangleArea": 1.6997230880518042,
+        "minOutwardFaceDot": 3.8941039999892646,
+        "maxBillow": 0.047980461365167315,
+        "maxSeamPositionDelta": 1.0287033032319818e-15,
+        "maxSeamNormalDelta": 0,
+        "cameraEnvelopeSurfaceSamples": 2772,
+        "minCameraEnvelopeVerticalMargin": 0.6818677448614627,
+        "stitchRays": 1809,
+        "stitchRayMisses": 0,
+        "minStitchCentreGap": 0.02001913954321255,
+        "minStitchFullRadiusGap": -0.0023080887840157757,
+        "stitchNote": "All stitch centres stay outside cloth, but part of a strand cross-section is embedded in the new billow; visible outside portion remains."
+      }
+    ],
+    "conclusion": "No unintended non-tent scene/resource/RNG regression found. Intended canopy topology and one existing CanvasTexture pigment change only; labels added. Camera envelope and 9 seam centres remain clear.",
+    "limitations": [
+      "No WebGL, GPU timings, Safari or physical iPhone FPS/P95 measured.",
+      "Submitted triangle count remains42, but formerly degenerate/apex and hidden bottom-cap triangles become real cloth faces; equal submitted count does not imply identical raster/fragment cost.",
+      "Paint does startup CPU work and allocates a temporary128x128 ImageData plus per-pixel transient arrays; no persistent new texture or per-frame paint is introduced.",
+      "Some stitch cylinder cross-sections partly intersect the billowed cloth even though all stitch centres stay outside; visual review must confirm readable stitching.",
+      "Original closed rim geometry is unchanged and seals the open cone bottom.",
+      "No production accounts, writes, deployment or tracked-source mutation performed."
+    ],
+    "sceneCases": [
+      {
+        "radius": 170,
+        "baseline": {
+          "meshes": 387,
+          "geometries": 383,
+          "materials": 78,
+          "textures": 5,
+          "triangles": 129321,
+          "totalMeshVertices": 37666
+        },
+        "current": {
+          "meshes": 387,
+          "geometries": 383,
+          "materials": 78,
+          "textures": 5,
+          "triangles": 129321,
+          "totalMeshVertices": 37610
+        },
+        "fullResourcesIncludingSpriteBefore": {
+          "renderables": 388,
+          "geometries": 384,
+          "materials": 79,
+          "textures": 6,
+          "triangles": 129323
+        },
+        "fullResourcesIncludingSpriteAfter": {
+          "renderables": 388,
+          "geometries": 384,
+          "materials": 79,
+          "textures": 6,
+          "triangles": 129323
+        },
+        "spriteBuffersFlagsMapsExact": true,
+        "allNonTentBuffersWorldInstancesMaterialTextureFlagsExact": true,
+        "allRimsExact": true,
+        "allNodeWorldTransformsExact": true,
+        "randomCallsBefore": 3600,
+        "randomCallsAfter": 3600
+      },
+      {
+        "radius": 261,
+        "baseline": {
+          "meshes": 387,
+          "geometries": 383,
+          "materials": 78,
+          "textures": 5,
+          "triangles": 129321,
+          "totalMeshVertices": 37666
+        },
+        "current": {
+          "meshes": 387,
+          "geometries": 383,
+          "materials": 78,
+          "textures": 5,
+          "triangles": 129321,
+          "totalMeshVertices": 37610
+        },
+        "fullResourcesIncludingSpriteBefore": {
+          "renderables": 388,
+          "geometries": 384,
+          "materials": 79,
+          "textures": 6,
+          "triangles": 129323
+        },
+        "fullResourcesIncludingSpriteAfter": {
+          "renderables": 388,
+          "geometries": 384,
+          "materials": 79,
+          "textures": 6,
+          "triangles": 129323
+        },
+        "spriteBuffersFlagsMapsExact": true,
+        "allNonTentBuffersWorldInstancesMaterialTextureFlagsExact": true,
+        "allRimsExact": true,
+        "allNodeWorldTransformsExact": true,
+        "randomCallsBefore": 3600,
+        "randomCallsAfter": 3600
+      },
+      {
+        "radius": 510,
+        "baseline": {
+          "meshes": 387,
+          "geometries": 383,
+          "materials": 78,
+          "textures": 5,
+          "triangles": 129321,
+          "totalMeshVertices": 37666
+        },
+        "current": {
+          "meshes": 387,
+          "geometries": 383,
+          "materials": 78,
+          "textures": 5,
+          "triangles": 129321,
+          "totalMeshVertices": 37610
+        },
+        "fullResourcesIncludingSpriteBefore": {
+          "renderables": 388,
+          "geometries": 384,
+          "materials": 79,
+          "textures": 6,
+          "triangles": 129323
+        },
+        "fullResourcesIncludingSpriteAfter": {
+          "renderables": 388,
+          "geometries": 384,
+          "materials": 79,
+          "textures": 6,
+          "triangles": 129323
+        },
+        "spriteBuffersFlagsMapsExact": true,
+        "allNonTentBuffersWorldInstancesMaterialTextureFlagsExact": true,
+        "allRimsExact": true,
+        "allNodeWorldTransformsExact": true,
+        "randomCallsBefore": 3600,
+        "randomCallsAfter": 3600
+      }
+    ],
+    "changedTextureScope": "Only original128square hide map; exactly8oldconsumers, flags/transforms/dimensions/version1 unchanged; detailedhash/slot proof in scratch independent-review.json."
+  },
+  "localValidation": {
+    "clientCheckAndFullTest": "pass;865 named tests (35graphics+830main), zero failures/skips",
+    "newNamedTests": 7,
+    "serverPass": 157,
+    "localDatabaseSkip": 1,
+    "auditPass": 10,
+    "fullPlanetSyntax": "pass",
+    "releaseConsistency": "pass",
+    "CIDatabaseCoverage": "Required before merge"
+  },
+  "limitations": [
+    "Physical iPhone FPS/P95 unmeasured; equal indexed counters do not establish target-device GPU time.",
+    "Original approximate tent colliders are preserved, not claimed repaired.",
+    "R1 artistic acceptance and G27 real shadows remain open.",
+    "Production availability requires full AGENTS.md gate; this is local evidence."
+  ]
+}
